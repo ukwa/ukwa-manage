@@ -1,13 +1,20 @@
+import sys
+
 import requests
+from requests.auth import HTTPDigestAuth
 
 
 class API(object):
 
+
     def __init__(self, host='https://localhost:8443/engine',
-        user='admin', passwd='', verify=False):
+        user='admin', passwd='', verbose=False, verify=False):
         self.host = host
         self.user = user
         self.passwd = passwd
+        self.config = {}
+        if verbose:
+            self.config['verbose'] = sys.stderr
         self.verify = verify
 
     def _post(self, action='', url='', data={}):
@@ -17,8 +24,9 @@ class API(object):
             url = self.host
         data['action'] = action
         headers = {'Accept': 'application/xml'}
-        r = requests.post(url, auth=(self.user, self.passwd),
-            data=data, headers=headers, verify=self.verify)
+        r = requests.post(url, auth=HTTPDigestAuth(self.user, self.passwd),
+            data=data, headers=headers, config=self.config,
+            verify=self.verify)
         return r
 
     def add(self, addpath=''):
@@ -29,7 +37,7 @@ class API(object):
 
     def create(self, createpath=''):
         action = 'create'
-        if create == '':
+        if createpath == '':
             return None
         return self._post(action, data={'createpath': createpath})
 
@@ -76,7 +84,8 @@ class API(object):
             data['asProfile'] = 'off'
         headers = {'Accept': 'application/xml'}
         r = requests.post(url=url, auth=(self.user, self.passwd),
-            data=data, headers=headers, verify=self.verify)
+            data=data, headers=headers, config=self.config,
+            verify=self.verify)
         return r
 
     def submit(self, job='', urls=[], config={}):
