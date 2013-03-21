@@ -1,0 +1,163 @@
+#!/bin/bash
+
+USER="admin"
+PASSWORD="bl_uk"
+CLAMD_PORT="3310"
+
+CONFIG_ROOT="/heritrix/git/heritrix"
+HERITRIX_PROFILES="$CONFIG_ROOT/profiles"
+HERITRIX_EXCLUDE="$CONFIG_ROOT/exclude.txt"
+HERITRIX_SHORTENERS="$CONFIG_ROOT/url.shorteners.txt"
+HERITRIX_SURTS="$CONFIG_ROOT/surts.txt"
+HERITRIX_JOBS="/opt/heritrix/jobs"
+HERITRIX_HOST="opera.bl.uk"
+HERITRIX_PORT="8443"
+
+usage()
+{
+		echo -ne "Submit a job to Heritrix. e.g.\n\n\theritrix_job -p daily -s /tmp/seeds.txt -n daily-1200\n\n"
+		echo "OPTIONS:"
+		echo "  -h	Show this message."
+		echo "  -p	Profile to use."
+		echo "  -s	Path to seed list."
+		echo "  -n	Job name prefix."
+}
+
+heritrix()
+{
+	curl --silent -d "action=$1" -k -u "$USER:$PASSWORD" --anyauth --location "https://$HERITRIX_HOST:$HERITRIX_PORT/engine/$2" -H "Accept: application/xml"
+}
+
+getstatus()
+{
+	heritrix "none" "job/$1" | sed -rn 's@^\s*<crawlControllerState>([^<]+)</crawlControllerState>.*$@\1@p'
+}
+
+waitfor()
+{
+	while [[ "$(getstatus "$NEW_JOB_NAME")" != "$1" ]]
+	do
+		sleep $2
+	done
+}
+
+log()
+{
+	echo "[$(date "+%Y-%m-%d %H:%M:%S")] $1"
+}
+
+while getopts "hp:s:n:" OPTION
+do
+		case $OPTION in
+		h)
+				usage
+				exit 1
+				;;
+		p)
+				PROFILE="$OPTARG"
+				;;
+		s)
+				SEED_PATH="$OPTARG"
+				;;
+		n)
+				JOB_ROOT="$OPTARG"
+				;;
+		esac
+done
+
+if [[ -z $PROFILE ]] || [[ -z $SEED_PATH ]] || [[ -z $JOB_ROOT ]]
+then
+	usage
+	exit 1
+fi
+
+#Check we actually have seeds to process.
+if [[ $(wc -l < "$SEED_PATH") -eq 0 ]]
+then
+	log "No seeds found at $SEED_PATH!" >&2
+	exit 1
+else
+	log "Received $(wc -l < "$NEW_JOB_DIR/seeds.txt") seed(s) from ACT."
+fi
+
+#Kill any current jobs with the same job name.
+while read $job
+do
+	if [[ "$job" == "$JOB_ROOT-"* ]] && [[ $(getstatus "$job") != "" ]]
+	then
+		log "Killing already running job: $job"
+		#Pause Job
+		heritrix "pause" "job/$NEW_JOB_NAME" > /dev/null
+		waitfor "PAUSED" 3600
+		#Terminate Job
+		heritrix "terminate" "job/$NEW_JOB_NAME" > /dev/null
+		waitfor "ABORTED" 30
+		#Teardown Job
+		heritrix "teardown" "job/$NEW_JOB_NAME" > /dev/null
+		waitfor "" 60
+	fi
+done < <(heritrix "none" | sed -rn 's@^\s*<shortName>([^<]+)</shortName>.*$@\1@p')
+
+#Set up the new job.
+NEW_JOB_NAME="$JOB_ROOT-$(date +%Y%m%d%H%M%S)"
+NEW_JOB_DIR="$HERITRIX_JOBS/$NEW_JOB_NAME"
+#Create the job directory.
+log "Setting up $NEW_JOB_NAME"
+mkdir "$NEW_JOB_DIR"
+if [[ ! -d "$NEW_JOB_DIR" ]]
+then
+	log "Problem creating $NEW_JOB_DIR!" >&2
+	exit 1
+fi
+#Copy the appropriate profile.
+cp "$HERITRIX_PROFILES/$PROFILE" "$NEW_JOB_DIR/crawler-beans.cxml"
+if [[ ! -f "$NEW_JOB_DIR/crawler-beans.cxml" ]]
+then
+	log "Problem copying profile!" >&2
+	exit 1
+fi
+#Replace values in the new profile with the new job name.
+sed -ri "s@TO_BE_REPLACED@$NEW_JOB_NAME@g" "$NEW_JOB_DIR/crawler-beans.cxml"
+sed -ri "s@REPLACE_CLAMD_PORT@$CLAMD_PORT@g" "$NEW_JOB_DIR/crawler-beans.cxml"
+log "Creating relevant output directories."
+while read dir
+do
+	mkdir "$dir"
+done < <(sed -rn 's@^.+(value="|<value>)(/heritrix/.+/)("|</value>).*$@\2@p' "$NEW_JOB_DIR/crawler-beans.cxml")
+#Copy remaining configuration files to the new folder.
+log "Copying URL shorteners."
+cp "$HERITRIX_SHORTENERS" "$NEW_JOB_DIR"
+log "Copying exclusion list."
+cp "$HERITRIX_EXCLUDE" "$NEW_JOB_DIR"
+log "Copying SURTs list."
+cp "$HERITRIX_SURTS" "$NEW_JOB_DIR"
+log "Moving seeds."
+curl --silent "$SEED_PATH" | sed -rn 's@^\s*<urls>([^<]+)</urls>.*$@\1@p' > "$NEW_JOB_DIR/seeds.txt"
+mv "$SEED_PATH" "$NEW_JOB_DIR/seeds.txt"
+#Check number of seeds.
+
+#Add Job Directory
+log "Adding $NEW_JOB_NAME to Heritrix."
+heritrix "add&addpath=$NEW_JOB_DIR" > /dev/null
+#Build Job Configuration
+log "Building $NEW_JOB_NAME"
+heritrix "build" "job/$NEW_JOB_NAME" > /dev/null
+waitfor "NASCENT" 60
+#Launch Job
+log "Launching $NEW_JOB_NAME"
+heritrix "launch" "job/$NEW_JOB_NAME" > /dev/null
+waitfor "PAUSED" 3600
+#Pause Job
+#heritrix "pause" "job/$NEW_JOB_NAME"
+#Unpause Job
+heritrix "unpause" "job/$NEW_JOB_NAME" > /dev/null
+log "Unpausing $NEW_JOB_NAME"
+waitfor "RUNNING" 60
+waitfor "EMPTY" 3600
+#Terminate Job
+heritrix "terminate" "job/$NEW_JOB_NAME" > /dev/null
+log "$NEW_JOB_NAME empty; terminating."
+waitfor "ABORTED" 30
+#Teardown Job
+heritrix "teardown" "job/$NEW_JOB_NAME" > /dev/null
+waitfor "" 60
