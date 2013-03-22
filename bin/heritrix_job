@@ -35,9 +35,9 @@ getstatus()
 
 waitfor()
 {
-	while [[ "$(getstatus "$NEW_JOB_NAME")" != "$1" ]]
+	while [[ "$(getstatus "$1")" != "$2" ]]
 	do
-		sleep $2
+		sleep $3
 	done
 }
 
@@ -77,24 +77,24 @@ then
 	log "No seeds found at $SEED_PATH!" >&2
 	exit 1
 else
-	log "Received $(wc -l < "$NEW_JOB_DIR/seeds.txt") seed(s) from ACT."
+	log "Received $(wc -l < "$SEED_PATH") seed(s) from ACT."
 fi
 
 #Kill any current jobs with the same job name.
-while read $job
+while read job
 do
 	if [[ "$job" == "$JOB_ROOT-"* ]] && [[ $(getstatus "$job") != "" ]]
 	then
 		log "Killing already running job: $job"
 		#Pause Job
-		heritrix "pause" "job/$NEW_JOB_NAME" > /dev/null
-		waitfor "PAUSED" 3600
+		heritrix "pause" "job/$job" > /dev/null
+		waitfor "$job" "PAUSED" 10 
 		#Terminate Job
-		heritrix "terminate" "job/$NEW_JOB_NAME" > /dev/null
-		waitfor "ABORTED" 30
+		heritrix "terminate" "job/$job" > /dev/null
+		waitfor "$job" "FINISHED" 10
 		#Teardown Job
-		heritrix "teardown" "job/$NEW_JOB_NAME" > /dev/null
-		waitfor "" 60
+		heritrix "teardown" "job/$job" > /dev/null
+		waitfor "$job" "" 10
 	fi
 done < <(heritrix "none" | sed -rn 's@^\s*<shortName>([^<]+)</shortName>.*$@\1@p')
 
@@ -134,30 +134,29 @@ cp "$HERITRIX_SURTS" "$NEW_JOB_DIR"
 log "Moving seeds."
 curl --silent "$SEED_PATH" | sed -rn 's@^\s*<urls>([^<]+)</urls>.*$@\1@p' > "$NEW_JOB_DIR/seeds.txt"
 mv "$SEED_PATH" "$NEW_JOB_DIR/seeds.txt"
-#Check number of seeds.
 
 #Add Job Directory
 log "Adding $NEW_JOB_NAME to Heritrix."
-heritrix "add&addpath=$NEW_JOB_DIR" > /dev/null
+heritrix "add\&addpath=$NEW_JOB_DIR" > /dev/null
 #Build Job Configuration
 log "Building $NEW_JOB_NAME"
 heritrix "build" "job/$NEW_JOB_NAME" > /dev/null
-waitfor "NASCENT" 60
+waitfor "$NEW_JOB_NAME" "NASCENT" 10
 #Launch Job
 log "Launching $NEW_JOB_NAME"
 heritrix "launch" "job/$NEW_JOB_NAME" > /dev/null
-waitfor "PAUSED" 3600
+waitfor "$NEW_JOB_NAME" "PAUSED" 10
 #Pause Job
 #heritrix "pause" "job/$NEW_JOB_NAME"
 #Unpause Job
 heritrix "unpause" "job/$NEW_JOB_NAME" > /dev/null
 log "Unpausing $NEW_JOB_NAME"
-waitfor "RUNNING" 60
-waitfor "EMPTY" 3600
+waitfor "$NEW_JOB_NAME" "RUNNING" 10
+waitfor "$NEW_JOB_NAME" "EMPTY" 10
 #Terminate Job
 heritrix "terminate" "job/$NEW_JOB_NAME" > /dev/null
 log "$NEW_JOB_NAME empty; terminating."
-waitfor "ABORTED" 30
+waitfor "$NEW_JOB_NAME" "ABORTED" 10
 #Teardown Job
 heritrix "teardown" "job/$NEW_JOB_NAME" > /dev/null
-waitfor "" 60
+waitfor "$NEW_JOB_NAME" "" 10

@@ -2,6 +2,7 @@
 
 import os
 import sys
+import pytz
 import time
 import urllib2
 import logging
@@ -34,7 +35,7 @@ def add_seeds( urls ):
 		logger.info( "Adding: " + url )
 
 dom = parseString( xml )
-now = datetime.now()
+now = datetime.now( pytz.utc )
 #crawlDateRange will be:
 #	blank			Daily at 12:00
 #	"start_date"		Daily at start time specified if start_date < now
@@ -43,20 +44,20 @@ for node in dom.getElementsByTagName( "node" ):
 	date_range = node.getElementsByTagName( "crawlDateRange" )[ 0 ].childNodes[ 0 ].data
 	if date_range == "" and str( now.hour ) == DAILY_HOUR:
 		add_seeds( node.getElementsByTagName( "urls" )[ 0 ].childNodes[ 0 ].data.split( " " ) )
-	elif not " " in date_range:
+	elif len( date_range.split( " " ) ) == 2:
 		start_date = dateutil.parser.parse( date_range )
-		if start_date.hour == str( now.hour ) and start_date < now:
+		if start_date.hour == now.hour and start_date < now:
 			add_seeds( node.getElementsByTagName( "urls" )[ 0 ].childNodes[ 0 ].data.split( " " ) )
 	else:
-		start_date, end_date = date_range.split( " " )
-		start_date = dateutil.parser.parse( start_date )
-		end_date = dateutil.parser.parse( end_date )
-		if start_date.hour == str( now.hour ) and start_date < now and end_date > now:
+		times = date_range.split( " " )
+		start_date = dateutil.parser.parse( times[ 0 ] + " " + times[ 1 ] )
+		end_date = dateutil.parser.parse( times[ 2 ] + " " + times[ 3 ] )
+		if start_date.hour == now.hour and start_date < now and end_date > now:
 			add_seeds( node.getElementsByTagName( "urls" )[ 0 ].childNodes[ 0 ].data.split( " " ) )
 
 
 #Exit abnormally if there are no relevant seeds.
-if url_count == 0:
+if len( seeds ) == 0:
 	logger.warning( "No relevant seeds; deleting " + SEED_FILE )
 	sys.exit( 1 )
 else:
@@ -64,7 +65,7 @@ else:
 		output = open( SEED_FILE, "wb" )
 		logger.info( "Writing seeds to " + SEED_FILE )
 		for seed in seeds:
-			output.write( seed )
+			output.write( seed + "\n" )
 		output.close()
 		logger.info( "Found " + str( len( seeds ) ) + " seeds." )
 	except IOError, i:
