@@ -2,7 +2,6 @@
 
 import os
 import sys
-import pytz
 import time
 import urllib2
 import logging
@@ -35,30 +34,34 @@ def add_seeds( urls ):
 		logger.info( "Adding: " + url )
 
 dom = parseString( xml )
-now = datetime.now( pytz.utc )
+now = datetime.now()
 #crawlDateRange will be:
 #	blank			Daily at 12:00
 #	"start_date"		Daily at start time specified if start_date < now
 #	"start_date end_date"	Daily at start time specified if start_date < now and end_date > now
 for node in dom.getElementsByTagName( "node" ):
-	date_range = node.getElementsByTagName( "crawlDateRange" )[ 0 ].childNodes[ 0 ].data
-	if date_range == "" and str( now.hour ) == DAILY_HOUR:
-		add_seeds( node.getElementsByTagName( "urls" )[ 0 ].childNodes[ 0 ].data.split( " " ) )
-	elif len( date_range.split( " " ) ) == 2:
-		start_date = dateutil.parser.parse( date_range )
+	start_date = end_date = ""
+	if len( node.getElementsByTagName( "crawlStartDate" )[ 0 ].childNodes ) > 0:
+		start_date = node.getElementsByTagName( "crawlStartDate" )[ 0 ].firstChild.nodeValue
+	if len( node.getElementsByTagName( "crawlEndDate" )[ 0 ].childNodes ) > 0:
+		start_date = node.getElementsByTagName( "crawlEndDate" )[ 0 ].firstChild.nodeValue
+
+	if start_date == "" and str( now.hour ) == DAILY_HOUR:
+		add_seeds( node.getElementsByTagName( "urls" )[ 0 ].firstChild.nodeValue.split( " " ) )
+	elif end_date == "":
+		start_date = dateutil.parser.parse( start_date )
 		if start_date.hour == now.hour and start_date < now:
-			add_seeds( node.getElementsByTagName( "urls" )[ 0 ].childNodes[ 0 ].data.split( " " ) )
+			add_seeds( node.getElementsByTagName( "urls" )[ 0 ].firstChild.nodeValue.split( " " ) )
 	else:
-		times = date_range.split( " " )
-		start_date = dateutil.parser.parse( times[ 0 ] + " " + times[ 1 ] )
-		end_date = dateutil.parser.parse( times[ 2 ] + " " + times[ 3 ] )
+		start_date = dateutil.parser.parse( start_date )
+		end_date = dateutil.parser.parse( end_date )
 		if start_date.hour == now.hour and start_date < now and end_date > now:
-			add_seeds( node.getElementsByTagName( "urls" )[ 0 ].childNodes[ 0 ].data.split( " " ) )
+			add_seeds( node.getElementsByTagName( "urls" )[ 0 ].firstChild.nodeValue.split( " " ) )
 
 
 #Exit abnormally if there are no relevant seeds.
 if len( seeds ) == 0:
-	logger.warning( "No relevant seeds; deleting " + SEED_FILE )
+	logger.warning( "No relevant seeds." )
 	sys.exit( 1 )
 else:
 	try:
