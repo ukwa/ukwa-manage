@@ -110,15 +110,16 @@ then
 	exit 1
 fi
 #Copy the appropriate profile.
-cp "$HERITRIX_PROFILES/$PROFILE" "$NEW_JOB_DIR/crawler-beans.cxml"
+xmllint --xinclude "$HERITRIX_PROFILES/$PROFILE" "$NEW_JOB_DIR/crawler-beans.cxml"
 if [[ ! -f "$NEW_JOB_DIR/crawler-beans.cxml" ]]
 then
 	log "Problem copying profile!" >&2
 	exit 1
 fi
 #Replace values in the new profile with the new job name.
-sed -ri "s@TO_BE_REPLACED@$NEW_JOB_NAME@g" "$NEW_JOB_DIR/crawler-beans.cxml"
+sed -ri "s@REPLACE_JOB_NAME@$NEW_JOB_NAME@g" "$NEW_JOB_DIR/crawler-beans.cxml"
 sed -ri "s@REPLACE_CLAMD_PORT@$CLAMD_PORT@g" "$NEW_JOB_DIR/crawler-beans.cxml"
+sed -ri "s@REPLACE_JOB_ROOT@$JOB_ROOT@g" "$NEW_JOB_DIR/crawler-beans.cxml"
 log "Creating relevant output directories."
 while read dir
 do

@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?> 	
+<sheets>
+	<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+		<property name="surtPrefixes">
+			<list>
+				<value>http://(uk,org,carlisle-conference,</value>
+				<value>http://(uk,org,camcycle,</value>
+				<value>http://(uk,co,thelivelist,</value>
+				<value>http://(uk,org,emergenceplus,</value>
+				<value>http://(uk,co,hillsong,</value>
+				<value>http://(uk,co,ghostservices,</value>
+			</list>
+		</property>
+		<property name="targetSheetNames">
+			<list>
+				<value>noForms</value>
+			</list>
+		</property>
+	</bean>
+	<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+		<property name="surtPrefixes">
+			<list>
+				<value>http://(uk,co,carbonmenswear,</value>
+			</list>
+		</property>
+		<property name="targetSheetNames">
+			<list>
+				<value>extraPolite</value>
+			</list>
+		</property>
+	</bean>
+	<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+		<property name="surtPrefixes">
+			<list>
+				<value>http://(uk,org,geograph,</value>
+			</list>
+		</property>
+		<property name="targetSheetNames">
+			<list>
+				<value>crawlLimited</value>
+			</list>
+		</property>
+	</bean>
+ 
+	<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+		<property name="surtPrefixes">
+			<list>
+				<value>http://(uk,co,bbc,</value>
+			</list>
+		</property>
+		<property name="targetSheetNames">
+			<list>
+				<value>noLimit</value>
+			</list>
+		</property>
+	</bean>
+	<bean class="org.archive.crawler.spring.DecideRuledSheetAssociation">
+		<property name="rules">
+			<bean class="org.archive.modules.deciderules.IpAddressSetDecideRule">
+				<property name="ipAddresses">
+					<set>
+						<value>81.21.76.62</value>
+						<value>85.158.249.176</value>
+						<value>87.106.142.81</value>
+					</set>
+				</property>
+				<property name="decision" value="ACCEPT" />
+			</bean>
+		</property>
+		<property name="targetSheetNames">
+			<list>
+				<value>extraPolite</value>
+			</list>
+		</property>
+	</bean>
+ 
+	<bean id="noLimit" class="org.archive.spring.Sheet">
+		<property name="map">
+			<map>
+				<entry key="fetchHttp.maxLengthBytes" value="0" />
+				<entry key="quotaEnforcer.serverMaxSuccessKb" value="-1" />
+				<entry key="metadata.robotsPolicyName" value="ignore" />
+			</map>
+		</property>
+	</bean>
+	<bean id="higherLimit" class="org.archive.spring.Sheet">
+		<property name="map">
+			<map>
+				<entry key="fetchHttp.maxLengthBytes" value="1073741824" />
+				<entry key="quotaEnforcer.serverMaxSuccessKb" value="2097152" />
+				<entry key="metadata.robotsPolicyName" value="ignore" />
+			</map>
+		</property>
+	</bean>
+ 	<bean id="noForms" class="org.archive.spring.Sheet">
+		<property name="map">
+			<map>
+				<entry key="extractorHtml.ignoreFormActionUrls" value="true" />
+			</map>
+		</property>
+	</bean>
+ 	<bean id="extraPolite" class="org.archive.spring.Sheet">
+		<property name="map">
+			<map>
+				<entry key="disposition.delayFactor" value="8.0" />
+				<entry key="disposition.minDelayMs" value="10000" />
+				<entry key="disposition.maxDelayMs" value="60000" />
+				<entry key="disposition.respectCrawlDelayUpToSeconds" value="60" />
+			</map>
+		</property>
+	</bean>
+ 	<bean id="crawlLimited" class="org.archive.spring.Sheet">
+		<property name="map">
+			<map>
+				<entry key="frontier.queueTotalBudget" value="25" />
+			</map>
+		</property>
+	</bean>
+</sheets>

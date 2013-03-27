@@ -10,6 +10,7 @@
 	uncomment AND alter the shown values.)   
 -->
 <beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xi="http://www.w3.org/2003/XInclude"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns:context="http://www.springframework.org/schema/context"
 	xmlns:aop="http://www.springframework.org/schema/aop"
@@ -35,7 +36,7 @@
 			# This Properties map is specified in the Java 'property list' text format
 			# http://java.sun.com/javase/6/docs/api/java/util/Properties.html#load%28java.io.Reader%29
 				metadata.operatorContactUrl=http://www.bl.uk/aboutus/stratpolprog/digi/domresproj/index.html
-				metadata.jobName=TO_BE_REPLACED
+				metadata.jobName=REPLACE_JOB_NAME
 				metadata.description=Daily crawls.
 			</value>
 		</property>
@@ -94,7 +95,7 @@
 				</bean>
 				<!-- ...but REJECT those more than a configured link-hop-count from start... -->
 				<bean class="org.archive.modules.deciderules.TooManyHopsDecideRule">
-					<property name="maxHops" value="20" />
+					<property name="maxHops" value="6" />
 				</bean>
 				<!-- ...and REJECT those from a configurable (initially empty) set of URI regexes... -->
 				<ref bean="listRegexFilterOut" />
@@ -276,7 +277,7 @@
 		<property name="host" value="localhost" />
 		<property name="routingKey" value="phantomjs" />
 		<property name="queue" value="phantomjs" />
-		<property name="outputPath" value="/opt/heritrix/jobs/TO_BE_REPLACED/action/" />
+		<property name="outputPath" value="/opt/heritrix/jobs/REPLACE_JOB_NAME/action/" />
 	</bean>
 	<bean id="viralContent" class="uk.bl.wap.crawler.processor.ViralContentProcessor">
 		<property name="clamdHost" value="localhost" />
@@ -362,7 +363,7 @@
 		<property name="directory" value="." />
 		<property name="storePaths">
 			<list>
-				<value>/heritrix/output/viral/TO_BE_REPLACED/</value>
+				<value>/heritrix/output/viral/REPLACE_JOB_NAME/</value>
 			</list>
 		</property>
 		<property name="writeRequests" value="true" />
@@ -390,7 +391,7 @@
 		<property name="directory" value="." />
 		<property name="storePaths">
 			<list>
-				<value>/heritrix/output/warcs/TO_BE_REPLACED/</value>
+				<value>/heritrix/output/warcs/REPLACE_JOB_NAME/</value>
 			</list>
 		</property>
 		<property name="writeRequests" value="true" />
@@ -435,7 +436,7 @@
 		<property name="recorderInBufferBytes" value="524288" />
 		<property name="recorderOutBufferBytes" value="16384" />
 		<!-- property name="checkpointerPeriod" value="-1" / -->
-		<property name="scratchDir" value="/heritrix/scratch/TO_BE_REPLACED/" />
+		<property name="scratchDir" value="/heritrix/scratch/REPLACE_JOB_ROOT/" />
 	</bean>
 	
 	<!-- FRONTIER: Record of all URIs discovered and queued-for-collection -->
@@ -555,7 +556,7 @@
 	
 	<!-- CRAWLERLOGGERMODULE: shared logging facility -->
 	<bean id="loggerModule" class="org.archive.crawler.reporting.CrawlerLoggerModule">
-		<property name="path" value="/heritrix/output/logs/TO_BE_REPLACED/" />
+		<property name="path" value="/heritrix/output/logs/REPLACE_JOB_NAME/" />
 		<property name="crawlLogPath" value="crawl.log" />
 		<property name="alertsLogPath" value="alerts.log" /> 
 		<property name="progressLogPath" value="progress-statistics.log" />
@@ -571,7 +572,7 @@
 	</bean>
 	<!-- BDBMODULE: shared BDB-JE disk persistence manager -->
 	<bean id="bdb" class="org.archive.bdb.BdbModule">
-		<property name="dir" value="/heritrix/state/TO_BE_REPLACED/" />
+		<property name="dir" value="/heritrix/state/REPLACE_JOB_ROOT/" />
 		<property name="cachePercent" value="30" />
 		<property name="useSharedCache" value="true" />
 		<property name="expectedConcurrency" value="25" />
@@ -596,92 +597,5 @@
 		 to crawler-beans.cxml file, and tracking crawl files for web UI -->
 	<bean id="configPathConfigurer" class="org.archive.spring.ConfigPathConfigurer">
 	</bean>
- 	<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
-		<property name="surtPrefixes">
-			<list>
-				<value>http://(uk,org,carlisle-conference,</value>
-				<value>http://(uk,org,camcycle,</value>
-				<value>http://(uk,co,thelivelist,</value>
-				<value>http://(uk,org,emergenceplus,</value>
-				<value>http://(uk,co,hillsong,</value>
-				<value>http://(uk,co,ghostservices,</value>
-			</list>
-		</property>
-		<property name="targetSheetNames">
-			<list>
-				<value>noForms</value>
-			</list>
-		</property>
-	</bean>
-	<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
-		<property name="surtPrefixes">
-			<list>
-				<value>http://(uk,co,carbonmenswear,</value>
-			</list>
-		</property>
-		<property name="targetSheetNames">
-			<list>
-				<value>extraPolite</value>
-			</list>
-		</property>
-	</bean>
-	<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
-		<property name="surtPrefixes">
-			<list>
-				<value>http://(uk,org,geograph,</value>
-			</list>
-		</property>
-		<property name="targetSheetNames">
-			<list>
-				<value>crawlLimited</value>
-			</list>
-		</property>
-	</bean>
- 
-	<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
-		<property name="surtPrefixes">
-			<list>
-				<value>http://(uk,co,bbc,</value>
-			</list>
-		</property>
-		<property name="targetSheetNames">
-			<list>
-				<value>higherLimit</value>
-			</list>
-		</property>
-	</bean>
- 
-	<bean id="higherLimit" class="org.archive.spring.Sheet">
-		<property name="map">
-			<map>
-				<entry key="fetchHttp.maxLengthBytes" value="1073741824" />
-				<entry key="quotaEnforcer.serverMaxSuccessKb" value="2097152" />
-				<entry key="metadata.robotsPolicyName" value="ignore" />
-			</map>
-		</property>
-	</bean>
- 	<bean id="noForms" class="org.archive.spring.Sheet">
-		<property name="map">
-			<map>
-				<entry key="extractorHtml.ignoreFormActionUrls" value="true" />
-			</map>
-		</property>
-	</bean>
- 	<bean id="extraPolite" class="org.archive.spring.Sheet">
-		<property name="map">
-			<map>
-				<entry key="disposition.delayFactor" value="8.0" />
-				<entry key="disposition.minDelayMs" value="10000" />
-				<entry key="disposition.maxDelayMs" value="60000" />
-				<entry key="disposition.respectCrawlDelayUpToSeconds" value="60" />
-			</map>
-		</property>
-	</bean>
- 	<bean id="crawlLimited" class="org.archive.spring.Sheet">
-		<property name="map">
-			<map>
-				<entry key="frontier.queueTotalBudget" value="25" />
-			</map>
-		</property>
-	</bean>
+	<xi:include href="include-sheets.xml" xpointer="xpointer(//sheets/bean)" />
 </beans>
