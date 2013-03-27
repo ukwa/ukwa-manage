@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?> 	
+			<list>
+				<value>^.+ProductCats\\.asp\\?Keywords=.+xargs=.+$</value>
+				<value>^.+index\\.php\\?Keywords=.+xargs=.+$</value>
+				<value>^.+\\.uk/.*\\bcheckout\\b.*$</value>
+				<value>^.+GetSearchResults\\.php\\?Query=.*%5C.*$</value>
+				<value>^.+index\\.php.+index\\.php.*$</value>
+				<value>^.{512,}$</value>
+				<value>^.+camcycle\.org.+camcycle\.org.*$</value>
+				<value>^.+/cart/add/.+$</value>
+				<value>^.+jobs\.staffs\.ac\.uk/[A-Za-z0-9+/]{20,}.+$</value>
+				<value>^.+%20%20%20.+$</value>
+				<value>^.+/cms/events/calendar/.+/2013/.+$</value>
+				<value>^.+/cms/events/calendar/.+/2011/.+$</value>
+				<value>^.+ncl\.ac\.uk.+https%3.+$</value>
+				<value>^https?://[^/]+/catalog/product_compare/(add|remove)/.+$</value>
+				<value>^.+index\.php\?qs=06oENya.+$</value>
+				<value>^https?://[^/]+\.bbc\.co\.uk/iplayer/.*$</value>
+				<value>^.+action=buy_now.*$</value>
+			</list>
