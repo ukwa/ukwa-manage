@@ -22,7 +22,6 @@ logger = logging.getLogger( "daily" )
 seeds = []
 
 try:
-	logger.info( "Exporting from ACT." )
 	xml = urllib2.urlopen( DAILY_URL ).read()
 except urllib2.URLError, e:
 	logger.error( "Cannot read ACT! " + e )
@@ -61,7 +60,6 @@ for node in dom.getElementsByTagName( "node" ):
 
 #Exit abnormally if there are no relevant seeds.
 if len( seeds ) == 0:
-	logger.warning( "No relevant seeds." )
 	sys.exit( 1 )
 else:
 	try:
