@@ -110,7 +110,7 @@ then
 	exit 1
 fi
 #Copy the appropriate profile.
-xmllint --xinclude "$HERITRIX_PROFILES/$PROFILE" "$NEW_JOB_DIR/crawler-beans.cxml"
+xmllint --xinclude "$HERITRIX_PROFILES/$PROFILE" --output "$NEW_JOB_DIR/crawler-beans.cxml"
 if [[ ! -f "$NEW_JOB_DIR/crawler-beans.cxml" ]]
 then
 	log "Problem copying profile!" >&2

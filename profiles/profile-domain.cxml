@@ -10,6 +10,7 @@
 	uncomment AND alter the shown values.)   
 -->
 <beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xi="http://www.w3.org/2003/XInclude"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns:context="http://www.springframework.org/schema/context"
 	xmlns:aop="http://www.springframework.org/schema/aop"
