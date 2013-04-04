@@ -132,7 +132,7 @@
 		<property name="decision" value="REJECT" />
 		<property name="listLogicalOr" value="true" />
 		<property name="regexList">
-			<xi:include href="include-exclude-regex.xml" xpointer="xpointer(//list)" />
+			<xi:include href="includes.xml" xpointer="xpointer(//includes/excludes/list)" />
 		</property>
 	</bean>
 	<!-- 
@@ -578,5 +578,5 @@
 		 to crawler-beans.cxml file, and tracking crawl files for web UI -->
 	<bean id="configPathConfigurer" class="org.archive.spring.ConfigPathConfigurer">
 	</bean>
-	<xi:include href="include-sheets.xml" xpointer="xpointer(//sheets/bean)" />
+	<xi:include href="includes.xml" xpointer="xpointer(//includes/sheets/bean)" />
 </beans>
