@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+import rfc3987
 import urllib2
 import logging
 import argparse
@@ -13,7 +14,6 @@ from xml.dom.minidom import parseString
 
 DAILY_URL = "http://www.webarchive.org.uk/act/websites/export/daily"
 DAILY_HOUR = "12"
-#SEED_FILE = "/heritrix/seeds-" + time.strftime( "%Y%m%d%H%M%S" ) + ".txt"
 SEED_FILE = "/heritrix/daily-seeds.txt"
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 
@@ -29,8 +29,12 @@ except urllib2.URLError, e:
 
 def add_seeds( urls ):
 	for url in urls:
-		seeds.append( url )
-		logger.info( "Adding: " + url )
+		try:
+			parsed = rfc3987.parse( url, rule="URI" )
+			seeds.append( url )
+			logger.info( "Adding: " + url )
+		except ValueError, v:
+			logger.error( "INVALID URL: " + url )
 
 dom = parseString( xml )
 now = datetime.now()

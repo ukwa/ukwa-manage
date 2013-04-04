@@ -317,8 +317,6 @@
 				<!-- ...add IPs to crawl.log... -->
 				<bean class="uk.bl.wap.crawler.processor.IpAnnotator">
 				</bean>
-				<!-- ...add Sheet Association for certain IPs... -->
-				<ref bean="ipSheetProcessor" />
 				<!-- ...scan for viruses... -->
 				<ref bean="viralContent" />
 			</list>

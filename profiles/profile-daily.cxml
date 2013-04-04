@@ -275,16 +275,6 @@
 	<!-- Configure persistent URI history loading for subsequent crawls -->
 	<bean id="persistLoadProcessor" class="org.archive.modules.recrawl.PersistLoadProcessor">
 	</bean>
-	<bean id="ipSheetProcessor" class="uk.bl.wap.crawler.processor.IpSheetProcessor">
-		<property name="sheet" value="extraPolite" />
-		<property name="ipList">
-			<list>
-				<value>81.21.76.62</value>
-				<value>85.158.249.176</value>
-				<value>87.106.142.81</value>
-			</list>
-		</property>
-	</bean>
 	<!-- assembled into ordered FetchChain bean -->
 	<bean id="fetchProcessors" class="org.archive.modules.FetchChain">
 		<property name="processors">
@@ -316,8 +306,6 @@
 				<!-- ...add IPs to crawl.log... -->
 				<bean class="uk.bl.wap.crawler.processor.IpAnnotator">
 				</bean>
-				<!-- ...add Sheet Association for certain IPs... -->
-				<ref bean="ipSheetProcessor" />
 				<!-- ...scan for viruses... -->
 				<ref bean="viralContent" />
 			</list>
