@@ -10,7 +10,7 @@ HERITRIX_EXCLUDE="$CONFIG_ROOT/exclude.txt"
 HERITRIX_SHORTENERS="$CONFIG_ROOT/url.shorteners.txt"
 HERITRIX_SURTS="$CONFIG_ROOT/surts.txt"
 HERITRIX_JOBS="/opt/heritrix/jobs"
-HERITRIX_HOST="opera.bl.uk"
+HERITRIX_HOST="localhost"
 HERITRIX_PORT="8443"
 
 usage()
