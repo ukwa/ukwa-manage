@@ -127,6 +127,7 @@ fi
 sed -ri "s@REPLACE_JOB_NAME@$NEW_JOB_NAME@g" "$NEW_JOB_DIR/crawler-beans.cxml"
 sed -ri "s@REPLACE_CLAMD_PORT@$CLAMD_PORT@g" "$NEW_JOB_DIR/crawler-beans.cxml"
 sed -ri "s@REPLACE_JOB_ROOT@$JOB_ROOT@g" "$NEW_JOB_DIR/crawler-beans.cxml"
+sed -ri "s@REPLACE_HERITRIX_JOBS@$HERITRIX_JOBS@g" "$NEW_JOB_DIR/crawler-beans.cxml"
 log "Creating relevant output directories."
 while read dir
 do

@@ -270,7 +270,7 @@
 		<property name="host" value="localhost" />
 		<property name="routingKey" value="phantomjs" />
 		<property name="queue" value="phantomjs" />
-		<property name="outputPath" value="/opt/heritrix/jobs/TO_BE_REPLACED/action/" />
+		<property name="outputPath" value="REPLACE_HERITRIX_JOBS/TO_BE_REPLACED/action/" />
 	</bean>
 	<bean id="viralContent" class="uk.bl.wap.crawler.processor.ViralContentProcessor">
 		<property name="clamdHost" value="localhost" />
