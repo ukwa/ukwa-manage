@@ -4,7 +4,7 @@ USER="admin"
 PASSWORD="bl_uk"
 CLAMD_PORT="3310"
 
-CONFIG_ROOT="/heritrix/git/heritrix"
+CONFIG_ROOT="/heritrix/git/heritrix_bl_configs"
 HERITRIX_PROFILES="$CONFIG_ROOT/profiles"
 HERITRIX_EXCLUDE="$CONFIG_ROOT/exclude.txt"
 HERITRIX_SHORTENERS="$CONFIG_ROOT/url.shorteners.txt"
