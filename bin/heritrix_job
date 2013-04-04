@@ -165,7 +165,7 @@ waitfor "$NEW_JOB_NAME" "EMPTY" 10
 #Terminate Job
 heritrix "terminate" "job/$NEW_JOB_NAME" > /dev/null
 log "$NEW_JOB_NAME empty; terminating."
-waitfor "$NEW_JOB_NAME" "ABORTED" 10
+waitfor "$NEW_JOB_NAME" "FINISHED" 10
 #Teardown Job
 heritrix "teardown" "job/$NEW_JOB_NAME" > /dev/null
 waitfor "$NEW_JOB_NAME" "" 10
