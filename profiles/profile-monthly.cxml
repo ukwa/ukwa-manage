@@ -37,7 +37,7 @@
 			# http://java.sun.com/javase/6/docs/api/java/util/Properties.html#load%28java.io.Reader%29
 				metadata.operatorContactUrl=http://www.bl.uk/aboutus/legaldeposit/websites/websites/faqsmaster/index.html
 				metadata.jobName=REPLACE_JOB_NAME
-				metadata.description=Daily crawls.
+				metadata.description=Monthly crawls.
 			</value>
 		</property>
 	</bean>
@@ -419,8 +419,8 @@
 			<bean class="org.archive.crawler.frontier.precedence.BaseQueuePrecedencePolicy" />
 		</property>
 		<property name="snoozeLongMs" value="60000" />
-		<property name="retryDelaySeconds" value="20" />
-		<property name="maxRetries" value="5" />
+		<property name="retryDelaySeconds" value="30" />
+		<property name="maxRetries" value="10" />
 		<property name="recoveryLogEnabled" value="true" />
 		<property name="maxOutlinks" value="6000" />
 		<property name="dumpPendingAtClose" value="false" />

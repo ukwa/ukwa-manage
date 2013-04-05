@@ -20,6 +20,8 @@ usage()
 		echo "  -h	Show this message."
 		echo "  -p	Profile to use."
 		echo "  -s	Path to seed list."
+		echo "  -c	Clamd port (default: 3310)."
+		echo "  -x	Heritrix port (default: 8443)."
 		echo "  -n	Job name prefix."
 }
 
@@ -46,7 +48,7 @@ log()
 	echo "[$(date "+%Y-%m-%d %H:%M:%S")] $1"
 }
 
-while getopts "hp:s:n:" OPTION
+while getopts "hp:s:c:x:n:" OPTION
 do
 		case $OPTION in
 		h)
@@ -58,6 +60,12 @@ do
 				;;
 		s)
 				SEED_PATH="$OPTARG"
+				;;
+		c)
+				CLAMD_PORT="$OPTARG"
+				;;
+		x)
+				HERITRIX_PORT="$OPTARG"
 				;;
 		n)
 				JOB_ROOT="$OPTARG"
