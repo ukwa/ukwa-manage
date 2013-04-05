@@ -68,6 +68,7 @@
 			<property name="surtPrefixes">
 				<list>
 					<value>http://(uk,co,bbc,</value>
+					<value>http://(uk,gov,www,)</value>
 				</list>
 			</property>
 			<property name="targetSheetNames">
@@ -108,7 +109,6 @@
 		<bean id="higherLimit" class="org.archive.spring.Sheet">
 			<property name="map">
 				<map>
-					<entry key="fetchHttp.maxLengthBytes" value="1073741824" />
 					<entry key="quotaEnforcer.serverMaxSuccessKb" value="2097152" />
 					<entry key="metadata.robotsPolicyName" value="ignore" />
 				</map>

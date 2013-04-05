@@ -220,7 +220,7 @@
 		<property name="digestAlgorithm" value="sha1" />
 	</bean>
 	<bean id="fetchHttp" class="org.archive.modules.fetcher.FetchHTTP">
-		<property name="maxLengthBytes" value="104857600" />
+		<property name="maxLengthBytes" value="0" />
 		<property name="timeoutSeconds" value="1200" />
 		<property name="maxFetchKBSec" value="0" />
 		<property name="defaultEncoding" value="ISO-8859-1" />
