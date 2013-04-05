@@ -317,6 +317,16 @@
 	</bean>
 	<!-- DISPOSITION CHAIN -->
 	<!-- processors declared as named beans -->
+	<bean id="diskSpaceMonitor" class="org.archive.crawler.monitor.DiskSpaceMonitor">
+		<property name="pauseThresholdMiB" value="1048576" />
+		<property name="monitorConfigPaths" value="false" />
+		<property name="monitorPaths">
+			<list>
+				<value>/heritrix/output</value>
+				<value>/heritrix/state</value>
+			</list>
+		</property>
+	</bean>
 	<bean id="warcWriterViral" class="uk.bl.wap.modules.writer.WARCViralWriterProcessor">
 		<property name="shouldProcessRule">
 			<bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
