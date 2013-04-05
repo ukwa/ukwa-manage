@@ -55,9 +55,8 @@ for node in dom.getElementsByTagName( "node" ):
 		add_seeds( node.getElementsByTagName( "urls" )[ 0 ].firstChild.nodeValue.split( " " ) )
 	elif end_date == "":
 		start_date = dateutil.parser.parse( start_date )
-		add_seeds( node.getElementsByTagName( "urls" )[ 0 ].firstChild.nodeValue.split( " " ) )
-#		if start_date.hour == now.hour and start_date.day == now.day and start_date < now:
-#			add_seeds( node.getElementsByTagName( "urls" )[ 0 ].firstChild.nodeValue.split( " " ) )
+		if start_date.hour == now.hour and start_date.day == now.day and start_date < now:
+			add_seeds( node.getElementsByTagName( "urls" )[ 0 ].firstChild.nodeValue.split( " " ) )
 	else:
 		start_date = dateutil.parser.parse( start_date )
 		end_date = dateutil.parser.parse( end_date )
