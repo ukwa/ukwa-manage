@@ -255,6 +255,8 @@
 	</bean> 
 	<bean id="extractorSwf" class="org.archive.modules.extractor.ExtractorSWF">
 	</bean>
+	<bean id="extractorJson" class="uk.bl.wap.modules.extractor.ExtractorJson">
+	</bean>
 	<bean id="extractorMq" class="uk.bl.wap.modules.extractor.AsynchronousMQExtractor">
 		<property name="host" value="localhost" />
 		<property name="routingKey" value="phantomjs" />
@@ -297,6 +299,8 @@
 				<ref bean="trapSuppressExtractor" />
 				<!-- ...extract oulinks via Asynchronous Messaging Queue... -->
 				<ref bean="extractorMq"/>
+				<!-- ...extract outlinks from JSON... -->
+				<ref bean="extractorJson" />
 				<!-- ...extract oulinks from HTML content... -->
 				<ref bean="extractorHtml"/>
 				<!-- ...extract oulinks from CSS content... -->
