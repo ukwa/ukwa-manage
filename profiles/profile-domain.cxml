@@ -201,7 +201,7 @@
 	<!-- FETCH CHAIN --> 
 	<!-- processors declared as named beans -->
 	<bean id="preselector" class="org.archive.crawler.prefetch.Preselector">
-		<property name="recheckScope" value="false" />
+		<property name="recheckScope" value="true" />
 		<property name="blockAll" value="false" />
 		<property name="blockByRegex" value="" />
 		<property name="allowByRegex" value="" />
