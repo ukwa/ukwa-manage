@@ -79,22 +79,6 @@ then
 	exit 1
 fi
 
-#Check we actually have seeds to process.
-if [[ $(wc -l < "$SEED_PATH") -eq 0 ]]
-then
-	log "No seeds found at $SEED_PATH!" >&2
-	exit 1
-else
-	log "Received $(wc -l < "$SEED_PATH") seed(s) from ACT."
-fi
-
-#Check we can actually connect to Heritrix
-if [[ ! $(heritrix "none") ]]
-then
-	log "Cannot connect to https://$HERITRIX_HOST:$HERITRIX_PORT/!" >&2
-	exit 1
-fi
-
 #Kill any current jobs with the same job name.
 while read job
 do
@@ -112,6 +96,22 @@ do
 		waitfor "$job" "" 10
 	fi
 done < <(heritrix "none" | sed -rn 's@^\s*<shortName>([^<]+)</shortName>.*$@\1@p')
+
+#Check we actually have seeds to process.
+if [[ $(wc -l < "$SEED_PATH") -eq 0 ]]
+then
+	log "No seeds found at $SEED_PATH!" >&2
+	exit 1
+else
+	log "Received $(wc -l < "$SEED_PATH") seed(s) from ACT."
+fi
+
+#Check we can actually connect to Heritrix
+if [[ ! $(heritrix "none") ]]
+then
+	log "Cannot connect to https://$HERITRIX_HOST:$HERITRIX_PORT/!" >&2
+	exit 1
+fi
 
 #Set up the new job.
 NEW_JOB_NAME="$JOB_ROOT-$(date +%Y%m%d%H%M%S)"
