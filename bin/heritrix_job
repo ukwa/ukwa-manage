@@ -139,7 +139,7 @@ sed -ri "s@REPLACE_HERITRIX_JOBS@$HERITRIX_JOBS@g" "$NEW_JOB_DIR/crawler-beans.c
 log "Creating relevant output directories."
 while read dir
 do
-	mkdir "$dir"
+	[[ -d "$dir" ]] || mkdir "$dir"
 done < <(sed -rn 's@^.+(value="|<value>)(/heritrix/.+/)("|</value>).*$@\2@p' "$NEW_JOB_DIR/crawler-beans.cxml")
 #Copy remaining configuration files to the new folder.
 log "Copying URL shorteners."
