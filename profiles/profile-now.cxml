@@ -93,6 +93,10 @@
 					<property name="regex" value="^(?i)^.+/(css|javascript)$"/>
 					<property name="decision" value="ACCEPT" />
 				</bean>
+				<bean class="org.archive.modules.deciderules.HopsPathMatchesRegexDecideRule">
+					<property name="decision" value="ACCEPT" />
+					<property name="regex" value="^E*$" />
+				</bean>
 				<!-- ...but REJECT those more than a configured link-hop-count from start... -->
 				<bean class="org.archive.modules.deciderules.TooManyHopsDecideRule">
 					<property name="maxHops" value="2" />
