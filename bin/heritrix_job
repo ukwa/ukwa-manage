@@ -102,7 +102,6 @@ if [[ -f "$SEED_PATH" ]] && [[ $(wc -l < "$SEED_PATH") -gt 0 ]]
 then
 	log "Received $(wc -l < "$SEED_PATH") seed(s) from ACT."
 else
-	log "No seeds found at $SEED_PATH" >&2
 	exit 1
 fi
 
