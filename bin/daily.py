@@ -63,9 +63,7 @@ for node in dom.getElementsByTagName( "node" ):
 
 
 #Exit abnormally if there are no relevant seeds.
-if len( seeds ) == 0:
-	sys.exit( 1 )
-else:
+if len( seeds ) > 0:
 	try:
 		output = open( SEED_FILE, "wb" )
 		logger.info( "Writing seeds to " + SEED_FILE )

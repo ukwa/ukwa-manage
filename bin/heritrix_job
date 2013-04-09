@@ -98,12 +98,12 @@ do
 done < <(heritrix "none" | sed -rn 's@^\s*<shortName>([^<]+)</shortName>.*$@\1@p')
 
 #Check we actually have seeds to process.
-if [[ $(wc -l < "$SEED_PATH") -eq 0 ]]
+if [[ -f "$SEED_PATH" ]] && [[ $(wc -l < "$SEED_PATH") -gt 0 ]]
 then
-	log "No seeds found at $SEED_PATH!" >&2
-	exit 1
-else
 	log "Received $(wc -l < "$SEED_PATH") seed(s) from ACT."
+else
+	log "No seeds found at $SEED_PATH" >&2
+	exit 1
 fi
 
 #Check we can actually connect to Heritrix

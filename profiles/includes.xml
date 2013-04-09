@@ -96,7 +96,34 @@
 				</list>
 			</property>
 		</bean>
-	 
+		<bean class="org.archive.crawler.spring.DecideRuledSheetAssociation">
+			<property name="rules">
+				<bean class="org.archive.modules.deciderules.DecideRuleSequence">
+					<property name="rules">
+						<list>
+							<bean class="org.archive.modules.deciderules.RejectDecideRule"></bean>
+							<bean class="org.archive.modules.deciderules.HopsPathMatchesRegexDecideRule">
+								<property name="decision" value="ACCEPT" />
+								<property name="regex" value="^E*$" />
+							</bean>
+						</list>
+					</property>
+				</bean>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>ignoreRobots</value>
+				</list>
+			</property>
+		</bean>
+		
+		<bean id="ignoreRobots" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="preconditions.calculateRobotsOnly" value="true" />
+				</map>
+			</property>
+		</bean>
 		<bean id="noLimit" class="org.archive.spring.Sheet">
 			<property name="map">
 				<map>
