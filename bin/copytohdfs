@@ -40,7 +40,7 @@ if [[ -e $TMP/$OUTPUT.job ]] && [[ $(wc -l $TMP/$OUTPUT.job | awk '{ print $1 }'
 then
 	log "Generating CDX for $OUTPUT.job in $HDFS_CDX_ROOT/$OUTPUT/..."
 	hadoop fs -put $TMP/$OUTPUT.job $TMP/$OUTPUT.job && rm $TMP/$OUTPUT.job
-	hadoop jar $JAR $CLASS -i $TMP/$OUTPUT.job -o $HDFS_CDX_ROOT/$OUTPUT/ -s $SPLIT -h -r $RED &
+	hadoop jar $JAR $CLASS -i $TMP/$OUTPUT.job -o $HDFS_CDX_ROOT/$OUTPUT/ -s $SPLIT -h -r $RED -w &
 fi
 
 if [[ $COUNT -eq 0 ]]
