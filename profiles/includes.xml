@@ -31,6 +31,13 @@
 					<value>http://(uk,org,emergenceplus,</value>
 					<value>http://(uk,co,hillsong,</value>
 					<value>http://(uk,co,ghostservices,</value>
+					<value>http://(uk,co,somodfurniture,</value>
+					<value>http://(uk,ac,ncl,</value>
+					<value>http://(uk,org,clicsargent,</value>
+					<value>http://(uk,co,youhome,</value>
+					<value>http://(uk,co,libacura,</value>
+					<value>http://(uk,co,antix,</value>
+					<value>http://(uk,co,the-hug,</value>
 				</list>
 			</property>
 			<property name="targetSheetNames">
@@ -63,7 +70,6 @@
 				</list>
 			</property>
 		</bean>
-	 
 		<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
 			<property name="surtPrefixes">
 				<list>
@@ -74,6 +80,18 @@
 			<property name="targetSheetNames">
 				<list>
 					<value>noLimit</value>
+				</list>
+			</property>
+		</bean>
+		<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,org,haroldstreet,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>noCookies</value>
 				</list>
 			</property>
 		</bean>
@@ -93,6 +111,7 @@
 			<property name="targetSheetNames">
 				<list>
 					<value>extraPolite</value>
+					<value>crawlLimited</value>
 				</list>
 			</property>
 		</bean>
@@ -145,6 +164,7 @@
 			<property name="map">
 				<map>
 					<entry key="extractorHtml.ignoreFormActionUrls" value="true" />
+					<entry key="extractorHtml.extractValueAttributes" value="false" />
 				</map>
 			</property>
 		</bean>
@@ -162,6 +182,13 @@
 			<property name="map">
 				<map>
 					<entry key="frontier.queueTotalBudget" value="25" />
+				</map>
+			</property>
+		</bean>
+	 	<bean id="noCookies" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="fetchHttp.ignoreCookies" value="true" />
 				</map>
 			</property>
 		</bean>
