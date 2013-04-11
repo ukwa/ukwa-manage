@@ -36,7 +36,7 @@
 			# This Properties map is specified in the Java 'property list' text format
 			# http://java.sun.com/javase/6/docs/api/java/util/Properties.html#load%28java.io.Reader%29
 				metadata.operatorContactUrl=http://www.bl.uk/aboutus/legaldeposit/websites/websites/faqswebmaster/index.html
-				metadata.jobName=TO_BE_REPLACED
+				metadata.jobName=REPLACE_JOB_NAME
 				metadata.description=UK Legal Deposit Domain Crawl.
 			</value>
 		</property>
@@ -178,12 +178,12 @@
 	</bean>
 	<bean id="hashCrawlMapper" class="org.archive.crawler.processor.HashCrawlMapper">
 		<property name="enabled" value="true" />
-		<property name="localName" value="TO_BE_REPLACED" />
+		<property name="localName" value="REPLACE_JOB_NAME" />
 		<property name="diversionDir" value="diversions" />
 		<property name="checkUri" value="true" />
 		<property name="checkOutlinks" value="false"/>
 		<property name="rotationDigits" value="10" />
-		<property name="crawlerCount" value="TO_BE_REPLACED" />
+		<property name="crawlerCount" value="REPLACE_JOB_NAME" />
 	</bean>
 	<bean id="quotaEnforcer" class="org.archive.crawler.prefetch.QuotaEnforcer">
 		<property name="serverMaxSuccessKb" value="524288" />
@@ -276,7 +276,7 @@
 		<property name="host" value="localhost" />
 		<property name="routingKey" value="phantomjs" />
 		<property name="queue" value="phantomjs" />
-		<property name="outputPath" value="REPLACE_HERITRIX_JOBS/TO_BE_REPLACED/action/" />
+		<property name="outputPath" value="REPLACE_HERITRIX_JOBS/REPLACE_JOB_NAME/action/" />
 	</bean>
 	<bean id="viralContent" class="uk.bl.wap.crawler.processor.ViralContentProcessor">
 		<property name="clamdHost" value="localhost" />
@@ -362,7 +362,7 @@
 		<property name="directory" value="." />
 		<property name="storePaths">
 			<list>
-				<value>/heritrix/output/viral/TO_BE_REPLACED/</value>
+				<value>/heritrix/output/viral/REPLACE_JOB_NAME/</value>
 			</list>
 		</property>
 		<property name="writeRequests" value="true" />
@@ -390,7 +390,7 @@
 		<property name="directory" value="." />
 		<property name="storePaths">
 			<list>
-				<value>/heritrix/output/warcs/TO_BE_REPLACED/</value>
+				<value>/heritrix/output/warcs/REPLACE_JOB_NAME/</value>
 			</list>
 		</property>
 		<property name="writeRequests" value="true" />
@@ -435,7 +435,7 @@
 		<property name="recorderInBufferBytes" value="524288" />
 		<property name="recorderOutBufferBytes" value="16384" />
 		<!-- property name="checkpointerPeriod" value="-1" / -->
-		<property name="scratchDir" value="/heritrix/scratch/TO_BE_REPLACED/" />
+		<property name="scratchDir" value="/heritrix/scratch/REPLACE_JOB_NAME/" />
 	</bean>
 	
 	<!-- FRONTIER: Record of all URIs discovered and queued-for-collection -->
@@ -555,7 +555,7 @@
 	
 	<!-- CRAWLERLOGGERMODULE: shared logging facility -->
 	<bean id="loggerModule" class="org.archive.crawler.reporting.CrawlerLoggerModule">
-		<property name="path" value="/heritrix/output/logs/TO_BE_REPLACED/" />
+		<property name="path" value="/heritrix/output/logs/REPLACE_JOB_NAME/" />
 		<property name="crawlLogPath" value="crawl.log" />
 		<property name="alertsLogPath" value="alerts.log" /> 
 		<property name="progressLogPath" value="progress-statistics.log" />
@@ -571,7 +571,7 @@
 	</bean>
 	<!-- BDBMODULE: shared BDB-JE disk persistence manager -->
 	<bean id="bdb" class="org.archive.bdb.BdbModule">
-		<property name="dir" value="/heritrix/state/TO_BE_REPLACED/" />
+		<property name="dir" value="/heritrix/state/REPLACE_JOB_NAME/" />
 		<property name="cachePercent" value="30" />
 		<property name="useSharedCache" value="true" />
 		<property name="expectedConcurrency" value="25" />
