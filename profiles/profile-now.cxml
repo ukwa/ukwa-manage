@@ -80,6 +80,10 @@
 					 <property name="surtsSourceFile" value="surts.txt" />
 					 <property name="surtsDumpFile" value="surts.dump" />
 				</bean>
+				<!-- ...but REJECT those more than a configured link-hop-count from start... -->
+				<bean class="org.archive.modules.deciderules.TooManyHopsDecideRule">
+					<property name="maxHops" value="1" />
+				</bean>
 				<!-- ...and ACCEPT associated/helper files... -->
 				<bean class="org.archive.modules.deciderules.MatchesRegexDecideRule">
 					<property name="regex" value="^https?://[^/]+/.+(?i)(\.(js|css|bmp|gif|jpe?g|[pm]ng|svg|tiff?|ico|aac|aiff?|m3u|m4[av]|midi?|mp[1234acu]|og[agm]|ra?m?|cda|alac|ac3|flac|wav|wm[av]|as[fx]|avi|flv|mov|mpe?g|qt|smil|swf))\b.*$" />
@@ -97,10 +101,6 @@
 					<property name="decision" value="ACCEPT" />
 					<property name="regex" value="^E*$" />
 				</bean>
-				<!-- ...but REJECT those more than a configured link-hop-count from start... -->
-				<bean class="org.archive.modules.deciderules.TooManyHopsDecideRule">
-					<property name="maxHops" value="1" />
-				</bean>
 				<!-- ...and REJECT those from a configurable (initially empty) set of URI regexes... -->
 				<ref bean="listRegexFilterOut" />
 				<!-- ...and REJECT those with suspicious repeating path-segments... -->
@@ -109,7 +109,7 @@
 				</bean>
 				<!-- ...and REJECT those with more than threshold number of path-segments... -->
 				<bean class="org.archive.modules.deciderules.TooManyPathSegmentsDecideRule">
-					<property name="maxPathDepth" value="10" />
+					<property name="maxPathDepth" value="15" />
 				</bean>
 				<!-- ...but ACCEPT URL-shortening services -->
 				<bean class="org.archive.modules.deciderules.surt.SurtPrefixedDecideRule">
@@ -194,7 +194,7 @@
 	<!-- FETCH CHAIN --> 
 	<!-- processors declared as named beans -->
 	<bean id="preselector" class="org.archive.crawler.prefetch.Preselector">
-		<property name="recheckScope" value="true" />
+		<property name="recheckScope" value="false" />
 		<property name="blockAll" value="false" />
 		<property name="blockByRegex" value="" />
 		<property name="allowByRegex" value="" />

@@ -109,7 +109,7 @@
 				</bean>
 				<!-- ...and REJECT those with more than threshold number of path-segments... -->
 				<bean class="org.archive.modules.deciderules.TooManyPathSegmentsDecideRule">
-					<property name="maxPathDepth" value="10" />
+					<property name="maxPathDepth" value="15" />
 				</bean>
 				<!-- ...but ACCEPT URL-shortening services -->
 				<bean class="org.archive.modules.deciderules.surt.SurtPrefixedDecideRule">
@@ -205,7 +205,7 @@
 	<!-- FETCH CHAIN --> 
 	<!-- processors declared as named beans -->
 	<bean id="preselector" class="org.archive.crawler.prefetch.Preselector">
-		<property name="recheckScope" value="true" />
+		<property name="recheckScope" value="false" />
 		<property name="blockAll" value="false" />
 		<property name="blockByRegex" value="" />
 		<property name="allowByRegex" value="" />
