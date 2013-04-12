@@ -12,7 +12,7 @@ ROOT=/heritrix/output
 HOOP="http://opera.bl.uk:14000/webhdfs/v1"
 SUFFIX="?user.name=hadoop&op=GETFILESTATUS"
 TMP=/tmp
-JAR=/home/rcoram/HadoopUtils/HadoopUtils.jar
+JAR=/heritrix/bin/HadoopUtils.jar
 CLASS=uk.bl.wap.hadoop.mapreduce.cdx.ArchiveCDXGenerator
 SPLIT=/heritrix/output/wayback/split.txt
 RED=260
