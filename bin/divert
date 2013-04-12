@@ -1,12 +1,10 @@
 #!/bin/bash
 
-##################################
-# List of jobs; must be in order!
-################################## 
-INPUT=/home/heritrix/bin/jobs.list
-JOBS=($(cat $INPUT))
-
+################################################
+# List of jobs as arguments; must be in order! #
+################################################
 ROOT=/opt/heritrix/jobs
+JOBS=( $@ )
 
 for job in "${JOBS[@]}"
 do
@@ -18,6 +16,5 @@ do
 		[[ -z ${JOBS[$TO]} ]] && continue
 		TO_DIR=$ROOT/${JOBS[$TO]}/action
 		sed -r 's@^null CrawlURI @F\+ @' $divert | gzip -c > $TO_DIR/$SCHEDULE && rm $divert
-#		mv $divert $TO_DIR/$SCHEDULE
 	done < <(ls $DIR/diversions/*.divert 2> /dev/null)
 done
