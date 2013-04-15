@@ -15,6 +15,7 @@ TMP=/tmp
 JAR=/heritrix/bin/HadoopUtils.jar
 CLASS=uk.bl.wap.hadoop.mapreduce.cdx.ArchiveCDXGenerator
 SPLIT=/heritrix/output/wayback/split.txt
+RED=260
 
 log()
 {
@@ -35,8 +36,7 @@ do
 	fi
 done < <(find $ROOT/ -mtime -2 -name "*.warc.gz")
 
-RED=$(wc -l $TMP/$OUTPUT.job | awk '{ print $1 }')
-if [[ -e $TMP/$OUTPUT.job ]] && [[ $RED -gt 0 ]]
+if [[ -e $TMP/$OUTPUT.job ]] && [[ $(wc -l $TMP/$OUTPUT.job | awk '{ print $1 }') -gt 0 ]]
 then
 	log "Generating CDX for $OUTPUT.job in $HDFS_CDX_ROOT/$OUTPUT/..."
 	hadoop fs -put $TMP/$OUTPUT.job $TMP/$OUTPUT.job && rm $TMP/$OUTPUT.job
