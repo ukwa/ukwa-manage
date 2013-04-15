@@ -12,6 +12,8 @@ HERITRIX_SURTS="$CONFIG_ROOT/surts.txt"
 HERITRIX_JOBS="/opt/heritrix/jobs"
 HERITRIX_HOST="localhost"
 HERITRIX_PORT="8443"
+EMPTY_SEEDS=""
+GROUPED=""
 
 usage()
 {
@@ -20,9 +22,11 @@ usage()
 		echo "  -h	Show this message."
 		echo "  -p	Profile to use."
 		echo "  -s	Path to seed list."
+		echo "  -e      Empty seed list."
 		echo "  -c	Clamd port (default: 3310)."
 		echo "  -x	Heritrix port (default: 8443)."
 		echo "  -n	Job name prefix."
+		echo "  -g      Number of jobs in group (implies HashCrawlMapper)."
 }
 
 heritrix()
@@ -48,7 +52,7 @@ log()
 	echo "[$(date "+%Y-%m-%d %H:%M:%S")] $1"
 }
 
-while getopts "hp:s:c:x:n:" OPTION
+while getopts "hp:s:ec:x:n:g:" OPTION
 do
 		case $OPTION in
 		h)
@@ -61,6 +65,9 @@ do
 		s)
 				SEED_PATH="$OPTARG"
 				;;
+		e)
+				EMPTY_SEEDS=y
+				;;
 		c)
 				CLAMD_PORT="$OPTARG"
 				;;
@@ -69,6 +76,9 @@ do
 				;;
 		n)
 				JOB_ROOT="$OPTARG"
+				;;
+		g)
+				GROUPED="$OPTARG"
 				;;
 		esac
 done
@@ -98,7 +108,7 @@ do
 done < <(heritrix "none" | sed -rn 's@^\s*<shortName>([^<]+)</shortName>.*$@\1@p')
 
 #Check we actually have seeds to process.
-if [[ -f "$SEED_PATH" ]] && [[ $(wc -l < "$SEED_PATH") -gt 0 ]]
+if [[ -z $EMPTY_SEEDS ]] && [[ -f "$SEED_PATH" && $(wc -l < "$SEED_PATH") -gt 0 ]]
 then
 	log "Received $(wc -l < "$SEED_PATH") seed(s) from ACT."
 else
@@ -135,6 +145,11 @@ sed -ri "s@REPLACE_JOB_NAME@$NEW_JOB_NAME@g" "$NEW_JOB_DIR/crawler-beans.cxml"
 sed -ri "s@REPLACE_CLAMD_PORT@$CLAMD_PORT@g" "$NEW_JOB_DIR/crawler-beans.cxml"
 sed -ri "s@REPLACE_JOB_ROOT@$JOB_ROOT@g" "$NEW_JOB_DIR/crawler-beans.cxml"
 sed -ri "s@REPLACE_HERITRIX_JOBS@$HERITRIX_JOBS@g" "$NEW_JOB_DIR/crawler-beans.cxml"
+if [[ -n $GROUPED ]]
+then
+	sed -ri "s@REPLACE_HASH_NAME@$(ls -d "$HERITRIX_JOBS/"* | wc -l)@g" "$NEW_JOB_DIR/crawler-beans.cxml"
+	sed -ri "s@REPLACE_HASH_COUNT@$GROUPED@g" "$NEW_JOB_DIR/crawler-beans.cxml"
+fi
 log "Creating relevant output directories."
 while read dir
 do
