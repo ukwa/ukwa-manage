@@ -194,5 +194,12 @@
 				</map>
 			</property>
 		</bean>
+	 	<bean id="blockAll" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="preselector.blockAll" value="true" />
+				</map>
+			</property>
+		</bean>
 	</sheets>
 </includes>
