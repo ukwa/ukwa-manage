@@ -183,6 +183,7 @@
 			<property name="map">
 				<map>
 					<entry key="frontier.queueTotalBudget" value="25" />
+					<entry key="quotaEnforcer.serverMaxFetchResponses" value="25" />
 				</map>
 			</property>
 		</bean>
