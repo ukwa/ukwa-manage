@@ -33,6 +33,12 @@ do
 		hadoop fs -put "$warc" "$warc"
 		[[ "$warc" =~ "viral" ]] || echo "$warc" >> $TMP/$OUTPUT.job
 		COUNT=$((COUNT+1))
+		HDFS_LENGTH=$(curl --silent "$HOOP$warc$SUFFIX" | sed -r 's@^.+length":([0-9]+),".+$@\1@')
+		DISK_LENGTH=$(stat -c %s "$warc")
+		if [[ $HDFS_LENGTH -ne $DISK_LENGTH ]]
+		then
+			log "ERROR: WARC sizes do not match for $warc"
+		fi
 	fi
 done < <(find $ROOT/ -mtime -2 -name "*.warc.gz")
 

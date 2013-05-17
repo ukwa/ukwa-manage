@@ -1,0 +1,15 @@
+#!/bin/bash
+
+OUTPUT="/heritrix/output/wayback/cdx-index/combined/"
+JAR="/usr/lib/hadoop-0.20/contrib/streaming/hadoop-streaming-0.20.2-cdh3u1.jar"
+INPUT="/heritrix/output/wayback/cdx-index/2013*/"
+
+hadoop fs -test -e "$OUTPUT" && hadoop fs -rmr "$OUTPUT"
+
+hadoop jar "$JAR" \
+-Dmapred.reduce.tasks=75 \
+-Dmapred.textoutputformat.separator="#" \
+-mapper "cat" \
+-reducer "cat" \
+-input "$INPUT" \
+-output "$OUTPUT"
