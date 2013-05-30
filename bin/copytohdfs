@@ -15,7 +15,7 @@ TMP=/tmp
 JAR=/heritrix/bin/HadoopUtils.jar
 CLASS=uk.bl.wap.hadoop.mapreduce.cdx.ArchiveCDXGenerator
 SPLIT=/heritrix/output/wayback/split.txt
-RED=260
+RED=1
 
 log()
 {
