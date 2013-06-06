@@ -40,7 +40,7 @@ do
 			log "ERROR: WARC sizes do not match for $warc"
 		fi
 	fi
-done < <(find $ROOT/ -mtime -2 -name "*.warc.gz")
+done < <(find $ROOT/ -mtime -2 -name "*.warc.gz" 2> /dev/null)
 
 if [[ -e $TMP/$OUTPUT.job ]] && [[ $(wc -l $TMP/$OUTPUT.job | awk '{ print $1 }') -gt 0 ]]
 then

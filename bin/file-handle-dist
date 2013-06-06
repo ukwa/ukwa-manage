@@ -1,0 +1,5 @@
+#!/bin/bash
+
+[[ -z $1 ]] && exit
+
+lsof | grep -E "\b$1\b" | sed -rn 's@^.+\s+(/.+/)[^/]+$@\1@p' | sort -T /dev/shm | uniq -c | sort -T /dev/shm -rn
