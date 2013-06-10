@@ -1,4 +1,5 @@
 #!/bin/bash
+# Submit PID to this script to discover number of open files in mounts
 
 [[ -z $1 ]] && exit
 
