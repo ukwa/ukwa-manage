@@ -26,7 +26,7 @@ seeds = []
 try:
 	xml = urllib2.urlopen( MONTHLY_URL ).read()
 except urllib2.URLError, e:
-	logger.error( "Cannot read ACT! " + e )
+	logger.error( "Cannot read ACT! " + str( e ) )
 	sys.exit( 1 )
 
 def add_seeds( urls ):

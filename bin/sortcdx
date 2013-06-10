@@ -7,4 +7,4 @@ INPUT="/heritrix/output/wayback/cdx-index/combined/*"
 CDX="/heritrix/output/wayback/cdx-index/index.cdx"
 
 hadoop fs -rmr "$OUTPUT/"
-hadoop jar "$JAR" "$CLASS" --total-order 0.1 10000 10 "$INPUT/" "$OUTPUT/" && hadoop fs -cat "$OUTPUT/part-*" > "$CDX"
+hadoop jar "$JAR" "$CLASS" --total-order 0.1 100000 100 "$INPUT/" "$OUTPUT/" && hadoop fs -cat "$OUTPUT/part-*" > "$CDX"
