@@ -15,23 +15,23 @@ from datetime import date
 from xml.dom.minidom import parseString
 
 # Set globals
-QUARTERLY_URL = "http://www.webarchive.org.uk/act/websites/export/quarterly"
-QUARTERLY_DAY = 1
-QUARTERLY_MONTH = 1
-QUARTERLY_HOUR = 12
-SEED_FILE = "/heritrix/quarterly-seeds.txt"
+SIXMONTHLY_URL = "http://www.webarchive.org.uk/act/websites/export/sixmonthly"
+SIXMONTHLY_DAY = 1
+SIXMONTHLY_MONTH = 1
+SIXMONTHLY_HOUR = 12
+SEED_FILE = "/heritrix/sixmonthly-seeds.txt"
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 
 # Initialise
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
-logger = logging.getLogger( "quarterly" )
+logger = logging.getLogger( "sixmonthly" )
 a_seeds = []
 o_now = datetime.now()
 i_nowmonth = o_now.month
 
-# Get quarterly export list
+# Get sixmonthly export list
 try:
-	s_xml = urllib2.urlopen( QUARTERLY_URL ).read()
+	s_xml = urllib2.urlopen( SIXMONTHLY_URL ).read()
 except urllib2.URLError, e:
 	logger.error( "Cannot read ACT! " + str( e ) )
 	sys.exit( 1 )
@@ -51,11 +51,11 @@ def add_seeds( s_urls ):
 # for each site in export list, extract urls within the crawl date range
 for o_node in o_dom.getElementsByTagName( "node" ):
 	s_start_date = s_end_date = ""
-	i_crawlmonth = QUARTERLY_MONTH
+	i_crawlmonth = SIXMONTHLY_MONTH
 
-	# Check node has correct quarterly crawlFrequency
-	if o_node.getElementsByTagName("crawlFrequency")[0].firstChild.nodeValue != 'quarterly':
-		logger.error("Non quarterly node found in quarterly export list. Node " + o_node.getElementsByTagName("actLink")[0].firstChild.nodeValue)
+	# Check node has correct sixmonthly crawlFrequency
+	if o_node.getElementsByTagName("crawlFrequency")[0].firstChild.nodeValue != 'sixmonthly':
+		logger.error("Non sixmonthly node found in sixmonthly export list. Node " + o_node.getElementsByTagName("actLink")[0].firstChild.nodeValue)
 		continue
 
 	# Get start and end crawl date strings
@@ -67,31 +67,31 @@ for o_node in o_dom.getElementsByTagName( "node" ):
 	o_start_date = dateutil.parser.parse(s_start_date)
 	o_end_date = dateutil.parser.parse(s_end_date)
 
-        # Skip if outside crawl date range
-        if s_start_date != "" and o_start_date > o_now:
-                continue
-        elif s_end_date != "" and o_end_date < o_now:
-                continue
-        # Skip if not crawl day
-        elif s_start_date != "" and o_start_date.day != o_now.day:
-                continue
-        elif s_start_date == "" and o_now.day != QUARTERLY_DAY:
-                continue
-        # Skip if not crawl hour
-        elif s_start_date != "" and o_start_date.hour != o_now.hour:
-                continue
-        elif s_start_date == "" and o_now.hour != QUARTERLY_HOUR:
-                continue
-        else:
-                # Skip if not crawl month
-                if s_start_date != "":
-                        i_crawlmonth = o_start_date.month
+	# Skip if outside crawl date range
+	if s_start_date != "" and o_start_date > o_now:
+		continue
+	elif s_end_date != "" and o_end_date < o_now:
+		continue
+	# Skip if not crawl day
+	elif s_start_date != "" and o_start_date.day != o_now.day:
+		continue
+	elif s_start_date == "" and o_now.day != SIXMONTHLY_DAY:
+		continue
+	# Skip if not crawl hour
+	elif s_start_date != "" and o_start_date.hour != o_now.hour:
+		continue
+	elif s_start_date == "" and o_now.hour != SIXMONTHLY_HOUR:
+		continue
+	else:
+		# Skip if not crawl month
+		if s_start_date != "":
+			i_crawlmonth = o_start_date.month
 
-                i_modcrawlmonth = i_crawlmonth%3
-                i_modnowmonth = i_nowmonth%3
+		i_modcrawlmonth = i_crawlmonth%6
+		i_modnowmonth = i_nowmonth%6
 
-                if i_modcrawlmonth == i_modnowmonth:
-                        add_seeds( o_node.getElementsByTagName( "urls" )[ 0 ].firstChild.nodeValue.split( " " ) )
+		if i_modcrawlmonth == i_modnowmonth:
+			add_seeds( o_node.getElementsByTagName( "urls" )[ 0 ].firstChild.nodeValue.split( " " ) )
 
 
 #Exit abnormally if there are no relevant seeds.
