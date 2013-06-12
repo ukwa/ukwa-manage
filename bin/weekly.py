@@ -15,8 +15,8 @@ from datetime import date
 from xml.dom.minidom import parseString
 
 # Set globals
-#WEEKLY_URL = "http://www.webarchive.org.uk/act/websites/export/weekly"
-WEEKLY_URL = "http://opera.bl.uk/weeklytest"
+WEEKLY_URL = "http://www.webarchive.org.uk/act/websites/export/weekly"
+#WEEKLY_URL = "http://opera.bl.uk/weeklytest"
 WEEKLY_DAY = 0
 WEEKLY_HOUR = 12
 SEED_FILE = "/heritrix/weekly-seeds.txt"
@@ -28,15 +28,10 @@ logger = logging.getLogger( "weekly" )
 a_seeds = []
 o_now = datetime.now()
 i_nowday = date.weekday(o_now)
-logger.info('-------------------------------')
-logger.info("Now "+str(o_now))
-logger.info("Now weekday "+str(i_nowday))
-i_added = i_skipped = 0
 
 # Get weekly export list
 try:
 	s_xml = urllib2.urlopen( WEEKLY_URL ).read()
-	logger.info("Got "+WEEKLY_URL)
 except urllib2.URLError, e:
 	logger.error( "Cannot read ACT! " + str( e ) )
 	sys.exit( 1 )
@@ -78,36 +73,26 @@ for o_node in o_dom.getElementsByTagName( "node" ):
 
 	# Skip if outside crawl date range
 	if s_start_date != "" and o_start_date > o_now:
-		++i_skipped
-		logger.info("Skipping - start crawl date in future")
+		pass
 	elif s_end_date != "" and o_end_date < o_now:
-		++i_skipped
-		logger.info("Skipping - end crawl date in past")
+		pass
 	else:
 		if s_start_date != "":
 			i_crawlday = date.weekday(o_start_date)
-		logger.info("Crawl day: "+str(i_crawlday))
 
 		# Skip if not crawl day
 		if i_crawlday != i_nowday:
-			++i_skipped
-			logger.info("Skipping - not crawl day")
+			pass
 
 		else:
 			if s_start_date == "":
 				if o_now.hour == WEEKLY_HOUR:
 					add_seeds( o_node.getElementsByTagName( "urls" )[ 0 ].firstChild.nodeValue.split( " " ) )
-					++i_added
 				else:
-					logger.info("Skipping - not default hour")
-					++i_skipped
+					pass
 
 			elif o_start_date.hour == o_now.hour:
 				add_seeds( o_node.getElementsByTagName( "urls" )[ 0 ].firstChild.nodeValue.split( " " ) )
-				++i_added
-			else:
-				logger.info("Skipping - not site hour")
-				++i_skipped
 
 
 #Exit abnormally if there are no relevant seeds.
@@ -117,12 +102,11 @@ if len( a_seeds ) == 0:
 else:
 	try:
 		output = open( SEED_FILE, "wb" )
-		logger.info("Skipped "+str(i_skipped)+" seeds")
-		logger.info( "Writing "+str(i_added)+" seeds to " + SEED_FILE )
+		logger.info( "Writing seeds to " + SEED_FILE )
 		for seed in a_seeds:
 			output.write( seed + "\n" )
 		output.close()
 		logger.info( "Recorded " + str( len( a_seeds ) ) + " seeds." )
 	except IOError, i:
-		logger.warning( "Problem writing "+str(i_added)+" seeds to " + SEED_FILE )
+		logger.warning( "Problem writing seeds to " + SEED_FILE )
 		sys.exit( 1 )
