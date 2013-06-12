@@ -16,7 +16,6 @@ from xml.dom.minidom import parseString
 
 # Set globals
 WEEKLY_URL = "http://www.webarchive.org.uk/act/websites/export/weekly"
-#WEEKLY_URL = "http://opera.bl.uk/weeklytest"
 WEEKLY_DAY = 0
 WEEKLY_HOUR = 12
 SEED_FILE = "/heritrix/weekly-seeds.txt"
@@ -50,8 +49,6 @@ def add_seeds( s_urls ):
 
 # for each site in export list, extract urls within the crawl date range
 for o_node in o_dom.getElementsByTagName( "node" ):
-	logger.info('')
-	logger.info("Processing "+str(o_node.getElementsByTagName("title")[0].firstChild.nodeValue))
 	s_start_date = s_end_date = ""
 	i_crawlday = WEEKLY_DAY
 
@@ -68,8 +65,6 @@ for o_node in o_dom.getElementsByTagName( "node" ):
 
 	o_start_date = dateutil.parser.parse(s_start_date)
 	o_end_date = dateutil.parser.parse(s_end_date)
-	logger.info("Start date "+s_start_date)
-	logger.info("End date "+s_end_date)
 
 	# Skip if outside crawl date range
 	if s_start_date != "" and o_start_date > o_now:
