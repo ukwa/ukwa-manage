@@ -49,7 +49,7 @@ for node in dom.getElementsByTagName( "node" ):
 	if len( node.getElementsByTagName( "crawlStartDate" )[ 0 ].childNodes ) > 0:
 		start_date = node.getElementsByTagName( "crawlStartDate" )[ 0 ].firstChild.nodeValue
 	if len( node.getElementsByTagName( "crawlEndDate" )[ 0 ].childNodes ) > 0:
-		start_date = node.getElementsByTagName( "crawlEndDate" )[ 0 ].firstChild.nodeValue
+		end_date = node.getElementsByTagName( "crawlEndDate" )[ 0 ].firstChild.nodeValue
 
 	if start_date == "" and str( now.hour ) == DAILY_HOUR and str( now.day ) == MONTHLY_DAY:
 		add_seeds( node.getElementsByTagName( "urls" )[ 0 ].firstChild.nodeValue.split( " " ) )
