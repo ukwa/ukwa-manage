@@ -79,7 +79,7 @@ for o_node in o_dom.getElementsByTagName( "node" ):
 	elif s_start_date == "" and o_now.day != QUARTERLY_DAY:
 		continue
 	else:
-		# Skip if not crawl month and crawl day
+		# Skip if not crawl month
 		if s_start_date != "":
 			i_crawlmonth = o_start_date.month
 
