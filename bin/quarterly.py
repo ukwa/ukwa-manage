@@ -67,8 +67,6 @@ for o_node in o_dom.getElementsByTagName( "node" ):
 
 	o_start_date = dateutil.parser.parse(s_start_date)
 	o_end_date = dateutil.parser.parse(s_end_date)
-	logger.info('')
-	logger.info(str(o_node.getElementsByTagName("title")[0].firstChild.nodeValue))
 
 	# Skip if outside crawl date range
 	if s_start_date != "" and o_start_date > o_now:
@@ -77,10 +75,8 @@ for o_node in o_dom.getElementsByTagName( "node" ):
 		continue
 	# Skip if not crawl day
 	elif s_start_date != "" and o_start_date.day != o_now.day:
-		logger.info('start date - today not '+str(o_start_date.day))
 		continue
 	elif s_start_date == "" and o_now.day != QUARTERLY_DAY:
-		logger.info('no start date - today not '+str(QUARTERLY_DAY))
 		continue
 	else:
 		# Skip if not crawl month and crawl day
@@ -89,10 +85,6 @@ for o_node in o_dom.getElementsByTagName( "node" ):
 
 		i_modcrawlmonth = i_crawlmonth%3
 		i_modnowmonth = i_nowmonth%3
-		logger.info('nowmonth '+str(i_nowmonth))
-		logger.info('crawlmonth '+str(i_crawlmonth))
-		logger.info('modnowmonth '+str(i_modnowmonth))
-		logger.info('modcrawlmonth '+str(i_modcrawlmonth))
 
 		if i_modcrawlmonth != i_modnowmonth:
 			continue
