@@ -15,8 +15,7 @@ from datetime import date
 from xml.dom.minidom import parseString
 
 # Set globals
-#QUARTERLY_URL = "http://www.webarchive.org.uk/act/websites/export/quarterly"
-QUARTERLY_URL = "http://opera.bl.uk/quarterlytest"
+QUARTERLY_URL = "http://www.webarchive.org.uk/act/websites/export/quarterly"
 QUARTERLY_DAY = 1
 QUARTERLY_MONTH = 1
 QUARTERLY_HOUR = 12
