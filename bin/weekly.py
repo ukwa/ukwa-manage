@@ -89,12 +89,8 @@ for o_node in o_dom.getElementsByTagName( "node" ):
 			elif o_start_date.hour == o_now.hour:
 				add_seeds( o_node.getElementsByTagName( "urls" )[ 0 ].firstChild.nodeValue.split( " " ) )
 
-
 #Exit abnormally if there are no relevant seeds.
-if len( a_seeds ) == 0:
-	logger.warning( "No relevant seeds" )
-	sys.exit( 1 )
-else:
+if len( seeds ) > 0:
 	try:
 		output = open( SEED_FILE, "wb" )
 		logger.info( "Writing seeds to " + SEED_FILE )
