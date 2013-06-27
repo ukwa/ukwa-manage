@@ -9,7 +9,7 @@
 
 HDFS_CDX_ROOT=/heritrix/output/wayback/cdx-index
 ROOT=/heritrix/output
-HOOP="http://opera.bl.uk:14000/webhdfs/v1"
+HOOP="http://nellie.bl.uk:14000/webhdfs/v1"
 SUFFIX="?user.name=hadoop&op=GETFILESTATUS"
 TMP=/tmp
 JAR=/heritrix/bin/HadoopUtils.jar
