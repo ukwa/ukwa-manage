@@ -99,7 +99,7 @@
 				</bean>
 				<!-- ...but REJECT those more than a configured link-hop-count from start... -->
 				<bean class="org.archive.modules.deciderules.TooManyHopsDecideRule">
-					<property name="maxHops" value="6" />
+					<property name="maxHops" value="20" />
 				</bean>
 				<!-- ...and REJECT those from a configurable (initially empty) set of URI regexes... -->
 				<ref bean="listRegexFilterOut" />
