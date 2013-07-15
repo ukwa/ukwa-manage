@@ -1,9 +1,11 @@
 import sys
-
+import logging
 import requests
 import xml.etree.ElementTree as ET
 from requests.auth import HTTPDigestAuth
 
+requests_log = logging.getLogger( "requests" )
+requests_log.setLevel( logging.WARNING )
 
 class API(object):
 
