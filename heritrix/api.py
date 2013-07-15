@@ -20,7 +20,7 @@ class API(object):
 
 	def _get(self, url=''):
 		headers = {'Accept': 'application/xml'}
-		r = requests.get(url, auth=HTTPDigestAuth(self.user, self.passwd), headers=headers, verify=self.verify)
+		r = requests.get(url, auth=HTTPDigestAuth(self.user, self.passwd), headers=headers, config=self.config, verify=self.verify)
 		return r
 
 	def _post(self, action='', url='', data={}):
