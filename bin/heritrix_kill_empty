@@ -60,12 +60,12 @@ do
 		then
 			echo -e "\tWould terminate job: $job"
 		else
-#			heritrix "terminate" "job/$job" > /dev/null
-#			waitfor "$job" "FINISHED" 10
-#			#Teardown Job
-#			heritrix "teardown" "job/$job" > /dev/null
-#			waitfor "$job" "" 10
-			echo "Terminating:"
+			echo "Terminating: $job"
+			heritrix "terminate" "job/$job" > /dev/null
+			waitfor "$job" "FINISHED" 10
+			#Teardown Job
+			heritrix "teardown" "job/$job" > /dev/null
+			waitfor "$job" "" 10
 		fi
 
 	fi
