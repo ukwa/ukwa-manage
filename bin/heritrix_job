@@ -92,7 +92,7 @@ fi
 #Kill any current jobs with the same job name.
 while read job
 do
-	if [[ "$job" == "$JOB_ROOT-"* ]] && [[ $(getstatus "$job") != "" ]]
+	if [[ "$job" == "$JOB_ROOT" ]] && [[ $(getstatus "$job") != "" ]]
 	then
 		log "Killing already running job: $job"
 		#Pause Job
@@ -123,11 +123,11 @@ then
 fi
 
 #Set up the new job.
-NEW_JOB_NAME="$JOB_ROOT-$(date +%Y%m%d%H%M%S)"
+NEW_JOB_NAME="$JOB_ROOT"
 NEW_JOB_DIR="$HERITRIX_JOBS/$NEW_JOB_NAME"
 #Create the job directory.
 log "Setting up $NEW_JOB_NAME"
-mkdir "$NEW_JOB_DIR"
+[[ -d "$NEW_JOB_DIR" ]] || mkdir "$NEW_JOB_DIR"
 if [[ ! -d "$NEW_JOB_DIR" ]]
 then
 	log "Problem creating $NEW_JOB_DIR!" >&2
@@ -150,11 +150,6 @@ then
 	sed -ri "s@REPLACE_HASH_NAME@$(ls -d "$HERITRIX_JOBS/"* | wc -l)@g" "$NEW_JOB_DIR/crawler-beans.cxml"
 	sed -ri "s@REPLACE_HASH_COUNT@$GROUPED@g" "$NEW_JOB_DIR/crawler-beans.cxml"
 fi
-log "Creating relevant output directories."
-while read dir
-do
-	[[ -d "$dir" ]] || mkdir "$dir"
-done < <(sed -rn 's@^.+(value="|<value>)(/heritrix/.+/)("|</value>).*$@\2@p' "$NEW_JOB_DIR/crawler-beans.cxml")
 #Copy remaining configuration files to the new folder.
 log "Copying URL shorteners."
 cp "$HERITRIX_SHORTENERS" "$NEW_JOB_DIR"
