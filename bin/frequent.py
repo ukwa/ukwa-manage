@@ -173,11 +173,8 @@ for frequency in frequencies:
 		if end_date is None or dateutil.parser.parse( end_date ) > now:
 			# If there's no start date, use the defaults.
 			if start_date is None:
-				start_date = now
-				hotd = DEFAULT_HOUR
-				dotw = DEFAULT_WEEKDAY
-				dotm = DEFAULT_DAY
-				moty = DEFAULT_MONTH
+				logger.error( "Empty start_date: " + node.find( "urls" ).text )
+				continue
 			else:
 				start_date = dateutil.parser.parse( start_date )
 				hotd = start_date.hour
