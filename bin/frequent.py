@@ -20,8 +20,8 @@ parser.add_option( "-c", "--clamd", dest="clamd", help="Clamd port", default="33
 parser.add_option( "-x", "--heritrix", dest="heritrix", help="Heritrix port", default="8443" )
 ( options, args ) = parser.parse_args()
 
-#frequencies = [ "daily", "weekly", "monthly", "quarterly", "sixmonthly" ]
-frequencies = [ "daily", "weekly" ]
+frequencies = [ "daily", "weekly", "monthly", "quarterly", "sixmonthly" ]
+ports = { "daily": "8444", "weekly": "8443", "monthly": "8443", "quarterly": "8443", "sixmonthly": "8443" }
 
 DEFAULT_HOUR = 12
 DEFAULT_DAY = 8
@@ -40,7 +40,7 @@ LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
 logger = logging.getLogger( "frequency" )
 
-api = heritrix.API( host="https://opera.bl.uk:8443/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
+api = None
 
 class Seed:
 	def tosurt( self, url ):
@@ -80,7 +80,7 @@ def setupjobdir( newjob ):
 	root = HERITRIX_JOBS + "/" + newjob
 	if not os.path.isdir( root ):
 		logger.info( "Adding %s to Heritrix" % newjob )
-		os.path.mkdir( root )
+		os.mkdir( root )
 		api.add( HERITRIX_JOBS + "/" + newjob )
 	return root
 
@@ -91,7 +91,7 @@ def addSurtAssociations( seeds, job ):
 		if seed.depth == "deep":
 			script = "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"noLimit\" );" % seed.surt
 		if seed.depth != "capped":
-			logger.info( "Adding SURT association for " + seed.surt )
+			logger.info( "Amending cap for SURT " + seed.surt + " to " + seed.depth )
 			api.execute( engine="beanshell", script=script, job=job )
 
 def submitjob( newjob, seeds, frequency ):
@@ -209,7 +209,5 @@ for frequency in frequencies:
 			jobname = frequency + "-" + start_date.strftime( "%d%H" ) + "00"
 		if frequency == "quarterly" or frequency == "sixmonthly":
 			jobname = frequency + "-" + start_date.strftime( "%m%d%H" ) + "00"
-		#logger.debug( "Would attempt to schedule job: " + jobname )
-		#for seed in seeds:
-		#	logger.debug( "\t" + seed.url )
+		api = heritrix.API( host="https://opera.bl.uk:" + ports[ frequency ] + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
 		submitjob( jobname, seeds, frequency )
