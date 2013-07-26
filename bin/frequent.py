@@ -159,7 +159,6 @@ for frequency in frequencies:
 
 	dom = etree.fromstring( xml )
 	now = datetime.now()
-	start_date = None
 	#crawlDateRange will be:
 	#	blank			Determined by frequency.
 	#	"start_date"		Determined by frequency if start_date < now.
@@ -199,12 +198,14 @@ for frequency in frequencies:
 							add_seeds( node.find( "urls" ).text, depth )
 	if len( seeds ) > 0:
 		if frequency == "daily": 
-			jobname = frequency + "-" + start_date.strftime( "%H" ) + "00"
+			jobname = frequency + "-" + now.strftime( "%H" ) + "00"
 		if frequency == "weekly":
-			jobname = frequency + "-" + start_date.strftime( "%a%H" ).lower() + "00"
+			jobname = frequency + "-" + now.strftime( "%a%H" ).lower() + "00"
 		if frequency == "monthly":
-			jobname = frequency + "-" + start_date.strftime( "%d%H" ) + "00"
-		if frequency == "quarterly" or frequency == "sixmonthly":
-			jobname = frequency + "-" + start_date.strftime( "%m%d%H" ) + "00"
+			jobname = frequency + "-" + now.strftime( "%d%H" ) + "00"
+		if frequency == "quarterly":
+			jobname = frequency + "-" + str( now.month%3 ) + now.strftime( "%d%H" ) + "00"
+		if frequency == "sixmonthly":
+			jobname = frequency + "-" + str( now.month%6 ) + now.strftime( "%d%H" ) + "00"
 		api = heritrix.API( host="https://opera.bl.uk:" + ports[ frequency ] + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
 		submitjob( jobname, seeds, frequency )
