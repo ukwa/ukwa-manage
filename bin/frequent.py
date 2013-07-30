@@ -13,6 +13,7 @@ import dateutil.parser
 from lxml import etree
 from datetime import datetime
 from optparse import OptionParser
+from retry_decorator import *
 from requests.exceptions import ConnectionError
 
 parser = OptionParser()
@@ -20,8 +21,8 @@ parser.add_option( "-c", "--clamd", dest="clamd", help="Clamd port", default="33
 parser.add_option( "-x", "--heritrix", dest="heritrix", help="Heritrix port", default="8443" )
 ( options, args ) = parser.parse_args()
 
-frequencies = [ "daily", "weekly", "monthly", "quarterly", "sixmonthly" ]
-ports = { "daily": "8444", "weekly": "8443", "monthly": "8443", "quarterly": "8443", "sixmonthly": "8443" }
+frequencies = [ "daily", "weekly", "monthly", "quarterly", "sixmonthly", "annual" ]
+ports = { "daily": "8444", "weekly": "8443", "monthly": "8443", "quarterly": "8443", "sixmonthly": "8443", "annual": "8443" }
 
 DEFAULT_HOUR = 12
 DEFAULT_DAY = 8
@@ -138,13 +139,19 @@ def submitjob( newjob, seeds, frequency ):
 	waitfor( newjob, "RUNNING" )
 	logger.info( "%s running. Exiting.", newjob )
 
+@retry( urllib2.URLError, tries=20, timeout_secs=10 )
+def callAct( url ):
+	return urllib2.urlopen( url )
+
 for frequency in frequencies:
 	URL_ROOT = "http://www.webarchive.org.uk/act/websites/export/"
 	SEED_FILE = "/heritrix/" + frequency + "-seeds.txt"
 	seeds = []
+	now = datetime.now()
 
 	try:
-		xml = urllib2.urlopen( URL_ROOT + frequency ).read()
+		xml = callAct( URL_ROOT + frequency )
+		xml = xml.read()
 	except urllib2.URLError, e:
 		logger.error( "Cannot read ACT! " + str( e ) )
 		sys.exit( 1 )
@@ -158,7 +165,6 @@ for frequency in frequencies:
 				logger.error( "INVALID URL: " + url )
 
 	dom = etree.fromstring( xml )
-	now = datetime.now()
 	#crawlDateRange will be:
 	#	blank			Determined by frequency.
 	#	"start_date"		Determined by frequency if start_date < now.
@@ -196,6 +202,8 @@ for frequency in frequencies:
 							add_seeds( node.find( "urls" ).text, depth )
 						if frequency == "sixmonthly" and moty%6 == now.month%6:
 							add_seeds( node.find( "urls" ).text, depth )
+						if frequency == "annual" and moty == now.month:
+							add_seeds( node.find( "urls" ).text, depth )
 	if len( seeds ) > 0:
 		if frequency == "daily": 
 			jobname = frequency + "-" + now.strftime( "%H" ) + "00"
@@ -204,8 +212,10 @@ for frequency in frequencies:
 		if frequency == "monthly":
 			jobname = frequency + "-" + now.strftime( "%d%H" ) + "00"
 		if frequency == "quarterly":
-			jobname = frequency + "-" + str( now.month%3 ) + now.strftime( "%d%H" ) + "00"
+			jobname = frequency + "-" + str( now.month%3 ) + "-" + now.strftime( "%d%H" ) + "00"
 		if frequency == "sixmonthly":
-			jobname = frequency + "-" + str( now.month%6 ) + now.strftime( "%d%H" ) + "00"
+			jobname = frequency + "-" + str( now.month%6 ) + "-" + now.strftime( "%d%H" ) + "00"
+		if frequency == "annual":
+			jobname = frequency + "-" + now.strftime( "%m%d%H" ) + "00"
 		api = heritrix.API( host="https://opera.bl.uk:" + ports[ frequency ] + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
 		submitjob( jobname, seeds, frequency )
