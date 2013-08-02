@@ -351,7 +351,7 @@
 		<property name="directory" value="." />
 		<property name="storePaths">
 			<list>
-				<value>/heritrix/output/viral/REPLACE_JOB_NAME/</value>
+				<value>/heritrix/output/viral/REPLACE_JOB_NAME/${launchId}/</value>
 			</list>
 		</property>
 		<property name="writeRequests" value="true" />
@@ -379,7 +379,7 @@
 		<property name="directory" value="." />
 		<property name="storePaths">
 			<list>
-				<value>/heritrix/output/warcs/REPLACE_JOB_NAME/</value>
+				<value>/heritrix/output/warcs/REPLACE_JOB_NAME/${launchId}/</value>
 			</list>
 		</property>
 		<property name="writeRequests" value="true" />
@@ -544,7 +544,7 @@
 	
 	<!-- CRAWLERLOGGERMODULE: shared logging facility -->
 	<bean id="loggerModule" class="org.archive.crawler.reporting.CrawlerLoggerModule">
-		<property name="path" value="/heritrix/output/logs/REPLACE_JOB_NAME/" />
+		<property name="path" value="/heritrix/output/logs/REPLACE_JOB_NAME/${launchId}/" />
 		<property name="crawlLogPath" value="crawl.log" />
 		<property name="alertsLogPath" value="alerts.log" /> 
 		<property name="progressLogPath" value="progress-statistics.log" />
