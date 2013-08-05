@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import shutil
+import httplib
 import rfc3987
 import urllib2
 import logging
@@ -153,8 +154,11 @@ for frequency in frequencies:
 		xml = callAct( URL_ROOT + frequency )
 		xml = xml.read()
 	except urllib2.URLError, e:
-		logger.error( "Cannot read ACT! " + str( e ) )
-		sys.exit( 1 )
+		logger.error( "Cannot read ACT! " + str( e ) + " [" + frequency + "]" )
+		continue
+	except httplib.IncompleteRead, i:
+		logger.error( "IncompleteRead: " + str( i.partial ) + " [" + frequency + "]" )
+		continue
 
 	def add_seeds( urls, depth ):
 		for url in urls.split():

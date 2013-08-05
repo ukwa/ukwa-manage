@@ -1,0 +1,21 @@
+#!/bin/bash
+
+OUT="/heritrix/output/wayback/cdx-index/sorted/part-*"
+CDX="/heritrix/output/wayback/cdx-index/index.cdx"
+OLD="/heritrix/output/wayback/cdx-index/index.old"
+NEW="/heritrix/output/wayback/cdx-index/index.new"
+
+log()
+{
+        echo "[$(date "+%Y-%m-%d %H:%M:%S")] $1"
+}
+
+if [[ -e "$OLD" ]]
+then
+	log "Removing old CDX."
+	rm "$OLD"
+fi
+log "Copying new CDX."
+hadoop fs -cat "$OUT" > "$NEW"
+log "Renaming indexes."
+mv "$CDX" "$OLD" && mv "$NEW" "$CDX"
