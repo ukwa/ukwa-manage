@@ -75,6 +75,7 @@
 			<property name="surtPrefixes">
 				<list>
 					<value>http://(uk,co,bbc,</value>
+					<value>http://(uk,co,bbci,</value>
 					<value>http://(uk,gov,www,</value>
 					<value>http://(uk,gov,dh,</value>
 					<value>http://(uk,nhs,</value>
