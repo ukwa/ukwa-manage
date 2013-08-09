@@ -64,6 +64,10 @@
 		</property>
 		<property name='sourceTagSeeds' value='false'/>
 	</bean>
+
+	<bean id="externalGeoLookup" class="uk.bl.wap.modules.deciderules.ExternalGeoLookup">
+		<property name="database" value="/usr/local/share/geoip/geoip-city.mmdb" />
+	</bean>
 	
 	<!-- SCOPE: rules for which discovered URIs to crawl; order is very 
 		 important because last decision returned other than 'NONE' wins. -->
@@ -96,6 +100,16 @@
 				<bean class="org.archive.modules.deciderules.HopsPathMatchesRegexDecideRule">
 					<property name="decision" value="ACCEPT" />
 					<property name="regex" value="^E*$" />
+				</bean>
+				<bean id="externalGeoLookupRule" class="org.archive.modules.deciderules.ExternalGeoLocationDecideRule">
+					<property name="lookup">
+						<ref bean="externalGeoLookup"/>
+					</property>
+					<property name="countryCodes">
+						<list>
+							<value>GB</value>
+						</list>
+					</property>
 				</bean>
 				<!-- ...but REJECT those more than a configured link-hop-count from start... -->
 				<bean class="org.archive.modules.deciderules.TooManyHopsDecideRule">
