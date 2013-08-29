@@ -69,4 +69,4 @@ do
 		fi
 
 	fi
-done < <(heritrix "none" | sed -rn 's@^\s*<shortName>([^<]+)</shortName>.*$@\1@p')
+done < <(heritrix "none" | sed -rn 's@^\s*<shortName>([^<]+)</shortName>.*$@\1@p' | grep -v "latest")

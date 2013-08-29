@@ -103,6 +103,7 @@
 			<property name="surtPrefixes">
 				<list>
 					<value>http://(uk,gov,nationalarchives,webarchive,</value>
+					<value>http://(uk,bl,intranet,</value>
 				</list>
 			</property>
 			<property name="targetSheetNames">

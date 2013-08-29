@@ -1,0 +1,38 @@
+#!/bin/bash
+
+ROOT="/opt/heritrix/jobs/latest-20130809093642"
+URL="http://www.webarchive.org.uk/act/websites/export/all"
+LATEST="$ROOT/latest.txt"
+SEEDS="$ROOT/seeds.txt"
+SEEDS_SORTED="$ROOT/seeds.sort"
+SEEDS_ACTION="$ROOT/action/$(date +%Y%m%d%H%M%S).seeds"
+
+log()
+{
+	echo "[$(date "+%Y-%m-%d %H:%M:%S")] $1"
+}
+
+log "Getting all seeds from ACT."
+curl --silent -L "$URL" | sed -rn 's@^\s*<urls>([^<]+)</urls>.*$@\1@p' | sed -r 's@ @\n@g' | sort -u > "$LATEST"
+if [[ $? -ne 0 ]] || [[ $(wc -l < "$LATEST") -eq 0 ]]
+then
+	log "ERROR: Unable to read from ACT." >&2
+	exit 1
+fi
+
+#log "Checking for Heritrix-added seeds."
+#LINE="$(grep -m1 -n "^#" "$SEEDS" | cut -d ":" -f1)"
+#if [[ -n $LINE ]]
+#then
+#	LINE=$((LINE-2))
+#	sed -n "1,$LINE p" "$SEEDS" | sort -u > "$SEEDS_SORTED"
+#else
+#	sort -u "$SEEDS" > "$SEEDS_SORTED"
+#fi
+log "Comparing latest seeds."
+comm -23 "$LATEST" "$SEEDS_SORTED" > "$SEEDS"
+if [[ $(wc -l < "$SEEDS") -gt 0 ]]
+then
+	log "Copying $(wc -l < "$SEEDS") seeds to Action directory."
+	cp "$SEEDS" "$SEEDS_ACTION"
+fi
