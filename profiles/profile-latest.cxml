@@ -270,7 +270,7 @@
 	</bean>
 	<bean id="viralContent" class="uk.bl.wap.crawler.processor.ViralContentProcessor">
 		<property name="clamdHost" value="localhost" />
-   		<property name="clamdPort" value="8443" />
+   		<property name="clamdPort" value="3310" />
    		<property name="clamdTimeout" value="0" />
 	</bean>
 	<!-- Configure persistent URI history storage -->

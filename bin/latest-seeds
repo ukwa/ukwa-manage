@@ -20,15 +20,6 @@ then
 	exit 1
 fi
 
-#log "Checking for Heritrix-added seeds."
-#LINE="$(grep -m1 -n "^#" "$SEEDS" | cut -d ":" -f1)"
-#if [[ -n $LINE ]]
-#then
-#	LINE=$((LINE-2))
-#	sed -n "1,$LINE p" "$SEEDS" | sort -u > "$SEEDS_SORTED"
-#else
-#	sort -u "$SEEDS" > "$SEEDS_SORTED"
-#fi
 log "Comparing latest seeds."
 comm -23 "$LATEST" "$SEEDS_SORTED" > "$SEEDS"
 if [[ $(wc -l < "$SEEDS") -gt 0 ]]
