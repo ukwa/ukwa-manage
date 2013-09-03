@@ -26,4 +26,5 @@ if [[ $(wc -l < "$SEEDS") -gt 0 ]]
 then
 	log "Copying $(wc -l < "$SEEDS") seeds to Action directory."
 	cp "$SEEDS" "$SEEDS_ACTION"
+	mv -f "$LATEST" "$SEEDS_SORTED"
 fi

@@ -51,10 +51,11 @@ class Seed:
 		authority.reverse()
 		return "http://(" + ",".join( authority ) + ","
 
-	def __init__( self, url, depth="capped" ):
+	def __init__( self, url, depth="capped", ignore_robots=False ):
 		self.url = url
 		self.depth = depth #capped=default, capped_large=higherLimit, deep=noLimit
 		self.surt = self.tosurt( self.url )
+		self.ignore_robots = ignore_robots
 
 def verify():
 	try:
@@ -96,6 +97,13 @@ def addSurtAssociations( seeds, job ):
 			logger.info( "Amending cap for SURT " + seed.surt + " to " + seed.depth )
 			api.execute( engine="beanshell", script=script, job=job )
 
+def ignoreRobots( seeds, job ):
+	for seed in seeds:
+		if seed.ignore_robots:
+			script = "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"ignoreRobots\" );" % seed.surt
+			logger.info( "Ignoring robots.txt for SURT " + seed.surt )
+			api.execute( engine="beanshell", script=script, job=job )
+
 def submitjob( newjob, seeds, frequency ):
 	verify()
 	kill( newjob )
@@ -135,6 +143,7 @@ def submitjob( newjob, seeds, frequency ):
 	waitfor( newjob, "PAUSED" )
 	#Add SURT associations for caps.
 	addSurtAssociations( seeds, newjob )
+	ignoreRobots( seeds, newjob )
 	logger.info( "Unpausing %s", newjob )
 	api.unpause( newjob )
 	waitfor( newjob, "RUNNING" )
@@ -160,10 +169,10 @@ for frequency in frequencies:
 		logger.error( "IncompleteRead: " + str( i.partial ) + " [" + frequency + "]" )
 		continue
 
-	def add_seeds( urls, depth ):
+	def add_seeds( urls, depth, ignore_robots ):
 		for url in urls.split():
 			try:
-				seed = Seed( url=url, depth=depth )
+				seed = Seed( url=url, depth=depth, ignore_robots=ignore_robots )
 				seeds.append( seed )
 			except ValueError, v:
 				logger.error( "INVALID URL: " + url )
@@ -177,6 +186,7 @@ for frequency in frequencies:
 		start_date = node.find( "crawlStartDate" ).text
 		end_date = node.find( "crawlEndDate" ).text
 		depth = node.find( "depth" ).text
+		ignore_robots = ( node.find( "ignoreRobots.txt" ).text != None )
 
 		# If there's no end-date or it's in the future, we're okay.
 		if end_date is None or dateutil.parser.parse( end_date ) > now:
@@ -195,19 +205,19 @@ for frequency in frequencies:
 				# All frequencies are hour-dependent.
 				if hotd == now.hour:
 					if frequency == "daily": 
-						add_seeds( node.find( "urls" ).text, depth )
+						add_seeds( node.find( "urls" ).text, depth, ignore_robots )
 					if frequency == "weekly" and dotw == now.weekday():
-						add_seeds( node.find( "urls" ).text, depth )
+						add_seeds( node.find( "urls" ).text, depth, ignore_robots )
 					# Remaining frequencies all run on a specific day.
 					if dotm == now.day:
 						if frequency == "monthly":
-							add_seeds( node.find( "urls" ).text, depth )
+							add_seeds( node.find( "urls" ).text, depth, ignore_robots )
 						if frequency == "quarterly" and moty%3 == now.month%3:
-							add_seeds( node.find( "urls" ).text, depth )
+							add_seeds( node.find( "urls" ).text, depth, ignore_robots )
 						if frequency == "sixmonthly" and moty%6 == now.month%6:
-							add_seeds( node.find( "urls" ).text, depth )
+							add_seeds( node.find( "urls" ).text, depth, ignore_robots )
 						if frequency == "annual" and moty == now.month:
-							add_seeds( node.find( "urls" ).text, depth )
+							add_seeds( node.find( "urls" ).text, depth, ignore_robots )
 	if len( seeds ) > 0:
 		if frequency == "daily": 
 			jobname = frequency + "-" + now.strftime( "%H" ) + "00"
