@@ -1,0 +1,42 @@
+#!/usr/local/bin/python2.7
+
+import argparse
+import simplejson
+from subprocess import Popen, PIPE
+
+phantomjs = "/opt/phantomjs/bin/phantomjs"
+options = "--proxy=194.66.232.94:4338"
+netsniff = "/opt/phantomjs/examples/netsniff.js"
+
+def strip_debug( json ):
+	lines = json.splitlines()
+	for index, line in enumerate( lines ):
+		if line == "{":
+			final= ""
+			for l in lines[ index: ]:
+				final = final + l + "\n"
+			return final
+	return lines
+
+def get_har( url ):
+	har = Popen( [ phantomjs, options, netsniff, url ], stdout=PIPE, stderr=PIPE )
+	stdout, stderr = har.communicate()
+	return strip_debug( stdout )
+
+def generate_urls( url ):
+	json = get_har( url )
+	data = simplejson.loads( json )
+
+	num_urls = 0
+	for entry in data[ "log" ][ "entries" ]:
+		num_urls += 1
+	return num_urls
+
+parser = argparse.ArgumentParser( description="Render latest seeds via PhantomJS." )
+parser.add_argument( "seeds", metavar="S", type=str, nargs="+", help="ACT seeds" )
+args = parser.parse_args()
+
+for seed in args.seeds:
+	count = generate_urls( seed )
+	print "Found " + str( count ) + " URLs for seed " + seed
+
