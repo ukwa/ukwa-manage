@@ -1,0 +1,58 @@
+#!/bin/bash
+
+usage()
+{
+	echo -e "Generate a CDX from the LD content for use in UKWA."
+	echo "OPTIONS:"
+	echo "  -h    Show this message."
+	echo "  -d    Domain to be extracted."
+}
+
+log()
+{
+	echo "[$(date "+%Y-%m-%d %H:%M:%S")] $1"
+}
+
+while getopts "hd:" OPTION
+do
+	case $OPTION in
+		h)
+			usage
+			exit 0
+			;;
+		d)
+			DOMAIN=$OPTARG
+			;;
+	esac
+done
+
+CDX="/heritrix/output/wayback/cdx-index/index.cdx"
+TIMESTAMP="$(date +%Y%m%d%H%M%S)"
+FLOCK="http://flock.bl.uk/webtools/urls/http://opera.bl.uk/wayback/$TIMESTAMP"
+URL_CLIENT="/home/rcoram/wayback-1.6.0/bin/url-client"
+
+if [[ -z $DOMAIN ]]
+then
+	log "ERROR: Domain must be passed as a parameter."
+	usage
+	exit 1
+fi
+
+log "Getting list of URLs in the LD CDX."
+look "$DOMAIN" "$CDX" | awk '{ print $3 }' | sort -T /dev/shm -u > "/tmp/$TIMESTAMP"-0.tmp
+
+log "Generating list of all required URLs."
+while read url
+do
+	curl --silent "$FLOCK/$url"
+done < "/tmp/$TIMESTAMP-0.tmp" | sort -u > "/tmp/$TIMESTAMP"-1.tmp
+
+log "Retrieving CDX lines from LD CDX."
+while read url
+do
+	CANON="$(echo "$url" | $URL_CLIENT | sed -r 's@^.+http://?@@')"
+	look "$CANON " "$CDX"
+done < "/tmp/$TIMESTAMP"-1.tmp > "$DOMAIN.cdx"
+
+rm "/tmp/$TIMESTAMP"-0.tmp
+rm "/tmp/$TIMESTAMP"-1.tmp
