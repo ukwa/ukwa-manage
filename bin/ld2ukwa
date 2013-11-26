@@ -13,6 +13,25 @@ log()
 	echo "[$(date "+%Y-%m-%d %H:%M:%S")] $1"
 }
 
+urlencode() {
+	local length="${#1}"
+	for(( i = 0 ; i < length ; i++ ))
+	do
+		local c="${1:i:1}"
+		case "$c" in
+			[a-zA-Z0-9.~_-])
+				printf "$c"
+				;;
+			' ')
+				printf +
+				;;
+			*)
+				printf '%%%X' "'$c"
+				;;
+		esac
+	done
+}  
+
 while getopts "hd:" OPTION
 do
 	case $OPTION in
@@ -52,7 +71,7 @@ while read url
 do
 	CANON="$(echo "$url" | $URL_CLIENT | sed -r 's@^.+http://?@@')"
 	look "$CANON " "$CDX"
-done < "/tmp/$TIMESTAMP"-1.tmp > "$DOMAIN.cdx"
+done < "/tmp/$TIMESTAMP"-1.tmp
 
 rm "/tmp/$TIMESTAMP"-0.tmp
 rm "/tmp/$TIMESTAMP"-1.tmp

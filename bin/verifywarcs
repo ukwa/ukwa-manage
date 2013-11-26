@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ROOT=/heritrix/output
-HOOP="http://opera.bl.uk:14000/webhdfs/v1"
+HOOP="http://nellie.bl.uk:14000/webhdfs/v1"
 SUFFIX="?user.name=hadoop&op=GETFILESTATUS"
 
 log()
@@ -20,5 +20,7 @@ do
 		then
 			log "ERROR: WARC sizes do not match for $warc"
 		fi
+	else
+		log "ERROR: FileNotFoundException: $warc"
 	fi
 done < <(find $ROOT/ -name "*.warc.gz")

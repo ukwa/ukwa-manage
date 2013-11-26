@@ -13,7 +13,7 @@ log()
 }
 
 log "Getting all seeds from ACT."
-curl --silent -L "$URL" | sed -rn 's@^\s*<urls>([^<]+)</urls>.*$@\1@p' | sed -r 's@ @\n@g' | sort -u > "$LATEST"
+curl --max-time 120 --silent -L "$URL" | sed -rn 's@^\s*<urls>([^<]+)</urls>.*$@\1@p' | sed -r 's@ @\n@g' | sort -u > "$LATEST"
 if [[ $? -ne 0 ]] || [[ $(wc -l < "$LATEST") -eq 0 ]]
 then
 	log "ERROR: Unable to read from ACT." >&2
