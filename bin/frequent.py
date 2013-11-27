@@ -13,8 +13,9 @@ import heritrix
 import dateutil.parser
 from lxml import etree
 from datetime import datetime
-from optparse import OptionParser
 from retry_decorator import *
+from optparse import OptionParser
+from hanzo.warctools import WarcRecord
 from requests.exceptions import ConnectionError
 
 parser = OptionParser()
@@ -23,7 +24,8 @@ parser.add_option( "-x", "--heritrix", dest="heritrix", help="Heritrix port", de
 ( options, args ) = parser.parse_args()
 
 frequencies = [ "daily", "weekly", "monthly", "quarterly", "sixmonthly", "annual" ]
-ports = { "daily": "8444", "weekly": "8443", "monthly": "8443", "quarterly": "8443", "sixmonthly": "8443", "annual": "8443" }
+heritrix_ports = { "daily": "8444", "weekly": "8443", "monthly": "8443", "quarterly": "8443", "sixmonthly": "8443", "annual": "8443" }
+clamd_ports = { "daily": "3311", "weekly": "3310", "monthly": "3310", "quarterly": "3310", "sixmonthly": "3310", "annual": "3310" }
 
 DEFAULT_HOUR = 12
 DEFAULT_DAY = 8
@@ -37,6 +39,9 @@ HERITRIX_EXCLUDE = CONFIG_ROOT + "/exclude.txt"
 HERITRIX_SHORTENERS = CONFIG_ROOT + "/url.shorteners.txt"
 HERITRIX_SURTS = CONFIG_ROOT + "/surts.txt"
 HERITRIX_JOBS = "/opt/heritrix/jobs"
+WARC_ROOT = "/heritrix/output/warcs"
+LOG_ROOT = "/heritrix/output/logs"
+URL_ROOT = "http://www.webarchive.org.uk/act/websites/export/"
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
@@ -63,6 +68,13 @@ def verify():
 	except ConnectionError:
 		logger.error( "Can't connect to Heritrix: ConnectionError" )
 		sys.exit( 1 )
+
+def jobs_by_status( api, status  ):
+	empty = [] 
+	for job in api.listjobs(): 
+		if api.status( job ) == status:
+			empty.append( ( job, api.launchid( job ) ) )
+	return empty
 
 def waitfor( job, status ):
 	while api.status( job ) != status:
@@ -119,7 +131,7 @@ def submitjob( newjob, seeds, frequency ):
 	xmlstring = etree.tostring( tree, pretty_print=True, xml_declaration=True, encoding="UTF-8" )
 	#Replace values
 	xmlstring = xmlstring.replace( "REPLACE_JOB_NAME", newjob )
-	xmlstring = xmlstring.replace( "REPLACE_CLAMD_PORT", options.clamd )
+	xmlstring = xmlstring.replace( "REPLACE_CLAMD_PORT", clamd_ports[ frequency ] )
 	xmlstring = xmlstring.replace( "REPLACE_JOB_ROOT", newjob )
 	xmlstring = xmlstring.replace( "REPLACE_HERITRIX_JOBS", HERITRIX_JOBS )
 	cxml = open( root + "/crawler-beans.cxml", "w" )
@@ -154,7 +166,6 @@ def callAct( url ):
 	return urllib2.urlopen( url )
 
 for frequency in frequencies:
-	URL_ROOT = "http://www.webarchive.org.uk/act/websites/export/"
 	SEED_FILE = "/heritrix/" + frequency + "-seeds.txt"
 	seeds = []
 	now = datetime.now()
@@ -231,5 +242,6 @@ for frequency in frequencies:
 			jobname = frequency + "-" + str( now.month%6 ) + "-" + now.strftime( "%d%H" ) + "00"
 		if frequency == "annual":
 			jobname = frequency + "-" + now.strftime( "%m%d%H" ) + "00"
-		api = heritrix.API( host="https://opera.bl.uk:" + ports[ frequency ] + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
+		api = heritrix.API( host="https://opera.bl.uk:" + heritrix_ports[ frequency ] + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
 		submitjob( jobname, seeds, frequency )
+
