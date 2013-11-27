@@ -12,8 +12,8 @@
 			<value>^.+/cart/add/.+$</value>
 			<value>^.+jobs\.staffs\.ac\.uk/[A-Za-z0-9+/]{20,}.+$</value>
 			<value>^.+%20%20%20.+$</value>
-			<value>^.+/cms/events/calendar/.+/2013/.+$</value>
-			<value>^.+/cms/events/calendar/.+/2011/.+$</value>
+			<value>^.+/cms/events/calendar/.+/2014/.+$</value>
+			<value>^.+/cms/events/calendar/.+/2012/.+$</value>
 			<value>^.+ncl\.ac\.uk.+https%3.+$</value>
 			<value>^https?://[^/]+/catalog/product_compare/(add|remove)/.+$</value>
 			<value>^.+index\.php\?qs=06oENya.+$</value>
