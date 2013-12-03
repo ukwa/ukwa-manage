@@ -272,6 +272,7 @@
 		<property name="clamdHost" value="localhost" />
    		<property name="clamdPort" value="3310" />
    		<property name="clamdTimeout" value="0" />
+		<property name="streamMaxLength" value="94371840"/>
 	</bean>
 	<!-- Configure persistent URI history storage -->
 	<bean id="persistStoreProcessor" class="org.archive.modules.recrawl.PersistStoreProcessor">
