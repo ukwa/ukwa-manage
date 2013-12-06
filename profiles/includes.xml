@@ -232,5 +232,29 @@
 				</map>
 			</property>
 		</bean>
+
+		<!-- Sheets implementing various Scoping rules -->
+	 	<bean id="resourceScope" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="hopsCountReject.maxHops" value="1" />
+				</map>
+			</property>
+		</bean>
+	 	<bean id="plus1Scope" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="hopsCountReject.maxHops" value="1" />
+					<entry key="redirectAccept.enabled" value="true" />
+				</map>
+			</property>
+		</bean>
+	 	<bean id="subdomainsScope" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="onDomainAccept.enabled" value="true" />
+				</map>
+			</property>
+		</bean>
 	</sheets>
 </includes>

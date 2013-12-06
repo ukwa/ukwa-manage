@@ -56,9 +56,10 @@ class Seed:
 		authority.reverse()
 		return "http://(" + ",".join( authority ) + ","
 
-	def __init__( self, url, depth="capped", ignore_robots=False ):
+	def __init__( self, url, depth="capped", scope="root", ignore_robots=False ):
 		self.url = url
 		self.depth = depth #capped=default, capped_large=higherLimit, deep=noLimit
+		self.scope = scope
 		self.surt = self.tosurt( self.url )
 		self.ignore_robots = ignore_robots
 
@@ -99,15 +100,45 @@ def setupjobdir( newjob ):
 		api.add( HERITRIX_JOBS + "/" + newjob )
 	return root
 
+def writeJobScript( job, script ):
+	with open( HERITRIX_JOBS + "/" + job + "/" + script, "wb" ) as o:
+		o.writelines( script )
+
+def runJobScript( input ):
+	with open( HERITRIX_JOBS + "/" + job + "/" + script, "rb" ) as i:
+		script = i.read()
+		api.execute( engine="beanshell", script=script, job=job )
+
 def addSurtAssociations( seeds, job ):
+	script= []
 	for seed in seeds:
 		if seed.depth == "capped_large":
-			script = "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"higherLimit\" );" % seed.surt
+			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"higherLimit\" );" % seed.surt )
 		if seed.depth == "deep":
-			script = "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"noLimit\" );" % seed.surt
+			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"noLimit\" );" % seed.surt )
 		if seed.depth != "capped":
 			logger.info( "Amending cap for SURT " + seed.surt + " to " + seed.depth )
-			api.execute( engine="beanshell", script=script, job=job )
+	return script
+
+def addScopingRules( seeds, job ):
+	script = []
+	for seed in seeds:
+		if seed.scope == "resource":
+			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).getOrCreateSheet( \"resourceScope\" ); " )
+			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).putSheetOverlay( \"resourceScope\", \"hopsCountReject.maxHops\", 1 ); " )
+			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"resourceScope\" ); " % seed.surt )
+		if seed.scope == "plus1":
+			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).getOrCreateSheet( \"plus1Scope\" ); " )
+			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).putSheetOverlay( \"plus1Scope\", \"hopsCountReject.maxHops\", 1 ); " )
+			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).putSheetOverlay( \"plus1Scope\", \"redirectAccept.enabled\", true ); " )
+			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"plus1Scope\" ); " % seed.surt )
+		if seed.scope == "subdomains":
+			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).getOrCreateSheet( \"subdomainsScope\" ); " )
+			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).putSheetOverlay( \"subdomainsScope\", \"onDomainAccept.enabled\", true ); " )
+			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"subdomainsScope\" ); " % seed.surt )
+		if seed.scope != "root":
+			logger.info( "Setting scope for SURT %s to %s." % ( seed.surt, seed.scope ) )
+	return script
 
 def ignoreRobots( seeds, job ):
 	for seed in seeds:
@@ -154,7 +185,12 @@ def submitjob( newjob, seeds, frequency ):
 	api.launch( newjob )
 	waitfor( newjob, "PAUSED" )
 	#Add SURT associations for caps.
-	addSurtAssociations( seeds, newjob )
+	script = addSurtAssociations( seeds, newjob )
+	#TODO
+	#script += addScopingRules( seeds, newjob )
+	if len( script ) > 0:
+		writeJobScript( newjob, script )
+		runJobScript( newjob )
 	ignoreRobots( seeds, newjob )
 	logger.info( "Unpausing %s", newjob )
 	api.unpause( newjob )
@@ -180,10 +216,10 @@ for frequency in frequencies:
 		logger.error( "IncompleteRead: " + str( i.partial ) + " [" + frequency + "]" )
 		continue
 
-	def add_seeds( urls, depth, ignore_robots ):
+	def add_seeds( urls, depth, scope, ignore_robots ):
 		for url in urls.split():
 			try:
-				seed = Seed( url=url, depth=depth, ignore_robots=ignore_robots )
+				seed = Seed( url=url, depth=depth, scope=scope, ignore_robots=ignore_robots )
 				seeds.append( seed )
 			except ValueError, v:
 				logger.error( "INVALID URL: " + url )
@@ -197,6 +233,7 @@ for frequency in frequencies:
 		start_date = node.find( "crawlStartDate" ).text
 		end_date = node.find( "crawlEndDate" ).text
 		depth = node.find( "depth" ).text
+		scope = node.find( "scope" ).text
 		ignore_robots = ( node.find( "ignoreRobots.txt" ).text != None )
 
 		# If there's no end-date or it's in the future, we're okay.
@@ -216,19 +253,19 @@ for frequency in frequencies:
 				# All frequencies are hour-dependent.
 				if hotd == now.hour:
 					if frequency == "daily": 
-						add_seeds( node.find( "urls" ).text, depth, ignore_robots )
+						add_seeds( node.find( "urls" ).text, depth, scope, ignore_robots )
 					if frequency == "weekly" and dotw == now.weekday():
-						add_seeds( node.find( "urls" ).text, depth, ignore_robots )
+						add_seeds( node.find( "urls" ).text, depth, scope, ignore_robots )
 					# Remaining frequencies all run on a specific day.
 					if dotm == now.day:
 						if frequency == "monthly":
-							add_seeds( node.find( "urls" ).text, depth, ignore_robots )
+							add_seeds( node.find( "urls" ).text, depth, scope, ignore_robots )
 						if frequency == "quarterly" and moty%3 == now.month%3:
-							add_seeds( node.find( "urls" ).text, depth, ignore_robots )
+							add_seeds( node.find( "urls" ).text, depth, scope, ignore_robots )
 						if frequency == "sixmonthly" and moty%6 == now.month%6:
-							add_seeds( node.find( "urls" ).text, depth, ignore_robots )
+							add_seeds( node.find( "urls" ).text, depth, scope, ignore_robots )
 						if frequency == "annual" and moty == now.month:
-							add_seeds( node.find( "urls" ).text, depth, ignore_robots )
+							add_seeds( node.find( "urls" ).text, depth, scope, ignore_robots )
 	if len( seeds ) > 0:
 		if frequency == "daily": 
 			jobname = frequency + "-" + now.strftime( "%H" ) + "00"
