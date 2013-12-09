@@ -101,11 +101,11 @@ def setupjobdir( newjob ):
 	return root
 
 def writeJobScript( job, script ):
-	with open( HERITRIX_JOBS + "/" + job + "/" + script, "wb" ) as o:
+	with open( HERITRIX_JOBS + "/" + job + "/script", "wb" ) as o:
 		o.writelines( script )
 
 def runJobScript( input ):
-	with open( HERITRIX_JOBS + "/" + job + "/" + script, "rb" ) as i:
+	with open( HERITRIX_JOBS + "/" + job + "/script", "rb" ) as i:
 		script = i.read()
 		api.execute( engine="beanshell", script=script, job=job )
 
@@ -153,7 +153,7 @@ def submitjob( newjob, seeds, frequency ):
 	root = setupjobdir( newjob )
 
 	#Set up profile, etc.
-	profile = HERITRIX_PROFILES + "/profile-" + frequency + ".cxml"
+	profile = HERITRIX_PROFILES + "/profile-frequent.cxml"
 	if not os.path.exists( profile ):
 		logger.error( "Cannot find profile for " + frequency + " [" + profile + "]" )
 		return
@@ -186,8 +186,7 @@ def submitjob( newjob, seeds, frequency ):
 	waitfor( newjob, "PAUSED" )
 	#Add SURT associations for caps.
 	script = addSurtAssociations( seeds, newjob )
-	#TODO
-	#script += addScopingRules( seeds, newjob )
+	script += addScopingRules( seeds, newjob )
 	if len( script ) > 0:
 		writeJobScript( newjob, script )
 		runJobScript( newjob )
