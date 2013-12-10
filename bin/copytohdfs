@@ -24,6 +24,7 @@ log()
 
 COUNT=0
 OUTPUT="$(date +%Y%m%d%H%M%S)"
+JOBS=()
 while read warc
 do
 	TEST="$(curl --silent "$HOOP$warc$SUFFIX")"
@@ -39,8 +40,10 @@ do
 		then
 			log "ERROR: WARC sizes do not match for $warc"
 		fi
+		JOBS+=("$(echo "$warc" | cut -d "/" -f5)")
 	fi
 done < <(find $ROOT/ -mtime -2 -name "*.warc.gz" 2> /dev/null)
+JOBS=($(printf "%q\n" "${JOBS[@]}" | sort -u))
 
 if [[ -e $TMP/$OUTPUT.job ]] && [[ $(wc -l $TMP/$OUTPUT.job | awk '{ print $1 }') -gt 0 ]]
 then

@@ -102,9 +102,9 @@ def setupjobdir( newjob ):
 
 def writeJobScript( job, script ):
 	with open( HERITRIX_JOBS + "/" + job + "/script", "wb" ) as o:
-		o.writelines( script )
+		o.writelines( "\n".join( script ) )
 
-def runJobScript( input ):
+def runJobScript( job ):
 	with open( HERITRIX_JOBS + "/" + job + "/script", "rb" ) as i:
 		script = i.read()
 		api.execute( engine="beanshell", script=script, job=job )
