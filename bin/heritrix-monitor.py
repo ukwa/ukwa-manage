@@ -6,7 +6,7 @@ from twitter import *
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 
-ports = { "8443", "8444" }
+services = { ( "opera.bl.uk", "8443" ), ( "opera.bl.uk", "8444" ) }
 
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
 logger = logging.getLogger( "heritrix-monitor" )
@@ -17,8 +17,8 @@ def send_message( port ):
 	t.direct_messages.new( user="PsypherPunk", text=message )
 	logger.error( message )
 
-for port in ports:
-	api = heritrix.API( host="https://opera.bl.uk:" + port + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
+for host, port in services:
+	api = heritrix.API( host="https://%s:%s/engine" % ( host, port ), user="admin", passwd="bl_uk", verbose=False, verify=False )
 	try:
 		api.rescan()
 	except Exception:
