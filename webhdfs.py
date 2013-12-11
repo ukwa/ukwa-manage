@@ -42,7 +42,7 @@ class API():
 	def exists( self, path ):
 		r = self._get( path=path )
 		j = json.loads( r.text )
-		return j[ "FileStatus" ] is not None
+		return j.has_key( "FileStatus" )
 
 	def isdir( self, path ):
 		r = self._get( path=path )
@@ -56,6 +56,17 @@ class API():
 				if chunk:
 					o.write( chunk )
 					o.flush()
+
+	def getmerge( self, path, output=sys.stdout ):
+		r = self.list( path )
+		j = json.loads( r.text )
+		for file in j[ "FileStatuses" ][ "FileStatus" ]:
+			r = self.openstream( path + file[ "pathSuffix" ] )
+			with open( output, "ab" ) as o:
+				for chunk in r.iter_content( chunk_size=4096 ):
+					if chunk:
+						o.write( chunk )
+						o.flush()
 
 	def create( self, path, file=None, data=None ):
 		if ( file is None and data is None ) or ( file is not None and data is not None ):
