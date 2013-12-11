@@ -20,11 +20,14 @@ class API():
 		r = requests.get( url, stream=stream )
 		return r
 
-	def _post( self, path, input=None, op="CREATE" ):
+	def _post( self, path, file=None, data=None, op="CREATE" ):
 		url = "%s%s?user.name=%s&op=%s&data=true" % ( self.prefix, path, self.user, op )
 		headers = { "content-type": "application/octet-stream" }
-		with open( input, "rb" ) as i:
-			r = requests.put( url, headers=headers, data=i )
+		if file is not None:
+			with open( file, "rb" ) as f:
+				r = requests.put( url, headers=headers, data=f )
+		else:
+			r = requests.put( url, headers=headers, data=data )
 		return r
 
 	def list( self, path ):
@@ -54,10 +57,13 @@ class API():
 					o.write( chunk )
 					o.flush()
 
-	def create( self, path, file=None ):
-		if file is None:
-			logger.warning( "Need file parameter." )
+	def create( self, path, file=None, data=None ):
+		if ( file is None and data is None ) or ( file is not None and data is not None ):
+			logger.warning( "Need either input file or data." )
 		else:
-			r = self._post( path, input=file )
+			if file is not None:
+				r = self._post( path, file=file )
+			else:
+				r = self._post( path, data=data )
 			return r
 
