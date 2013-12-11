@@ -14,14 +14,12 @@ import dateutil.parser
 from lxml import etree
 from datetime import datetime
 from retry_decorator import *
-from optparse import OptionParser
 from hanzo.warctools import WarcRecord
 from requests.exceptions import ConnectionError
 
-parser = OptionParser()
-parser.add_option( "-c", "--clamd", dest="clamd", help="Clamd port", default="3310" )
-parser.add_option( "-x", "--heritrix", dest="heritrix", help="Heritrix port", default="8443" )
-( options, args ) = parser.parse_args()
+parser = argparse.ArgumentParser( description="Extract ARK-WARC lookup from METS." )
+parser.add_argument( "-t", dest="timestamp", type=str, required=False, help="Timestamp" )
+args = parser.parse_args()
 
 frequencies = [ "daily", "weekly", "monthly", "quarterly", "sixmonthly", "annual" ]
 heritrix_ports = { "daily": "8444", "weekly": "8443", "monthly": "8443", "quarterly": "8443", "sixmonthly": "8443", "annual": "8443" }
@@ -204,6 +202,8 @@ for frequency in frequencies:
 	SEED_FILE = "/heritrix/" + frequency + "-seeds.txt"
 	seeds = []
 	now = datetime.now()
+	if args.timestamp is not None:
+		now = dateutil.parser.parse( args.timestamp ).replace( tzinfo=None )
 
 	try:
 		xml = callAct( URL_ROOT + frequency )
