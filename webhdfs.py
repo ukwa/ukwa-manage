@@ -31,10 +31,12 @@ class API():
 		return r
 
 	def list( self, path ):
-		return self._get( path=path, op="LISTSTATUS" )
+		r = self._get( path=path, op="LISTSTATUS" )
+		return json.loads( r.text )
 
 	def open( self, path ):
-		return self._get( path=path, op="OPEN" )
+		r = self._get( path=path, op="OPEN" )
+		return json.loads( r.text )
 
 	def openstream( self, path ):
 		return self._get( path=path, op="OPEN", stream=True )
