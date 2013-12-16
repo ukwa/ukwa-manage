@@ -2,6 +2,7 @@
 
 import os
 import sys
+import glob
 import time
 import shutil
 import httplib
@@ -10,10 +11,14 @@ import urllib2
 import logging
 import argparse
 import heritrix
+import subprocess32
 import dateutil.parser
 from lxml import etree
-from datetime import datetime
+from settings import *
+from warcindexer import *
 from retry_decorator import *
+from datetime import datetime
+from collections import Counter
 from hanzo.warctools import WarcRecord
 from requests.exceptions import ConnectionError
 
@@ -68,7 +73,7 @@ def verify():
 		logger.error( "Can't connect to Heritrix: ConnectionError" )
 		sys.exit( 1 )
 
-def jobs_by_status( api, status  ):
+def jobsByStatus( api, status  ):
 	empty = [] 
 	for job in api.listjobs(): 
 		if api.status( job ) == status:
@@ -79,7 +84,7 @@ def waitfor( job, status ):
 	while api.status( job ) != status:
 		time.sleep( 10 )
 
-def kill( newjob ):
+def killRunningJob( newjob ):
 	for job in api.listjobs():
 		if job.startswith( newjob ) and api.status( job ) != "":
 			logger.info( "Killing alread-running job: " + job )
@@ -147,7 +152,7 @@ def ignoreRobots( seeds, job ):
 
 def submitjob( newjob, seeds, frequency ):
 	verify()
-	kill( newjob )
+	killRunningJob( newjob )
 	root = setupjobdir( newjob )
 
 	#Set up profile, etc.
