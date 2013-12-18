@@ -50,7 +50,7 @@ LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
 logger = logging.getLogger( "frequency" )
 
-api = None
+global api
 
 class Seed:
 	def tosurt( self, url ):
@@ -59,8 +59,9 @@ class Seed:
 		authority.reverse()
 		return "http://(" + ",".join( authority ) + ","
 
-	def __init__( self, url, depth="capped", ignore_robots=False ):
+	def __init__( self, url, depth="capped", scope="root", ignore_robots=False ):
 		self.url = url
+		self.scope = scope
 		self.depth = depth #capped=default, capped_large=higherLimit, deep=noLimit
 		self.surt = self.tosurt( self.url )
 		self.ignore_robots = ignore_robots
@@ -103,14 +104,15 @@ def setupjobdir( newjob ):
 	return root
 
 def addSurtAssociations( seeds, job ):
+	script = []
 	for seed in seeds:
 		if seed.depth == "capped_large":
-			script = "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"higherLimit\" );" % seed.surt
+			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"higherLimit\" );" % seed.surt )
 		if seed.depth == "deep":
-			script = "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"noLimit\" );" % seed.surt
+			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"noLimit\" );" % seed.surt )
 		if seed.depth != "capped":
 			logger.info( "Amending cap for SURT " + seed.surt + " to " + seed.depth )
-			api.execute( engine="beanshell", script=script, job=job )
+	return script
 
 def addScopingRules( seeds, job ):
 	script = []
@@ -132,12 +134,22 @@ def addScopingRules( seeds, job ):
 			logger.info( "Setting scope for SURT %s to %s." % ( seed.surt, seed.scope ) )
 	return script
 
+def writeJobScript( job, script ):
+	with open( "%s/%s/script" % ( HERITRIX_JOBS, job ), "wb" ) as o:
+		o.writelines( "\n".join( script ) )
+
+def runJobScript( job ):
+	with open( "%s/%s/script" % ( HERITRIX_JOBS, job ), "rb" ) as i:
+		script = i.read()
+		api.execute( engine="beanshell", script=script, job=job )
+
 def ignoreRobots( seeds, job ):
+	script = []
 	for seed in seeds:
 		if seed.ignore_robots:
-			script = "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"ignoreRobots\" );" % seed.surt
+			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"ignoreRobots\" );" % seed.surt )
 			logger.info( "Ignoring robots.txt for SURT " + seed.surt )
-			api.execute( engine="beanshell", script=script, job=job )
+	return script
 
 def submitjob( newjob, seeds, frequency ):
 	verifyApi()
@@ -179,10 +191,10 @@ def submitjob( newjob, seeds, frequency ):
 	#Add SURT associations for caps.
 	script = addSurtAssociations( seeds, newjob )
 	script += addScopingRules( seeds, newjob )
+	script += ignoreRobots( seeds, newjob )
 	if len( script ) > 0:
 		writeJobScript( newjob, script )
 		runJobScript( newjob )
-	ignoreRobots( seeds, newjob )
 	logger.info( "Unpausing %s", newjob )
 	api.unpause( newjob )
 	waitfor( newjob, "RUNNING" )
@@ -197,6 +209,8 @@ def check_frequencies():
 		SEED_FILE = "/heritrix/" + frequency + "-seeds.txt"
 		seeds = []
 		now = datetime.now()
+		if args.timestamp is not None:
+			now = dateutil.parser.parse( args.timestamp ).replace( tzinfo=None )
 
 		try:
 			xml = callAct( URL_ROOT + frequency )
@@ -271,6 +285,7 @@ def check_frequencies():
 				jobname = frequency + "-" + str( now.month%6 ) + "-" + now.strftime( "%d%H" ) + "00"
 			if frequency == "annual":
 				jobname = frequency + "-" + now.strftime( "%m%d%H" ) + "00"
+			global api
 			api = heritrix.API( host="https://opera.bl.uk:" + heritrix_ports[ frequency ] + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
 			submitjob( jobname, seeds, frequency )
 
@@ -380,10 +395,10 @@ def checkUkwa( job, launchid ):
 
 if __name__ == "__main__":
 	check_frequencies()
-	for port in set( heritrix_ports.values() ):
-		logger.info( "Checking Heritrix on port " + port )
-		api = heritrix.API( host="https://opera.bl.uk:" + port + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
-		for emptyJob, launchid in jobsByStatus( "EMPTY" ):
-			logger.info( emptyJob + " is EMPTY; verifying." )
-			checkCompleteness( emptyJob, launchid )
+#	for port in set( heritrix_ports.values() ):
+#		logger.info( "Checking Heritrix on port " + port )
+#		api = heritrix.API( host="https://opera.bl.uk:" + port + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
+#		for emptyJob, launchid in jobsByStatus( "EMPTY" ):
+#			logger.info( emptyJob + " is EMPTY; verifying." )
+#			checkCompleteness( emptyJob, launchid )
 
