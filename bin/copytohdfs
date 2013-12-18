@@ -12,8 +12,10 @@ ROOT=/heritrix/output
 HOOP="http://nellie.bl.uk:14000/webhdfs/v1"
 SUFFIX="?user.name=hadoop&op=GETFILESTATUS"
 TMP=/tmp
-JAR=/heritrix/bin/HadoopUtils.jar
-CLASS=uk.bl.wap.hadoop.mapreduce.cdx.ArchiveCDXGenerator
+#JAR=/heritrix/bin/HadoopUtils.jar
+JAR=/heritrix/bin/warc-hadoop-indexer-1.1.1-SNAPSHOT-job.jar
+#CLASS=uk.bl.wap.hadoop.mapreduce.cdx.ArchiveCDXGenerator
+CLASS=uk.bl.wa.hadoop.mapreduce.cdx.ArchiveCDXGenerator
 SPLIT=/heritrix/output/wayback/split.txt
 RED=1
 
