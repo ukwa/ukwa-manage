@@ -22,7 +22,7 @@ class API(object):
 
 	def _get(self, url=''):
 		headers = {'Accept': 'application/xml'}
-		r = requests.get(url, auth=HTTPDigestAuth(self.user, self.passwd), headers=headers, config=self.config, verify=self.verify)
+		r = requests.get(url, auth=HTTPDigestAuth(self.user, self.passwd), headers=headers, verify=self.verify)
 		return r
 
 	def _post(self, action='', url='', data={}):
@@ -33,8 +33,7 @@ class API(object):
 		data['action'] = action
 		headers = {'Accept': 'application/xml'}
 		r = requests.post(url, auth=HTTPDigestAuth(self.user, self.passwd),
-			data=data, headers=headers, config=self.config,
-			verify=self.verify)
+			data=data, headers=headers, verify=self.verify)
 		return r
 
 	def add(self, addpath=''):
@@ -95,8 +94,7 @@ class API(object):
 			data['asProfile'] = 'off'
 		headers = {'Accept': 'application/xml'}
 		r = requests.post(url=url, auth=(self.user, self.passwd),
-			data=data, headers=headers, config=self.config,
-			verify=self.verify)
+			data=data, headers=headers, verify=self.verify)
 		return r
 
 	def submit(self, job='', urls=[], config={}):
@@ -127,3 +125,9 @@ class API(object):
 			return None
 		url = "%s/job/%s/script" % (self.host, job)
 		return self._post(url=url, action="execute", data={"engine": engine, "script": script})
+
+	def launchid(self, job=''):
+		script = "rawOut.println( appCtx.getCurrentLaunchId() );"
+		xml = self.execute( engine="beanshell", script=script, job=job )
+		tree = ET.fromstring( xml.content )
+		return tree.find( "rawOutput" ).text.strip()
