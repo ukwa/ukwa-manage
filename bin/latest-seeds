@@ -1,5 +1,26 @@
 #!/bin/bash
 
+usage()
+{
+	echo -e "Retrieves latest seeds from ACT and schedules them for crawling.\n"
+	echo "OPTIONS:"
+	echo "    -h    Show this message."
+	echo "    -x    Read from XML instead of ACT."
+}
+
+while getopts "hx:" OPTION
+do
+	case $OPTION in
+	h)
+		usage
+		exit 0
+		;;
+	x)
+		XML="$OPTARG"
+		;;
+	esac
+done
+
 ROOT="/opt/heritrix/jobs/latest-20130809093642"
 URL="http://www.webarchive.org.uk/act/websites/export/all"
 LATEST="$ROOT/latest.txt"
@@ -13,7 +34,12 @@ log()
 }
 
 log "Getting all seeds from ACT."
-curl --max-time 120 --silent -L "$URL" | sed -rn 's@^\s*<urls>([^<]+)</urls>.*$@\1@p' | sed -r 's@ @\n@g' | sort -u > "$LATEST"
+if [[ -n $XML ]] && [[ -f $XML ]]
+then
+	sed -rn 's@^\s*<urls>([^<]+)</urls>.*$@\1@p' "$XML" | sed -r 's@ @\n@g' | sort -u > "$LATEST"
+else
+	curl --max-time 120 --silent -L "$URL" | sed -rn 's@^\s*<urls>([^<]+)</urls>.*$@\1@p' | sed -r 's@ @\n@g' | sort -u > "$LATEST"
+fi
 if [[ $? -ne 0 ]] || [[ $(wc -l < "$LATEST") -eq 0 ]]
 then
 	log "ERROR: Unable to read from ACT." >&2
