@@ -60,8 +60,7 @@ class API():
 					o.flush()
 
 	def getmerge( self, path, output=sys.stdout ):
-		r = self.list( path )
-		j = json.loads( r.text )
+		j = self.list( path )
 		for file in j[ "FileStatuses" ][ "FileStatus" ]:
 			r = self.openstream( path + file[ "pathSuffix" ] )
 			with open( output, "ab" ) as o:
