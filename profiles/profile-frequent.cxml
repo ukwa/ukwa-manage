@@ -281,6 +281,7 @@
 		<property name="host" value="localhost" />
 		<property name="routingKey" value="phantomjs" />
 		<property name="queue" value="phantomjs" />
+		<property name="durable" value="true" />
 		<property name="outputPath" value="REPLACE_HERITRIX_JOBS/REPLACE_JOB_NAME/action/" />
 	</bean>
 	<bean id="viralContent" class="uk.bl.wap.crawler.processor.ViralContentProcessor">
