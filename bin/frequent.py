@@ -30,22 +30,6 @@ frequencies = [ "daily", "weekly", "monthly", "quarterly", "sixmonthly", "annual
 heritrix_ports = { "daily": "8444", "weekly": "8443", "monthly": "8443", "quarterly": "8443", "sixmonthly": "8443", "annual": "8443" }
 clamd_ports = { "daily": "3311", "weekly": "3310", "monthly": "3310", "quarterly": "3310", "sixmonthly": "3310", "annual": "3310" }
 
-DEFAULT_HOUR = 12
-DEFAULT_DAY = 8
-DEFAULT_WEEKDAY = 0
-DEFAULT_MONTH = 1
-DEFAULT_WAIT = 10
-
-CONFIG_ROOT = "/heritrix/git/heritrix_bl_configs"
-HERITRIX_PROFILES = CONFIG_ROOT + "/profiles"
-HERITRIX_EXCLUDE = CONFIG_ROOT + "/exclude.txt"
-HERITRIX_SHORTENERS = CONFIG_ROOT + "/url.shorteners.txt"
-HERITRIX_SURTS = CONFIG_ROOT + "/surts.txt"
-HERITRIX_JOBS = "/opt/heritrix/jobs"
-WARC_ROOT = "/heritrix/output/warcs"
-LOG_ROOT = "/heritrix/output/logs"
-URL_ROOT = "http://www.webarchive.org.uk/act/websites/export/"
-
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
 logger = logging.getLogger( "frequency" )
@@ -87,6 +71,9 @@ def waitfor( job, status ):
 def killRunningJob( newjob ):
 	for job in api.listjobs():
 		if job.startswith( newjob ) and api.status( job ) != "":
+# TODO: Enable the below to render jobs before killing them.
+#			logger.info( "Checking completeness for job: " + job )
+#			checkCompleteness( job, api.launchid( job ) )
 			logger.info( "Killing alread-running job: " + job )
 			api.pause( job )
 			waitfor( job, "PAUSED" )
@@ -332,7 +319,6 @@ def checkCompleteness( job, launchid ):
 		logger.info( "Found " + str( len( seen ) ) + " distinct new URLs." )
 		waitfor( job, "RUNNING" )
 		waitfor( job, "EMPTY" )
-	killRunningJob( job )
 
 def humanReadable( bytes, precision=1 ):
 	abbrevs = (
@@ -395,10 +381,16 @@ def checkUkwa( job, launchid ):
 
 if __name__ == "__main__":
 	check_frequencies()
-#	for port in set( heritrix_ports.values() ):
-#		logger.info( "Checking Heritrix on port " + port )
-#		api = heritrix.API( host="https://opera.bl.uk:" + port + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
-#		for emptyJob, launchid in jobsByStatus( "EMPTY" ):
-#			logger.info( emptyJob + " is EMPTY; verifying." )
-#			checkCompleteness( emptyJob, launchid )
+#TODO: Enable the below to check for EMPTY jobs.
+	for port in set( heritrix_ports.values() ):
+		logger.info( "Checking for EMPTY jobs on port " + port )
+		api = heritrix.API( host="https://opera.bl.uk:" + port + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
+		for emptyJob, launchid in jobsByStatus( "EMPTY" ):
+			logger.info( emptyJob + " is EMPTY; verifying." )
+			checkCompleteness( emptyJob, launchid )
+			logger.info( emptyJob + " checked; terminating." )
+			api.terminate( emptyJob )
+			waitfor( emptyJob, "FINISHED" )
+			api.teardown( emptyJob )
+			waitfor( emptyJob, "" )
 
