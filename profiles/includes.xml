@@ -107,6 +107,7 @@
 					<value>http://(uk,bl,intranet,</value>
 					<value>http://(com,bsigroup,bsol,</value>
 					<value>http://(uk,ac,canterbury,libportal,</value>
+					<value>http://(com,galegroup,infotrac,)/itweb/blibrary</value>
 				</list>
 			</property>
 			<property name="targetSheetNames">
