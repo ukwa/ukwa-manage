@@ -65,7 +65,7 @@ def jobsByStatus( status ):
 	return jobs
 
 def waitfor( job, status ):
-	while api.status( job ) != status:
+	while api.status( job ) not in status:
 		time.sleep( 10 )
 
 def killRunningJob( newjob ):
@@ -192,6 +192,7 @@ def callAct( url ):
 	return urllib2.urlopen( url )
 
 def check_frequencies():
+	started_jobs = []
 	for frequency in frequencies:
 		SEED_FILE = "/heritrix/" + frequency + "-seeds.txt"
 		seeds = []
@@ -274,7 +275,9 @@ def check_frequencies():
 				jobname = frequency + "-" + now.strftime( "%m%d%H" ) + "00"
 			global api
 			api = heritrix.API( host="https://opera.bl.uk:" + heritrix_ports[ frequency ] + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
+			started_jobs.append( jobname )
 			submitjob( jobname, seeds, frequency )
+	return started_jobs
 
 def checkCompleteness( job, launchid ):
 	logger.info( "Checking job " + job )
@@ -317,7 +320,9 @@ def checkCompleteness( job, launchid ):
 		action.close()
 		shutil.move( JOB_ROOT + job + "/" + now + ".force", JOB_ROOT + job + "/action/" + now + ".force" )
 		logger.info( "Found " + str( len( seen ) ) + " distinct new URLs." )
-		waitfor( job, "RUNNING" )
+		# Pause briefly to allow file to be picked up.
+		time.sleep( 35 )
+		waitfor( job, [ "RUNNING", "EMPTY" ] )
 		waitfor( job, "EMPTY" )
 
 def humanReadable( bytes, precision=1 ):
@@ -380,12 +385,18 @@ def checkUkwa( job, launchid ):
 				( data_size, response_codes ) = log_stats( crawl_log )
 
 if __name__ == "__main__":
-	check_frequencies()
-#TODO: Enable the below to check for EMPTY jobs.
+# Check for scheduled jobs.
+	started_jobs = check_frequencies()
+# Check for EMPTY jobs and render for completeness.
 	for port in set( heritrix_ports.values() ):
-		logger.info( "Checking for EMPTY jobs on port " + port )
 		api = heritrix.API( host="https://opera.bl.uk:" + port + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
 		for emptyJob, launchid in jobsByStatus( "EMPTY" ):
+			if emptyJob in started_jobs:
+				# Don't kill jobs we've just started.
+				continue
+			if emptyJob.startswith( "latest" ):
+				# Don't render 'latest' job.
+				continue
 			logger.info( emptyJob + " is EMPTY; verifying." )
 			checkCompleteness( emptyJob, launchid )
 			logger.info( emptyJob + " checked; terminating." )
