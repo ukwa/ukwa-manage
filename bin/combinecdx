@@ -1,10 +1,12 @@
 #!/bin/bash
 
 OUTPUT="/heritrix/output/wayback/cdx-index/combined/"
+SORTED="/heritrix/output/wayback/cdx-index/sorted"
 JAR="/usr/lib/hadoop-0.20/contrib/streaming/hadoop-streaming-0.20.2-cdh3u1.jar"
-INPUT="/heritrix/output/wayback/cdx-index/2013*/"
+INPUT="/heritrix/output/wayback/cdx-index/*/"
 
 hadoop fs -test -e "$OUTPUT" && hadoop fs -rmr "$OUTPUT"
+hadoop fs -test -e "$SORTED" && hadoop fs -rmr "$SORTED"
 
 hadoop jar "$JAR" \
 -Dmapred.reduce.tasks=75 \
