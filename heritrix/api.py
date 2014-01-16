@@ -8,8 +8,6 @@ requests_log = logging.getLogger( "requests" )
 requests_log.setLevel( logging.WARNING )
 
 class API(object):
-
-
 	def __init__(self, host='https://localhost:8443/engine',
 		user='admin', passwd='', verbose=False, verify=False):
 		self.host = host
@@ -131,3 +129,19 @@ class API(object):
 		xml = self.execute( engine="beanshell", script=script, job=job )
 		tree = ET.fromstring( xml.content )
 		return tree.find( "rawOutput" ).text.strip()
+
+	def seeds( self, job ):
+		url = "%s/job/%s/jobdir/latest/seeds.txt" % ( self.host, job )
+		r = requests.get( url, auth=HTTPDigestAuth( self.user, self.passwd ), verify=self.verify )
+		seeds = [ seed.strip() for seed in r.iter_lines() ]
+		for i, seed in enumerate( seeds ):
+			if seed.startswith( "#" ):
+				return seeds[ 0:i ]
+		return seeds
+
+	def empty_frontier( self, job ):
+		script = "count = job.crawlController.frontier.deleteURIs( '.*', '^.*' )\nrawOut.println count"
+		xml = self.execute( engine="groovy", script=script, job=job )
+		tree = ET.fromstring( xml.content )
+		return tree.find( "rawOutput" ).text.strip()
+
