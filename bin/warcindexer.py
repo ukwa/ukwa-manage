@@ -81,7 +81,7 @@ def get_revisited( url, digest, cdx, revisit_warcs ):
 				revisit_warcs.append( local_path )
 				fields[ 9 ] = os.path.basename( local_path )
 	 			return " ".join( fields )
-	print "Couldn't find: " + "look \"" + url + "\" " + cdx
+	print "Couldn't find: " + "look \"" + url + " \" " + cdx + "; " + digest + "\n"
 
 def index_warcs( warcs, cdx, base_cdx=None ):
 	output = open( cdx, "wb" )

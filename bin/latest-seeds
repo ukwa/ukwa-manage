@@ -38,7 +38,7 @@ if [[ -n $XML ]] && [[ -f $XML ]]
 then
 	sed -rn 's@^\s*<urls>([^<]+)</urls>.*$@\1@p' "$XML" | sed -r 's@ @\n@g' | sort -u > "$LATEST"
 else
-	curl --max-time 300 --silent -L "$URL" | sed -rn 's@^\s*<urls>([^<]+)</urls>.*$@\1@p' | sed -r 's@ @\n@g' | sort -u > "$LATEST"
+	curl --max-time 600 --silent -L "$URL" | sed -rn 's@^\s*<urls>([^<]+)</urls>.*$@\1@p' | sed -r 's@ @\n@g' | sort -u > "$LATEST"
 fi
 if [[ $? -ne 0 ]] || [[ $(wc -l < "$LATEST") -eq 0 ]]
 then

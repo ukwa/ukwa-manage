@@ -64,7 +64,7 @@ log "Generating list of all required URLs."
 while read url
 do
 	curl --silent "$FLOCK/$url"
-done < "/tmp/$TIMESTAMP-0.tmp" | sort -u > "/tmp/$TIMESTAMP"-1.tmp
+done < "/tmp/$TIMESTAMP-0.tmp" | sort -T /dev/shm -u > "/tmp/$TIMESTAMP"-1.tmp
 
 log "Retrieving CDX lines from LD CDX."
 while read url
@@ -75,3 +75,4 @@ done < "/tmp/$TIMESTAMP"-1.tmp
 
 rm "/tmp/$TIMESTAMP"-0.tmp
 rm "/tmp/$TIMESTAMP"-1.tmp
+
