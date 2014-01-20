@@ -70,7 +70,11 @@ def jobsByStatus( status ):
 	return jobs
 
 def waitfor( job, status ):
-	while api.status( job ) not in status:
+	try:
+		while api.status( job ) not in status:
+			time.sleep( 10 )
+	except etree.ElementTree.ParseError, e:
+		logger.error( str( e ) )
 		time.sleep( 10 )
 
 def killRunningJob( newjob ):
@@ -195,7 +199,7 @@ def callAct( url ):
 	return urllib2.urlopen( url )
 
 def check_frequencies():
-	started_jobs = []
+	jobs_to_start = []
 	for frequency in frequencies:
 		SEED_FILE = "/heritrix/" + frequency + "-seeds.txt"
 		seeds = []
@@ -279,10 +283,16 @@ def check_frequencies():
 				jobname = frequency + "-" + now.strftime( "%m%d%H" ) + "00"
 			global api
 			api = heritrix.API( host="https://opera.bl.uk:" + heritrix_ports[ frequency ] + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
-			started_jobs.append( ( jobname, seeds ) )
-			#TODO 0: Don't start the jobs here.
-			submitjob( jobname, seeds )
-	return started_jobs
+			jobs_to_start.append( ( jobname, seeds ) )
+			if api.status( jobname ) != "":
+				api.pause( jobname )
+				waitfor( jobname, "PAUSED" )
+				logger.info( "Emptying Frontier for %s" % jobname )
+				api.empty_frontier( jobname )
+				api.unpause( jobname )
+				waitfor( jobname, "EMPTY" )
+#			submitjob( jobname, seeds )
+	return jobs_to_start
 
 def generate_wayback_indexes( job, launchid ):
 	logger.info( "Generating CDX for %s" % job )
@@ -425,7 +435,8 @@ def check_ukwa( job, launchid ):
 		for url in urls.split():
 			if url in seeds:
 				if wct_id is not None:
-					wct_data.append( ( wct_id, aid, urls ) )
+					wct_data.append( ( wct_id, aid, urls.split() ) )
+					break
 	# Generate stats. from the logs
 	crawl_logs = glob.glob( LOG_ROOT + "/" + job + "/" + launchid + "/crawl.log*" )
 	stats = log_stats( crawl_logs )
@@ -437,32 +448,26 @@ def add_act_instance( target, timestamp, data, wct_data ):
 	a_act = act.ACT()
 	body = []
 	content = {}
-	content[ "value" ] = "WCT ID: %s\nSeeds: %s\n\n<pre>%s</pre>" % ( wct_id, urls, data )
+	content[ "value" ] = "WCT ID: %s\nSeeds: %s\nWayback URLs:\n" % ( wct_id, urls )
+	for url in urls:
+		content[ "value" ] += "http://opera.bl.uk:8080/wayback/%s/%s\n" % ( timestamp, url )
+	content[ "value" ] += "<pre>%s</pre>" % data
 	content[ "format" ] = "full_html"
 	body.append( content )
-	instance = {}
-	instance[ "type" ]  = "instance"
-	instance[ "body" ] = body
-	instance[ "field_timestamp" ] = timestamp
-	instance[ "field_target" ] = target
+	# Need an OrderedDict: 'type' must be the first field.
+	instance = OrderedDict( [ ( "type", "instance" ), ( "body", body ), ( "field_timestamp", timestamp ), ( "field_target", target ) ] )
 	update = json.dumps( instance, sort_keys=False )
-	logger.info( update )
-	r = a_act.send_data( target, update )
+#	logger.info( update )
+	r = a_act.send_data( "", update )
 	return r
 
 if __name__ == "__main__":
 	# Check for scheduled jobs.
-	started_jobs = check_frequencies()
-	#TODO 0: At this point, started_jobs should just be EMPTY.
-	#      Once the below has run, submitjob().
-	started_job_names = tuple( x[ 0 ] for x in started_jobs )
+	jobs_to_start = check_frequencies()
 	# Check for EMPTY jobs and render for completeness.
 	for port in set( heritrix_ports.values() ):
 		api = heritrix.API( host="https://opera.bl.uk:" + port + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
 		for emptyJob, launchid in jobsByStatus( "EMPTY" ):
-			if emptyJob in started_job_names:
-				# Don't kill jobs we've just started.
-				continue
 			if emptyJob.startswith( "latest" ):
 				# Don't render 'latest' job.
 				continue
@@ -483,4 +488,11 @@ if __name__ == "__main__":
 				logger.info( "Adding Instance: %s" % act_id )
 				add_act_instance( act_id, launchid, stats, datum )
 			logger.info( stats )
+	# Now start up those jobs we forcibly EMPTY'd earlier.
+	for job in jobs_to_start:
+		name, seeds = job
+		freq = name.split( "-" )[ 0 ]
+		port = heritrix_ports[ freq ]
+		api = heritrix.API( host="https://opera.bl.uk:" + port + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
+		submitjob( name, seeds )
 
