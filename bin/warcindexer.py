@@ -21,6 +21,10 @@ from optparse import OptionParser
 from hanzo.warctools import WarcRecord
 from requests.exceptions import ConnectionError
 
+LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
+logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
+logger = logging.getLogger( "warcindexer" )
+
 STRIP_PROTOCOL_REGEX = re.compile( "^(https?://)(?:.*)$" )
 STRIP_USERINFO_REGEX = re.compile( "^(?:(?:(?:https?)|(?:ftps?))://)([^/]+@)(?:.*)$" )
 STRIP_WWW_REGEX = re.compile( "(?i)^(?:https?://)(www[0-9]*\.)(?:[^/]*/.*)$")
@@ -81,7 +85,7 @@ def get_revisited( url, digest, cdx, revisit_warcs ):
 				revisit_warcs.append( local_path )
 				fields[ 9 ] = os.path.basename( local_path )
 	 			return " ".join( fields )
-	print "Couldn't find: " + "look \"" + url + " \" " + cdx + "; " + digest + "\n"
+	logger.warning( "Couldn't find: " + "look \"" + url + " \" " + cdx + " | grep " + digest )
 
 def index_warcs( warcs, cdx, base_cdx=None ):
 	output = open( cdx, "wb" )
