@@ -17,6 +17,7 @@ import StringIO
 import operator
 import subprocess32
 import dateutil.parser
+import timeout_decorator
 from lxml import etree
 from settings import *
 from warcindexer import *
@@ -40,6 +41,7 @@ logger = logging.getLogger( "frequency" )
 
 global api
 global now
+pidfile = "/tmp/frequent.pid"
 
 class Seed:
 	def tosurt( self, url ):
@@ -55,14 +57,14 @@ class Seed:
 		self.surt = self.tosurt( self.url )
 		self.ignore_robots = ignore_robots
 
-def verifyApi():
+def verify_api():
 	try:
 		api.rescan()
 	except ConnectionError:
 		logger.error( "Can't connect to Heritrix: ConnectionError" )
 		sys.exit( 1 )
 
-def jobsByStatus( status ):
+def jobs_by_status( status ):
 	jobs = [] 
 	for job in api.listjobs(): 
 		if api.status( job ) == status:
@@ -145,7 +147,7 @@ def ignoreRobots( seeds, job ):
 	return script
 
 def submitjob( newjob, seeds ):
-	verifyApi()
+	verify_api()
 	killRunningJob( newjob )
 	root = setupjobdir( newjob )
 
@@ -284,10 +286,10 @@ def check_frequencies():
 			global api
 			api = heritrix.API( host="https://opera.bl.uk:" + heritrix_ports[ frequency ] + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
 			jobs_to_start.append( ( jobname, seeds ) )
-			if api.status( jobname ) != "":
+			if ( jobname in api.listjobs() ) and api.status( jobname ) != "":
+				logger.info( "Emptying Frontier for %s" % jobname )
 				api.pause( jobname )
 				waitfor( jobname, "PAUSED" )
-				logger.info( "Emptying Frontier for %s" % jobname )
 				api.empty_frontier( jobname )
 				api.unpause( jobname )
 				waitfor( jobname, "EMPTY" )
@@ -333,6 +335,7 @@ def migrate_to_ukwa( job, launchid, host ):
 		cdx_io = StringIO.StringIO( cdx_lines )
 		#TODO: Check for revisits
 
+@timeout_decorator.timeout( TIMEOUT )
 def checkCompleteness( job, launchid ):
 	logger.info( "Checking job %s" % job )
 	generate_wayback_indexes( job, launchid )
@@ -467,13 +470,16 @@ if __name__ == "__main__":
 	# Check for EMPTY jobs and render for completeness.
 	for port in set( heritrix_ports.values() ):
 		api = heritrix.API( host="https://opera.bl.uk:" + port + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False )
-		for emptyJob, launchid in jobsByStatus( "EMPTY" ):
+		for emptyJob, launchid in jobs_by_status( "EMPTY" ):
 			if emptyJob.startswith( "latest" ):
 				# Don't render 'latest' job.
 				continue
 			logger.info( emptyJob + " is EMPTY; verifying." )
-			checkCompleteness( emptyJob, launchid )
-			logger.info( emptyJob + " checked; terminating." )
+			try:
+				checkCompleteness( emptyJob, launchid )
+				logger.info( emptyJob + " checked; terminating." )
+			except timeout_decorator.timeout_decorator.TimeoutError:
+				logger.warning( "Completeness check timeout; terminating anyway." )
 			api.terminate( emptyJob )
 			waitfor( emptyJob, "FINISHED" )
 			api.teardown( emptyJob )
