@@ -25,6 +25,7 @@ from retry_decorator import *
 from datetime import datetime
 from collections import Counter, OrderedDict
 from hanzo.warctools import WarcRecord
+from xml.etree.ElementTree import ParseError
 from requests.exceptions import ConnectionError
 
 parser = argparse.ArgumentParser( description="Extract ARK-WARC lookup from METS." )
@@ -36,7 +37,7 @@ heritrix_ports = { "daily": "8444", "weekly": "8443", "monthly": "8443", "quarte
 clamd_ports = { "daily": "3311", "weekly": "3310", "monthly": "3310", "quarterly": "3310", "sixmonthly": "3310", "annual": "3310" }
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
-logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
+logging.basicConfig( format=LOGGING_FORMAT, level=logging.WARNING )
 logger = logging.getLogger( "frequency" )
 
 global api
@@ -75,7 +76,7 @@ def waitfor( job, status ):
 	try:
 		while api.status( job ) not in status:
 			time.sleep( 10 )
-	except etree.ElementTree.ParseError, e:
+	except ParseError, e:
 		logger.error( str( e ) )
 		time.sleep( 10 )
 
@@ -490,7 +491,11 @@ if __name__ == "__main__":
 				wct_id, act_id, urls = datum
 				logger.info( "WCT ID: %s" % wct_id )
 				logger.info( "ACT ID: %s" % act_id )
+				logger.info( "Timestamp: %s" % launchid )
 				logger.info( "\tURLs: %s" % urls )
+				# Only add 'daily' Instances once a week.
+				if emptyJob.startswith( "daily" ) and not now.strftime( "%A" ) == "Monday":
+					continue
 				logger.info( "Adding Instance: %s" % act_id )
 				add_act_instance( act_id, launchid, stats, datum )
 			logger.info( stats )
