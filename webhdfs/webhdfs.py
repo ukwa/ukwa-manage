@@ -30,6 +30,11 @@ class API():
 			r = requests.put( url, headers=headers, data=data )
 		return r
 
+	def _delete( self, path, recursive=False ):
+		url = "%s%s?user.name=%s&op=DELETE&recursive=%s" % ( self.prefix, path, self.user, str( recursive ).lower() )
+		r = requests.delete( url )
+		return r
+
 	def list( self, path ):
 		r = self._get( path=path, op="LISTSTATUS" )
 		return json.loads( r.text )
@@ -78,4 +83,11 @@ class API():
 			else:
 				r = self._post( path, data=data )
 			return r
+
+	def delete( self, path, recursive=False ):
+		if not self.exists( path ):
+			logger.error( "Does not exist: %s" % path )
+		else:
+			r = self._delete( path, recursive=recursive )
+			return json.loads( r.text )
 
