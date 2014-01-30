@@ -91,3 +91,7 @@ class API():
 			r = self._delete( path, recursive=recursive )
 			return json.loads( r.text )
 
+	def checksum( self, path ):
+		r = self._get( path=path, op="GETFILECHECKSUM" )
+		return json.loads( r.text )
+
