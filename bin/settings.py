@@ -22,5 +22,4 @@ WAYBACK_LOG = "/opt/qa-wayback/logs/catalina.out"
 JOB_ROOT = "/opt/heritrix/jobs/"
 PHANTOMJS = "/opt/phantomjs/bin/phantomjs"
 NETSNIFF = "/opt/phantomjs/examples/netsniff.js"
-MAX_RENDER_DEPTH = 1
 TIMEOUT = 60 * 20

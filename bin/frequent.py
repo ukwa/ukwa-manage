@@ -35,6 +35,7 @@ args = parser.parse_args()
 frequencies = [ "daily", "weekly", "monthly", "quarterly", "sixmonthly", "annual" ]
 heritrix_ports = { "daily": "8444", "weekly": "8443", "monthly": "8443", "quarterly": "8443", "sixmonthly": "8443", "annual": "8443" }
 clamd_ports = { "daily": "3311", "weekly": "3310", "monthly": "3310", "quarterly": "3310", "sixmonthly": "3310", "annual": "3310" }
+max_render_depth = { "daily": 0, "weekly": 1, "monthly": 1, "quarterly": 1, "sixmonthly": 1, "annual": 1 }
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.WARNING )
@@ -339,6 +340,8 @@ def migrate_to_ukwa( job, launchid, host ):
 @timeout_decorator.timeout( TIMEOUT )
 def checkCompleteness( job, launchid ):
 	logger.info( "Checking job %s" % job )
+	frequency = job.split( "-" )[ 0 ]
+	depth = max_render_depth[ frequency ]
 	generate_wayback_indexes( job, launchid )
 	crawl_logs = glob.glob( LOG_ROOT + "/" + job + "/" + launchid + "/crawl.log*" )
 	urls_to_render = []
@@ -347,7 +350,7 @@ def checkCompleteness( job, launchid ):
 			for line in l:
 				url = line.split()[ 3 ]
 				discovery_path = line.split()[ 4 ]
-				if url.startswith( "http" ) and len( discovery_path.replace( "R", "" ) ) <= MAX_RENDER_DEPTH:
+				if url.startswith( "http" ) and len( discovery_path.replace( "R", "" ) ) <= depth:
 					urls_to_render.append( url )
 	open( WAYBACK_LOG, "wb" ).close()
 	phantomjs_render( urls_to_render )
@@ -447,21 +450,18 @@ def check_ukwa( job, launchid ):
 	js = json.dumps( stats, indent=8, separators=( ",", ":" ) )
 	return ( wct_data, js )
 
-def add_act_instance( target, timestamp, data, wct_data ):
+def add_act_instance( target, timestamp, data, wct_data, jobname ):
 	wct_id, act_id, urls = wct_data
 	a_act = act.ACT()
-	body = []
 	content = {}
-	content[ "value" ] = "WCT ID: %s\nSeeds: %s\nWayback URLs:\n" % ( wct_id, urls )
+	content[ "value" ] = "WCT ID: %s\nJob ID: %s\nSeeds: %s\nWayback URLs:\n" % ( wct_id, jobname, urls )
 	for url in urls:
 		content[ "value" ] += "http://opera.bl.uk:8080/wayback/%s/%s\n" % ( timestamp, url )
 	content[ "value" ] += "<pre>%s</pre>" % data
-	content[ "format" ] = "full_html"
-	body.append( content )
+	content[ "format" ] = "filtered_html"
 	# Need an OrderedDict: 'type' must be the first field.
-	instance = OrderedDict( [ ( "type", "instance" ), ( "body", body ), ( "field_timestamp", timestamp ), ( "field_target", target ) ] )
+	instance = OrderedDict( [ ( "type", "instance" ), ( "body", content ), ( "field_timestamp", timestamp ), ( "field_target", target ) ] )
 	update = json.dumps( instance, sort_keys=False )
-#	logger.info( update )
 	r = a_act.send_data( "", update )
 	return r
 
@@ -497,7 +497,7 @@ if __name__ == "__main__":
 				if emptyJob.startswith( "daily" ) and not now.strftime( "%A" ) == "Monday":
 					continue
 				logger.info( "Adding Instance: %s" % act_id )
-				add_act_instance( act_id, launchid, stats, datum )
+				add_act_instance( act_id, launchid, stats, datum, emptyJob )
 			logger.info( stats )
 	# Now start up those jobs we forcibly EMPTY'd earlier.
 	for job in jobs_to_start:

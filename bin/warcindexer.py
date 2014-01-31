@@ -22,7 +22,7 @@ from hanzo.warctools import WarcRecord
 from requests.exceptions import ConnectionError
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
-logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
+logging.basicConfig( format=LOGGING_FORMAT, level=logging.WARNING )
 logger = logging.getLogger( "warcindexer" )
 
 STRIP_PROTOCOL_REGEX = re.compile( "^(https?://)(?:.*)$" )
@@ -73,7 +73,7 @@ def find( name, path ):
 
 def get_revisited( url, digest, cdx, revisit_warcs ):
 	try:
-		lines = subprocess.check_output( [ "look", url + " ", cdx ] )
+		lines = subprocess.check_output( [ "look", url + " ", cdx ], stderr=subprocess.STDOUT )
 	except subprocess.CalledProcessError:
 		return
 	io = StringIO.StringIO( lines )
@@ -85,7 +85,8 @@ def get_revisited( url, digest, cdx, revisit_warcs ):
 				revisit_warcs.append( local_path )
 				fields[ 9 ] = os.path.basename( local_path )
 	 			return " ".join( fields )
-	logger.warning( "Couldn't find: " + "look \"" + url + " \" " + cdx + " | grep " + digest )
+#	logger.debug( "Couldn't find: look \"%s\" %s | grep %s" % ( url, cdx, digest ) )
+#	logger.debug( "CDX output length: %s" % str( len( lines ) ) )
 
 def index_warcs( warcs, cdx, base_cdx=None ):
 	output = open( cdx, "wb" )

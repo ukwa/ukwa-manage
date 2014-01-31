@@ -19,6 +19,7 @@
 			<value>^.+index\.php\?qs=06oENya.+$</value>
 			<value>^https?://[^/]+\.bbc\.co\.uk/iplayer/.*$</value>
 			<value>^.+action=buy_now.*$</value>
+			<value>^.+?mobile_switch=mobile</value>
 		</list>
 	</excludes>
 	<sheets>
@@ -108,6 +109,8 @@
 					<value>http://(com,bsigroup,bsol,</value>
 					<value>http://(uk,ac,canterbury,libportal,</value>
 					<value>http://(com,galegroup,infotrac,)/itweb/blibrary</value>
+					<value>http://(com,oxforddnb,</value>
+					<value>http://(com,oup,global,</value>
 				</list>
 			</property>
 			<property name="targetSheetNames">

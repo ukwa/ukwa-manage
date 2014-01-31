@@ -6,6 +6,9 @@ usage()
 	echo "OPTIONS:"
 	echo "  -h    Show this message."
 	echo "  -d    Domain to be extracted."
+	echo "  -j    Job name."
+	echo "  -t    Timestamp."
+	echo "  -o    Output file."
 }
 
 log()
@@ -32,7 +35,7 @@ urlencode() {
 	done
 }  
 
-while getopts "hd:" OPTION
+while getopts "hd:j:t:o:" OPTION
 do
 	case $OPTION in
 		h)
@@ -40,39 +43,80 @@ do
 			exit 0
 			;;
 		d)
-			DOMAIN=$OPTARG
+			DOMAINS=$OPTARG
+			;;
+		j)
+			JOBNAME=$OPTARG
+			;;
+		t)
+			TIMESTAMP=$OPTARG
+			;;
+		o)
+			OUTPUT=$OPTARG
 			;;
 	esac
 done
 
+export JAVA_HOME=/usr/lib/jvm/java-1.6.0-openjdk-1.6.0.0.x86_64/jre
+SHM="/dev/shm"
 CDX="/heritrix/output/wayback/cdx-index/index.cdx"
-TIMESTAMP="$(date +%Y%m%d%H%M%S)"
-FLOCK="http://flock.bl.uk/webtools/urls/http://opera.bl.uk/wayback/$TIMESTAMP"
+TMP_URL_TIMESTAMP="$SHM/$TIMESTAMP.input"
+TMP_URLS="$SHM/$TIMESTAMP.urls"
+OPERA="http://opera.bl.uk:8080/wayback"
+FLOCK="http://flock.bl.uk/webtools/urls/$OPERA"
+INDEXER="/home/rcoram/wayback/bin/warc-indexer"
 URL_CLIENT="/home/rcoram/wayback-1.6.0/bin/url-client"
+WARC_ROOT="/heritrix/output/warcs"
 
-if [[ -z $DOMAIN ]]
+if [[ -z $DOMAINS ]] || [[ -z $TIMESTAMP ]] || [[ -z $JOBNAME ]] || [[ -z $OUTPUT ]]
 then
-	log "ERROR: Domain must be passed as a parameter."
 	usage
 	exit 1
 fi
 
-log "Getting list of URLs in the LD CDX."
-look "$DOMAIN" "$CDX" | awk '{ print $3 }' | sort -T /dev/shm -u > "/tmp/$TIMESTAMP"-0.tmp
+log "Getting URL/Timestamp list for $DOMAINS in $JOBNAME..."
+while read warc
+do
+	$INDEXER $warc 2> /dev/null | grep -E "\b($DOMAIN)\b" | awk '{ print $2 "/" $3 }' > $TMP_URL_TIMESTAMP
+done < <(ls $WARC_ROOT/$JOBNAME/$TIMESTAMP/*.warc.gz)
 
+LIMIT=100
 log "Generating list of all required URLs."
 while read url
 do
 	curl --silent "$FLOCK/$url"
-done < "/tmp/$TIMESTAMP-0.tmp" | sort -T /dev/shm -u > "/tmp/$TIMESTAMP"-1.tmp
+	LIMIT=$((LIMIT-1))
+	[[ $LIMIT == 0 ]] && break
+done < $TMP_URL_TIMESTAMP > $TMP_URLS
+
+log "Fixing output..."
+grep -E "^https?:" "$TMP_URLS" > "$TMP_URLS.temp" && mv -f "$TMP_URLS.temp" "$TMP_URLS"
+
+log "Removing duplicates."
+sort -T /dev/shm/ -u $TMP_URLS > $TMP_URLS.temp && mv -f $TMP_URLS.temp $TMP_URLS
 
 log "Retrieving CDX lines from LD CDX."
+while read data
+do
+	array=($data)
+	CANON="$(echo "${array[1]}" | $URL_CLIENT 2> /dev/null | sed -r 's@^.+https?://?@@')"
+	look "$CANON " "$CDX" | grep "${array[0]}"
+done < <(sed -rn 's@^.+wayback/([0-9]+)([a-z]+_)?/(.+)$@\1 \3@p' $TMP_URLS) > "$OUTPUT"
+
+log "Getting other resources."
 while read url
 do
-	CANON="$(echo "$url" | $URL_CLIENT | sed -r 's@^.+http://?@@')"
-	look "$CANON " "$CDX"
-done < "/tmp/$TIMESTAMP"-1.tmp
+	ARRAY=($(curl --silent -I "$OPERA/$TIMESTAMP/$url" | sed -rn 's@^location:\s+http.+/wayback/([0-9]+)(_[a-z]+)?/(.+)$@\1 \3@ip'))
+	CANON="$(echo "${ARRAY[1]}" | $URL_CLIENT 2> /dev/null | sed -r 's@^.+https?://?@@')"
+	look "$CANON " "$CDX" | grep "${ARRAY[0]}"
+done < <(grep -v "$OPERA" $TMP_URLS) >> "$OUTPUT"
 
-rm "/tmp/$TIMESTAMP"-0.tmp
-rm "/tmp/$TIMESTAMP"-1.tmp
+log "Fixing revisits."
+while read revisit
+do
+	ARRAY=($revisit)
+	look "${ARRAY[0]} " "$CDX" | grep "${ARRAY[5]}" | grep -v "warc/revisit" | tail -n1
+done < <(awk '{ if( $4 == "warc/revisit" ) print }' "$OUTPUT") >> "$OUTPUT"
 
+[[ -e $TMP_URLS ]] && rm $TMP_URLS
+[[ -e $TMP_URL_TIMESTAMP ]] && rm $TMP_URL_TIMESTAMP

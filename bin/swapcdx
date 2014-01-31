@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OUT="/heritrix/output/wayback/cdx-index/sorted/part-*"
+OUT="/heritrix/output/wayback/cdx-index/sorted"
 CDX="/heritrix/output/wayback/cdx-index/index.cdx"
 OLD="/heritrix/output/wayback/cdx-index/index.old"
 NEW="/heritrix/output/wayback/cdx-index/index.new"
@@ -10,12 +10,21 @@ log()
         echo "[$(date "+%Y-%m-%d %H:%M:%S")] $1"
 }
 
+NEW_SIZE=$(hadoop fs -du "$OUT/" | awk '{ print $1 }')
+CUR_SIZE=$(stat -c %s $CDX)
+
+if [[ $NEW_SIZE < $CUR_SIZE ]]
+then
+	log "ERROR: New CDX is smaller than existing; aborting."
+	exit 1
+fi
+
 if [[ -e "$OLD" ]]
 then
 	log "Removing old CDX."
 	rm "$OLD"
 fi
 log "Copying new CDX."
-hadoop fs -cat "$OUT" > "$NEW"
+hadoop fs -cat "$OUT/part-*" > "$NEW"
 log "Renaming indexes."
 mv "$CDX" "$OLD" && mv "$NEW" "$CDX"
