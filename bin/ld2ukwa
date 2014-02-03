@@ -80,13 +80,10 @@ do
 	$INDEXER $warc 2> /dev/null | grep -E "\b($DOMAIN)\b" | awk '{ print $2 "/" $3 }' > $TMP_URL_TIMESTAMP
 done < <(ls $WARC_ROOT/$JOBNAME/$TIMESTAMP/*.warc.gz)
 
-LIMIT=100
 log "Generating list of all required URLs."
 while read url
 do
 	curl --silent "$FLOCK/$url"
-	LIMIT=$((LIMIT-1))
-	[[ $LIMIT == 0 ]] && break
 done < $TMP_URL_TIMESTAMP > $TMP_URLS
 
 log "Fixing output..."
