@@ -20,28 +20,31 @@ from urlparse import urlparse
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.WARNING )
 logger = logging.getLogger( "ld-to-ukwa" )
+logging.root.setLevel( logging.WARNING )
 
 w = webhdfs.API( prefix="http://dls.httpfs.wa.bl.uk:14000/webhdfs/v1" )
 a = act.ACT()
 
 j = a.request_instances_to_migrate()
 for node in j[ "list" ]:
+	body = node[ "body" ][ "value" ]
+	wct_id = re.findall( "^.+WCT ID: ([0-9]+)\\b.*", body )[ 0 ]
 	timestamp = node[ "field_timestamp" ]
 	logger.info( "Migrating %s" % timestamp )
-	body = node[ "body" ][ "value" ]
 	id = node[ "field_target" ][ "id" ]
 	data = a.request_node( str( id ) )
 	domains = []
 	for url in data[ "field_url" ]:
 		domains.append( re.sub( "^www\.", "", urlparse( url[ "url" ] ).netloc ) )
-	if len( domains ) == 0:
-		logger.error( "Problem parsing URLs for %s" % timestamp )
-		continue
-	jobname = re.findall( "Job ID:\s+([^<]+)", body )[ 0 ]
+	jobname = re.findall( "Job ID: ([^<]+)", body )[ 0 ]
 	cdx = "/dev/shm/%s.cdx" % timestamp
 	output = subprocess.check_output( [ "ld2ukwa", "-d", "|".join( domains ), "-j", jobname, "-t", timestamp, "-o", cdx ] )
 	if os.path.exists( cdx ) and os.stat( cdx ).st_size > 0:
-		hdfs_file = "/data/wayback/cdx-index/%s/%s.cdx" % ( domains[ 0 ], timestamp )
+		if wct_id is not None:
+			hdfs_file = "/data/wayback/cdx-index/%s/%s.cdx" % ( wct_id, timestamp )
+		else:
+			logger.warning( "Couldn't find WCT ID for %s" % timestamp )
+			hdfs_file = "/data/wayback/cdx-index/%s/%s.cdx" % ( domains[ 0 ], timestamp )
 		w.create( hdfs_file, file=cdx )
 		if w.exists( hdfs_file ):
 			os.remove( cdx )

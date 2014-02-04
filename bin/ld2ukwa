@@ -77,7 +77,7 @@ fi
 log "Getting URL/Timestamp list for $DOMAINS in $JOBNAME..."
 while read warc
 do
-	$INDEXER $warc 2> /dev/null | grep -E "\b($DOMAIN)\b" | awk '{ print $2 "/" $3 }' > $TMP_URL_TIMESTAMP
+	$INDEXER $warc 2> /dev/null | grep -E "\b($DOMAINS)\b" | awk '{ print $2 "/" $3 }' > $TMP_URL_TIMESTAMP
 done < <(ls $WARC_ROOT/$JOBNAME/$TIMESTAMP/*.warc.gz)
 
 log "Generating list of all required URLs."
