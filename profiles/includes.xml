@@ -171,7 +171,26 @@
 				</list>
 			</property>
 		</bean>
+		<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,gov,www,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>noMaxHops</value>
+				</list>
+			</property>
+		</bean>
 		
+		<bean id="noMaxHops" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="hopsCountReject.enabled" value="false" />
+				</map>
+			</property>
+		</bean>
 		<bean id="ignoreRobots" class="org.archive.spring.Sheet">
 			<property name="map">
 				<map>
