@@ -111,6 +111,23 @@ def addSurtAssociations( seeds, job ):
 			logger.info( "Amending cap for SURT " + seed.surt + " to " + seed.depth )
 	return script
 
+def addBlockingRules():
+	script = []
+	try:
+		xml = callAct( URL_ROOT + "nevercrawl" )
+		xml = xml.read() 
+	except urllib2.URLError, e:
+		logger.error( "Cannot read ACT! " + str( e ) + " [" + frequency + "]" )
+	except httplib.IncompleteRead, i:
+		logger.error( "IncompleteRead: " + str( i.partial ) + " [" + frequency + "]" )
+	dom = etree.fromstring( xml )
+	for node in dom.findall( "node" ):
+		urls = node.find( "urls" ).text
+		for url in urls.split():
+			seed = Seed( url )
+			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"blockAll\" );" % seed.surt )
+	return script
+
 def addScopingRules( seeds, job ):
 	script = []
 	for seed in seeds:
@@ -190,6 +207,7 @@ def submitjob( newjob, seeds ):
 	script = addSurtAssociations( seeds, newjob )
 	script += addScopingRules( seeds, newjob )
 	script += ignoreRobots( seeds, newjob )
+	script += addBlockingRules()
 	if len( script ) > 0:
 		writeJobScript( newjob, script )
 		runJobScript( newjob )
