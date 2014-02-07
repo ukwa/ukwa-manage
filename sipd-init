@@ -9,8 +9,9 @@
 ### END INIT INFO
  
 # Change the next 3 lines to suit where you install your script and what you want to call it
-DIR=/usr/local/lib/python2.7/site-packages/sipd
-DAEMON=$DIR/sipd.py
+#DIR=/usr/local/lib/python2.7/site-packages/sipd
+DIR=/heritrix/git/python-sip-daemon
+DAEMON=$DIR/sipd/sipd.py
 DAEMON_NAME=sipd
  
 # This next line determines what user the script runs as.
@@ -18,19 +19,16 @@ DAEMON_NAME=sipd
 DAEMON_USER=heritrix
  
 # The process ID of the script when it runs is stored here:
-PIDFILE=/var/run/$DAEMON_NAME.pid
+#PIDFILE=/var/run/$DAEMON_NAME.pid
+PIDFILE=/heritrix/git/python-sip-daemon/sipd.pid
  
 . /lib/lsb/init-functions
  
 do_start () {
-	log_daemon_msg "Starting system $DAEMON_NAME daemon"
-	start-stop-daemon --start --background --pidfile $PIDFILE --make-pidfile --user $DAEMON_USER --chuid $DAEMON_USER --startas $DAEMON
-	log_end_msg $?
+	su - $DAEMON_USER -c "$DAEMON start"
 }
 do_stop () {
-	log_daemon_msg "Stopping system $DAEMON_NAME daemon"
-	start-stop-daemon --stop --pidfile $PIDFILE --retry 10
-	log_end_msg $?
+	su - $DAEMON_USER -c "$DAEMON stop"
 }
  
 case "$1" in
@@ -39,16 +37,13 @@ case "$1" in
 		do_${1}
 		;;
  
-	restart|reload|force-reload)
+	restart)
 		do_stop
 		do_start
 		;;
  
-	status)
-		status_of_proc "$DAEMON_NAME" "$DAEMON" && exit 0 || exit $?
-		;;
 	*)
-		echo "Usage: /etc/init.d/$DAEMON_NAME {start|stop|restart|status}"
+		echo "Usage: /etc/init.d/$DAEMON_NAME {start|stop|restart}"
 		exit 1
 		;;
  
