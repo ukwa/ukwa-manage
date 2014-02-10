@@ -137,18 +137,19 @@ class SipCreator:
 		if( self.dummy ):
 			return getDummyIdentifiers( num )
 		try:
-			response = requests.get( "%s%s" % ( ARK_URL, str( num ) ) )
+			url = "%s%s" % ( ARK_URL, str( num ) )
+			logger.debug( "Requesting ARKS: %s" % url )
+			response = requests.get( url )
 			data = response.text
 		except Exception as e:
 			logger.error( "Could not obtain ARKs: %s" % str( e ) )
 			sys.exit( 1 )
-		xml = parseString( data )
+		xml = parseString( str( data ) )
 		for ark in xml.getElementsByTagName( "ark" ):
 			self.identifiers.append( ark.firstChild.wholeText )
 		if( len( self.identifiers ) != num ):
-			logger.error( "Incorrect number of ARKs returned; dumping to arks.dump." )
-			with open( "arks.dump", "wb" ) as dump:
-				dump.writelines( "\n".join( self.identifiers ) )
+			logger.error( "Problem parsing ARKs." )
+			logger.error( data )
 			sys.exit( 1 )
 
 	def verifyFileLocations( self ):
