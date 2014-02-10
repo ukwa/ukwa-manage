@@ -82,7 +82,7 @@ class API():
 				r = self._post( path, file=file )
 			else:
 				r = self._post( path, data=data )
-			return json.loads( r.text )
+			return r
 
 	def delete( self, path, recursive=False ):
 		if not self.exists( path ):
