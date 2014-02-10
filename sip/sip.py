@@ -25,7 +25,7 @@ logger = logging.getLogger( "ldp06.mets" )
 logging.root.setLevel( logging.DEBUG )
 
 class SipCreator:
-	def __init__( self, jobs, jobname, dummy=True ):
+	def __init__( self, jobs, jobname, dummy=False ):
 		"""Sets up APIs."""
 		self.webhdfs = webhdfs.API( prefix=WEBHDFS_PREFIX, user=WEBHDFS_USER )
 		self.dummy = dummy
@@ -150,10 +150,6 @@ class SipCreator:
 			with open( "arks.dump", "wb" ) as dump:
 				dump.writelines( "\n".join( self.identifiers ) )
 			sys.exit( 1 )
-
-	def hdfsExists( self, path ):
-		"""Verifies whether a path exists in HDFS; superceeded by python-webhdfs."""
-		return self.webhdfs.exists( path )
 
 	def verifyFileLocations( self ):
 		"""Checks that the configured file locations and job paths are sane."""
