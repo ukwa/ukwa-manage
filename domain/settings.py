@@ -1,5 +1,0 @@
-PERMISSION_STATE="Granted"
-PERMISSION_START_DATE="2013-04-06"
-PERMISSION_NAME="The Legal Deposit Libraries (Non-Print Works) Regulations 2013"
-PERMISSION_PUBLISHED="True"
-HERITRIX = "heritrix-3.1.1+uk.bl.wap"
