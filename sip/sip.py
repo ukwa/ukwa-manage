@@ -7,13 +7,12 @@ import os
 import sys
 import glob
 import bagit
-import socket
 import logging
 import webhdfs
 import argparse
-import commands
 import requests
-import simplejson
+import subprocess
+from mets import *
 from settings import *
 from lxml import etree
 from datetime import datetime
@@ -22,15 +21,16 @@ from xml.dom.minidom import parseString
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
-logger.addHandler( logging.StreamHandler( sys.stdout ) )
 logger = logging.getLogger( "ldp06.mets" )
+logging.root.setLevel( logging.DEBUG )
 
 class SipCreator:
 	def __init__( self, jobs, jobname, dummy=True ):
 		"""Sets up APIs."""
-		self.webhdfs = webhdfs.API( prefix=WEBHDFS_PREFIX )
+		self.webhdfs = webhdfs.API( prefix=WEBHDFS_PREFIX, user=WEBHDFS_USER )
 		self.dummy = dummy
 		self.jobname = jobname
+		self.jobs = jobs
 
 	def processJobs( self ):
 		"""Finds all WARCs and logs associated with jobs."""
@@ -38,11 +38,12 @@ class SipCreator:
 		self.getViral()
 		self.getLogs()
 
-		logger.info( "Getting ARK identifiers..." )
 		if( self.dummy ):
-			self.identifiers = self.getDummyIdentifiers( len( self.warcs ) + len( self.viral ) + len( self.logs ) )
+			logger.info( "Getting dummy ARK identifiers..." )
+			self.getDummyIdentifiers( len( self.warcs ) + len( self.viral ) + len( self.logs ) )
 		else:
-			self.identifiers = self.getIdentifiers( len( self.warcs ) + len( self.viral ) + len( self.logs ) )
+			logger.info( "Getting ARK identifiers..." )
+			self.getIdentifiers( len( self.warcs ) + len( self.viral ) + len( self.logs ) )
 
 	def createMets( self ):
 		"""Creates the Mets object."""
@@ -51,8 +52,7 @@ class SipCreator:
 
 	def writeMets( self, output=sys.stdout ):
 		"""Writes the METS XML to a file handle."""
-		with open( output, "wb" ) as o:
-			o.write( self.mets.getXml() )
+		output.write( self.mets.getXml() )
 
 	def bagit( self, directory, metadata=None ):
 		"""Creates a Bagit, if needs be with default metadata."""
@@ -64,7 +64,7 @@ class SipCreator:
 		"""Finds all WARCs for a each job."""
 		self.warcs = []
 		for job in self.jobs:
-			for warc in glob.glob( "%s/%s/*.warc.gz" % ( WARC_ROOT, job ):
+			for warc in glob.glob( "%s/%s/*.warc.gz" % ( WARC_ROOT, job ) ):
 				logger.info( "Found %s..." % os.path.basename( warc ) )
 				self.warcs.append( warc )
 
@@ -72,7 +72,7 @@ class SipCreator:
 		"""Finds all 'viral' WARCs for a each job."""
 		self.viral = []
 		for job in self.jobs:
-			for viral in glob.glob( "%s/%s/*.warc.gz" % ( VIRAL_ROOT, job ):
+			for viral in glob.glob( "%s/%s/*.warc.gz" % ( VIRAL_ROOT, job ) ):
 				logger.info( "Found %s..." % os.path.basename( viral ) )
 				self.viral.append( viral )
 
@@ -84,7 +84,7 @@ class SipCreator:
 		for job in self.jobs:
 			logger.info( "Processing job %s..." % job )
 			try:
-				zip = "%s/%s/%s.zip" % ( LOG_ROOT, job, job )
+				zip = "%s/%s/%s.zip" % ( LOG_ROOT, job, os.path.basename( job ) )
 				if os.path.exists( zip ):
 					logger.info( "Deleting %s..." % zip )
 					try:
@@ -93,32 +93,34 @@ class SipCreator:
 						logger.error( "Cannot delete %s..." % zip )
 						sys.exit( 1 )
 
+				logger.info( "Zipping logs to %s" % zip )
 				for crawl_log in glob.glob( "%s/%s/crawl.log" % ( LOG_ROOT, job ) ):
 					logger.info( "Found %s..." % os.path.basename( crawl_log ) )
-					commands.getstatusoutput( ZIP + " " + zip + " " + crawl_log )
+					subprocess.check_output( ZIP.split() + [ zip, crawl_log ] )
 					crawl_logs.append( crawl_log )
 
 				for log in glob.glob( "%s/%s/*-errors.log*" % ( LOG_ROOT, job ) ):
 					logger.info( "Found %s..." % os.path.basename( log ) )
-					commands.getstatusoutput( "%s %s %s" % ( ZIP, zip, log ) )
+					subprocess.check_output( ZIP.split() + [ zip, log ] )
 
 				if os.path.exists( "%s/%s/crawler-beans.cxml" % ( JOBS_ROOT, job ) ):
 					logger.info( "Found config..." )
-					commands.getstatusoutput( "%s %s %s/%s/crawler-beans.cxml" % ( ZIP, zip, JOBS_ROOT, job ) )
+					subprocess.check_output( ZIP.split() + [ zip, "%s/%s/crawler-beans.cxml" % ( JOBS_ROOT, job ) ] )
 				else:
 					logger.error( "Cannot find config." )
 					sys.exit( 1 )
 			except Exception as e:
 				logger.error( "Problem building ZIP file: %s" % str( e ) )
 				sys.exit( 1 )
-			if self.webhdfs.exists( zip ):
-				logger.info( "Deleting hdfs://%s..." % zip )
-				result = self.webhdfs.delete( zip )
-				if result[ "boolean" ] != "true":
-					logger.error( "Could not delete hdfs://%s..." % zip )
-					sys.exit( 1 )
-			logger.info( "Copying %s to HDFS." % os.path.basename( zip ) )
-			self.webhdfs.create( zip, file=zip )
+			if not self.dummy:
+				if self.webhdfs.exists( zip ):
+					logger.info( "Deleting hdfs://%s..." % zip )
+					result = self.webhdfs.delete( zip )
+					if result[ "boolean" ] != "true":
+						logger.error( "Could not delete hdfs://%s..." % zip )
+						sys.exit( 1 )
+				logger.info( "Copying %s to HDFS." % os.path.basename( zip ) )
+				self.webhdfs.create( zip, file=zip )
 			self.logs.append( zip )
 		self.startdate = self.findStartDate( crawl_logs )
 
@@ -152,6 +154,20 @@ class SipCreator:
 	def hdfsExists( self, path ):
 		"""Verifies whether a path exists in HDFS; superceeded by python-webhdfs."""
 		return self.webhdfs.exists( path )
+
+	def verifyFileLocations( self ):
+		"""Checks that the configured file locations and job paths are sane."""
+		verified = os.path.exists( LOCAL_ROOT ) and \
+		os.path.exists( WARC_ROOT ) and  \
+		os.path.exists( LOG_ROOT ) and  \
+		os.path.exists( VIRAL_ROOT ) and  \
+		os.path.exists( JOBS_ROOT )
+		for job in self.jobs:
+			verified = verified and \
+			os.path.exists( "%s/%s" % ( JOBS_ROOT, job ) ) and  \
+			os.path.exists( "%s/%s" % ( WARC_ROOT, job ) ) and  \
+			os.path.exists( "%s/%s" % ( LOG_ROOT, job ) )
+		return verified
 
 	def verifyWebhdfs( self ):
 		"""Verifies that the WebHDFS services is available."""
@@ -196,6 +212,7 @@ if __name__ == "__main__":
 	if sip.verifySetup():
 		sip.processJobs()
 		sip.createMets()
-		sip.writeMets( "%s/%s/%s.xml" % ( OUTPUT_ROOT, jobname, jobname ) )
+		with open( "%s/%s/%s.xml" % ( OUTPUT_ROOT, jobname, jobname ), "wb" ) as o:
+			sip.writeMets( o )
 		sip.bagit( "%s/%s" % ( OUTPUT_ROOT, jobname ) )
 		

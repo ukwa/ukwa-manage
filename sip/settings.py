@@ -16,6 +16,8 @@ UNZIP="/opt/unzip60/bin/unzip"
 OUTPUT_ROOT="/heritrix/sips"
 
 WEBHDFS_PREFIX="http://dls.httpfs.wa.bl.uk:14000/webhdfs/v1"
+WEBHDFS_SUFFIX="?user.name=hadoop&op=OPEN"
+WEBHDFS_USER="heritrix"
 
 PERMISSION_STATE="Granted"
 PERMISSION_START_DATE="2013-04-06"

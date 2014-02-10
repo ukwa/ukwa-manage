@@ -53,6 +53,7 @@ class ZipContainer:
 class Mets:
 	def __init__( self, date, warcs, viral, logs, identifiers ):
 		self.warcs = []
+		self.date = date
 		for warc in warcs:
 			self.warcs.append( Warc( path=warc ) )
 		self.viral = []
@@ -61,6 +62,7 @@ class Mets:
 		self.logs = []
 		for log in logs:
 			self.logs.append( ZipContainer( path=log ) )
+		self.identifiers = identifiers
 		self.createDomainMets()
 		self.createCrawlerMets()
 
@@ -76,12 +78,12 @@ class Mets:
 		etree.register_namespace( "xlink", "http://www.w3.org/1999/xlink" )
 		self.mets = etree.Element( METS + "mets", TYPE="webarchive_domain", attrib={ XSI + "schemaLocation" : schemaLocation } )
 
-		metsHdr = etree.SubElement( mets, METS + "metsHdr", CREATEDATE=datetime.now().strftime( "%Y-%m-%dT%H:%M:%SZ" ) )
+		metsHdr = etree.SubElement( self.mets, METS + "metsHdr", CREATEDATE=datetime.now().strftime( "%Y-%m-%dT%H:%M:%SZ" ) )
 		agent = etree.SubElement( metsHdr, METS + "agent", ROLE="CREATOR", TYPE="OTHER", OTHERTYPE="software" )
 		name = etree.SubElement( agent, METS + "name" )
 		name.text = SOFTWARE_VERSION
 
-		amdSec = etree.SubElement( mets, METS + "amdSec", ID="AMD0000" )
+		amdSec = etree.SubElement( self.mets, METS + "amdSec", ID="AMD0000" )
 		rightsMD = etree.SubElement( amdSec, METS + "rightsMD", ID="DP0000" )
 		mdWrap = etree.SubElement( rightsMD, METS + "mdWrap", MDTYPE="OTHER", OTHERMDTYPE="wctpermissions" )
 		xmlData = etree.SubElement( mdWrap, METS + "xmlData" )
@@ -129,10 +131,9 @@ class Mets:
 		agentName.text = HERITRIX
 		agentType = etree.SubElement( agent, PREMIS + "agentType" )
 		agentType.text = "software"
-	#	return etree.tostring( mets, pretty_print=True, xml_declaration=True, encoding="UTF-8" )
 
-	def buildZipPremis( root, zip, identifier ):
-		amdSec = etree.SubElement( root, METS + "amdSec", ID="AMDZIP" + zip.admid )
+	def buildZipPremis( self, zip, identifier ):
+		amdSec = etree.SubElement( self.mets, METS + "amdSec", ID="AMDZIP" + zip.admid )
 		digiprovMD = etree.SubElement( amdSec, METS + "digiprovMD", ID="DMDZIP" + zip.admid )
 		mdWrap = etree.SubElement( digiprovMD, METS + "mdWrap", MDTYPE="PREMIS:OBJECT" )
 		xmlData = etree.SubElement( mdWrap, METS + "xmlData" )
@@ -158,7 +159,7 @@ class Mets:
 		formatName = etree.SubElement( formatDesignation, PREMIS + "formatName" )
 		formatName.text = "application/zip"
 
-	def buildPremis( warc, identifier, virus=False ):
+	def buildPremis( self, warc, identifier, virus=False ):
 		amdSec = etree.SubElement( self.mets, METS + "amdSec", ID="AMDWARC" + warc.admid )
 		digiprovMD = etree.SubElement( amdSec, METS + "digiprovMD", ID="DMDWARC" + warc.admid )
 		mdWrap = etree.SubElement( digiprovMD, METS + "mdWrap", MDTYPE="PREMIS:OBJECT" )
@@ -229,7 +230,7 @@ class Mets:
 		for warc in files:
 			metsFile = etree.SubElement( fileGrp, METS + "file", ID="WARC" + warc.admid, ADMID="AMDWARC" + warc.admid, SIZE=str( warc.size ), CHECKSUM=warc.hash, CHECKSUMTYPE="SHA-512", MIMETYPE="application/warc" )
 			fLocat = etree.SubElement( metsFile, METS + "FLocat", LOCTYPE="URL",  )
-			fLocat.set( XLINK + "href", HOOP + warc.path + HOOP_SUFFIX )
+			fLocat.set( XLINK + "href", "%s%s%s" % ( WEBHDFS_PREFIX, warc.path, WEBHDFS_SUFFIX ) )
 			transformFile = etree.SubElement( metsFile, METS + "transformFile", TRANSFORMTYPE="decompression", TRANSFORMALGORITHM="WARC", TRANSFORMORDER="1" )
 
 	def buildLogFileGrp( self, root ):
@@ -237,7 +238,7 @@ class Mets:
 		for zip in self.logs:
 			metsFile = etree.SubElement( fileGrp, METS + "file", ID="ZIP" + zip.admid, ADMID="AMDZIP" + zip.admid, SIZE=str( zip.size ), CHECKSUM=zip.hash, CHECKSUMTYPE="SHA-512", MIMETYPE="application/zip" )
 			fLocat = etree.SubElement( metsFile, METS + "FLocat", LOCTYPE="URL",  )
-			fLocat.set( XLINK + "href", HOOP + zip.path + HOOP_SUFFIX )
+			fLocat.set( XLINK + "href", "%s%s%s" % ( WEBHDFS_PREFIX, zip.path, WEBHDFS_SUFFIX ) )
 			transformFile = etree.SubElement( metsFile, METS + "transformFile", TRANSFORMTYPE="decompression", TRANSFORMALGORITHM="ZIP", TRANSFORMORDER="1" )
 
 	def buildStructMap( self ):
@@ -253,16 +254,16 @@ class Mets:
 
 	def createCrawlerMets( self ):
 		for warc in self.warcs:
-			buildPremis( warc, self.identifiers.pop() )
+			self.buildPremis( warc, self.identifiers.pop() )
 
 		for warc in self.viral:
-			buildPremis( warc, self.identifiers.pop(), virus=True )
+			self.buildPremis( warc, self.identifiers.pop(), virus=True )
 		
 		for zip in self.logs:
-			buildZipPremis( zip, self.identifiers.pop() )
+			self.buildZipPremis( zip, self.identifiers.pop() )
 
 		fileSec = etree.SubElement( self.mets, METS + "fileSec" )
-		buildWarcFileGrp( fileSec, self.warcs, "DigitalManifestation" )
-		buildWarcFileGrp( fileSec, self.viral, "ViralFiles", "/viral/" )
-		buildLogFileGrp( fileSec )
-		buildStructMap()
+		self.buildWarcFileGrp( fileSec, self.warcs, "DigitalManifestation" )
+		self.buildWarcFileGrp( fileSec, self.viral, "ViralFiles", "/viral/" )
+		self.buildLogFileGrp( fileSec )
+		self.buildStructMap()
