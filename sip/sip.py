@@ -26,7 +26,7 @@ logger.addHandler( logging.StreamHandler( sys.stdout ) )
 logger = logging.getLogger( "ldp06.mets" )
 
 class SipCreator:
-	def __init__( self, jobs, jobname, dummy=False ):
+	def __init__( self, jobs, jobname, dummy=True ):
 		"""Sets up APIs."""
 		self.webhdfs = webhdfs.API( prefix=WEBHDFS_PREFIX )
 		self.dummy = dummy
