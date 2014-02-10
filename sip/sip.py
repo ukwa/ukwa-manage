@@ -57,7 +57,7 @@ class SipCreator:
 	def bagit( self, directory, metadata=None ):
 		"""Creates a Bagit, if needs be with default metadata."""
 		if metadata is None:
-			metadata = { "Contact-Name": BAGIT_CONTACT_NAME, "Contact-Email": BAGIT_CONTACT_EMAIL, "Timestamp": datetime.now().strftime( "%Y-%m-%dT%H:%M:%SZ" ), "Description": BAGIT_DESCRIPTION + ";".join( args.jobs ) }
+			metadata = { "Contact-Name": BAGIT_CONTACT_NAME, "Contact-Email": BAGIT_CONTACT_EMAIL, "Timestamp": datetime.now().strftime( "%Y-%m-%dT%H:%M:%SZ" ), "Description": BAGIT_DESCRIPTION + ";".join( self.jobs ) }
 		bagit.make_bag( directory, metadata )
 
 	def getWarcs( self ):
