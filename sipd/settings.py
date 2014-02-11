@@ -1,12 +1,29 @@
-SIP_QUEUE_NAME = "sips"
-SIP_QUEUE_KEY = "sips"
+#SIP_QUEUE_NAME = "sips"
+#SIP_QUEUE_KEY = "sips"
+SIP_QUEUE_NAME = "sips_test"
+SIP_QUEUE_KEY = "sips_test"
 SIP_QUEUE_HOST = "localhost"
 
 INDEX_QUEUE_HOST = "localhost"
-INDEX_QUEUE_NAME = "index"
-INDEX_QUEUE_KEY = "index"
+#INDEX_QUEUE_NAME = "index"
+#INDEX_QUEUE_KEY = "index"
+INDEX_QUEUE_NAME = "index_test"
+INDEX_QUEUE_KEY = "index_test"
 
-#PID_FILE = "/var/run/sipd.pid"
-PID_FILE = "/heritrix/git/python-sip-daemon/sipd.pid"
+ERROR_QUEUE_HOST = "localhost"
+ERROR_QUEUE_NAME = "sip-error"
+ERROR_QUEUE_KEY = "sip-error"
+
+PID_FILE = "/var/run/sipd/sipd.pid"
 LOG_FILE = "/var/log/sipd/sipd.log"
+
+SIP_ROOT = "/heritrix/sips"
+DLS_ROOT = "%s/dls-mount" % SIP_ROOT
+DLS_DROP = "%s/Dropfolder" % DLS_ROOT
+DLS_WATCH = "%s/WatchFolder" % DLS_ROOT
+
+WEBHDFS_PREFIX = "http://dls.httpfs.wa.bl.uk:14000/webhdfs/v1"
+WEBHDFS_USER = "heritrix"
+
+DUMMY = True
 

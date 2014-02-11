@@ -15,15 +15,12 @@ import webhdfs
 import settings
 from daemonize import Daemon
 
-#LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
-#logging.basicConfig( filename=settings.LOG_FILE, format=LOGGING_FORMAT, level=logging.DEBUG )
 logger = logging.getLogger( "sipd" )
 handler = logging.FileHandler( settings.LOG_FILE )
 formatter = logging.Formatter( "[%(asctime)s] %(levelname)s: %(message)s" )
 handler.setFormatter( formatter )
 logger.addHandler( handler )
 logger.setLevel( logging.DEBUG )
-#logging.root.setLevel( logging.DEBUG )
 
 def send_error_message( message ):
 	"""Sends a message to the 'sip-error' queue."""
@@ -59,7 +56,7 @@ def copy_to_dls( sip ):
 
 def create_sip( job ):
 	"""Creates a SIP and returns the path to the folder containing the METS."""
-	s = sip.SipCreator( jobs=[ job ], jobname=job, dummy=True )
+	s = sip.SipCreator( jobs=[ job ], jobname=job, dummy=settings.DUMMY )
 	if s.verifySetup():
 		s.processJobs()
 		s.createMets()
@@ -104,7 +101,7 @@ def callback( ch, method, properties, body ):
 					#shutil.move( dls, "%s/%s" % ( settings.DLS_WATCH, os.path.basename( body ) ) )
 					gztar = copy_to_hdfs( sip_dir )
 					logger.debug( "SIP tarball at hdfs://%s" % gztar )
-					logger.debug( "Sending message to '%s': %s" % ( settings.INDEX_QUEUE_NAME, message ) )
+					logger.debug( "Sending message to '%s': %s" % ( settings.INDEX_QUEUE_NAME, body ) )
 					send_index_message( body )
 				else:
 					raise Exception( "Invalid Bagit after copy: %s" % dls )
