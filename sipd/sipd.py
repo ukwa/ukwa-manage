@@ -111,8 +111,8 @@ def callback( ch, method, properties, body ):
 				dls = copy_to_dls( body )
 				bag = bagit.Bag( dls )
 				if bag.validate():
-					#logger.debug( "Moving %s to %s." % ( dls, settings.DLS_WATCH ) )
-					#shutil.move( dls, "%s/%s" % ( settings.DLS_WATCH, os.path.basename( body ) ) )
+					logger.debug( "Moving %s to %s." % ( dls, settings.DLS_WATCH ) )
+					shutil.move( dls, "%s/%s" % ( settings.DLS_WATCH, os.path.basename( body ) ) )
 					gztar = copy_to_hdfs( sip_dir )
 					logger.debug( "SIP tarball at hdfs://%s" % gztar )
 					logger.debug( "Sending message to '%s': %s" % ( settings.INDEX_QUEUE_NAME, body ) )
