@@ -149,9 +149,7 @@ class SipCreator:
 		for ark in xml.getElementsByTagName( "ark" ):
 			self.identifiers.append( ark.firstChild.wholeText )
 		if( len( self.identifiers ) != num ):
-			logger.error( "Problem parsing ARKs." )
-			logger.error( "Response: %s" % data )
-			raise Exception( "Problem parsing ARKs; %s" % self.jobs )
+			raise Exception( "Problem parsing ARKs; %s, %s, %s" % ( self.jobs, self.identifiers, data ) )
 
 	def verifyFileLocations( self ):
 		"""Checks that the configured file locations and job paths are sane."""
