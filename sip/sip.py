@@ -67,6 +67,8 @@ class SipCreator:
 			for warc in glob.glob( "%s/%s/*.warc.gz" % ( WARC_ROOT, job ) ):
 				logger.info( "Found %s..." % os.path.basename( warc ) )
 				self.warcs.append( warc )
+		if len( self.warcs ) == 0:
+			raise Exception( "No WARCs found for %s" % self.jobs )
 
 	def getViral( self ):
 		"""Finds all 'viral' WARCs for a each job."""
@@ -92,7 +94,6 @@ class SipCreator:
 					except Exception as e:
 						logger.error( "Cannot delete %s..." % zip )
 						sys.exit( 1 )
-
 				logger.info( "Zipping logs to %s" % zip )
 				for crawl_log in glob.glob( "%s/%s/crawl.log" % ( LOG_ROOT, job ) ):
 					logger.info( "Found %s..." % os.path.basename( crawl_log ) )
@@ -150,7 +151,7 @@ class SipCreator:
 		if( len( self.identifiers ) != num ):
 			logger.error( "Problem parsing ARKs." )
 			logger.error( data )
-			sys.exit( 1 )
+			raise Exception( "Problem parsing ARKs; %s" % self.jobs )
 
 	def verifyFileLocations( self ):
 		"""Checks that the configured file locations and job paths are sane."""
