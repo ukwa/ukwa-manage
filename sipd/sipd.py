@@ -25,6 +25,14 @@ logger.addHandler( handler )
 logger.setLevel( logging.DEBUG )
 #logging.root.setLevel( logging.DEBUG )
 
+def send_error_message( message ):
+	"""Sends a message to the 'sip-error' queue."""
+	connection = pika.BlockingConnection( pika.ConnectionParameters( settings.ERROR_QUEUE_HOST ) )
+	channel = connection.channel()
+	channel.queue_declare( queue=settings.ERROR_QUEUE_NAME, durable=True )
+	channel.basic_publish( exchange="", routing_key=settings.ERROR_QUEUE_KEY, body=message )
+	connection.close()
+
 def send_index_message( message ):
 	"""Sends a message to the 'index' queue."""
 	connection = pika.BlockingConnection( pika.ConnectionParameters( settings.INDEX_QUEUE_HOST ) )
@@ -106,6 +114,7 @@ def callback( ch, method, properties, body ):
 			raise Exception( "Could not verify message: %s" % body )
 	except Exception as e:
 		logger.error( "%s [%s]" % ( str( e ), body ) )
+		send_error_message( body )
 
 class SipDaemon( Daemon ):
 	"""Maintains a connection to the queue."""
