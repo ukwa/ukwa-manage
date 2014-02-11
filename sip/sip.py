@@ -140,7 +140,7 @@ class SipCreator:
 		try:
 			url = "%s%s" % ( ARK_URL, str( num ) )
 			logger.debug( "Requesting ARKS: %s" % url )
-			response = requests.get( url )
+			response = requests.post( url )
 			data = response.text
 		except Exception as e:
 			logger.error( "Could not obtain ARKs: %s" % str( e ) )
