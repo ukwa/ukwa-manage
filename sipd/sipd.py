@@ -22,12 +22,21 @@ handler.setFormatter( formatter )
 logger.addHandler( handler )
 logger.setLevel( logging.DEBUG )
 
+#Try to set logging output for all modules.
+logging.root.setLevel( logging.DEBUG )
+logging.getLogger( "" ).addHandler( handler )
+
 def send_error_message( message ):
 	"""Sends a message to the 'sip-error' queue."""
 	connection = pika.BlockingConnection( pika.ConnectionParameters( settings.ERROR_QUEUE_HOST ) )
 	channel = connection.channel()
 	channel.queue_declare( queue=settings.ERROR_QUEUE_NAME, durable=True )
-	channel.basic_publish( exchange="", routing_key=settings.ERROR_QUEUE_KEY, body=message )
+	channel.basic_publish( exchange="",
+		routing_key=settings.ERROR_QUEUE_KEY,
+		properties=pika.BasicProperties(
+			delivery_mode=2,
+		),
+		body=message )
 	connection.close()
 
 def send_index_message( message ):
@@ -35,12 +44,17 @@ def send_index_message( message ):
 	connection = pika.BlockingConnection( pika.ConnectionParameters( settings.INDEX_QUEUE_HOST ) )
 	channel = connection.channel()
 	channel.queue_declare( queue=settings.INDEX_QUEUE_NAME, durable=True )
-	channel.basic_publish( exchange="", routing_key=settings.INDEX_QUEUE_KEY, body=message )
+	channel.basic_publish( exchange="",
+		routing_key=settings.INDEX_QUEUE_KEY,
+		properties=pika.BasicProperties(
+			delivery_mode=2,
+		),
+		body=message )
 	connection.close()
 
 def verify_message( message ):
 	"""Verifies that a message is valid. i.e. it's similar to: 'daily-0400/20140207041736'"""
-	r = re.compile( "^[a-z]+-[0-9]+/[0-9]+" )
+	r = re.compile( "^[a-z]+(-[0-9])?-[0-9]+/[0-9]+" )
 	return r.match( message )
 
 def copy_to_dls( sip ):
@@ -118,6 +132,8 @@ class SipDaemon( Daemon ):
 	def run( self ):
 		while True:
 			try:
+				if settings.DUMMY:
+					logger.debug( "Running in dummy mode." )
 				logger.debug( "Starting connection %s:%s." % ( settings.SIP_QUEUE_HOST, settings.SIP_QUEUE_NAME ) )
 				connection = pika.BlockingConnection( pika.ConnectionParameters( settings.SIP_QUEUE_HOST ) )
 				channel = connection.channel()

@@ -4,11 +4,9 @@ SIP_QUEUE_NAME = "sips_test"
 SIP_QUEUE_KEY = "sips_test"
 SIP_QUEUE_HOST = "localhost"
 
+INDEX_QUEUE_NAME = "index"
+INDEX_QUEUE_KEY = "index"
 INDEX_QUEUE_HOST = "localhost"
-#INDEX_QUEUE_NAME = "index"
-#INDEX_QUEUE_KEY = "index"
-INDEX_QUEUE_NAME = "index_test"
-INDEX_QUEUE_KEY = "index_test"
 
 ERROR_QUEUE_HOST = "localhost"
 ERROR_QUEUE_NAME = "sip-error"
@@ -25,5 +23,5 @@ DLS_WATCH = "%s/WatchFolder" % DLS_ROOT
 WEBHDFS_PREFIX = "http://dls.httpfs.wa.bl.uk:14000/webhdfs/v1"
 WEBHDFS_USER = "heritrix"
 
-DUMMY = True
+DUMMY = False
 
