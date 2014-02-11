@@ -150,7 +150,7 @@ class SipCreator:
 			self.identifiers.append( ark.firstChild.wholeText )
 		if( len( self.identifiers ) != num ):
 			logger.error( "Problem parsing ARKs." )
-			logger.error( data )
+			logger.error( "Response: %s" % data )
 			raise Exception( "Problem parsing ARKs; %s" % self.jobs )
 
 	def verifyFileLocations( self ):
