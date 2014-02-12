@@ -23,3 +23,11 @@ JOB_ROOT = "/opt/heritrix/jobs/"
 PHANTOMJS = "/opt/phantomjs/bin/phantomjs"
 NETSNIFF = "/opt/phantomjs/examples/netsniff.js"
 TIMEOUT = 60 * 20
+
+SIP_QUEUE_NAME = "sips"
+SIP_QUEUE_KEY = "sips"
+QUEUE_HOST = "localhost"
+
+INDEX_QUEUE_NAME = "index"
+INDEX_QUEUE_KEY = "index"
+

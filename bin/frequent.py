@@ -5,6 +5,7 @@ import act
 import sys
 import glob
 import json
+import pika
 import time
 import shutil
 import httplib
@@ -40,6 +41,9 @@ max_render_depth = { "daily": 0, "weekly": 1, "monthly": 1, "quarterly": 1, "six
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.WARNING )
 logger = logging.getLogger( "frequency" )
+
+pika_logger = logging.getLogger( "pika" )
+pika_logger.setLevel( logging.WARNING )
 
 global api
 global now
@@ -124,8 +128,11 @@ def addBlockingRules():
 	for node in dom.findall( "node" ):
 		urls = node.find( "urls" ).text
 		for url in urls.split():
-			seed = Seed( url )
-			script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"blockAll\" );" % seed.surt )
+			try:
+				seed = Seed( url )
+				script.append( "appCtx.getBean( \"sheetOverlaysManager\" ).addSurtAssociation( \"%s\", \"blockAll\" );" % seed.surt )
+			except ValueError, v:
+				logger.warning( "ValueError: %s" % str( v ) )
 	return script
 
 def addScopingRules( seeds, job ):
@@ -419,8 +426,9 @@ def log_stats( logs ):
 	for log in logs:
 		with open( log, "rb" ) as l:
 			for line in l:
-				fields = line.split()
-				match = host_regex.match( fields[ 5 ] )
+				# Annotations can contain whitespace so limit the split.
+				fields = line.split( None, 15 )
+				match = host_regex.match( fields[ 3 ] )
 				if match is not None:
 					host = match.group( 1 )
 					try:
@@ -431,6 +439,8 @@ def log_stats( logs ):
 					host_data[ "response_codes" ].append( fields[ 1 ] )
 					if fields[ 2 ] != "-":
 						host_data[ "data_size" ] += int( fields[ 2 ] )
+					if "serverMaxSuccessKb" in fields[ -1 ]:
+						host_data[ "reached_cap" ] = True
 	all_hosts_data = OrderedDict( sorted( all_hosts_data.iteritems(), key=operator.itemgetter( 1 ), reverse=True ) )
 	for host, data in all_hosts_data.iteritems():
 		data[ "response_codes" ] = Counter( data[ "response_codes" ] )
@@ -459,14 +469,28 @@ def check_ukwa( job, launchid ):
 		aid = node.find( "actLink" ).text.split( "/" )[ -1 ]
 		for url in urls.split():
 			if url in seeds:
-				if wct_id is not None:
-					wct_data.append( ( wct_id, aid, urls.split() ) )
-					break
+				wct_data.append( ( wct_id, aid, urls.split() ) )
+				break
 	# Generate stats. from the logs
 	crawl_logs = glob.glob( LOG_ROOT + "/" + job + "/" + launchid + "/crawl.log*" )
 	stats = log_stats( crawl_logs )
-	js = json.dumps( stats, indent=8, separators=( ",", ":" ) )
-	return ( wct_data, js )
+	return ( wct_data, stats )
+
+@retry( urllib2.URLError, tries=20, timeout_secs=10 )
+def act_note_reached_cap( act_id, jobname, timestamp ):
+	logger.debug( "act_note_reached_cap(): %s" % act_id )
+	a = act.ACT()
+	node = a.request_node( act_id )
+	if node is not None and len( node[ "field_notes" ] ) == 0:
+		value = ""
+	else:
+		value = node[ "field_notes" ][ "value" ]
+	value += "Reached the cap in %s/%s.\n" % ( jobname, timestamp )
+	update = {}
+	field_notes = {}
+	field_notes[ "value" ] = value
+	update[ "field_notes" ] = field_notes
+	a.send_data( act_id, json.dumps( update ) )
 
 def add_act_instance( target, timestamp, data, wct_data, jobname ):
 	wct_id, act_id, urls = wct_data
@@ -482,6 +506,19 @@ def add_act_instance( target, timestamp, data, wct_data, jobname ):
 	update = json.dumps( instance, sort_keys=False )
 	r = a_act.send_data( "", update )
 	return r
+
+def send_sip_message( jobname, timestamp ):
+	message = "%s/%s" % ( jobname, timestamp )
+	connection = pika.BlockingConnection( pika.ConnectionParameters( QUEUE_HOST ) )
+	channel = connection.channel()
+	channel.queue_declare( queue=SIP_QUEUE_NAME, durable=True )
+	channel.basic_publish( exchange="",
+		routing_key=SIP_QUEUE_KEY,
+		properties=pika.BasicProperties(
+			delivery_mode=2,
+		),
+		body=message )
+	connection.close()
 
 if __name__ == "__main__":
 	# Check for scheduled jobs.
@@ -505,18 +542,27 @@ if __name__ == "__main__":
 			waitfor( emptyJob, "" )
 			# Check for UKWA Instances.
 			wct_data, stats = check_ukwa( emptyJob, launchid )
+			js = json.dumps( stats, indent=8, separators=( ",", ":" ) )
 			for datum in wct_data:
 				wct_id, act_id, urls = datum
-				logger.info( "WCT ID: %s" % wct_id )
-				logger.info( "ACT ID: %s" % act_id )
-				logger.info( "Timestamp: %s" % launchid )
-				logger.info( "\tURLs: %s" % urls )
-				# Only add 'daily' Instances once a week.
-				if emptyJob.startswith( "daily" ) and not now.strftime( "%A" ) == "Monday":
-					continue
-				logger.info( "Adding Instance: %s" % act_id )
-				add_act_instance( act_id, launchid, stats, datum, emptyJob )
-			logger.info( stats )
+				# Create an Instance if we have a WCT ID.
+				if wct_id is not None:
+					logger.info( "WCT ID: %s" % wct_id )
+					logger.info( "ACT ID: %s" % act_id )
+					logger.info( "Timestamp: %s" % launchid )
+					logger.info( "\tURLs: %s" % urls )
+					# Only add 'daily' Instances once a week.
+					if emptyJob.startswith( "daily" ) and not now.strftime( "%A" ) == "Monday":
+						continue
+					logger.info( "Adding Instance: %s" % act_id )
+					add_act_instance( act_id, launchid, js, datum, emptyJob )
+			# Update ACT notes if any have reached their cap.
+#			for key, item in stats.iteritems():
+#				if item.has_key( "reached_cap" ):
+#					act_note_reached_cap( act_id, emptyJob, launchid )
+			logger.info( js )
+			# Send a message to the queue for SIP'ing.
+			send_sip_message( emptyJob, launchid )
 	# Now start up those jobs we forcibly EMPTY'd earlier.
 	for job in jobs_to_start:
 		name, seeds = job
