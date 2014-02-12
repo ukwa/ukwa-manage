@@ -139,7 +139,7 @@ class SipCreator:
 			return getDummyIdentifiers( num )
 		try:
 			url = "%s%s" % ( ARK_URL, str( num ) )
-			logger.debug( "Requesting ARKS: %s" % url )
+			logger.debug( "Requesting %s ARKS: %s" % ( num, url ) )
 			response = requests.post( url )
 			data = response.text
 		except Exception as e:
