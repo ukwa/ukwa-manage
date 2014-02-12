@@ -28,11 +28,11 @@ a = act.ACT()
 j = a.request_instances_to_migrate()
 for node in j[ "list" ]:
 	body = node[ "body" ][ "value" ]
-	wct_id = re.findall( "^.+WCT ID: ([0-9]+)\\b.*", body )[ 0 ]
-	timestamp = node[ "field_timestamp" ]
-	logger.info( "Migrating %s" % timestamp )
 	id = node[ "field_target" ][ "id" ]
 	data = a.request_node( str( id ) )
+	wct_id = str( data[ "field_wct_id" ] )
+	timestamp = node[ "field_timestamp" ]
+	logger.info( "Migrating %s" % timestamp )
 	domains = []
 	for url in data[ "field_url" ]:
 		domains.append( re.sub( "^www\.", "", urlparse( url[ "url" ] ).netloc ) )

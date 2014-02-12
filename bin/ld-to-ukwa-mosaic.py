@@ -1,5 +1,13 @@
 #!/usr/bin/env python
 
+"""Creates new Instances in the database
+
+Intended to run on Mosaic as this server has access to the database, this
+checks ACT for Instances marked as migrated, verifies the presence of a 
+CDX and creates a new resource_instance, updating as appropriate.
+
+"""
+
 import os
 import re
 import act
