@@ -117,7 +117,7 @@ class SipCreator:
 				if self.webhdfs.exists( zip ):
 					logger.info( "Deleting hdfs://%s..." % zip )
 					result = self.webhdfs.delete( zip )
-					if result[ "boolean" ] != "true":
+					if not result[ "boolean" ]:
 						logger.error( "Could not delete hdfs://%s..." % zip )
 						raise Exception( "Could not delete hdfs://%s..." % zip )
 				logger.info( "Copying %s to HDFS." % os.path.basename( zip ) )
