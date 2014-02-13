@@ -93,7 +93,7 @@ class SipCreator:
 						os.remove( zip )
 					except Exception as e:
 						logger.error( "Cannot delete %s..." % zip )
-						sys.exit( 1 )
+						raise Exception( "Cannot delete %s..." % zip )
 				logger.info( "Zipping logs to %s" % zip )
 				for crawl_log in glob.glob( "%s/%s/crawl.log*" % ( LOG_ROOT, job ) ):
 					logger.info( "Found %s..." % os.path.basename( crawl_log ) )
@@ -109,17 +109,17 @@ class SipCreator:
 					subprocess.check_output( ZIP.split() + [ zip, "%s/%s/crawler-beans.cxml" % ( JOBS_ROOT, job ) ] )
 				else:
 					logger.error( "Cannot find config." )
-					sys.exit( 1 )
+					raise Exception( "Cannot find config." )
 			except Exception as e:
 				logger.error( "Problem building ZIP file: %s" % str( e ) )
-				sys.exit( 1 )
+				raise Exception( "Problem building ZIP file: %s" % str( e ) )
 			if not self.dummy:
 				if self.webhdfs.exists( zip ):
 					logger.info( "Deleting hdfs://%s..." % zip )
 					result = self.webhdfs.delete( zip )
 					if result[ "boolean" ] != "true":
 						logger.error( "Could not delete hdfs://%s..." % zip )
-						sys.exit( 1 )
+						raise Exception( "Could not delete hdfs://%s..." % zip )
 				logger.info( "Copying %s to HDFS." % os.path.basename( zip ) )
 				self.webhdfs.create( zip, file=zip )
 			self.logs.append( zip )
@@ -144,7 +144,7 @@ class SipCreator:
 			data = response.content
 		except Exception as e:
 			logger.error( "Could not obtain ARKs: %s" % str( e ) )
-			sys.exit( 1 )
+			raise Exception( "Could not obtain ARKs: %s" % str( e ) )
 		xml = parseString( data )
 		for ark in xml.getElementsByTagName( "ark" ):
 			self.identifiers.append( ark.firstChild.wholeText )
@@ -179,7 +179,7 @@ class SipCreator:
 		logger.info( "Verifying Zip binaries..." )
 		if not os.access( ZIP.split()[ 0 ], os.X_OK ) or not os.access( UNZIP, os.X_OK ):
 			logger.error( "Cannot find Zip binaries." )
-			sys.exit( 1 )
+			raise Exception( "Cannot find Zip binaries." )
 		return True
 
 	def verifySetup( self ):
