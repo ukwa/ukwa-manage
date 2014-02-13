@@ -95,7 +95,7 @@ class SipCreator:
 						logger.error( "Cannot delete %s..." % zip )
 						sys.exit( 1 )
 				logger.info( "Zipping logs to %s" % zip )
-				for crawl_log in glob.glob( "%s/%s/crawl.log" % ( LOG_ROOT, job ) ):
+				for crawl_log in glob.glob( "%s/%s/crawl.log*" % ( LOG_ROOT, job ) ):
 					logger.info( "Found %s..." % os.path.basename( crawl_log ) )
 					subprocess.check_output( ZIP.split() + [ zip, crawl_log ] )
 					crawl_logs.append( crawl_log )
@@ -141,11 +141,11 @@ class SipCreator:
 			url = "%s%s" % ( ARK_URL, str( num ) )
 			logger.debug( "Requesting %s ARKS: %s" % ( num, url ) )
 			response = requests.post( url )
-			data = response.text
+			data = response.content
 		except Exception as e:
 			logger.error( "Could not obtain ARKs: %s" % str( e ) )
 			sys.exit( 1 )
-		xml = parseString( str( data ) )
+		xml = parseString( data )
 		for ark in xml.getElementsByTagName( "ark" ):
 			self.identifiers.append( ark.firstChild.wholeText )
 		if( len( self.identifiers ) != num ):
