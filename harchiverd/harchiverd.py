@@ -23,7 +23,7 @@ logger.setLevel( logging.DEBUG )
 logging.root.setLevel( logging.DEBUG )
 logging.getLogger( "" ).addHandler( handler )
 
-warcwriter = WarcWriterPool( gzip=True )
+warcwriter = WarcWriterPool( gzip=True, output_dir=settings.OUTPUT_DIRECTORY )
 
 def callback( ch, method, properties, body ):
 	"""Passed a URL, passes that URL to a webservice, storing the
@@ -35,7 +35,7 @@ def callback( ch, method, properties, body ):
 			url, dir = body.split( "|" )
 		else:
 			url = body
-		har = requests.get( "%s/%s" % ( SERVICE, url ) )
+		har = requests.get( "%s/%s" % ( settings.WEBSERVICE, url ) )
 		headers = [
 			( WarcRecord.TYPE, WarcRecord.RESOURCE ),
 			( WarcRecord.URL, url ),
