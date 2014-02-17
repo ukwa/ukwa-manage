@@ -1,0 +1,66 @@
+#!/bin/sh
+#http://blog.scphillips.com/2013/07/getting-a-python-script-to-run-in-the-background-as-a-service-on-boot/
+ 
+### BEGIN INIT INFO
+# Provides:		harchiverd
+# Short-Description:	HAR-archiving daemon.
+# Description:		Stores HAR records generated via a webservice in
+#			WARC files.
+### END INIT INFO
+ 
+# Change the next 3 lines to suit where you install your script and what you want to call it
+DIR=/opt/harchiverd/lib/python2.7/site-packages
+DAEMON=$DIR/harchiverd/harchiverd.py
+DAEMON_NAME=harchiverd
+ 
+# This next line determines what user the script runs as.
+# Root generally not recommended but necessary if you are using the Raspberry Pi GPIO from Python.
+DAEMON_USER=heritrix
+ 
+# The process ID of the script when it runs is stored here:
+PIDFILE=/var/run/$DAEMON_NAME/$DAEMON_NAME.pid
+ 
+. /lib/lsb/init-functions
+ 
+do_start () {
+	su - $DAEMON_USER -c "$DAEMON start"
+}
+do_status () {
+	if [[ -f $PIDFILE ]]
+	then
+		if kill -0 $(cat $PIDFILE) 1> /dev/null 2> /dev/null
+		then
+			echo "$DAEMON_NAME is running."
+		else
+			echo "$DAEMON_NAME is not running."
+		fi
+	else
+		echo "$DAEMON_NAME pidfile not found."
+	fi
+}
+do_stop () {
+	su - $DAEMON_USER -c "$DAEMON stop"
+}
+ 
+case "$1" in
+ 
+	start|stop)
+		do_${1}
+		;;
+
+	status)
+		do_status
+		;;
+ 
+	restart)
+		do_stop
+		do_start
+		;;
+ 
+	*)
+		echo "Usage: /etc/init.d/$DAEMON_NAME {start|stop|status|restart}"
+		exit 1
+		;;
+ 
+esac
+exit 0
