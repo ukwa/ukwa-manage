@@ -13,6 +13,8 @@ setup(
 		"pika",
 		"bagit",
 		"python-legal-deposit-sip",
+		"daemonize",
+		"webhdfs",
 	],
 	data_files=[
 		( "/etc/init.d", [ "sipd-init" ] ),
