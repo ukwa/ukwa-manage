@@ -29,7 +29,7 @@ logging.root.setLevel( logging.DEBUG )
 logging.getLogger( "" ).addHandler( handler )
 
 
-def callback( ch, method, properties, body ):
+def callback( warcwriter, body ):
 	"""Passed a URL, passes that URL to a webservice, storing the
 	return content in a WARC file."""
 	try:
@@ -39,7 +39,9 @@ def callback( ch, method, properties, body ):
 			url, dir = body.split( "|" )
 		else:
 			url = body
-		har = requests.get( "%s/%s" % ( settings.WEBSERVICE, url ) ).content
+		ws = "%s/%s" % ( settings.WEBSERVICE, url )
+		logger.debug( "Calling %s" % ws )
+		har = requests.get( ws ).content
 		headers = [
 			( WarcRecord.TYPE, WarcRecord.RESOURCE ),
 			( WarcRecord.URL, url ),
@@ -54,21 +56,22 @@ def callback( ch, method, properties, body ):
 class HarchiverDaemon( Daemon ):
 	"""Maintains a connection to the queue."""
 	def run( self ):
+		warcwriter = WarcWriterPool( gzip=True, output_dir=settings.OUTPUT_DIRECTORY )
 		while True:
 			try:
-				if settings.DUMMY:
-					logger.debug( "Running in dummy mode." )
 				logger.debug( "Starting connection %s:%s." % ( settings.HAR_QUEUE_HOST, settings.HAR_QUEUE_NAME ) )
 				connection = pika.BlockingConnection( pika.ConnectionParameters( settings.HAR_QUEUE_HOST ) )
 				channel = connection.channel()
 				channel.queue_declare( queue=settings.HAR_QUEUE_NAME, durable=True )
-				channel.basic_consume( callback, queue=settings.HAR_QUEUE_NAME, no_ack=True )
-				channel.start_consuming()
+				for method_frame, properties, body in channel.consume( settings.HAR_QUEUE_NAME ):
+					callback( warcwriter, body )
+					channel.basic_ack( method_frame.delivery_tag )
 			except Exception as e:
 				logger.error( str( e ) )
+				requeued_messages = channel.cancel()
+				logger.debug( "Requeued %i messages" % requeued_messages )
  
 if __name__ == "__main__":
-	warcwriter = WarcWriterPool( gzip=True, output_dir=settings.OUTPUT_DIRECTORY )
 	"""Sets up the daemon."""
 	if len( sys.argv ) == 2:
 		daemon = HarchiverDaemon( settings.PID_FILE )
