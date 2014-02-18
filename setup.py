@@ -11,8 +11,11 @@ setup(
 	long_description=open( "README.md" ).read(),
 	install_requires=[
 		"pika",
-		"warcwriterpool",
-		"daemonize",
+		"python-warcwriterpool",
+		"python-daemonize",
 		"requests",
+	],
+	data_files=[
+		( "/etc/init.d", [ "harchiverd-init" ] ),
 	],
 )

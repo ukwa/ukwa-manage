@@ -41,15 +41,19 @@ def callback( warcwriter, body ):
 			url = body
 		ws = "%s/%s" % ( settings.WEBSERVICE, url )
 		logger.debug( "Calling %s" % ws )
-		har = requests.get( ws ).content
-		headers = [
-			( WarcRecord.TYPE, WarcRecord.METADATA ),
-			( WarcRecord.URL, url ),
-			( WarcRecord.CONTENT_TYPE, "application/json" ),
-			( WarcRecord.DATE, warc_datetime_str( datetime.now() ) ),
-			( WarcRecord.ID, "<urn:uuid:%s>" % uuid.uuid1() ),
-		]
-		warcwriter.write_record( headers, "application/json", har )
+		r = requests.get( ws )
+		if r.status_code == 200:
+			har = r.content
+			headers = [
+				( WarcRecord.TYPE, WarcRecord.METADATA ),
+				( WarcRecord.URL, url ),
+				( WarcRecord.CONTENT_TYPE, "application/json" ),
+				( WarcRecord.DATE, warc_datetime_str( datetime.now() ) ),
+				( WarcRecord.ID, "<urn:uuid:%s>" % uuid.uuid1() ),
+			]
+			warcwriter.write_record( headers, "application/json", har )
+		else:
+			logger.warning( "None-200 response for %s; %s" % ( body, r.content ) )
 	except Exception as e:
 		logger.error( "%s [%s]" % ( str( e ), body ) )
 
@@ -79,7 +83,7 @@ if __name__ == "__main__":
 		#Possibly pass a PID file to enable multiple instances.
 		daemon = HarchiverDaemon( sys.argv[ 2 ] )
 	logger.debug( "Arguments: %s" % sys.argv )
-	if len( sys.argv ) == 2:
+	if len( sys.argv ) >= 2:
 		if "start" == sys.argv[ 1 ]:
 			logger.info( "Starting harchiverd." )
 			daemon.start()

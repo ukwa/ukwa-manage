@@ -12,6 +12,7 @@
 DIR=/opt/harchiverd/lib/python2.7/site-packages
 DAEMON=$DIR/harchiverd/harchiverd.py
 DAEMON_NAME=harchiverd
+NUM_DAEMONS=4
  
 # This next line determines what user the script runs as.
 # Root generally not recommended but necessary if you are using the Raspberry Pi GPIO from Python.
@@ -23,23 +24,58 @@ PIDFILE=/var/run/$DAEMON_NAME/$DAEMON_NAME.pid
 . /lib/lsb/init-functions
  
 do_start () {
-	su - $DAEMON_USER -c "$DAEMON start"
+	if [[ $NUM_DAEMONS -gt 1 ]]
+	then
+		for i in $(eval echo "{1..$NUM_DAEMONS}")
+		do
+			su - $DAEMON_USER -c "$DAEMON start /var/run/$DAEMON_NAME/$DAEMON_NAME-$i.pid"
+		done
+	else
+		su - $DAEMON_USER -c "$DAEMON start"
+	fi
 }
 do_status () {
-	if [[ -f $PIDFILE ]]
+	if [[ $NUM_DAEMONS -gt 1 ]]
 	then
-		if kill -0 $(cat $PIDFILE) 1> /dev/null 2> /dev/null
-		then
-			echo "$DAEMON_NAME is running."
-		else
-			echo "$DAEMON_NAME is not running."
-		fi
+		for i in $(eval echo "{1..$NUM_DAEMONS}")
+		do
+			echo -n "$i "
+			if [[ -f "/var/run/$DAEMON_NAME/$DAEMON_NAME-$i.pid" ]]
+			then
+				if kill -0 $(cat "/var/run/$DAEMON_NAME/$DAEMON_NAME-$i.pid") 1> /dev/null 2> /dev/null
+				then
+					echo "$DAEMON_NAME is running."
+				else
+					echo "$DAEMON_NAME is not running."
+				fi
+			else
+				echo "$DAEMON_NAME pidfile not found."
+			fi
+		done
 	else
-		echo "$DAEMON_NAME pidfile not found."
+		if [[ -f $PIDFILE ]]
+		then
+			if kill -0 $(cat $PIDFILE) 1> /dev/null 2> /dev/null
+			then
+				echo "$DAEMON_NAME is running."
+			else
+				echo "$DAEMON_NAME is not running."
+			fi
+		else
+			echo "$DAEMON_NAME pidfile not found."
+		fi
 	fi
 }
 do_stop () {
-	su - $DAEMON_USER -c "$DAEMON stop"
+	if [[ $NUM_DAEMONS -gt 1 ]]
+	then
+		for i in $(eval echo "{1..$NUM_DAEMONS}")
+		do
+			su - $DAEMON_USER -c "$DAEMON stop /var/run/$DAEMON_NAME/$DAEMON_NAME-$i.pid"
+		done
+	else
+		su - $DAEMON_USER -c "$DAEMON stop"
+	fi
 }
  
 case "$1" in
