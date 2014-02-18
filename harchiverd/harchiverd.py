@@ -5,6 +5,7 @@ webservice, storing the result in a WARC file."""
 
 import os
 import sys
+import gzip
 import pika
 import uuid
 import shutil
@@ -28,12 +29,20 @@ logger.setLevel( logging.DEBUG )
 logging.root.setLevel( logging.DEBUG )
 logging.getLogger( "" ).addHandler( handler )
 
+def write_outlinks( har, dir ):
+	"""Writes outlinks in the HAR to a gzipped file."""
+	filename = "%s/%s.schedule.gz" % ( dir, str( datetime.now().strftime( "%s" ) ) )
+	with gzip.open( filename, "wb" ) as o:
+		for entry in har[ "log" ][ "entries" ]:
+			o.write( "F+ %s E %s\n" % entry[ "request" ][ "url" ] )
 
 def callback( warcwriter, body ):
 	"""Passed a URL, passes that URL to a webservice, storing the
-	return content in a WARC file."""
+	return content in a WARC file. If given a directory, will
+	write the outlinks to a file therein."""
 	try:
 		logger.debug( "Message received: %s." % body )
+		dir = None
 		if "|" in body:
 			#Old-style messages
 			url, dir = body.split( "|" )
@@ -52,6 +61,9 @@ def callback( warcwriter, body ):
 				( WarcRecord.ID, "<urn:uuid:%s>" % uuid.uuid1() ),
 			]
 			warcwriter.write_record( headers, "application/json", har )
+			if dir is not None:
+				logger.debug( "Writing outlinks to %s" % dir )
+				write_outlinks( har, dir )
 		else:
 			logger.warning( "None-200 response for %s; %s" % ( body, r.content ) )
 	except Exception as e:
