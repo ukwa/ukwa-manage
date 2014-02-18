@@ -1,0 +1,3 @@
+v0.0.1, 2014-02-17 -- Initial package release.
+v0.0.2, 2014-02-19 -- Added optional max_size for each WARC.
+
