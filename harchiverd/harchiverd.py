@@ -6,11 +6,16 @@ webservice, storing the result in a WARC file."""
 import os
 import sys
 import pika
+import uuid
 import shutil
 import logging
+import requests
 import settings
 from daemonize import Daemon
+from datetime import datetime
+from hanzo.warctools import WarcRecord
 from warcwriterpool import WarcWriterPool
+from hanzo.warctools.warc import warc_datetime_str
 
 logger = logging.getLogger( "harchiverd" )
 handler = logging.FileHandler( settings.LOG_FILE )
@@ -23,7 +28,6 @@ logger.setLevel( logging.DEBUG )
 logging.root.setLevel( logging.DEBUG )
 logging.getLogger( "" ).addHandler( handler )
 
-warcwriter = WarcWriterPool( gzip=True, output_dir=settings.OUTPUT_DIRECTORY )
 
 def callback( ch, method, properties, body ):
 	"""Passed a URL, passes that URL to a webservice, storing the
@@ -35,7 +39,7 @@ def callback( ch, method, properties, body ):
 			url, dir = body.split( "|" )
 		else:
 			url = body
-		har = requests.get( "%s/%s" % ( settings.WEBSERVICE, url ) )
+		har = requests.get( "%s/%s" % ( settings.WEBSERVICE, url ) ).content
 		headers = [
 			( WarcRecord.TYPE, WarcRecord.RESOURCE ),
 			( WarcRecord.URL, url ),
@@ -64,21 +68,23 @@ class HarchiverDaemon( Daemon ):
 				logger.error( str( e ) )
  
 if __name__ == "__main__":
+	warcwriter = WarcWriterPool( gzip=True, output_dir=settings.OUTPUT_DIRECTORY )
 	"""Sets up the daemon."""
 	if len( sys.argv ) == 2:
 		daemon = HarchiverDaemon( settings.PID_FILE )
 	elif len( sys.argv ) == 3:
+		#Possibly pass a PID file to enable multiple instances.
 		daemon = HarchiverDaemon( sys.argv[ 2 ] )
 	logger.debug( "Arguments: %s" % sys.argv )
 	if len( sys.argv ) == 2:
 		if "start" == sys.argv[ 1 ]:
-			logger.info( "Starting sipd." )
+			logger.info( "Starting harchiverd." )
 			daemon.start()
 		elif "stop" == sys.argv[ 1 ]:
-			logger.info( "Stopping sipd." )
+			logger.info( "Stopping harchiverd." )
 			daemon.stop()
 		elif "restart" == sys.argv[ 1 ]:
-			logger.info( "Restarting sipd." )
+			logger.info( "Restarting harchiverd." )
 			daemon.restart()
 		else:
 			print "Unknown command"

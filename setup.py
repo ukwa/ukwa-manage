@@ -13,5 +13,6 @@ setup(
 		"pika",
 		"warcwriterpool",
 		"daemonize",
+		"requests",
 	],
 )
