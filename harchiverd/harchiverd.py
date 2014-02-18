@@ -43,7 +43,7 @@ def callback( warcwriter, body ):
 		logger.debug( "Calling %s" % ws )
 		har = requests.get( ws ).content
 		headers = [
-			( WarcRecord.TYPE, WarcRecord.RESOURCE ),
+			( WarcRecord.TYPE, WarcRecord.METADATA ),
 			( WarcRecord.URL, url ),
 			( WarcRecord.CONTENT_TYPE, "application/json" ),
 			( WarcRecord.DATE, warc_datetime_str( datetime.now() ) ),
