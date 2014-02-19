@@ -50,7 +50,7 @@ class WarcWriterPool:
 		self.check_warc_size( name )
 
 	def cleanup( self ):
-		for w in self.warcs:
-			if not w.closed:
-				w.close()
+		for name, fh in self.warcs.iteritems():
+			if not fh.closed:
+				fh.close()
 
