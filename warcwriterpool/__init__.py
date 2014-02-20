@@ -1,2 +1,2 @@
-from warcwriterpool import *
+from .warcwriterpool import *
 

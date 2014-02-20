@@ -29,7 +29,7 @@ class WarcWriterPool:
 
 	def add_warcs( self, number ):
 		for n in range( number ):
-			name = "%s/%s-%s-%s.warc%s" % ( self.output_dir, self.prefix, datetime.now().strftime("%Y%m%d%H%M%S"), len( self.warcs.keys() ), self.suffix )
+			name = "%s/%s-%s-%s.warc%s" % ( self.output_dir, self.prefix, datetime.now().strftime( "%Y%m%d%H%M%S%f" ), len( self.warcs.keys() ), self.suffix )
 			fh = open( name, "wb" )
 			self.warcs[ name ]  = fh
 			logger.debug( "Added %s" % name )
