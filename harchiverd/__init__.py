@@ -1,2 +1,2 @@
-from harchiverd import *
+from .harchiverd import *
 
