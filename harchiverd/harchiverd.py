@@ -37,14 +37,25 @@ def callback( warcwriter, body ):
 	try:
 		logger.debug( "Message received: %s." % body )
 		dir = None
-		if "|" in body:
-			#Old-style messages
-			url, dir = body.split( "|" )
+		selectors = [ ":root" ]
+		parts = body.split( "|" )
+		if len( parts ) == 1:
+			url = parts[ 0 ]
+		elif len( parts ) == 2:
+			url, dir = parts
 		else:
-			url = body
+			url = parts[ 0 ]
+			dir = parts[ 1 ]
+			selectors += parts[ 2: ]
+
+		# Build up our POST data.
+		data = {}
+		for s in selectors:
+			data[ s ] = s
+
 		ws = "%s/%s" % ( settings.WEBSERVICE, url )
 		logger.debug( "Calling %s" % ws )
-		r = requests.get( ws )
+		r = requests.post( ws, data=data )
 		if r.status_code == 200:
 			har = r.content
 			headers = [
