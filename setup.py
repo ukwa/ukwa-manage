@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
 	name="python-warcwriterpool",
-	version="0.0.2",
+	version="0.1.0",
 	author="Roger G. Coram",
 	author_email="roger.coram@bl.uk",
 	packages=[ "warcwriterpool" ],
