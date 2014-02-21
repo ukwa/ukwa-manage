@@ -1,8 +1,9 @@
 from distutils.core import setup
+from warcwriterpool.warcwriterpool import __version__
 
 setup(
 	name="python-warcwriterpool",
-	version="0.1.0",
+	version=__version__,
 	author="Roger G. Coram",
 	author_email="roger.coram@bl.uk",
 	packages=[ "warcwriterpool" ],
