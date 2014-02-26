@@ -77,16 +77,17 @@ fi
 log "Getting URL/Timestamp list for $DOMAINS in $JOBNAME..."
 while read warc
 do
-	$INDEXER $warc 2> /dev/null | grep -E "\b($DOMAINS)\b" | awk '{ print $2 "/" $3 }' > $TMP_URL_TIMESTAMP
-done < <(ls $WARC_ROOT/$JOBNAME/$TIMESTAMP/*.warc.gz)
+	$INDEXER $warc 2> /dev/null
+done < <(ls $WARC_ROOT/$JOBNAME/$TIMESTAMP/*.warc.gz) | grep -E "\b($DOMAINS)\b" | awk '{ print $2 "/" $3 }' > $TMP_URL_TIMESTAMP
 
 log "Generating list of all required URLs."
 while read url
 do
+	echo "$url"
 	curl --silent "$FLOCK/$url"
 done < $TMP_URL_TIMESTAMP > $TMP_URLS
 
-log "Fixing output..."
+log "Dropping none-HTTP records..."
 grep -E "^https?:" "$TMP_URLS" > "$TMP_URLS.temp" && mv -f "$TMP_URLS.temp" "$TMP_URLS"
 
 log "Removing duplicates."
@@ -96,6 +97,13 @@ log "Retrieving CDX lines from LD CDX."
 while read data
 do
 	array=($data)
+
+	#Need to fix single-slash URLs before the url-client.
+	if [[ $(echo ${array[1]} | grep -E "https?:/\b" | wc -l) -gt 0 ]]
+	then
+		array[1]="$(echo ${array[1]} | sed -r 's@/@//@')"
+	fi
+
 	CANON="$(echo "${array[1]}" | $URL_CLIENT 2> /dev/null | sed -r 's@^.+https?://?@@')"
 	look "$CANON " "$CDX" | grep "${array[0]}"
 done < <(sed -rn 's@^.+wayback/([0-9]+)([a-z]+_)?/(.+)$@\1 \3@p' $TMP_URLS) > "$OUTPUT"
@@ -117,3 +125,4 @@ done < <(awk '{ if( $4 == "warc/revisit" ) print }' "$OUTPUT") >> "$OUTPUT"
 
 [[ -e $TMP_URLS ]] && rm $TMP_URLS
 [[ -e $TMP_URL_TIMESTAMP ]] && rm $TMP_URL_TIMESTAMP
+
