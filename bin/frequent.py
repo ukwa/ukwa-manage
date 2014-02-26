@@ -34,8 +34,8 @@ parser.add_argument( "-t", dest="timestamp", type=str, required=False, help="Tim
 args = parser.parse_args()
 
 frequencies = [ "daily", "weekly", "monthly", "quarterly", "sixmonthly", "annual" ]
-heritrix_ports = { "daily": "8444", "weekly": "8443", "monthly": "8443", "quarterly": "8443", "sixmonthly": "8443", "annual": "8443" }
-clamd_ports = { "daily": "3311", "weekly": "3310", "monthly": "3310", "quarterly": "3310", "sixmonthly": "3310", "annual": "3310" }
+heritrix_ports = { "daily": "8444", "weekly": "8445", "monthly": "8446", "quarterly": "8443", "sixmonthly": "8443", "annual": "8443" }
+clamd_ports = { "daily": "3311", "weekly": "3312", "monthly": "3313", "quarterly": "3310", "sixmonthly": "3310", "annual": "3310" }
 max_render_depth = { "daily": 0, "weekly": 1, "monthly": 1, "quarterly": 1, "sixmonthly": 1, "annual": 1 }
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
