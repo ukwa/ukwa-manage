@@ -59,18 +59,19 @@ def get_last_seeds():
 		seeds = [ line.rstrip() for line in s ]
 	return seeds
 
-def get_new_urls( act, disk ):
+def get_new_urls( latest, disk ):
 	"""Compares the current list if URLs from ACT to those on disk."""
+	act = list( latest )
 	for url in disk:
 		if url in act:
 			act.remove( url )
-	return latest
+	return act
 
 def write_new_urls( new ):
 	"""Writes new URLs to disk; moves them to the Action Directory."""
 	with open( SEEDS, "wb" ) as s:
 		s.writelines( "\n".join( new ) )
-#	shutil.copyfile( SEEDS, SEEDS_ACTION )
+	shutil.copyfile( SEEDS, SEEDS_ACTION )
 
 def write_last_seeds( last ):
 	"""Writes the complete list of 'latest' seeds to disk."""
@@ -90,5 +91,5 @@ if __name__ == "__main__":
 	logger.info( "%s new URLs found." % len( new ) )
 	if len( new ) > 0:
 		write_new_urls( new )
-	write_last_seeds( last_seeds )
+	write_last_seeds( latest )
 
