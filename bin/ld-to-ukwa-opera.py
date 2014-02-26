@@ -12,15 +12,16 @@ This CDX is copied to HDFS for use by Mosaic.
 import os
 import re
 import act
+import json
 import logging
 import webhdfs
 import subprocess
 from urlparse import urlparse
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
-logging.basicConfig( format=LOGGING_FORMAT, level=logging.WARNING )
+logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
 logger = logging.getLogger( "ld-to-ukwa" )
-logging.root.setLevel( logging.WARNING )
+logging.root.setLevel( logging.DEBUG )
 
 w = webhdfs.API( prefix="http://dls.httpfs.wa.bl.uk:14000/webhdfs/v1" )
 a = act.ACT()
@@ -37,7 +38,9 @@ for node in j[ "list" ]:
 	for url in data[ "field_url" ]:
 		domains.append( re.sub( "^www\.", "", urlparse( url[ "url" ] ).netloc ) )
 	jobname = re.findall( "Job ID: ([^<]+)", body )[ 0 ]
+	logger.debug( "{\n\t\"id\": %s,\n\t\"wct_id\": %s,\n\t\"timestamp\": %s\n\t\"domains\": %s\n\t\"jobname\": %s\n}" % ( id, wct_id, timestamp, domains, jobname ) )
 	cdx = "/dev/shm/%s.cdx" % timestamp
+	logger.debug( " ".join( [ "ld2ukwa", "-d", "|".join( domains ), "-j", jobname, "-t", timestamp, "-o", cdx ] ) )
 	output = subprocess.check_output( [ "ld2ukwa", "-d", "|".join( domains ), "-j", jobname, "-t", timestamp, "-o", cdx ] )
 	if os.path.exists( cdx ) and os.stat( cdx ).st_size > 0:
 		if wct_id is not None:
