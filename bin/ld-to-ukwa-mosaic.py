@@ -11,6 +11,7 @@ CDX and creates a new resource_instance, updating as appropriate.
 import os
 import re
 import act
+import sys
 import json
 import ukwa
 import logging
@@ -18,9 +19,9 @@ import webhdfs
 import subprocess
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
-logging.basicConfig( format=LOGGING_FORMAT, level=logging.WARNING )
+logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
 logger = logging.getLogger( "ld-to-ukwa" )
-logging.root.setLevel( logging.WARNING )
+logging.root.setLevel( logging.DEBUG )
 
 def url_in_warc( hdfs_cdx, url ):
 	h = subprocess.Popen( [ "hadoop", "fs", "-cat", hdfs_cdx ], stdout=subprocess.PIPE )
@@ -29,7 +30,7 @@ def url_in_warc( hdfs_cdx, url ):
 	g = subprocess.Popen( [ "grep", "-m1", url ], stdin=s.stdout, stdout=subprocess.PIPE )
 	output = subprocess.check_output( [ "awk", "{ print $10 }" ], stdin=g.stdout )
 	if len( output ) > 0:
-		output = re.sub( "^.+/(BL.+\.warc.gz).*$", "\\1", output.strip() )
+		output = re.sub( "^.+/(BL[^.]+\.warc\.gz).*$", "\\1", output.strip() )
 	return output
 
 a = act.ACT()
@@ -50,7 +51,7 @@ for node in j[ "list" ]:
 					last_instance = u.get_last_instance( wct_id )
 					u.create_instance( wct_id )
 					new = u.get_last_instance( wct_id )
-					if new == last:
+					if new == last_instance:
 						logger.error( "Problem creating Instance for %s" % wct_id )
 					else:
 						logger.info( "Setting date for %s to %s." % ( new, timestamp ) )
@@ -62,6 +63,8 @@ for node in j[ "list" ]:
 							u.update_storage_by_instance( warc, new )
 						else:
 							logger.error( "Could not determine WARC for %, %s." % ( new, primary_url ) )
+				else:
+					logger.debug( "Found CDX for %s/%s; NOT creating Instance." % ( wct_id, timestamp ) )
 		else:
 			logger.warning( "No CDX found for published Instance %s/%s." % ( wct_id, timestamp ) )
 	else:
