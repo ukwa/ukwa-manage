@@ -10,7 +10,7 @@ from lxml import etree
 from datetime import datetime
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
-logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
+logging.basicConfig( format=LOGGING_FORMAT, level=logging.WARNING )
 logger = logging.getLogger( "latest-seeds" )
 
 parser = argparse.ArgumentParser( description="Retrieve latest seeds from ACT and " )
