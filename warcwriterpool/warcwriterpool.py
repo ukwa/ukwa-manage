@@ -2,8 +2,10 @@
 """Writes records to a configurable number of WARC files."""
 
 import os
+import re
 import uuid
 import Queue
+import shutil
 import socket
 import logging
 from datetime import datetime
@@ -14,7 +16,7 @@ LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
 logger = logging.getLogger( "warcwriterpool" )
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 class WarcWriterPool:
 	def __init__( self, pool_size=1, gzip=True, prefix="BL", output_dir=".", max_size=1073741824, description=None, write_warcinfo=True ):
@@ -55,7 +57,7 @@ class WarcWriterPool:
 	def add_warcs( self, number ):
 		"""Adds a new WARC and rebuilds the Queue."""
 		for n in range( number ):
-			name = "%s/%s-%s-%s.warc%s" % ( self.output_dir, self.prefix, datetime.now().strftime( "%Y%m%d%H%M%S%f" ), self.total, self.suffix )
+			name = "%s/%s-%s-%s.warc%s.open" % ( self.output_dir, self.prefix, datetime.now().strftime( "%Y%m%d%H%M%S%f" ), self.total, self.suffix )
 			self.total += 1
 			fh = open( name, "wb" )
 			if self.write_warcinfo:
@@ -72,6 +74,7 @@ class WarcWriterPool:
 		if stat.st_size >= self.max_size:
 			logger.info( "Size limit exceeded for %s" % path )
 			self.warcs[ path ].close()
+			shutil.move( path, re.sub( "\.open$", "", path ) )
 			del self.warcs[ path ]
 			self.add_warcs( 1 )
 			logger.debug( "Checked size: %s" % str( self.warcs.keys() ) )
@@ -104,4 +107,6 @@ class WarcWriterPool:
 		for name, fh in self.warcs.iteritems():
 			if not fh.closed:
 				fh.close()
+			if name.endswith( ".open" ):
+				shutil.move( name, re.sub( "\.open$", "", name ) )
 
