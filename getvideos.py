@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
 import os
+import re
 import sys
 import uuid
 import base64
 import requests
+import subprocess
 from lxml import etree
 from dateutil import parser
 from datetime import datetime
@@ -38,6 +40,53 @@ def try_archived_version( url, timestamp ):
 			return r
 	return requests.get( url )
 
+def getbestvideo( xml ):
+	"""Finds the video with the highest bitrate; ideally HTTP."""
+	best = None
+	for media in xml.findall( "{http://bbc.co.uk/2008/mp/mediaselection}media" ):
+		if best is None:
+			best = media
+		if int( media.attrib[ "bitrate" ] ) > int( best.attrib[ "bitrate" ] ):
+			best = media
+		if int( media.attrib[ "bitrate" ] ) == int( best.attrib[ "bitrate" ] ) and \
+			media.find( "{http://bbc.co.uk/2008/mp/mediaselection}connection" ).attrib[ "protocol" ] == "http" and \
+			best.find( "{http://bbc.co.uk/2008/mp/mediaselection}connection" ).attrib[ "protocol" ] == "rtmp":
+			best = media
+	if best.find( "{http://bbc.co.uk/2008/mp/mediaselection}connection" ).attrib[ "protocol" ] == "http":
+		return best.find( "{http://bbc.co.uk/2008/mp/mediaselection}connection" ).attrib[ "href" ]
+	else:
+		connection = best.find( "{http://bbc.co.uk/2008/mp/mediaselection}connection" )
+		return "rtmp://%s/%s/%s?%s" % (
+			connection.attrib[ "server" ],
+			connection.attrib[ "application" ],
+			connection.attrib[ "identifier" ],
+			re.sub( "&slist=.+$", "", connection.attrib[ "authString" ] )
+		)
+
+def streamvideo( url ):
+	"""Get RTMP using an external program."""
+#TODO: Doesn't work on Opera?!
+	output = "/dev/shm/%s.mp4" % datetime.now().strftime( "%Y%m%d%H%M%S" )
+	subprocess.check_output( [ "mplayer", url, "-dumpstream", "-dumpfile", output ] )
+	data = None
+	if os.path.exists( output ) and os.stat( output ).st_size > 0:
+		with open( output, "rb" ) as o:
+			data = o.read()
+		os.remove( output )
+	return data
+
+def writemetadata( video_url, video_uuid, b64string, index, page ):
+	headers = [
+		( WarcRecord.TYPE, WarcRecord.METADATA ),
+		( WarcRecord.URL, video_url ),
+		( WarcRecord.DATE, warc_datetime_str( datetime.now() ) ),
+		( WarcRecord.ID, "<urn:uuid:%s>" % uuid.uuid1() ),
+		( WarcRecord.CONCURRENT_TO, video_uuid ),
+		( WarcRecord.CONTENT_TYPE, "application/warc-fields" ),
+	]
+	block = "embedding-page: %s\nembedding-timestamp: %s\nelement-xpath: (//object[param[@name='externalIdentifier']])[%i]\nelement-base64-string: %s" % ( page, timestamp, index+1, b64string )
+	warcwriter.write_record( headers, "application/warc-fields", block )
+
 def getvideo( page, timestamp=None ):
 	if timestamp is None:
 		r = requests.get( page )
@@ -47,22 +96,13 @@ def getvideo( page, timestamp=None ):
 	htmlparser = etree.HTMLParser()
 	root = etree.fromstring( r.content, htmlparser )
 	tree = etree.ElementTree( root )
-	for index, object in enumerate( root.xpath( "//object[param[@name='playlist']]" ) ):
-		for param in object.xpath( "//param[@name='playlist']" ):
+	for index, object in enumerate( root.xpath( "//object[param[@name='externalIdentifier']]" ) ):
+		for param in object.xpath( "param[@name='externalIdentifier']" ):
 			video_uuid = "<urn:uuid:%s>" % uuid.uuid1()
-			playlist = try_archived_version( param.attrib[ "value" ], timestamp )
-			if not playlist.ok:
-				print "ERROR: Couldn't find playlist; %s" % param.attrib[ "value" ]
-				return
-			if WAYBACK not in playlist.url:
-				print "TODO: Should probably store this in a 'response'?"
-
-			xml = etree.fromstring( playlist.content )
-			item = xml.find( "{http://bbc.co.uk/2008/emp/playlist}item" )
-			group = item.attrib[ "group" ]
-			media = try_archived_version( "%s/%s" %( BBC_MEDIA, group ), timestamp )
+			externalid = param.attrib[ "value" ]
+			media = try_archived_version( "%s/%s" %( BBC_MEDIA, externalid ), timestamp )
 			if not media.ok:
-				print "ERROR: Couldn't find media; %s" % "%s/%s" %( BBC_MEDIA, group )
+				print "ERROR: Couldn't find media; %s" % ( "%s/%s" %( BBC_MEDIA, externalid ) )
 				return
 			if WAYBACK not in media.url:
 				headers = [
@@ -76,43 +116,40 @@ def getvideo( page, timestamp=None ):
 				block = "".join( [ httpheaders( media.raw._original_response ), media.content ] )
 				warcwriter.write_record( headers, "application/http; msgtype=response", block )
 
-			xml = etree.fromstring( media.content )
-			best = None
-			for media in xml.findall( "{http://bbc.co.uk/2008/mp/mediaselection}media" ):
-				if best is None:
-					best = media
-				if int( media.attrib[ "bitrate" ] ) > int( best.attrib[ "bitrate" ] ) and media.find( "{http://bbc.co.uk/2008/mp/mediaselection}connection" ).attrib.has_key( "href" ):
-					best = media
-			url = best.find( "{http://bbc.co.uk/2008/mp/mediaselection}connection" ).attrib[ "href" ]
-
-			video = requests.get( url )
-			if not video.ok:
-				print "ERROR: Couldn't find video; %s" % url
-				return
+			url = getbestvideo( etree.fromstring( media.content ) )
+			print url
+			if url.startswith( "http" ):
+				video = requests.get( url )
+				if not video.ok:
+					print "ERROR: Couldn't find video; %s" % url
+					return
+				video_url = video.url
+				video_date = warc_datetime_str( parser.parse( video.headers[ "date" ] ) )
+				video_type = WarcRecord.RESPONSE
+				content_type = "application/http; msgtype=response"
+				videoblock = "".join( [ httpheaders( video.raw._original_response ), video.content ] )
+				writemetadata( video_url, video_uuid, base64.b64encode( etree.tostring( object ).strip() ), index, page )
+			else:
+				video_url = url
+				video_date = warc_datetime_str( datetime.now() )
+				video_type = WarcRecord.RESOURCE
+				content_type = "video/mp4"
+				writemetadata( video_url, video_uuid, base64.b64encode( etree.tostring( object ).strip() ), index, page )
+				videoblock = streamvideo( video_url )
+				if videoblock is None:
+					print "ERROR: Couldn't stream video; %s" % video_url
+					continue
 			headers = [
-				( WarcRecord.TYPE, WarcRecord.METADATA ),
-				( WarcRecord.URL, url ),
-				( WarcRecord.DATE, warc_datetime_str( datetime.now() ) ),
-				( WarcRecord.ID, "<urn:uuid:%s>" % uuid.uuid1() ),
-				( WarcRecord.CONCURRENT_TO, video_uuid ),
-				( WarcRecord.CONTENT_TYPE, "application/warc-fields" ),
-			]
-			b64string = base64.b64encode( etree.tostring( object ).strip() )
-			block = "embedding-page: %s\nembedding-timestamp: %s\nelement-xpath: (//object[param[@name='playlist']])[%i]\nelement-base64-string: %s" % ( page, timestamp, index+1, b64string )
-			warcwriter.write_record( headers, "application/warc-fields", block )
-
-			headers = [
-				( WarcRecord.TYPE, WarcRecord.RESPONSE ),
-				( WarcRecord.URL, video.url ),
-				( WarcRecord.DATE, warc_datetime_str( parser.parse( video.headers[ "date" ] ) ) ),
+				( WarcRecord.TYPE, video_type ),
+				( WarcRecord.URL, video_url ),
+				( WarcRecord.DATE, video_date ),
 				( WarcRecord.ID, video_uuid ),
-				( WarcRecord.CONTENT_TYPE, "application/http; msgtype=response" ),
+				( WarcRecord.CONTENT_TYPE, content_type ),
 			]
-			block = "".join( [ httpheaders( video.raw._original_response ), video.content ] )
-			warcwriter.write_record( headers, "application/http; msgtype=response", block )
+			warcwriter.write_record( headers, content_type, videoblock )
 
 if __name__ == "__main__":
-	warcwriter = WarcWriterPool( gzip=True, description="%s/%s; Trac #2301; videos for Margaret Thatcher Collection." % ( "python-getvideos", __version__ ) )
+	warcwriter = WarcWriterPool( gzip=True, write_warcinfo=False )
 	for arg in sys.argv[ 1: ]:
 		if arg[ 0 ].isdigit():
 			timestamp, url = arg.split( "/", 1 )
