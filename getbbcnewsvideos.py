@@ -5,6 +5,7 @@ import re
 import sys
 import uuid
 import base64
+import librtmp
 import requests
 import subprocess
 from lxml import etree
@@ -75,6 +76,20 @@ def streamvideo( url ):
 		os.remove( output )
 	return data
 
+def rtmpvideo( url ):
+	"""Get RTMP using native libraries."""
+	conn = librtmp.RTMP( url, live=False )
+	conn.connect()
+	stream = conn.create_stream()
+	output = "/dev/shm/%s.mp4" % datetime.now().strftime( "%Y%m%d%H%M%S" )
+	data = stream.read( 4096 )
+	with open( output, "wb" ) as o:
+		while len( data ) > 0:
+			o.write( data )
+			data = stream.read( 4096 )
+	os.remove( output )
+	return data
+
 def writemetadata( video_url, video_uuid, b64string, index, page ):
 	headers = [
 		( WarcRecord.TYPE, WarcRecord.METADATA ),
@@ -135,7 +150,7 @@ def getvideo( page, timestamp=None ):
 				video_type = WarcRecord.RESOURCE
 				content_type = "video/mp4"
 				writemetadata( video_url, video_uuid, base64.b64encode( etree.tostring( object ).strip() ), index, page )
-				videoblock = streamvideo( video_url )
+				videoblock = rtmpvideo( video_url )
 				if videoblock is None:
 					print "ERROR: Couldn't stream video; %s" % video_url
 					continue
