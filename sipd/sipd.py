@@ -70,19 +70,19 @@ def copy_to_dls( sip ):
 
 def create_sip( job ):
 	"""Creates a SIP and returns the path to the folder containing the METS."""
+	sip_dir = "%s/%s" % ( settings.SIP_ROOT, job )
+	if os.path.exists( sip_dir ):
+		raise Exception( "Directory already exists: %s." % sip_dir )
+
 	s = sip.SipCreator( jobs=[ job ], jobname=job, dummy=settings.DUMMY )
 	if s.verifySetup():
 		s.processJobs()
 		s.createMets()
-		sip_dir = "%s/%s" % ( settings.SIP_ROOT, job )
 		filename = os.path.basename( job )
-		if not os.path.exists( sip_dir ):
-			os.makedirs( sip_dir )
-			with open( "%s/%s.xml" % ( sip_dir, filename ), "wb" ) as o:
-				s.writeMets( o )
-			s.bagit( sip_dir )
-		else:
-			raise Exception( "Directory already exists: %s." % sip_dir )
+		os.makedirs( sip_dir )
+		with open( "%s/%s.xml" % ( sip_dir, filename ), "wb" ) as o:
+			s.writeMets( o )
+		s.bagit( sip_dir )
 	else:
 		raise Exception( "Could not verify SIP for %s" % job )
 	return sip_dir
@@ -125,7 +125,7 @@ def callback( ch, method, properties, body ):
 			raise Exception( "Could not verify message: %s" % body )
 	except Exception as e:
 		logger.error( "%s [%s]" % ( str( e ), body ) )
-		send_error_message( body )
+		send_error_message( "%s|%s" % ( body, str( e ) ) )
 
 class SipDaemon( Daemon ):
 	"""Maintains a connection to the queue."""
