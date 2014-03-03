@@ -41,7 +41,7 @@ class API():
 
 	def open( self, path ):
 		r = self._get( path=path, op="OPEN" )
-		return json.loads( r.text )
+		return r.content
 
 	def openstream( self, path ):
 		return self._get( path=path, op="OPEN", stream=True )
