@@ -81,13 +81,9 @@ def rtmpvideo( url ):
 	conn = librtmp.RTMP( url, live=False )
 	conn.connect()
 	stream = conn.create_stream()
-	output = "/dev/shm/%s.mp4" % datetime.now().strftime( "%Y%m%d%H%M%S" )
 	data = stream.read( 4096 )
-	with open( output, "wb" ) as o:
-		while len( data ) > 0:
-			o.write( data )
-			data = stream.read( 4096 )
-	os.remove( output )
+	while len( data ) > 0:
+		data += stream.read( 4096 )
 	return data
 
 def writemetadata( video_url, video_uuid, b64string, index, page ):
@@ -151,7 +147,7 @@ def getvideo( page, timestamp=None ):
 				content_type = "video/mp4"
 				writemetadata( video_url, video_uuid, base64.b64encode( etree.tostring( object ).strip() ), index, page )
 				videoblock = rtmpvideo( video_url )
-				if videoblock is None:
+				if len( videoblock ) == 0 or videoblock is None:
 					print "ERROR: Couldn't stream video; %s" % video_url
 					continue
 			headers = [
