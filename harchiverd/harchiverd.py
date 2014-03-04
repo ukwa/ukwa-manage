@@ -37,7 +37,7 @@ def write_outlinks( har, dir ):
 			if referer is not None:
 				o.write( "F+ %s E %s\n" % ( entry[ "request" ][ "url" ], referer ) )
 			else:
-				o.write( "F+ %s" % entry[ "request" ][ "url" ] )
+				o.write( "F+ %s\n" % entry[ "request" ][ "url" ] )
 
 def callback( warcwriter, body ):
 	"""Parses messages, writing results to disk.
