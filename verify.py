@@ -14,7 +14,9 @@ import tarfile
 import webhdfs
 import requests
 from lxml import etree
+import dateutil.parser
 from StringIO import StringIO
+from datetime import datetime, timedelta
 
 logger = logging.getLogger( "verify" )
 handler = logging.FileHandler( "???" )
@@ -42,6 +44,17 @@ def get_message():
 		logger.debug( "%s, %s, %s" % ( method_frame, header_frame, body ) )
 		channel.basic_ack( method_frame.delivery_tag )
 		return body
+
+def isvalid( message ):
+	"""Verifies that a message is valid. i.e. it's similar to: 'daily-0400/20140207041736'"""
+        r = re.compile( "^[^/]+/[0-9]+" )
+        return r.match( message )
+
+def outside_embargo( message ):
+	"""Checks whether a message is outside the week embargo."""
+	timestamp = message.split( "/" )[ 1 ]
+	date = dateutil.parser.parse( timestamp )
+	return date < ( datetime.now() - timedelta( days=7 ) )
 
 def requeue( message, queue ):
 	"""Puts a message back on the appropriate queue."""
@@ -82,7 +95,7 @@ def check_availability( ark ):
 
 if __name__ == "__main__":
 	message = get_message( QUEUE )
-	if message is not None:
+	if message is not None and isvalid( message ) and outside_embargo( message ):
 		arks = get_identifiers( message )
 		if len( arks ) > 0:
 			all_arks_available = True
