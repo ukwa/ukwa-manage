@@ -14,8 +14,7 @@ import settings
 from daemonize import Daemon
 from datetime import datetime
 from hanzo.warctools import WarcRecord
-from warcwriterpool import WarcWriterPool
-from hanzo.warctools.warc import warc_datetime_str
+from warcwriterpool import WarcWriterPool, warc_datetime_str
 
 logger = logging.getLogger( "harchiverd" )
 handler = logging.FileHandler( settings.LOG_FILE )
