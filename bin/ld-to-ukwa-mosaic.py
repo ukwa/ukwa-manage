@@ -62,7 +62,7 @@ for node in j[ "list" ]:
 							logger.info( "Setting storage for %s to %s." % ( new, warc ) )
 							u.update_storage_by_instance( warc, new )
 						else:
-							logger.error( "Could not determine WARC for %, %s." % ( new, primary_url ) )
+							logger.error( "Could not determine WARC for %s, %s." % ( new, primary_url ) )
 				else:
 					logger.debug( "Found CDX for %s/%s; NOT creating Instance." % ( wct_id, timestamp ) )
 		else:
