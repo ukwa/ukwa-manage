@@ -18,13 +18,6 @@ import dateutil.parser
 from StringIO import StringIO
 from datetime import datetime, timedelta
 
-logger = logging.getLogger( "verify" )
-handler = logging.FileHandler( "???" )
-formatter = logging.Formatter( "[%(asctime)s] %(levelname)s: %(message)s" )
-handler.setFormatter( formatter )
-logger.addHandler( handler )
-logger.setLevel( logging.DEBUG )
-
 SIPS="/heritrix/sips"
 METS={ "mets": "http://www.loc.gov/METS/" }
 PREMIS={ "premis": "info:lc/xmlns/premis-v2" }
@@ -32,6 +25,10 @@ QUEUE_HOST="194.66.232.93"
 SIP_QUEUE="sip-submitted"
 INDEX_QUEUE="index"
 DLS="http://DLS-BSP-AC01"
+
+LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
+logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
+logger = logging.getLogger( "verify" )
 
 w = webhdfs.API( prefix="http://194.66.232.90:14000/webhdfs/v1" )
 
