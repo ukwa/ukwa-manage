@@ -9,10 +9,10 @@ setup(
 	long_description=open( "README.md" ).read(),
 	install_requires=[
 		"pika",
-		"webhdfs",
+		"python-webhdfs",
 		"requests",
 		"lxml",
-		"dateutil",
+		"python-dateutil",
 	],
 	data_files=[
 		( "/usr/local/bin", [ "verify.py" ] ),
