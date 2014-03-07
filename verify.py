@@ -28,12 +28,12 @@ logger.setLevel( logging.DEBUG )
 SIPS="/heritrix/sips"
 METS={ "mets": "http://www.loc.gov/METS/" }
 PREMIS={ "premis": "info:lc/xmlns/premis-v2" }
-QUEUE_HOST="opera.bl.uk"
+QUEUE_HOST="194.66.232.93"
 SIP_QUEUE="sip-submitted"
 INDEX_QUEUE="index"
 DLS="http://DLS-BSP-AC01"
 
-w = webhdfs.API( prefix="http://dls.httpfs.wa.bl.uk:14000/webhdfs/v1" )
+w = webhdfs.API( prefix="http://194.66.232.90:14000/webhdfs/v1" )
 
 def get_message():
 	"""Pulls a single message from a queue."""
@@ -43,7 +43,9 @@ def get_message():
 	if method_frame:
 		logger.debug( "%s, %s, %s" % ( method_frame, header_frame, body ) )
 		channel.basic_ack( method_frame.delivery_tag )
+		connection.close()
 		return body
+	connection.close()
 
 def isvalid( message ):
 	"""Verifies that a message is valid. i.e. it's similar to: 'daily-0400/20140207041736'"""
@@ -95,15 +97,17 @@ def check_availability( ark ):
 
 if __name__ == "__main__":
 	message = get_message( QUEUE )
-	if message is not None and isvalid( message ) and outside_embargo( message ):
-		arks = get_identifiers( message )
-		if len( arks ) > 0:
-			all_arks_available = True
-			for ark in arks:
-				all_arks_available = ( all_arks_available and check_availability( ark ) )
-			if all_arks_available:
-				requeue( message, INDEX_QUEUE )
+	while message is not None:
+		if isvalid( message ) and outside_embargo( message ):
+			arks = get_identifiers( message )
+			if len( arks ) > 0:
+				all_arks_available = True
+				for ark in arks:
+					all_arks_available = ( all_arks_available and check_availability( ark ) )
+				if all_arks_available:
+					requeue( message, INDEX_QUEUE )
+				else:
+					requeue( message, SIP_QUEUE )
 			else:
-				requeue( message, SIP_QUEUE )
-		else:
-			logger.warning( "No ARKs found for %s" % message )
+				logger.warning( "No ARKs found for %s" % message )
+		message = get_message( QUEUE )
