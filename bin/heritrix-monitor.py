@@ -6,7 +6,7 @@ from twitter import *
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 
-services = { ( "opera.bl.uk", "8443" ), ( "opera.bl.uk", "8444" ) }
+services = { ( "opera.bl.uk", "8443" ), ( "opera.bl.uk", "8444" ), ( "opera.bl.uk", "8445" ), ( "opera.bl.uk", "8446" ) }
 
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
 logger = logging.getLogger( "heritrix-monitor" )
