@@ -12,10 +12,9 @@ from lxml import etree
 from datetime import datetime
 from hanzo.warctools import WarcRecord
 from dateutil import parser as dateparser
-from warcwriterpool import WarcWriterPool
-from hanzo.warctools.warc import warc_datetime_str
+from warcwriterpool import WarcWriterPool, warc_datetime_str
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 def httpheaders( original ):
 	status_line = "HTTP/%s %s %s" % ( 
@@ -37,10 +36,10 @@ def writemetadata( video_url, video_uuid, timestamp, xpath, page ):
 		( WarcRecord.DATE, warc_datetime_str( datetime.now() ) ),
 		( WarcRecord.ID, "<urn:uuid:%s>" % uuid.uuid1() ),
 		( WarcRecord.CONCURRENT_TO, video_uuid ),
-		( WarcRecord.CONTENT_TYPE, "application/warc-fields" ),
+		( WarcRecord.CONTENT_TYPE, "text/plain" ),
 	]
 	block = "embedded-video: %s\nembedding-timestamp: %s\nembedded-video-xpath: %s" % ( video_url, timestamp, xpath )
-	warcwriter.write_record( headers, "application/warc-fields", block )
+	warcwriter.write_record( headers, "text/plain", block )
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()

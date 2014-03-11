@@ -12,8 +12,7 @@ from lxml import etree
 from dateutil import parser
 from datetime import datetime
 from hanzo.warctools import WarcRecord
-from warcwriterpool import WarcWriterPool
-from hanzo.warctools.warc import warc_datetime_str
+from warcwriterpool import WarcWriterPool, warc_datetime_str
 
 __version__ = "0.0.2"
 
@@ -93,10 +92,10 @@ def writemetadata( video_url, video_uuid, b64string, index, page ):
 		( WarcRecord.DATE, warc_datetime_str( datetime.now() ) ),
 		( WarcRecord.ID, "<urn:uuid:%s>" % uuid.uuid1() ),
 		( WarcRecord.CONCURRENT_TO, video_uuid ),
-		( WarcRecord.CONTENT_TYPE, "application/warc-fields" ),
+		( WarcRecord.CONTENT_TYPE, "text/plain" ),
 	]
 	block = "embedding-page: %s\nembedding-timestamp: %s\nelement-xpath: (//object[param[@name='externalIdentifier']])[%i]\nelement-base64-string: %s" % ( page, timestamp, index+1, b64string )
-	warcwriter.write_record( headers, "application/warc-fields", block )
+	warcwriter.write_record( headers, "text/plain", block )
 
 def getvideo( page, timestamp=None ):
 	if timestamp is None:
