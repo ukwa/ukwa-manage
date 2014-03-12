@@ -12,8 +12,9 @@ from hdfslogs import settings
 from socket import gethostname
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
-logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
-logger = logging.getLogger( "hdfslog" )
+logging.basicConfig( format=LOGGING_FORMAT, level=logging.INFO )
+logger = logging.getLogger( "hdfssync" )
+logging.root.setLevel( logging.INFO )
 
 if __name__ == "__main__":
 	w = webhdfs.API( prefix="http://dls.httpfs.wa.bl.uk:14000/webhdfs/v1", user=settings.hdfsuser )
@@ -26,7 +27,7 @@ if __name__ == "__main__":
 			continue
 		if not path.endswith( "/" ):
 			path = "%s/" % path
-		hdfs_prefix = "/%s/%s" % ( settings.hdfsroot, gethostname() )
+		hdfs_prefix = "%s/%s" % ( settings.hdfsroot, gethostname() )
 		for log in glob.glob( "%s*" % path ):
 			hdfs_log = "%s%s" % ( hdfs_prefix, log )
 			if w.exists( hdfs_log ):
@@ -40,4 +41,6 @@ if __name__ == "__main__":
 				else:
 					continue
 			logger.info( "Creating %s" % hdfs_log )
-			w.create( hdfs_log, file=log )
+			r = w.create( hdfs_log, file=log )
+			if not r.ok or not w.exists( hdfs_log ):
+				logger.error( "Problem creating %s" % hdfs_log )

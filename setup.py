@@ -3,6 +3,7 @@ from distutils.core import setup
 setup(
 	name="python-hdfslogs",
 	version="0.0.1",
+	packages=[ "hdfslogs" ],
 	author="Roger G. Coram",
 	author_email="roger.coram@bl.uk",
 	description="HDFS log-syncing.",
