@@ -16,6 +16,7 @@ logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
 logger = logging.getLogger( "hdfslog" )
 
 if __name__ == "__main__":
+	w = webhdfs.API( prefix="http://dls.httpfs.wa.bl.uk:14000/webhdfs/v1", user=settings.hdfsuser )
 	for path in settings.directories.split( "," ):
 		if not path.startswith( "/" ):
 			logger.warning( "Relative path found; ignoring: %s" % path )
