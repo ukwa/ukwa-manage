@@ -120,7 +120,7 @@ log "Fixing revisits."
 while read revisit
 do
 	ARRAY=($revisit)
-	look "${ARRAY[0]} " "$CDX" | grep "${ARRAY[5]}" | grep -v "warc/revisit" | tail -n1
+	look "${ARRAY[0]} " "$CDX" | grep "${ARRAY[5]}" | grep "${ARRAY[2]}" | grep -v "warc/revisit" | head -n1
 done < <(awk '{ if( $4 == "warc/revisit" ) print }' "$OUTPUT") >> "$OUTPUT"
 
 [[ -e $TMP_URLS ]] && rm $TMP_URLS
