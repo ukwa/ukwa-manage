@@ -29,10 +29,13 @@ if __name__ == "__main__":
 			path = "%s/" % path
 		hdfs_prefix = "%s/%s" % ( settings.hdfsroot, gethostname() )
 		for log in glob.glob( "%s*" % path ):
+			local_size = os.stat( log ).st_size
+			if local_size == 0:
+				continue
 			hdfs_log = "%s%s" % ( hdfs_prefix, log )
 			if w.exists( hdfs_log ):
 				hdfs_size = int( w.list( hdfs_log )[ "FileStatuses" ][ "FileStatus" ][ 0 ][ "length" ] )
-				if hdfs_size != os.stat( log ).st_size:
+				if hdfs_size != local_size:
 					logger.info( "Removing %s" % hdfs_log )
 					w.delete( hdfs_log )
 					if( w.exists( hdfs_log ) ):
