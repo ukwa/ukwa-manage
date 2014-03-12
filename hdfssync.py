@@ -17,7 +17,7 @@ logger = logging.getLogger( "hdfssync" )
 logging.root.setLevel( logging.INFO )
 
 if __name__ == "__main__":
-	w = webhdfs.API( prefix="http://dls.httpfs.wa.bl.uk:14000/webhdfs/v1", user=settings.hdfsuser )
+	w = webhdfs.API( prefix="http://%s:14000/webhdfs/v1" % settings.hdfshost, user=settings.hdfsuser )
 	for path in settings.directories.split( "," ):
 		if not path.startswith( "/" ):
 			logger.warning( "Relative path found; ignoring: %s" % path )
