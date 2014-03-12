@@ -23,5 +23,13 @@ This depends on the python-webhdfs package:
 Once this is installed, installation follows in a similar fashion:
 
     git clone gitlab@git.wa.bl.uk:/repos/products/python-hdfslogs.git
+
+At this point you can edit the python-hdfslogs/hdfslogs/settings.py file to
+include additional directories; paths are stored as a comma-separated list:
+
+    directories="/opt/tomcat/logs,/var/log/httpd"
+
+Once updated, install via Pip:
+
     pip install ./python-hdfslogs/
 
