@@ -4,9 +4,9 @@ SIP_QUEUE_NAME = "sips_test"
 SIP_QUEUE_KEY = "sips_test"
 SIP_QUEUE_HOST = "localhost"
 
-INDEX_QUEUE_NAME = "index"
-INDEX_QUEUE_KEY = "index"
-INDEX_QUEUE_HOST = "localhost"
+SUBMITTED_QUEUE_NAME = "sip-submitted"
+SUBMITTED_QUEUE_KEY = "sip-submitted"
+SUBMITTED_QUEUE_HOST = "localhost"
 
 ERROR_QUEUE_HOST = "localhost"
 ERROR_QUEUE_NAME = "sip-error"

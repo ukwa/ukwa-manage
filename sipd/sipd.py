@@ -41,11 +41,11 @@ def send_error_message( message ):
 
 def send_index_message( message ):
 	"""Sends a message to the 'index' queue."""
-	connection = pika.BlockingConnection( pika.ConnectionParameters( settings.INDEX_QUEUE_HOST ) )
+	connection = pika.BlockingConnection( pika.ConnectionParameters( settings.SUBMITTED_QUEUE_HOST ) )
 	channel = connection.channel()
-	channel.queue_declare( queue=settings.INDEX_QUEUE_NAME, durable=True )
+	channel.queue_declare( queue=settings.SUBMITTED_QUEUE_NAME, durable=True )
 	channel.basic_publish( exchange="",
-		routing_key=settings.INDEX_QUEUE_KEY,
+		routing_key=settings.SUBMITTED_QUEUE_KEY,
 		properties=pika.BasicProperties(
 			delivery_mode=2,
 		),
@@ -71,8 +71,11 @@ def copy_to_dls( sip ):
 def create_sip( job ):
 	"""Creates a SIP and returns the path to the folder containing the METS."""
 	sip_dir = "%s/%s" % ( settings.SIP_ROOT, job )
+	w = webhdfs.API( prefix=settings.WEBHDFS_PREFIX, user=settings.WEBHDFS_USER )
 	if os.path.exists( sip_dir ):
 		raise Exception( "Directory already exists: %s." % sip_dir )
+	if w.exists( "%s.tar.gz" % sip_dir ):
+		raise Exception( "SIP already exists in HDFS: %s.tar.gz" % sip_dir )
 
 	s = sip.SipCreator( jobs=[ job ], jobname=job, dummy=settings.DUMMY )
 	if s.verifySetup():
@@ -115,7 +118,7 @@ def callback( ch, method, properties, body ):
 					shutil.move( dls, "%s/%s" % ( settings.DLS_WATCH, os.path.basename( body ) ) )
 					gztar = copy_to_hdfs( sip_dir )
 					logger.debug( "SIP tarball at hdfs://%s" % gztar )
-					logger.debug( "Sending message to '%s': %s" % ( settings.INDEX_QUEUE_NAME, body ) )
+					logger.debug( "Sending message to '%s': %s" % ( settings.SUBMITTED_QUEUE_NAME, body ) )
 					send_index_message( body )
 				else:
 					raise Exception( "Invalid Bagit after copy: %s" % dls )
