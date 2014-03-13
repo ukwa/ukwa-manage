@@ -8,12 +8,12 @@ each ARK is available in DLS. If so, the corresponding SIP is flagged for
 indexing.
 """
 
+import re
 import pika
 import logging
 import tarfile
 import webhdfs
 import requests
-from lxml import etree
 import dateutil.parser
 from StringIO import StringIO
 from datetime import datetime, timedelta
@@ -25,6 +25,7 @@ QUEUE_HOST="194.66.232.93"
 SIP_QUEUE="sip-submitted"
 INDEX_QUEUE="index"
 DLS="http://DLS-BSP-AC01"
+ARK_REGEX="<premis:objectIdentifierValue>(ark[^<]+)</premis:objectIdentifierValue>"
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
@@ -36,7 +37,7 @@ def get_message():
 	"""Pulls a single message from a queue."""
 	connection = pika.BlockingConnection( pika.ConnectionParameters( QUEUE_HOST ) )
 	channel = connection.channel()
-	method_frame, header_frame, body = channel.basic_get( QUEUE )
+	method_frame, header_frame, body = channel.basic_get( SIP_QUEUE )
 	if method_frame:
 		logger.debug( "%s, %s, %s" % ( method_frame, header_frame, body ) )
 		channel.basic_ack( method_frame.delivery_tag )
@@ -80,9 +81,7 @@ def get_identifiers( sip ):
 		for i in tar.getmembers():
 			if i.name.endswith( ".xml" ):
 				xml = t.extractfile( i ).read()
-				tree = etree.fromstring( xml )
-				for id in tree.xpath( "//premis:objectIdentifierValue", namespaces=PREMIS ):
-					arks.append( id.text )
+				arks += re.findall( ARK_REGEX, xml )
 	else:
 		logger.warning( "Could not find SIP: hdfs://%s" % tar )
 	return arks
@@ -93,7 +92,7 @@ def check_availability( ark ):
 	return r.ok
 
 if __name__ == "__main__":
-	message = get_message( QUEUE )
+	message = get_message( SIP_QUEUE )
 	while message is not None:
 		if isvalid( message ) and outside_embargo( message ):
 			arks = get_identifiers( message )
@@ -107,4 +106,4 @@ if __name__ == "__main__":
 					requeue( message, SIP_QUEUE )
 			else:
 				logger.warning( "No ARKs found for %s" % message )
-		message = get_message( QUEUE )
+		message = get_message( SIP_QUEUE )
