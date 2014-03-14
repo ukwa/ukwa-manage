@@ -10,13 +10,21 @@ import socket
 import logging
 from datetime import datetime
 from hanzo.warctools import WarcRecord
-from hanzo.warctools.warc import warc_datetime_str
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
 logger = logging.getLogger( "warcwriterpool" )
 
 __version__ = "0.1.2"
+
+def warc_datetime_str( date ):
+	"""Amendedment to warctools' function to fix non-ISO8601 output."""
+	iso = date.isoformat()
+	if "." in iso:
+		iso = iso[ :iso.find( "." ) ]
+	if "+" in iso:
+		iso = iso[ :iso.find( "+" ) ]
+	return iso + "Z"
 
 class WarcWriterPool:
 	def __init__( self, pool_size=1, gzip=True, prefix="BL", output_dir=".", max_size=1073741824, description=None, write_warcinfo=True ):
