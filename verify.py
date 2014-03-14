@@ -8,13 +8,14 @@ each ARK is available in DLS. If so, the corresponding SIP is flagged for
 indexing.
 """
 
+import os
 import re
 import pika
 import logging
 import tarfile
 import webhdfs
-import requests
 import dateutil.parser
+from lxml import etree
 from StringIO import StringIO
 from datetime import datetime, timedelta
 
@@ -24,14 +25,20 @@ PREMIS={ "premis": "info:lc/xmlns/premis-v2" }
 QUEUE_HOST="194.66.232.93"
 SIP_QUEUE="sip-submitted"
 INDEX_QUEUE="index"
-DLS="http://DLS-BSP-AC01"
-ARK_REGEX="<premis:objectIdentifierValue>(ark[^<]+)</premis:objectIdentifierValue>"
+DLS_LOOKUP="/heritrix/sips/dls-export/Public Web Archive Access Export.txt"
+SELECTIVE_PREFIX="f6ivc2"
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
 logger = logging.getLogger( "verify" )
 
 w = webhdfs.API( prefix="http://194.66.232.90:14000/webhdfs/v1" )
+
+def get_available_arks():
+	"""Reads relevant ARKs from a text file."""
+	with open( DLS_LOOKUP, "rb" ) as i:
+		return [ l.split()[ 0 ] for l in i if not l.startswith( SELECTIVE_PREFIX ) ]
+	
 
 def get_message():
 	"""Pulls a single message from a queue."""
@@ -80,18 +87,25 @@ def get_identifiers( sip ):
 		tar = tarfile.open( mode="r:gz", fileobj=StringIO( t ) )
 		for i in tar.getmembers():
 			if i.name.endswith( ".xml" ):
-				xml = t.extractfile( i ).read()
-				arks += re.findall( ARK_REGEX, xml )
+				xml = tar.extractfile( i ).read()
+				tree = etree.fromstring( xml )
+				for warc in tree.xpath( "//premis:object[premis:objectCharacteristics/premis:format/premis:formatDesignation/premis:formatName='application/warc']", namespaces=PREMIS ):
+					for id in warc.xpath( "premis:objectIdentifier/premis:objectIdentifierValue", namespaces=PREMIS ):
+						arks.append( id.text.replace( "ark:/81055/", "" ) )
 	else:
 		logger.warning( "Could not find SIP: hdfs://%s" % tar )
 	return arks
 
-def check_availability( ark ):
-	"""Verifies that an ARK is available in DLS."""
-	r = requests.head( "%s/%s" % ( DLS, ark ) )
-	return r.ok
-
 if __name__ == "__main__":
+	if not os.path.exists( DLS_LOOKUP ) and os.access( DLS_LOOKUP, os.R_OK ):
+		logger.error( "Cannot read DLS lookup: %s" % DLS_LOOKUP )
+		sys.exit( 1 )
+
+	dls_arks = get_available_arks()
+	if len( dls_arks ) == 0:
+		logger.error( "No DLS ARKs found!" )
+		sys.exit( 1 )
+
 	message = get_message( SIP_QUEUE )
 	while message is not None:
 		if isvalid( message ) and outside_embargo( message ):
@@ -99,7 +113,7 @@ if __name__ == "__main__":
 			if len( arks ) > 0:
 				all_arks_available = True
 				for ark in arks:
-					all_arks_available = ( all_arks_available and check_availability( ark ) )
+					all_arks_available = ( all_arks_available and ( ark in dls_arks ) )
 				if all_arks_available:
 					requeue( message, INDEX_QUEUE )
 				else:
@@ -107,3 +121,4 @@ if __name__ == "__main__":
 			else:
 				logger.warning( "No ARKs found for %s" % message )
 		message = get_message( SIP_QUEUE )
+
