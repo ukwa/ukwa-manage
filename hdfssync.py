@@ -15,6 +15,7 @@ LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.INFO )
 logger = logging.getLogger( "hdfssync" )
 logging.root.setLevel( logging.INFO )
+logging.getLogger( "requests" ).setLevel( logging.WARNING )
 
 if __name__ == "__main__":
 	w = webhdfs.API( prefix="http://%s:14000/webhdfs/v1" % settings.hdfshost, user=settings.hdfsuser )
