@@ -18,16 +18,17 @@ import logging
 import webhdfs
 import subprocess
 
+logging.root.setLevel( logging.INFO )
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
-logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
+logging.basicConfig( format=LOGGING_FORMAT, level=logging.INFO )
 logger = logging.getLogger( "ld-to-ukwa" )
-logging.root.setLevel( logging.DEBUG )
+logging.getLogger( "requests" ).setLevel( logging.WARNING )
 
 def url_in_warc( hdfs_cdx, url ):
 	h = subprocess.Popen( [ "hadoop", "fs", "-cat", hdfs_cdx ], stdout=subprocess.PIPE )
 	#Broken Pipe?
 	s = subprocess.Popen( [ "sort", "-T", "/dev/shm" ], stdin=h.stdout, stdout=subprocess.PIPE, stderr=open( os.devnull, "wb" ) )
-	g = subprocess.Popen( [ "grep", "-m1", url ], stdin=s.stdout, stdout=subprocess.PIPE )
+	g = subprocess.Popen( [ "grep", "-m1", " %s " % url ], stdin=s.stdout, stdout=subprocess.PIPE )
 	output = subprocess.check_output( [ "awk", "{ print $10 }" ], stdin=g.stdout )
 	if len( output ) > 0:
 		output = re.sub( "^.+/(BL[^.]+\.warc\.gz).*$", "\\1", output.strip() )
@@ -35,6 +36,7 @@ def url_in_warc( hdfs_cdx, url ):
 
 a = act.ACT()
 w = webhdfs.API( prefix="http://dls.httpfs.wa.bl.uk:14000/webhdfs/v1" )
+exit = 1
 
 j = a.request_migrated_instances()
 for node in j[ "list" ]:
@@ -61,6 +63,7 @@ for node in j[ "list" ]:
 						if len( warc ) > 0:
 							logger.info( "Setting storage for %s to %s." % ( new, warc ) )
 							u.update_storage_by_instance( warc, new )
+							exit = 0
 						else:
 							logger.error( "Could not determine WARC for %s, %s." % ( new, primary_url ) )
 				else:
@@ -69,4 +72,6 @@ for node in j[ "list" ]:
 			logger.warning( "No CDX found for published Instance %s/%s." % ( wct_id, timestamp ) )
 	else:
 		logger.error( "Cannot find WCT ID for timestamp %s" % timestamp )
+
+sys.exit( exit )
 
