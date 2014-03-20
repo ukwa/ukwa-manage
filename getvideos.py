@@ -7,6 +7,7 @@ import uuid
 import base64
 import argparse
 import requests
+import mimetypes
 import subprocess
 from lxml import etree
 from datetime import datetime
@@ -14,7 +15,7 @@ from hanzo.warctools import WarcRecord
 from dateutil import parser as dateparser
 from warcwriterpool import WarcWriterPool, warc_datetime_str
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 def httpheaders( original ):
 	status_line = "HTTP/%s %s %s" % ( 
@@ -29,11 +30,11 @@ def httpheaders( original ):
 		headers.extend( h.strip() for h in original.msg.headers )
 	return "%s\r\n\r\n" % "\r\n".join( headers )
 
-def writemetadata( video_url, video_uuid, timestamp, xpath, page ):
+def writemetadata( video_url, video_uuid, timestamp, xpath, page, warcdate ):
 	headers = [
 		( WarcRecord.TYPE, WarcRecord.METADATA ),
 		( WarcRecord.URL, page ),
-		( WarcRecord.DATE, warc_datetime_str( datetime.now() ) ),
+		( WarcRecord.DATE, warcdate ),
 		( WarcRecord.ID, "<urn:uuid:%s>" % uuid.uuid1() ),
 		( WarcRecord.CONCURRENT_TO, video_uuid ),
 		( WarcRecord.CONTENT_TYPE, "text/plain" ),
@@ -43,6 +44,7 @@ def writemetadata( video_url, video_uuid, timestamp, xpath, page ):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
+	parser.add_argument( "-m", dest="multiple", help="Multiple, comma-separated timestamp/page values." )
 	parser.add_argument( "-p", dest="page", help="Embedding page." )
 	parser.add_argument( "-t", dest="timestamp", help="Embedding page timestamp." )
 	parser.add_argument( "-x", dest="xpath", help="XPath to element." )
@@ -52,35 +54,49 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	warcwriter = WarcWriterPool( gzip=True, write_warcinfo=False )
 	video_uuid = "<urn:uuid:%s>" % uuid.uuid1()
-	if args.url.startswith( "http" ):
+	if not args.filename and args.url.startswith( "http" ):
 		r = requests.get( args.url )
 		if not r.ok:
 			print "ERROR: %s" % r.content
 			sys.exit( 1 )
-		writemetadata( args.url, video_uuid, args.timestamp, args.xpath, args.page )
+		warcdate = warc_datetime_str( dateparser.parse( r.headers[ "date" ] ) )
+		if args.multiple:
+			for pair in args.multiple.split( "," ):
+				t, p = pair.split( "/", 1 )
+				writemetadata( args.url, video_uuid, t, args.xpath, p, warcdate )
+		else:
+			writemetadata( args.url, video_uuid, args.timestamp, args.xpath, args.page, warcdate )
 		headers = [
 			( WarcRecord.TYPE, WarcRecord.RESPONSE ),
 			( WarcRecord.URL, r.url ),
-			( WarcRecord.DATE, warc_datetime_str( dateparser.parse( r.headers[ "date" ] ) ) ),
+			( WarcRecord.DATE, warcdate ),
 			( WarcRecord.ID, video_uuid ),
 			( WarcRecord.CONTENT_TYPE, "application/http; msgtype=response" ),
 		]
 		block = "".join( [ httpheaders( r.raw._original_response ), r.content ] )
 		warcwriter.write_record( headers, "application/http; msgtype=response", block )
-	elif args.url.startswith( "rtmp" ):
+	elif args.filename:
 		data = None
 		with open( args.filename, "rb" ) as d:
 			data = d.read()
 		if len( data ) == 0 or data is None:
 			print "ERROR: %s" % args.filename
 			sys.exit( 1 )
-		writemetadata( args.url, video_uuid, args.timestamp, args.xpath, args.page )
+		mime, encoding = mimetypes.guess_type( args.filename )
+		mtime = os.stat( args.filename ).st_mtime
+		warcdate = warc_datetime_str( datetime.fromtimestamp( mtime ) )
+		if args.multiple:
+			for pair in args.multiple.split( "," ):
+				t, p = pair.split( "/", 1 )
+				writemetadata( args.url, video_uuid, t, args.xpath, p, warcdate )
+		else:
+			writemetadata( args.url, video_uuid, args.timestamp, args.xpath, args.page, warcdate )
 		headers = [
 			( WarcRecord.TYPE, WarcRecord.RESOURCE ),
 			( WarcRecord.URL, args.url ),
-			( WarcRecord.DATE, warc_datetime_str( datetime.now() ) ),
+			( WarcRecord.DATE, warc_datetime_str( datetime.fromtimestamp( mtime ) ) ),
 			( WarcRecord.ID, video_uuid ),
-			( WarcRecord.CONTENT_TYPE, "video/x-flv" ),
+			( WarcRecord.CONTENT_TYPE, mime ),
 		]
-		warcwriter.write_record( headers, "video/x-flv", data )
+		warcwriter.write_record( headers, mime, data )
 	warcwriter.cleanup()
