@@ -48,6 +48,10 @@ class WarcWriterPool:
 		logger.debug( "Pooling %i WARCs." % pool_size )
 		self.add_warcs( pool_size )
 
+	def __enter__( self ):
+		logger.debug( "Entering context." )
+		return self
+
 	def write_warcinfo_record( self, warc ):
 		"""Writes the initial warcinfo record."""
 		headers = [
@@ -117,4 +121,8 @@ class WarcWriterPool:
 				fh.close()
 			if name.endswith( ".open" ):
 				shutil.move( name, re.sub( "\.open$", "", name ) )
+
+	def __exit__( self, exc_type, exc_value, traceback ):
+		logger.debug( "Exiting context." )
+		self.cleanup()
 
