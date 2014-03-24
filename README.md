@@ -3,7 +3,7 @@ python-hdfssync
 
 Scripts for IO between local filsystem and HDFS.
 
-hdfslogs.py
+hdfslogsync.py
 -----------
 
 Currently this is configured to store all logs in a subdirectory of hdfs:///logs/,
@@ -15,7 +15,7 @@ their local location, e.g.:
 NB: This requires that the subdirectory already exists: the script will not 
 attempt to create it!
 
-hdfscdx.py
+hdfscdxsync.py
 ----------
 
 This will check whether the CDX stored in a HDFS directory is larger than that
