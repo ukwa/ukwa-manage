@@ -8,7 +8,7 @@ import os
 import glob
 import logging
 import webhdfs
-from hdfslogs import settings
+from hdfssync import settings
 from socket import gethostname
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"

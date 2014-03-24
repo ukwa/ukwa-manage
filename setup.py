@@ -12,6 +12,7 @@ setup(
 		"python-webhdfs",
 	],
 	data_files=[
-		( "/usr/local/bin", [ "hdfssync.py" ] ),
+		( "/usr/local/bin", [ "hdfslogsync.py" ] ),
+		( "/usr/local/bin", [ "hdfscdxsync.py" ] ),
 	],
 )
