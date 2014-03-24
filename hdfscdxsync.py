@@ -11,9 +11,6 @@ import logging
 import webhdfs
 from hdfssync import settings
 
-hdfscdx = "/wayback/cdx-index/sorted/"
-localcdx = "/wayback/cdx-index/index.cdx"
-
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.INFO )
 logger = logging.getLogger( "hdfscdxsync" )
@@ -35,6 +32,6 @@ if __name__ == "__main__":
 	localcdxsize = os.stat( settings.localcdx ).st_size
 	if hdfssize > localcdxsize:
 		logger.info( "Replacing local CDX (%s) with HDFS CDX (%s)." % ( settings.localcdx, settings.hdfscdxroot ) )
-		with open( localcdx, "wb" ) as o:
+		with open( settings.localcdx, "wb" ) as o:
 			w.getmerge( hdfscdx, o )
 

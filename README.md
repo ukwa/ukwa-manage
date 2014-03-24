@@ -31,7 +31,7 @@ This depends on the python-webhdfs package:
 
 Once this is installed, installation follows in a similar fashion:
 
-    git clone gitlab@git.wa.bl.uk:/repos/products/python-hdfslogs.git
+    git clone gitlab@git.wa.bl.uk:/repos/products/python-hdfssync.git
 
 At this point you can edit the python-hdfssync/hdfssync/settings.py file to
 include additional directories; paths are stored as a comma-separated list:
