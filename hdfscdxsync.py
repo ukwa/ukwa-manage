@@ -21,7 +21,7 @@ if __name__ == "__main__":
 	if not w.exists( settings.hdfscdxroot ):
 		logger.error( "No HDFS CDX found: %s" % hdfscdx )
 		sys.exit( 1 )
-	if not os.path.exist( settings.localcdx ):
+	if not os.path.exists( settings.localcdx ):
 		logger.error( "No local CDX found: %s" % localcdx )
 		sys.exit( 1 )
 
