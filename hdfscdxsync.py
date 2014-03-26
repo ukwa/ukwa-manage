@@ -33,5 +33,5 @@ if __name__ == "__main__":
 	if hdfssize > localcdxsize:
 		logger.info( "Replacing local CDX (%s) with HDFS CDX (%s)." % ( settings.localcdx, settings.hdfscdxroot ) )
 		with open( settings.localcdx, "wb" ) as o:
-			w.getmerge( hdfscdx, o )
+			w.getmerge( settings.hdfscdxroot, o )
 
