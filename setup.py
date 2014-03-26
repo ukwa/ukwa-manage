@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(
-	name="python-hdfslogs",
+	name="python-hdfssync",
 	version="0.0.1",
 	packages=[ "hdfssync" ],
 	author="Roger G. Coram",
