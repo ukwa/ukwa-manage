@@ -57,12 +57,12 @@ class API():
 		return ( self.exists( path ) and j[ "FileStatus" ][ "type" ] == "DIRECTORY" )
 
 	def download( self, path, output=sys.stdout ):
+		"""Copies a single file from HDFS to a local file."""
 		r = self.openstream( path )
-		with open( output, "wb" ) as o:
-			for chunk in r.iter_content( chunk_size=4096 ):
-				if chunk:
-					o.write( chunk )
-					o.flush()
+		for chunk in r.iter_content( chunk_size=4096 ):
+			if chunk:
+				o.write( chunk )
+				o.flush()
 
 	def getmerge( self, path, output=sys.stdout ):
 		"""Merges one or more HDFS files into a single, local file."""
