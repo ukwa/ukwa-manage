@@ -65,14 +65,16 @@ class API():
 					o.flush()
 
 	def getmerge( self, path, output=sys.stdout ):
+		"""Merges one or more HDFS files into a single, local file."""
+		if self.isdir( path ) and not path.endswith( "/" ):
+			path = "%s/" % path
 		j = self.list( path )
 		for file in j[ "FileStatuses" ][ "FileStatus" ]:
 			r = self.openstream( path + file[ "pathSuffix" ] )
-			with open( output, "ab" ) as o:
-				for chunk in r.iter_content( chunk_size=4096 ):
-					if chunk:
-						o.write( chunk )
-						o.flush()
+			for chunk in r.iter_content( chunk_size=4096 ):
+				if chunk:
+					output.write( chunk )
+					output.flush()
 
 	def create( self, path, file=None, data=None ):
 		if ( file is None and data is None ) or ( file is not None and data is not None ):
