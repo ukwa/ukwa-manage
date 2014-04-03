@@ -24,13 +24,16 @@ METS={ "mets": "http://www.loc.gov/METS/" }
 PREMIS={ "premis": "info:lc/xmlns/premis-v2" }
 QUEUE_HOST="194.66.232.93"
 SIP_QUEUE="sip-submitted"
+ERROR_QUEUE="sip-error"
 INDEX_QUEUE="index"
 DLS_LOOKUP="/heritrix/sips/dls-export/Public Web Archive Access Export.txt"
 SELECTIVE_PREFIX="f6ivc2"
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
-logging.basicConfig( format=LOGGING_FORMAT, level=logging.DEBUG )
+logging.basicConfig( format=LOGGING_FORMAT )
 logger = logging.getLogger( "verify" )
+logger.setLevel( logging.INFO )
+logging.getLogger( "pika" ).setLevel( logging.ERROR )
 
 w = webhdfs.API( prefix="http://194.66.232.90:14000/webhdfs/v1" )
 
@@ -68,6 +71,7 @@ def requeue( message, queue ):
 	connection = pika.BlockingConnection( pika.ConnectionParameters( QUEUE_HOST ) )
 	channel = connection.channel()
 	channel.queue_declare( queue=queue, durable=True )
+	channel.tx_select()
 	channel.basic_publish( exchange="",
 		routing_key=queue,
 		properties=pika.BasicProperties(
@@ -75,6 +79,7 @@ def requeue( message, queue ):
 		),
 		body=message
 	)
+	channel.tx_commit()
 	connection.close()
 
 def get_identifiers( sip ):
@@ -106,19 +111,34 @@ if __name__ == "__main__":
 		logger.error( "No DLS ARKs found!" )
 		sys.exit( 1 )
 
-	message = get_message( SIP_QUEUE )
-	while message is not None:
-		if isvalid( message ) and outside_embargo( message ):
-			arks = get_identifiers( message )
-			if len( arks ) > 0:
-				all_arks_available = True
-				for ark in arks:
-					all_arks_available = ( all_arks_available and ( ark in dls_arks ) )
-				if all_arks_available:
-					requeue( message, INDEX_QUEUE )
+	seen = []
+	message = get_message()
+	while message is not None and message not in seen:
+		message = message.strip()
+		logger.debug( "Received message: %s" % message )
+		if isvalid( message ):
+			if outside_embargo( message ):
+				arks = get_identifiers( message )
+				if len( arks ) > 0:
+					all_arks_available = True
+					for ark in arks:
+						all_arks_available = ( all_arks_available and ( ark in dls_arks ) )
+					if all_arks_available:
+						requeue( message, INDEX_QUEUE )
+						logger.debug( "OK to index: %s" % message )
+					else:
+						seen.append( message )
+						requeue( message, SIP_QUEUE )
+						logger.info( "ARKs not available: %s" % message )
 				else:
-					requeue( message, SIP_QUEUE )
+					logger.warning( "No ARKs found for %s" % message )
 			else:
-				logger.warning( "No ARKs found for %s" % message )
-		message = get_message( SIP_QUEUE )
+				seen.append( message )
+				requeue( message, SIP_QUEUE )
+				logger.info( "Inside embargo period: %s" % message )
+		else:
+			requeue( "%s|%s" % ( message, "Invalid message." ), ERROR_QUEUE )
+		message = get_message()
+	if message is not None:
+		requeue( message, SIP_QUEUE )
 
