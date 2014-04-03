@@ -15,6 +15,6 @@ setup(
 		"python-dateutil",
 	],
 	data_files=[
-		( "/usr/local/bin", [ "verify.py" ] ),
+		( "/usr/local/bin", [ "verify-sips.py" ] ),
 	],
 )
