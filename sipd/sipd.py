@@ -54,7 +54,7 @@ def send_index_message( message ):
 
 def verify_message( message ):
 	"""Verifies that a message is valid. i.e. it's similar to: 'daily-0400/20140207041736'"""
-	r = re.compile( "^[a-z]+(-[0-9])?-[0-9]+/[0-9]+" )
+	r = re.compile( "^[a-z]+(-[0-9])?-([a-z]{3})?[0-9]+/[0-9]+" )
 	return r.match( message )
 
 def copy_to_dls( sip ):
