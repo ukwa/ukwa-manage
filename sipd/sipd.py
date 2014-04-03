@@ -31,12 +31,14 @@ def send_error_message( message ):
 	connection = pika.BlockingConnection( pika.ConnectionParameters( settings.ERROR_QUEUE_HOST ) )
 	channel = connection.channel()
 	channel.queue_declare( queue=settings.ERROR_QUEUE_NAME, durable=True )
+	channel.tx_select()
 	channel.basic_publish( exchange="",
 		routing_key=settings.ERROR_QUEUE_KEY,
 		properties=pika.BasicProperties(
 			delivery_mode=2,
 		),
 		body=message )
+	channel.tx_commit()
 	connection.close()
 
 def send_index_message( message ):
@@ -44,12 +46,14 @@ def send_index_message( message ):
 	connection = pika.BlockingConnection( pika.ConnectionParameters( settings.SUBMITTED_QUEUE_HOST ) )
 	channel = connection.channel()
 	channel.queue_declare( queue=settings.SUBMITTED_QUEUE_NAME, durable=True )
+	channel.tx_select()
 	channel.basic_publish( exchange="",
 		routing_key=settings.SUBMITTED_QUEUE_KEY,
 		properties=pika.BasicProperties(
 			delivery_mode=2,
 		),
 		body=message )
+	channel.tx_commit()
 	connection.close()
 
 def verify_message( message ):
