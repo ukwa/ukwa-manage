@@ -1,7 +1,5 @@
-#SIP_QUEUE_NAME = "sips"
-#SIP_QUEUE_KEY = "sips"
-SIP_QUEUE_NAME = "sips_test"
-SIP_QUEUE_KEY = "sips_test"
+SIP_QUEUE_NAME = "sips"
+SIP_QUEUE_KEY = "sips"
 SIP_QUEUE_HOST = "localhost"
 
 SUBMITTED_QUEUE_NAME = "sip-submitted"
