@@ -363,7 +363,10 @@ metadata.description=UK Legal Deposit Domain Crawl.
         <ref bean="extractorSwf"/>
 <!-- ...add IPs to crawl.log... -->
         <bean class="uk.bl.wap.crawler.processor.IpAnnotator">
-    </bean>
+        </bean>
+<!-- ...add country-codes to crawl.log... -->
+        <bean class="uk.bl.wap.crawler.processor.CountryCodeAnnotator">
+        </bean>
 <!-- ...scan for viruses... -->
         <ref bean="viralContent"/>
       </list>
