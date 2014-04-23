@@ -243,8 +243,8 @@
 	<bean id="extractorHttp" class="org.archive.modules.extractor.ExtractorHTTP">
 		<property name="inferRootPage" value="true" />
 	</bean>
-	<bean id="trapSuppressExtractor" class="org.archive.modules.extractor.TrapSuppressExtractor">
-	</bean>
+	<!--bean id="trapSuppressExtractor" class="org.archive.modules.extractor.TrapSuppressExtractor">
+	</bean-->
 	<bean id="extractorHtml" class="org.archive.modules.extractor.ExtractorHTML">
 		<property name="extractJavascript" value="false" />
 		<property name="extractValueAttributes" value="true" />
@@ -302,7 +302,7 @@
 				<!-- ...extract oulinks from HTTP headers... -->
 				<ref bean="extractorHttp"/>
 				<!-- ...suppress likely crawler traps... -->
-				<ref bean="trapSuppressExtractor" />
+				<!--ref bean="trapSuppressExtractor" /-->
 				<!-- ...extract oulinks via Asynchronous Messaging Queue... -->
 				<ref bean="extractorMq"/>
 				<!-- ...extract outlinks from JSON... -->
