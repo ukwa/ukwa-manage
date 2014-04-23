@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
 	name="python-har-daemon",
-	version="0.0.2",
+	version="1.0.0",
 	author="Roger G. Coram",
 	author_email="roger.coram@bl.uk",
 	packages=[ "harchiverd" ],
@@ -16,7 +16,7 @@ setup(
 		"requests",
 	],
 	data_files=[
-		( "/etc/init.d", [ "harchiverd-init" ] ),
+		( "/etc/init.d", [ "bin/harchiverd" ] ),
 		( "/usr/local/bin", [ "harchiver.py" ] ),
 	],
 )
