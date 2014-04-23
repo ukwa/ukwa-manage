@@ -64,24 +64,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
   <bean id="externalGeoLookup" class="uk.bl.wap.modules.deciderules.ExternalGeoLookup">
     <property name="database" value="/dev/shm/geoip-city.mmdb"/>
   </bean>
-  <bean id="acceptSurts" class="org.archive.modules.deciderules.surt.SurtPrefixedDecideRule">
-<!-- <property name="decision" value="ACCEPT"/> -->
-<!-- <property name="seedsAsSurtPrefixes" value="true" /> -->
-<!-- <property name="alsoCheckVia" value="false" /> -->
-<!-- <property name="surtsSourceFile" value="" /> -->
-<!-- <property name="surtsDumpFile" value="${launchId}/surts.dump" /> -->
-<!-- <property name="surtsSource">
-        <bean class="org.archive.spring.ConfigString">
-         <property name="value">
-          <value>
-           # example.com
-           # http://www.example.edu/path1/
-           # +http://(org,example,
-          </value>
-         </property> 
-        </bean>
-       </property> -->
-  </bean>
+
 <!-- SCOPE: rules for which discovered URIs to crawl; order is very 
       important because last decision returned other than 'NONE' wins. -->
   <bean id="scope" class="org.archive.modules.deciderules.DecideRuleSequence">
@@ -115,7 +98,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
           <property name="decision" value="ACCEPT"/>
           <property name="regex" value="^E*$"/>
         </bean>
-        <bean id="externalGeoLookupRule" class="org.archive.modules.deciderules.ExternalGeoLocationDecideRule">
+        <bean id="externalGeoLookupRule" class="uk.bl.wap.modules.deciderules.ExternalGeoLocationDecideRule">
           <property name="lookup">
             <ref bean="externalGeoLookup"/>
           </property>
@@ -155,9 +138,14 @@ metadata.description=UK Legal Deposit Domain Crawl.
           <property name="surtsDumpFile" value="exclude.dump"/>
           <property name="surtsSourceFile" value="exclude.txt"/>
         </bean>
+<!-- ...and REJECT highly compressible URIs... -->
+        <bean class="uk.bl.wap.modules.deciderules.CompressibilityDecideRule">
+          <property name="min" value="0.4"/>
+          <property name="max" value="0.6"/>
+        </bean>
 <!-- ...but always ACCEPT those marked as prerequisitee for another URI... -->
         <bean class="org.archive.modules.deciderules.PrerequisiteAcceptDecideRule">
-				</bean>
+        </bean>
       </list>
     </property>
   </bean>
@@ -322,6 +310,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
     <property name="host" value="localhost"/>
     <property name="routingKey" value="phantomjs"/>
     <property name="queue" value="phantomjs"/>
+    <property name="durable" value="true"/>
     <property name="outputPath" value="REPLACE_HERITRIX_JOBS/REPLACE_JOB_NAME/action/"/>
   </bean>
   <bean id="viralContent" class="uk.bl.wap.crawler.processor.ViralContentProcessor">
