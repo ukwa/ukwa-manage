@@ -66,7 +66,7 @@
 	</bean>
 
 	<bean id="externalGeoLookup" class="uk.bl.wap.modules.deciderules.ExternalGeoLookup">
-		<property name="database" value="/usr/local/share/geoip/geoip-city.mmdb" />
+		<property name="database" value="/dev/shm/geoip-city.mmdb" />
 	</bean>
 	
 	<!-- SCOPE: rules for which discovered URIs to crawl; order is very 
@@ -111,10 +111,12 @@
 						</list>
 					</property>
 				</bean>
+				<!-- ...  ACCEPT those on the same Domain... -->
+				<ref bean="onDomainAccept"/>
+				<!-- ... ACCEPT redirects... -->
+				<ref bean="redirectAccept"/>
 				<!-- ...but REJECT those more than a configured link-hop-count from start... -->
-				<bean class="org.archive.modules.deciderules.TooManyHopsDecideRule">
-					<property name="maxHops" value="20" />
-				</bean>
+				<ref bean="hopsCountReject"/>
 				<!-- ...and REJECT those from a configurable (initially empty) set of URI regexes... -->
 				<ref bean="listRegexFilterOut" />
 				<!-- ...and REJECT those with suspicious repeating path-segments... -->
@@ -145,6 +147,10 @@
 			</list>
 		</property>
 	</bean>
+	<!-- ...but REJECT those more than a configured link-hop-count from start... -->
+	<bean id="hopsCountReject" class="org.archive.modules.deciderules.TooManyHopsDecideRule">
+		<property name="maxHops" value="20"/>
+	</bean>
 	<!-- ...and REJECT those from a configurable (initially empty) set of URI regexes... -->
 	<bean id="listRegexFilterOut" class="org.archive.modules.deciderules.MatchesListRegexDecideRule">
 		<property name="decision" value="REJECT" />
@@ -153,6 +159,18 @@
 			<xi:include href="includes.xml" xpointer="xpointer(//includes/excludes/list)" />
 		</property>
 	</bean>
+	<!-- ... ACCEPT those on the same Domain ... -->
+	<bean id="onDomainAccept" class="org.archive.modules.deciderules.surt.OnDomainsDecideRule">
+		<property name="decision" value="ACCEPT"/>
+		<property name="enabled" value="false"/>
+	</bean>
+	<!-- ... ACCEPT redirects ... -->
+	<bean id="redirectAccept" class="org.archive.modules.deciderules.HopsPathMatchesRegexDecideRule">
+		<property name="decision" value="ACCEPT"/>
+		<property name="regex" value="^R+$"/>
+		<property name="enabled" value="false"/>
+	</bean>
+
 	<!-- 
 		PROCESSING CHAINS
 		Much of the crawler's work is specified by the sequential 
@@ -267,8 +285,8 @@
 	<bean id="extractorHttp" class="org.archive.modules.extractor.ExtractorHTTP">
 		<property name="inferRootPage" value="true" />
 	</bean>
-	<bean id="trapSuppressExtractor" class="org.archive.modules.extractor.TrapSuppressExtractor">
-	</bean>
+	<!--bean id="trapSuppressExtractor" class="org.archive.modules.extractor.TrapSuppressExtractor">
+	</bean-->
 	<bean id="extractorHtml" class="org.archive.modules.extractor.ExtractorHTML">
 		<property name="extractJavascript" value="false" />
 		<property name="extractValueAttributes" value="true" />
@@ -326,7 +344,7 @@
 				<!-- ...extract oulinks from HTTP headers... -->
 				<ref bean="extractorHttp"/>
 				<!-- ...suppress likely crawler traps... -->
-				<ref bean="trapSuppressExtractor" />
+				<!--ref bean="trapSuppressExtractor" /-->
 				<!-- ...extract outlinks via Asynchronous Messaging Queue... -->
 				<ref bean="extractorMq"/>
 				<!-- ...extract outlinks from JSON... -->
@@ -354,6 +372,15 @@
 			<list>
 				<value>/heritrix/output</value>
 				<value>/heritrix/state</value>
+			</list>
+		</property>
+	</bean>
+	<bean id="diskSpaceMonitorRoot" class="org.archive.crawler.monitor.DiskSpaceMonitor">
+		<property name="pauseThresholdMiB" value="1024" />
+		<property name="monitorConfigPaths" value="true" />
+		<property name="monitorPaths">
+			<list>
+				<value>/</value>
 			</list>
 		</property>
 	</bean>
