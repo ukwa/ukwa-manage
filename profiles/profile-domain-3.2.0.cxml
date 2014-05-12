@@ -145,7 +145,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
         </bean>
 <!-- ...but always ACCEPT those marked as prerequisitee for another URI... -->
         <bean class="org.archive.modules.deciderules.PrerequisiteAcceptDecideRule">
-	</bean>
+        </bean>
       </list>
     </property>
   </bean>
@@ -310,6 +310,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
     <property name="host" value="localhost"/>
     <property name="routingKey" value="phantomjs"/>
     <property name="queue" value="phantomjs"/>
+    <property name="durable" value="true"/>
     <property name="outputPath" value="REPLACE_HERITRIX_JOBS/REPLACE_JOB_NAME/action/"/>
   </bean>
   <bean id="viralContent" class="uk.bl.wap.crawler.processor.ViralContentProcessor">
@@ -362,9 +363,9 @@ metadata.description=UK Legal Deposit Domain Crawl.
         <ref bean="extractorSwf"/>
 <!-- ...add IPs to crawl.log... -->
         <bean class="uk.bl.wap.crawler.processor.IpAnnotator">
-<!-- ...add country-codes to crawl.log... -->
+        </bean>
         <bean class="uk.bl.wap.crawler.processor.CountryCodeAnnotator">
-    </bean>
+        </bean>
 <!-- ...scan for viruses... -->
         <ref bean="viralContent"/>
       </list>

@@ -1,5 +1,6 @@
 #!/bin/bash
 CITY_DATA=/usr/local/share/geoip/geoip-city.mmdb
+SHM_DATA=/dev/shm/geoip-city.mmdb
 CITY_URL=http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz
 CITY_TMP_GZ=/tmp/GeoLite2-City.mmdb.gz
 CITY_TMP_DAT=/tmp/GeoLite2-City.mmdb
@@ -19,6 +20,11 @@ then
 		log "Updating database."
 		yes | cp -p $CITY_TMP_DAT $CITY_DATA
 		rm $CITY_TMP_DAT
+		if [[ -f $SHM_DATA ]]
+		then
+			log "Updating in-memory database."
+			yes | cp -p $CITY_DATA $SHM_DATA
+		fi
 	else
 		log "Could not decompress archive." >&2
 	fi
