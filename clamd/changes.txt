@@ -10,3 +10,5 @@ PidFile /var/run/clamav/clamd.3310.pid
 #RHEL6
 #User clam
 #DatabaseDirectory /var/lib/clamav
+
+#Remember to update NotifyClamd in /etc/freshclam.conf
