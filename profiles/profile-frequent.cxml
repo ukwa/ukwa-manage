@@ -349,6 +349,15 @@
 			</list>
 		</property>
 	</bean>
+	<bean id="rootDiskSpaceMonitor" class="org.archive.crawler.monitor.DiskSpaceMonitor">
+		<property name="pauseThresholdMiB" value="2048" />
+		<property name="monitorConfigPaths" value="true" />
+		<property name="monitorPaths">
+			<list>
+				<value>/</value>
+			</list>
+		</property>
+	</bean>
 	<bean id="warcWriterViral" class="uk.bl.wap.modules.writer.WARCViralWriterProcessor">
 		<property name="shouldProcessRule">
 			<bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
