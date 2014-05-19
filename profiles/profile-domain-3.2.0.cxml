@@ -112,6 +112,11 @@ metadata.description=UK Legal Deposit Domain Crawl.
         <ref bean="onDomainAccept"/>
 <!-- ... ACCEPT redirects... -->
         <ref bean="redirectAccept"/>
+<!-- ...and REJECT highly compressible URIs... -->
+        <bean class="uk.bl.wap.modules.deciderules.CompressibilityDecideRule">
+          <property name="min" value="0.28"/>
+          <property name="max" value="1.6"/>
+        </bean>
 <!-- ...but REJECT those more than a configured link-hop-count from start... -->
         <ref bean="hopsCountReject"/>
 <!-- ...and REJECT those from a configurable (initially empty) set of URI regexes... -->
@@ -137,11 +142,6 @@ metadata.description=UK Legal Deposit Domain Crawl.
           <property name="seedsAsSurtPrefixes" value="false"/>
           <property name="surtsDumpFile" value="exclude.dump"/>
           <property name="surtsSourceFile" value="exclude.txt"/>
-        </bean>
-<!-- ...and REJECT highly compressible URIs... -->
-        <bean class="uk.bl.wap.modules.deciderules.CompressibilityDecideRule">
-          <property name="min" value="0.4"/>
-          <property name="max" value="0.6"/>
         </bean>
 <!-- ...but always ACCEPT those marked as prerequisitee for another URI... -->
         <bean class="org.archive.modules.deciderules.PrerequisiteAcceptDecideRule">
@@ -371,34 +371,24 @@ metadata.description=UK Legal Deposit Domain Crawl.
       </list>
     </property>
   </bean>
-  <bean id="diskSpaceMonitor" class="org.archive.crawler.monitor.DiskSpaceMonitor">
-    <property name="pauseThresholdMiB" value="1048576"/>
-    <property name="monitorConfigPaths" value="false"/>
-    <property name="monitorPaths">
-      <list>
-        <value>/heritrix/output</value>
-        <value>/heritrix/state</value>
-      </list>
-    </property>
-  </bean>
-  <bean id="diskSpaceMonitorRoot" class="org.archive.crawler.monitor.DiskSpaceMonitor">
-    <property name="pauseThresholdMiB" value="1024"/>
-    <property name="monitorConfigPaths" value="true"/>
-    <property name="monitorPaths">
-      <list>
-        <value>/</value>
-      </list>
-    </property>
-  </bean>
 <!-- DISPOSITION CHAIN -->
 <!-- first, processors are declared as top-level named beans  -->
   <bean id="warcWriterViral" class="uk.bl.wap.modules.writer.WARCViralWriterProcessor">
     <property name="shouldProcessRule">
-      <bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
-        <property name="decision" value="ACCEPT"/>
-        <property name="regexList">
+      <bean class="org.archive.modules.deciderules.DecideRuleSequence">
+        <property name="rules">
           <list>
-            <value>^.*stream:.+FOUND.*$</value>
+            <!-- Begin by REJECTing all... -->
+            <bean class="org.archive.modules.deciderules.RejectDecideRule"/>
+            <!-- ...then ACCEPT those with viral annotations... -->
+            <bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
+              <property name="decision" value="ACCEPT"/>
+              <property name="regexList">
+                <list>
+                  <value>^.*stream:.+FOUND.*$</value>
+                </list>
+              </property>
+            </bean>
           </list>
         </property>
       </bean>
@@ -426,11 +416,20 @@ metadata.description=UK Legal Deposit Domain Crawl.
   </bean>
   <bean id="warcWriterDefault" class="org.archive.modules.writer.WARCWriterProcessor">
     <property name="shouldProcessRule">
-      <bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
-        <property name="decision" value="REJECT"/>
-        <property name="regexList">
+      <bean class="org.archive.modules.deciderules.DecideRuleSequence">
+        <property name="rules">
           <list>
-            <value>^.*stream:.+FOUND.*$</value>
+            <!-- Begin by ACCEPTing all... -->
+            <bean class="org.archive.modules.deciderules.AcceptDecideRule"/>
+            <!-- ...then REJECT those with viral annotations... -->
+            <bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
+              <property name="decision" value="REJECT"/>
+              <property name="regexList">
+                <list>
+                  <value>^.*stream:.+FOUND.*$</value>
+                </list>
+              </property>
+            </bean>
           </list>
         </property>
       </bean>
@@ -613,17 +612,25 @@ metadata.description=UK Legal Deposit Domain Crawl.
  -->
 <!-- DISK SPACE MONITOR: 
       Pauses the crawl if disk space at monitored paths falls below minimum threshold -->
-<!-- 
  <bean id="diskSpaceMonitor" class="org.archive.crawler.monitor.DiskSpaceMonitor">
-   <property name="pauseThresholdMiB" value="500" />
-   <property name="monitorConfigPaths" value="true" />
+   <property name="pauseThresholdMiB" value="1048576"/>
+   <property name="monitorConfigPaths" value="false"/>
    <property name="monitorPaths">
      <list>
-       <value>PATH</value>
+       <value>/heritrix/output</value>
+       <value>/heritrix/state</value>
      </list>
    </property>
  </bean>
- -->
+ <bean id="diskSpaceMonitorRoot" class="org.archive.crawler.monitor.DiskSpaceMonitor">
+   <property name="pauseThresholdMiB" value="1024"/>
+   <property name="monitorConfigPaths" value="true"/>
+   <property name="monitorPaths">
+     <list>
+       <value>/</value>
+     </list>
+   </property>
+ </bean>
 <!-- 
    REQUIRED STANDARD BEANS
     It will be very rare to replace or reconfigure the following beans.
