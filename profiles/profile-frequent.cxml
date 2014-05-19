@@ -360,11 +360,20 @@
 	</bean>
 	<bean id="warcWriterViral" class="uk.bl.wap.modules.writer.WARCViralWriterProcessor">
 		<property name="shouldProcessRule">
-			<bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
-				<property name="decision" value="ACCEPT" />
-				<property name="regexList">
+			<bean class="org.archive.modules.deciderules.DecideRuleSequence">
+				<property name="rules">
 					<list>
-						<value>^.*stream:.+FOUND.*$</value>
+						<!-- Begin by REJECTing all... -->
+						<bean class="org.archive.modules.deciderules.RejectDecideRule"/>
+						<!-- ...then ACCEPT those with viral annotations... -->
+						<bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
+							<property name="decision" value="ACCEPT"/>
+							<property name="regexList">
+								<list>
+									<value>^.*stream:.+FOUND.*$</value>
+								</list>
+							</property>
+						</bean>
 					</list>
 				</property>
 			</bean>
@@ -388,11 +397,20 @@
 	</bean>
 	<bean id="warcWriterDefault" class="org.archive.modules.writer.WARCWriterProcessor">
 		<property name="shouldProcessRule">
-			<bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
-				<property name="decision" value="REJECT" />
-				<property name="regexList">
+			<bean class="org.archive.modules.deciderules.DecideRuleSequence">
+				<property name="rules">
 					<list>
-						<value>^.*stream:.+FOUND.*$</value>
+						<!-- Begin by ACCEPTing all... -->
+						<bean class="org.archive.modules.deciderules.AcceptDecideRule"/>
+						<!-- ...then ACCEPT those with viral annotations... -->
+						<bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
+							<property name="decision" value="REJECT"/>
+							<property name="regexList">
+								<list>
+									<value>^.*stream:.+FOUND.*$</value>
+								</list>
+							</property>
+						</bean>
 					</list>
 				</property>
 			</bean>
