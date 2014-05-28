@@ -112,6 +112,7 @@
 					<value>http://(com,galegroup,infotrac,)/itweb/blibrary</value>
 					<value>http://(com,oxforddnb,</value>
 					<value>http://(com,oup,global,</value>
+					<value>http://(uk,org,brereton,</value>
 				</list>
 			</property>
 			<property name="targetSheetNames">

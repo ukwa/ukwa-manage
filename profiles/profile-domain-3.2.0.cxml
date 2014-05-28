@@ -86,14 +86,6 @@ metadata.description=UK Legal Deposit Domain Crawl.
           <property name="regex" value="^https?://[^/]+/.+(?i)(\.(js|css|bmp|gif|jpe?g|[pm]ng|svg|tiff?|ico|aac|aiff?|m3u|m4[av]|midi?|mp[1234acu]|og[agm]|ra?m?|cda|alac|ac3|flac|wav|wm[av]|as[fx]|avi|flv|mov|mpe?g|qt|smil|swf))\b.*$"/>
           <property name="decision" value="ACCEPT"/>
         </bean>
-        <bean class="org.archive.modules.deciderules.ContentTypeMatchesRegexDecideRule">
-          <property name="regex" value="^(?i)(image|video|audio)/.+$"/>
-          <property name="decision" value="ACCEPT"/>
-        </bean>
-        <bean class="org.archive.modules.deciderules.ContentTypeMatchesRegexDecideRule">
-          <property name="regex" value="^(?i)^.+/(css|javascript)$"/>
-          <property name="decision" value="ACCEPT"/>
-        </bean>
         <bean class="org.archive.modules.deciderules.HopsPathMatchesRegexDecideRule">
           <property name="decision" value="ACCEPT"/>
           <property name="regex" value="^E*$"/>
