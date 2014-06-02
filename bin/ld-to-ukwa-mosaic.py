@@ -58,6 +58,7 @@ for node in j[ "list" ]:
 					else:
 						logger.info( "Setting date for %s to %s." % ( new, timestamp ) )
 						u.update_date_by_instance( timestamp, new )
+						u.add_instance_annotation( new, "Migrated Instance: %s" % timestamp )
 						primary_url = u.get_primary_url( new )
 						warc = url_in_warc( "/data/wayback/cdx-index/%s/%s.cdx" % ( wct_id, timestamp ), primary_url )
 						if len( warc ) > 0:
