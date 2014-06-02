@@ -68,7 +68,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
 <!-- SCOPE: rules for which discovered URIs to crawl; order is very 
       important because last decision returned other than 'NONE' wins. -->
   <bean id="scope" class="org.archive.modules.deciderules.DecideRuleSequence">
-<!-- <property name="logToFile" value="false" /> -->
+    <property name="logToFile" value="true" />
     <property name="rules">
       <list>
 <!-- Begin by REJECTing all... -->
@@ -104,6 +104,9 @@ metadata.description=UK Legal Deposit Domain Crawl.
         <ref bean="onDomainAccept"/>
 <!-- ... ACCEPT redirects... -->
         <ref bean="redirectAccept"/>
+<!-- ...and REJECT consecutive errors... -->
+        <bean class="uk.bl.wap.modules.deciderules.ConsecutiveFailureDecideRule">
+        </bean>
 <!-- ...and REJECT highly compressible URIs... -->
         <bean class="uk.bl.wap.modules.deciderules.CompressibilityDecideRule">
           <property name="min" value="0.28"/>
@@ -150,7 +153,26 @@ metadata.description=UK Legal Deposit Domain Crawl.
     <property name="decision" value="REJECT"/>
     <property name="listLogicalOr" value="true"/>
     <property name="regexList">
-      <xi:include href="includes.xml" xpointer="xpointer(//includes/excludes/list)"/>
+      <list>
+			<value>^.+ProductCats\\.asp\\?Keywords=.+xargs=.+$</value>
+			<value>^.+index\\.php\\?Keywords=.+xargs=.+$</value>
+			<value>^.+\\.uk/.*\\bcheckout\\b.*$</value>
+			<value>^.+GetSearchResults\\.php\\?Query=.*%5C.*$</value>
+			<value>^.+index\\.php.+index\\.php.*$</value>
+			<value>^.{512,}$</value>
+			<value>^.+camcycle\.org.+camcycle\.org.*$</value>
+			<value>^.+/cart/add/.+$</value>
+			<value>^.+jobs\.staffs\.ac\.uk/[A-Za-z0-9+/]{20,}.+$</value>
+			<value>^.+%20%20%20.+$</value>
+			<value>^.+/cms/events/calendar/.+/2014/.+$</value>
+			<value>^.+/cms/events/calendar/.+/2012/.+$</value>
+			<value>^.+ncl\.ac\.uk.+https%3.+$</value>
+			<value>^https?://[^/]+/catalog/product_compare/(add|remove)/.+$</value>
+			<value>^.+index\.php\?qs=06oENya.+$</value>
+			<value>^https?://[^/]+\.bbc\.co\.uk/iplayer/.*$</value>
+			<value>^.+action=buy_now.*$</value>
+			<value>^.+?mobile_switch=mobile</value>
+		</list>
     </property>
   </bean>
 <!-- ... ACCEPT those on the same Domain ... -->
@@ -194,14 +216,14 @@ metadata.description=UK Legal Deposit Domain Crawl.
         <ref bean="costAssignmentPolicy" />
        </property> -->
   </bean>
-  <bean id="hashCrawlMapper" class="org.archive.crawler.processor.HashCrawlMapper">
-    <property name="enabled" value="true"/>
-    <property name="localName" value="REPLACE_HASH_NAME"/>
-    <property name="diversionDir" value="diversions"/>
+  <bean id="hashingCrawlMapper" class="uk.bl.wap.crawler.processor.HashingCrawlMapper">
     <property name="checkUri" value="true"/>
     <property name="checkOutlinks" value="false"/>
+    <property name="localName" value="REPLACE_HASH_NAME"/>
+    <property name="diversionDir" value="diversions"/>
     <property name="rotationDigits" value="10"/>
     <property name="crawlerCount" value="REPLACE_HASH_COUNT"/>
+    <property name="minimumBits" value="32"/>
   </bean>
   <bean id="quotaEnforcer" class="org.archive.crawler.prefetch.QuotaEnforcer">
     <property name="serverMaxSuccessKb" value="524288"/>
@@ -213,7 +235,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
 <!-- apply scoping rules to each individual candidate URI... -->
         <ref bean="candidateScoper"/>
 <!-- Check URIs for crawler assignment -->
-        <ref bean="hashCrawlMapper"/>
+        <ref bean="hashingCrawlMapper"/>
 <!-- ...then prepare those ACCEPTed to be enqueued to frontier. -->
         <ref bean="preparer"/>
       </list>
@@ -278,7 +300,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
 <!-- <property name="digestAlgorithm" value="sha1" /> -->
   </bean>
   <bean id="extractorHttp" class="org.archive.modules.extractor.ExtractorHTTP">
- </bean>
+  </bean>
   <bean id="extractorHtml" class="org.archive.modules.extractor.ExtractorHTML">
 <!-- <property name="extractJavascript" value="true" /> -->
 <!-- <property name="extractValueAttributes" value="true" /> -->
@@ -291,13 +313,13 @@ metadata.description=UK Legal Deposit Domain Crawl.
 <!-- <property name="maxAttributeValueLength" value="16384" /> -->
   </bean>
   <bean id="extractorCss" class="org.archive.modules.extractor.ExtractorCSS">
- </bean>
+  </bean>
   <bean id="extractorJs" class="org.archive.modules.extractor.ExtractorJS">
- </bean>
+  </bean>
   <bean id="extractorSwf" class="org.archive.modules.extractor.ExtractorSWF">
- </bean>
+  </bean>
   <bean id="extractorJson" class="uk.bl.wap.modules.extractor.ExtractorJson">
- </bean>
+  </bean>
   <bean id="extractorMq" class="uk.bl.wap.modules.extractor.AsynchronousMQExtractor">
     <property name="host" value="localhost"/>
     <property name="routingKey" value="phantomjs"/>
@@ -311,15 +333,15 @@ metadata.description=UK Legal Deposit Domain Crawl.
     <property name="clamdTimeout" value="0"/>
     <property name="streamMaxLength" value="94371840"/>
   </bean>
-<!-- Configure persistent URI history storage -->
+  <!-- Configure persistent URI history storage -->
   <bean id="persistStoreProcessor" class="org.archive.modules.recrawl.PersistStoreProcessor">
- </bean>
+  </bean>
   <bean id="fetchHistoryProcessor" class="org.archive.modules.recrawl.FetchHistoryProcessor">
     <property name="historyLength" value="2"/>
   </bean>
-<!-- Configure persistent URI history loading for subsequent crawls -->
+  <!-- Configure persistent URI history loading for subsequent crawls -->
   <bean id="persistLoadProcessor" class="org.archive.modules.recrawl.PersistLoadProcessor">
- </bean>
+  </bean>
 <!-- now, processors are assembled into ordered FetchChain bean -->
   <bean id="fetchProcessors" class="org.archive.modules.FetchChain">
     <property name="processors">
@@ -356,6 +378,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
 <!-- ...add IPs to crawl.log... -->
         <bean class="uk.bl.wap.crawler.processor.IpAnnotator">
         </bean>
+<!-- ...add country-codes to crawl.log... -->
         <bean class="uk.bl.wap.crawler.processor.CountryCodeAnnotator">
         </bean>
 <!-- ...scan for viruses... -->
@@ -390,7 +413,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
 <!-- <property name="suffix" value="${HOSTNAME}" /> -->
     <property name="maxFileSizeBytes" value="1006632959"/>
     <property name="poolMaxActive" value="5"/>
-<!-- <property name="MaxWaitForIdleMs" value="500" /> -->
+    <!-- <property name="MaxWaitForIdleMs" value="500" /> -->
 <!-- <property name="skipIdenticalDigests" value="false" /> -->
 <!-- <property name="maxTotalBytesToWrite" value="0" /> -->
 <!-- <property name="directory" value="${launchId}" /> -->
@@ -445,7 +468,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
 <!-- <property name="writeMetadata" value="true" /> -->
 <!-- <property name="writeRevisitForIdenticalDigests" value="true" /> -->
     <property name="writeRevisitForNotModified" value="false"/>
-<!-- <property name="startNewFilesOnCheckpoint" value="true" /> -->
+    <!-- <property name="startNewFilesOnCheckpoint" value="true" /> -->
   </bean>
   <bean id="candidates" class="org.archive.crawler.postprocessor.CandidatesProcessor">
 <!-- <property name="seedsRedirectNewSeeds" value="true" /> -->
@@ -529,7 +552,240 @@ metadata.description=UK Legal Deposit Domain Crawl.
    original beans, but others can be added during the crawl via the scripting 
    interface.
   -->
-  <xi:include href="includes.xml" xpointer="xpointer(//includes/sheets/bean)"/>
+  <bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,org,carlisle-conference,</value>
+					<value>http://(uk,org,camcycle,</value>
+					<value>http://(uk,co,thelivelist,</value>
+					<value>http://(uk,org,emergenceplus,</value>
+					<value>http://(uk,co,hillsong,</value>
+					<value>http://(uk,co,ghostservices,</value>
+					<value>http://(uk,co,somodfurniture,</value>
+					<value>http://(uk,ac,ncl,</value>
+					<value>http://(uk,org,clicsargent,</value>
+					<value>http://(uk,co,youhome,</value>
+					<value>http://(uk,co,libacura,</value>
+					<value>http://(uk,co,antix,</value>
+					<value>http://(uk,co,the-hug,</value>
+					<value>http://(uk,co,fists,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>noForms</value>
+				</list>
+			</property>
+		</bean><bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,co,carbonmenswear,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>extraPolite</value>
+				</list>
+			</property>
+		</bean><bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,org,geograph,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>crawlLimited</value>
+				</list>
+			</property>
+		</bean><bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,co,bbc,</value>
+					<value>http://(uk,co,bbci,</value>
+					<value>http://(uk,co,bbcimg,news,</value>
+					<value>http://(uk,gov,www,</value>
+					<value>http://(uk,gov,dh,</value>
+					<value>http://(uk,gov,cabinet-office,digital,assets,</value>
+					<value>http://(uk,nhs,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>noLimit</value>
+				</list>
+			</property>
+		</bean><bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,org,haroldstreet,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>noCookies</value>
+				</list>
+			</property>
+		</bean><bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,gov,nationalarchives,webarchive,</value>
+					<value>http://(uk,bl,intranet,</value>
+					<value>http://(com,bsigroup,bsol,</value>
+					<value>http://(uk,ac,canterbury,libportal,</value>
+					<value>http://(com,galegroup,infotrac,)/itweb/blibrary</value>
+					<value>http://(com,oxforddnb,</value>
+					<value>http://(com,oup,global,</value>
+					<value>http://(uk,org,brereton,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>blockAll</value>
+				</list>
+			</property>
+		</bean><bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,gov,nationalarchives,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>ignoreRobots</value>
+				</list>
+			</property>
+		</bean><bean class="org.archive.crawler.spring.DecideRuledSheetAssociation">
+			<property name="rules">
+				<bean class="org.archive.modules.deciderules.IpAddressSetDecideRule">
+					<property name="ipAddresses">
+						<set>
+							<value>81.21.76.62</value>
+							<value>85.158.249.176</value>
+							<value>87.106.142.81</value>
+						</set>
+					</property>
+					<property name="decision" value="ACCEPT"/>
+				</bean>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>extraPolite</value>
+					<value>crawlLimited</value>
+				</list>
+			</property>
+		</bean><bean class="org.archive.crawler.spring.DecideRuledSheetAssociation">
+			<property name="rules">
+				<bean class="org.archive.modules.deciderules.DecideRuleSequence">
+					<property name="rules">
+						<list>
+							<bean class="org.archive.modules.deciderules.RejectDecideRule"/>
+							<bean class="org.archive.modules.deciderules.HopsPathMatchesRegexDecideRule">
+								<property name="decision" value="ACCEPT"/>
+								<property name="regex" value="^E*$"/>
+							</bean>
+						</list>
+					</property>
+				</bean>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>ignoreRobots</value>
+				</list>
+			</property>
+		</bean><bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,gov,www,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>noMaxHops</value>
+				</list>
+			</property>
+		</bean><bean id="noMaxHops" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="hopsCountReject.enabled" value="false"/>
+				</map>
+			</property>
+		</bean><bean id="ignoreRobots" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="preconditions.calculateRobotsOnly" value="true"/>
+				</map>
+			</property>
+		</bean><bean id="noLimit" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="fetchHttp.maxLengthBytes" value="0"/>
+					<entry key="quotaEnforcer.serverMaxSuccessKb" value="-1"/>
+					<entry key="metadata.robotsPolicyName" value="ignore"/>
+				</map>
+			</property>
+		</bean><bean id="higherLimit" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="quotaEnforcer.serverMaxSuccessKb" value="2097152"/>
+					<entry key="metadata.robotsPolicyName" value="ignore"/>
+				</map>
+			</property>
+		</bean><bean id="noForms" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="extractorHtml.ignoreFormActionUrls" value="true"/>
+					<entry key="extractorHtml.extractValueAttributes" value="false"/>
+				</map>
+			</property>
+		</bean><bean id="extraPolite" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="disposition.delayFactor" value="8.0"/>
+					<entry key="disposition.minDelayMs" value="10000"/>
+					<entry key="disposition.maxDelayMs" value="60000"/>
+					<entry key="disposition.respectCrawlDelayUpToSeconds" value="60"/>
+				</map>
+			</property>
+		</bean><bean id="crawlLimited" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="frontier.queueTotalBudget" value="25"/>
+					<entry key="quotaEnforcer.serverMaxFetchResponses" value="25"/>
+				</map>
+			</property>
+		</bean><bean id="noCookies" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="fetchHttp.ignoreCookies" value="true"/>
+				</map>
+			</property>
+		</bean><bean id="blockAll" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="preselector.blockAll" value="true"/>
+				</map>
+			</property>
+		</bean><bean id="resourceScope" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="hopsCountReject.maxHops" value="1"/>
+				</map>
+			</property>
+		</bean><bean id="plus1Scope" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="hopsCountReject.maxHops" value="1"/>
+					<entry key="redirectAccept.enabled" value="true"/>
+				</map>
+			</property>
+		</bean><bean id="subdomainsScope" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="onDomainAccept.enabled" value="true"/>
+				</map>
+			</property>
+		</bean>
 <!-- 
    OPTIONAL BUT RECOMMENDED BEANS
   -->
@@ -676,7 +932,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
 <!-- <property name="expectedConcurrency" value="25" /> -->
   </bean>
 <!-- BDBCOOKIESTORAGE: disk-based cookie storage for FetchHTTP -->
-  <bean id="cookieStorage" class="org.archive.modules.fetcher.BdbCookieStorage">
+  <bean id="cookieStorage" class="org.archive.modules.fetcher.BdbCookieStore">
 <!-- <property name="cookiesLoadFile"><null/></property> -->
 <!-- <property name="cookiesSaveFile"><null/></property> -->
 <!-- <property name="bdb">
