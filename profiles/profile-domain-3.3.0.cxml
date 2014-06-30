@@ -45,8 +45,8 @@ metadata.description=UK Legal Deposit Domain Crawl.
 <!-- <property name="operatorFrom" value=""/> -->
     <property name="organization" value="The British Library"/>
 <!-- <property name="audience" value=""/> -->
-<!-- <property name="userAgentTemplate" 
-         value="Mozilla/5.0 (compatible; heritrix/@VERSION@ +@OPERATOR_CONTACT_URL@)"/> -->
+    <property name="userAgentTemplate"
+         value="bl.uk_lddc_bot/@VERSION@ (+@OPERATOR_CONTACT_URL@)"/>
   </bean>
 <!-- SEEDS ALTERNATE APPROACH: specifying external seeds.txt file in
       the job directory, similar to the H1 approach. 
@@ -330,7 +330,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
   <bean id="viralContent" class="uk.bl.wap.crawler.processor.ViralContentProcessor">
     <property name="clamdHost" value="localhost"/>
     <property name="clamdPort" value="REPLACE_CLAMD_PORT"/>
-    <property name="clamdTimeout" value="0"/>
+    <property name="clamdTimeout" value="60000"/>
     <property name="streamMaxLength" value="94371840"/>
   </bean>
   <!-- Configure persistent URI history storage -->
