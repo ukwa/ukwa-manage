@@ -149,28 +149,4 @@ class SipDaemon( Daemon ):
 				channel.start_consuming()
 			except Exception as e:
 				logger.error( str( e ) )
- 
-if __name__ == "__main__":
-	"""Sets up the daemon."""
-	daemon = SipDaemon( settings.PID_FILE )
-	logger.debug( "Arguments: %s" % sys.argv )
-	if len( sys.argv ) == 2:
-		if "start" == sys.argv[ 1 ]:
-			logger.info( "Starting sipd." )
-			daemon.start()
-		elif "stop" == sys.argv[ 1 ]:
-			logger.info( "Stopping sipd." )
-			daemon.stop()
-		elif "restart" == sys.argv[ 1 ]:
-			logger.info( "Restarting sipd." )
-			daemon.restart()
-		else:
-			print "Unknown command"
-			print "usage: %s start|stop|restart" % sys.argv[ 0 ]
-			sys.exit( 2 )
-		logger.debug( "Exiting." )
-		sys.exit( 0 )
-	else:
-		print "usage: %s start|stop|restart" % sys.argv[ 0 ]
-		sys.exit( 2 )
 

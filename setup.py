@@ -17,7 +17,8 @@ setup(
 		"python-webhdfs",
 	],
 	data_files=[
-		( "/etc/init.d", [ "sipd-init" ] ),
+		( "/etc/init.d", [ "/bin/sipd" ] ),
+		( "/usr/local/bin", [ "sipd.py" ] ),
 	]
 )
 
