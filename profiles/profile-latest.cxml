@@ -89,10 +89,12 @@
 					<property name="decision" value="ACCEPT" />
 					<property name="regex" value="^E*$" />
 				</bean>
+				<!-- ...  ACCEPT those on the same Domain... -->
+				<ref bean="onDomainAccept"/>
+				<!-- ... ACCEPT redirects... -->
+				<ref bean="redirectAccept"/>
 				<!-- ...but REJECT those more than a configured link-hop-count from start... -->
-				<bean class="org.archive.modules.deciderules.TooManyHopsDecideRule">
-					<property name="maxHops" value="2" />
-				</bean>
+				<ref bean="hopsCountReject"/>
 				<!-- ...and REJECT those from a configurable (initially empty) set of URI regexes... -->
 				<ref bean="listRegexFilterOut" />
 				<!-- ...and REJECT those with suspicious repeating path-segments... -->
@@ -123,6 +125,10 @@
 			</list>
 		</property>
 	</bean>
+	<!-- ...but REJECT those more than a configured link-hop-count from start... -->
+	<bean id="hopsCountReject" class="org.archive.modules.deciderules.TooManyHopsDecideRule">
+		<property name="maxHops" value="2"/>
+	</bean>
 	<!-- ...and REJECT those from a configurable (initially empty) set of URI regexes... -->
 	<bean id="listRegexFilterOut" class="org.archive.modules.deciderules.MatchesListRegexDecideRule">
 		<property name="decision" value="REJECT" />
@@ -130,6 +136,17 @@
 		<property name="regexList">
 			<xi:include href="includes.xml" xpointer="xpointer(//includes/excludes/list)" />
 		</property>
+	</bean>
+	<!-- ... ACCEPT those on the same Domain ... -->
+	<bean id="onDomainAccept" class="org.archive.modules.deciderules.surt.OnDomainsDecideRule">
+		<property name="decision" value="ACCEPT"/>
+		<property name="enabled" value="false"/>
+	</bean>
+	<!-- ... ACCEPT redirects ... -->
+	<bean id="redirectAccept" class="org.archive.modules.deciderules.HopsPathMatchesRegexDecideRule">
+		<property name="decision" value="ACCEPT"/>
+		<property name="regex" value="^R+$"/>
+		<property name="enabled" value="false"/>
 	</bean>
 	<!-- 
 		PROCESSING CHAINS
@@ -258,6 +275,7 @@
 		<property name="host" value="localhost" />
 		<property name="routingKey" value="phantomjs" />
 		<property name="queue" value="phantomjs" />
+		<property name="durable" value="true"/>
 		<property name="outputPath" value="/opt/heritrix/jobs/latest-20130809093642/action/" />
 	</bean>
 	<bean id="viralContent" class="uk.bl.wap.crawler.processor.ViralContentProcessor">
