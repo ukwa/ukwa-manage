@@ -9,12 +9,10 @@
 
 HDFS_CDX_ROOT=/heritrix/output/wayback/cdx-index
 ROOT=/heritrix/output
-HOOP="http://nellie.bl.uk:14000/webhdfs/v1"
+HOOP="http://dls.httpfs.wa.bl.uk:14000/webhdfs/v1"
 SUFFIX="?user.name=hadoop&op=GETFILESTATUS"
 TMP=/tmp
-#JAR=/heritrix/bin/HadoopUtils.jar
 JAR=/heritrix/bin/warc-hadoop-indexer-1.1.1-SNAPSHOT-job.jar
-#CLASS=uk.bl.wap.hadoop.mapreduce.cdx.ArchiveCDXGenerator
 CLASS=uk.bl.wa.hadoop.mapreduce.cdx.ArchiveCDXGenerator
 SPLIT=/heritrix/output/wayback/split.txt
 RED=1
@@ -22,6 +20,18 @@ RED=1
 log()
 {
         echo "[$(date "+%Y-%m-%d %H:%M:%S")] $1"
+}
+
+copy_warc()
+{
+	log "Copying $1 to HDFS..."
+	hadoop fs -put "$1" "$1"
+}
+
+del_warc()
+{
+	log "Deleting hdfs://$1..."
+	hadoop fs -rm "$1"
 }
 
 COUNT=0
@@ -32,16 +42,24 @@ do
 	TEST="$(curl --silent "$HOOP$warc$SUFFIX")"
 	if [[ "$TEST" =~ "FileNotFoundException" ]]
 	then
-		log "Copying $warc to HDFS..."
-		hadoop fs -put "$warc" "$warc"
+		SUCCESS=0
+		while [[ $SUCCESS == 0 ]]
+		do
+			copy_warc "$warc"
+			#Verify that the copy succeeded.
+			TEST="$(curl --silent "$HOOP$warc$SUFFIX")"
+			HDFS_LENGTH=$(curl --silent "$HOOP$warc$SUFFIX" | sed -r 's@^.+length":([0-9]+),".+$@\1@')
+			DISK_LENGTH=$(stat -c %s "$warc")
+			if [[ "$TEST" =~ "FileNotFoundException" ]] || [[ $HDFS_LENGTH -ne $DISK_LENGTH ]]
+			then
+				log "ERROR: Problem copying $warc"
+				del_warc "$warc"
+			else
+				SUCCESS=1
+			fi
+		done
 		[[ "$warc" =~ "viral" ]] || echo "$warc" >> $TMP/$OUTPUT.job
 		COUNT=$((COUNT+1))
-		HDFS_LENGTH=$(curl --silent "$HOOP$warc$SUFFIX" | sed -r 's@^.+length":([0-9]+),".+$@\1@')
-		DISK_LENGTH=$(stat -c %s "$warc")
-		if [[ $HDFS_LENGTH -ne $DISK_LENGTH ]]
-		then
-			log "ERROR: WARC sizes do not match for $warc"
-		fi
 		JOBS+=("$(echo "$warc" | cut -d "/" -f5)")
 	fi
 done < <(find $ROOT/ -not -path "*/images/*" -mtime -2 -name "*.warc.gz" 2> /dev/null)
@@ -51,7 +69,7 @@ if [[ -e $TMP/$OUTPUT.job ]] && [[ $(wc -l $TMP/$OUTPUT.job | awk '{ print $1 }'
 then
 	log "Generating CDX for $OUTPUT.job in $HDFS_CDX_ROOT/$OUTPUT/..."
 	hadoop fs -put $TMP/$OUTPUT.job $TMP/$OUTPUT.job && rm $TMP/$OUTPUT.job
-	hadoop jar $JAR $CLASS -w -i $TMP/$OUTPUT.job -o $HDFS_CDX_ROOT/$OUTPUT/ -s $SPLIT -h -r $RED &
+	hadoop jar $JAR $CLASS -i $TMP/$OUTPUT.job -o $HDFS_CDX_ROOT/$OUTPUT/ -s $SPLIT -h -r $RED &
 fi
 
 if [[ $COUNT -eq 0 ]]
