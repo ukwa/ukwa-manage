@@ -9,7 +9,7 @@ hadoop fs -test -e "$OUTPUT" && hadoop fs -rmr "$OUTPUT"
 hadoop fs -test -e "$SORTED" && hadoop fs -rmr "$SORTED"
 
 hadoop jar "$JAR" \
--Dmapred.reduce.tasks=75 \
+-Dmapred.reduce.tasks=80 \
 -Dmapred.textoutputformat.separator="#" \
 -mapper "cat" \
 -reducer "cat" \

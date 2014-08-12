@@ -520,6 +520,13 @@ def send_sip_message( jobname, timestamp ):
 		body=message )
 	connection.close()
 
+def remove_action_files(jobname):
+	root = "%s/%s/latest/actions-done" % (HERITRIX_JOBS, jobname)
+	if os.path.exists(root):
+		for action in glob.glob("%s/*" % root):
+			logger.info("Removing %s" % action)
+			os.remove(action)
+
 if __name__ == "__main__":
 	# Check for scheduled jobs.
 	jobs_to_start = check_frequencies()
@@ -536,6 +543,7 @@ if __name__ == "__main__":
 				logger.info( emptyJob + " checked; terminating." )
 			except timeout_decorator.timeout_decorator.TimeoutError:
 				logger.warning( "Completeness check timeout; terminating anyway." )
+			remove_action_files(emptyJob)
 			api.terminate( emptyJob )
 			waitfor( emptyJob, "FINISHED" )
 			api.teardown( emptyJob )
