@@ -1,34 +1,37 @@
 #!/bin/bash
 # Run with:
-#     ld-report $(date "+%b %Y")
+#     ld-report $(date "+%b %Y") DLS-LON-WB01 "The British Library"
 
 MONTH="$1"
 YEAR="$2"
+SERVER="$3"
+LDL="$4"
 
 hadoop jar /usr/lib/hadoop-0.20/contrib/streaming/hadoop-streaming-0.20.2-cdh3u1.jar \
 -mapper "sed -rn 's@^.+ Adding Lock Page.+sessionId=([^,]+), dateInitiated=[A-Z][a-z]{2} $MONTH [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} [A-Z]{3} $YEAR, page=/([^/]+)/(.+), ipAddress=.+\]\$@\1\t\2\t\3@p'" \
--input "/logs/DLS-LON-WB01/usr/local/tomcat/logs/catalina.*" \
--output "$YEAR$MONTH-dls-lon-wb01-wayback/"
+-input "/logs/$SERVER/usr/local/tomcat/logs/catalina.*" \
+-output "$YEAR-$MONTH-$SERVER-wayback/"
 
-NUM_PAGE_LOCKS=$(hadoop fs -cat "$YEAR$MONTH-dls-lon-wb01-wayback/part-*" | wc -l)
-NUM_UNIQUE_PAGE_LOCKS=$(hadoop fs -cat "$YEAR$MONTH-dls-lon-wb01-wayback/part-*" | cut -d "$(printf "\t")" -f1 | sort -u | wc -l)
-MOST_POPULAR_PAGE=$(hadoop fs -cat "$YEAR$MONTH-dls-lon-wb01-wayback/part-*" | cut -d "$(printf "\t")" -f3 | sort | uniq -c | sort -rn | head -n1)
+NUM_PAGE_LOCKS=$(hadoop fs -cat "$YEAR-$MONTH-$SERVER-wayback/part-*" | wc -l)
+NUM_UNIQUE_PAGE_LOCKS=$(hadoop fs -cat "$YEAR-$MONTH-$SERVER-wayback/part-*" | cut -d "$(printf "\t")" -f1 | sort -u | wc -l)
+MOST_POPULAR_PAGE=$(hadoop fs -cat "$YEAR-$MONTH-$SERVER-wayback/part-*" | cut -d "$(printf "\t")" -f3 | sort | uniq -c | sort -rn | head -n1)
 
 
 hadoop jar /usr/lib/hadoop-0.20/contrib/streaming/hadoop-streaming-0.20.2-cdh3u1.jar \
 -mapper "sed -rn 's@^.+/$MONTH/$YEAR:.+GET /ukdomain/search\?text=([^ ]+)&sort_by=.+\$@\1@p'" \
--input "/logs/DLS-LON-WB01/etc/httpd/logs/access_log*" \
--output "$YEAR$MONTH-dls-lon-wb01-solr/"
+-input "/logs/$SERVER/etc/httpd/logs/access_log*" \
+-output "$YEAR-$MONTH-$SERVER-solr/"
 
-NUM_SEARCHES=$(hadoop fs -cat "$YEAR$MONTH-dls-lon-wb01-solr/part-*" | wc -l)
-NUM_UNIQUE_SEARCH_TERMS=$(hadoop fs -cat "$YEAR$MONTH-dls-lon-wb01-solr/part-*" | sort -u | wc -l)
-MOST_POPULAR_SEARCH_TERM=$(hadoop fs -cat "$YEAR$MONTH-dls-lon-wb01-solr/part-*" | sort | uniq -c | sort -rn | head -n1)
+NUM_SEARCHES=$(hadoop fs -cat "$YEAR-$MONTH-$SERVER-solr/part-*" | wc -l)
+NUM_UNIQUE_SEARCH_TERMS=$(hadoop fs -cat "$YEAR-$MONTH-$SERVER-solr/part-*" | sort -u | wc -l)
+MOST_POPULAR_SEARCH_TERM=$(hadoop fs -cat "$YEAR-$MONTH-$SERVER-solr/part-*" | sort | uniq -c | sort -rn | head -n1)
 
-echo "$MONTH $YEAR"
-echo "Number of pages viewed: $NUM_PAGE_LOCKS"
-echo "Number of unique visitors: $NUM_UNIQUE_PAGE_LOCKS"
-echo "Most visited page: $MOST_POPULAR_PAGE"
-echo "Number of searches: $NUM_SEARCHES"
-echo "Number of unique search terms: $NUM_UNIQUE_SEARCH_TERMS"
-echo "Most popular search term: $MOST_POPULAR_SEARCH_TERM"
+echo "<tr><td>$LDL</td><td>&nbsp;</td></tr>"
+echo "<tr><td>$MONTH $YEAR</td><td style=\"align: right\">%s</td></tr>"
+echo "<tr><td>Number of pages viewed:</td><td style=\"align: right\">$NUM_PAGE_LOCKS</td></tr>"
+echo "<tr><td>Number of unique visitors:</td><td style=\"align: right\">$NUM_UNIQUE_PAGE_LOCKS</td></tr>"
+echo "<tr><td>Most visited page:</td><td style=\"align: right\">$MOST_POPULAR_PAGE</td></tr>"
+echo "<tr><td>Number of searches:</td><td style=\"align: right\">$NUM_SEARCHES</td></tr>"
+echo "<tr><td>Number of unique search terms:</td><td style=\"align: right\">$NUM_UNIQUE_SEARCH_TERMS</td></tr>"
+echo "<tr><td>Most popular search term:</td><td style=\"align: right\">$MOST_POPULAR_SEARCH_TERM</td></tr>"
 
