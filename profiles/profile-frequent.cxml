@@ -270,7 +270,7 @@
 	<bean id="extractorJson" class="uk.bl.wap.modules.extractor.ExtractorJson">
 	</bean>
 	<bean id="extractorMq" class="uk.bl.wap.modules.extractor.AsynchronousMQExtractor">
-		<property name="host" value="localhost" />
+		<property name="host" value="opera.bl.uk" />
 		<property name="routingKey" value="phantomjs" />
 		<property name="queue" value="phantomjs" />
 		<property name="durable" value="true" />
