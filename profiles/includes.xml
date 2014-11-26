@@ -41,6 +41,7 @@
 					<value>http://(uk,co,the-hug,</value>
 					<value>http://(uk,co,fists,</value>
 					<value>http://(uk,org,coventgardenmemories,</value>
+					<value>http://(uk,co,googlelawsuit,</value>
 				</list>
 			</property>
 			<property name="targetSheetNames">
@@ -186,6 +187,18 @@
 				</list>
 			</property>
 		</bean>
+		<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,co,googlelawsuit,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>noJavascriptExtraction</value>
+				</list>
+			</property>
+		</bean>
 		
 		<bean id="noMaxHops" class="org.archive.spring.Sheet">
 			<property name="map">
@@ -258,6 +271,14 @@
 				</map>
 			</property>
 		</bean>
+        <bean id="noJavascriptExtraction" class="org.archive.spring.Sheet">
+            <property name="map">
+                <map>
+                    <entry key="extractorJs.enabled" value="false"/>
+                    <entry key="extractorHtml.extractJavascript" value="false"/>
+                </map>
+            </property>
+        </bean>
 
 		<!-- Sheets implementing various Scoping rules -->
 	 	<bean id="resourceScope" class="org.archive.spring.Sheet">
