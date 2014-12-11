@@ -260,8 +260,8 @@ metadata.description=UK Legal Deposit Domain Crawl.
         <bean class="org.archive.modules.deciderules.AcceptDecideRule"/>
        </property> -->
 <!-- <property name="soTimeoutMs" value="20000" /> -->
-<!-- <property name="sendIfModifiedSince" value="true" /> -->
-<!-- <property name="sendIfNoneMatch" value="true" /> -->
+     <property name="sendIfModifiedSince" value="false" />
+     <property name="sendIfNoneMatch" value="false" />
 <!-- <property name="sendConnectionClose" value="true" /> -->
 <!-- <property name="sendReferer" value="true" /> -->
 <!-- <property name="sendRange" value="false" /> -->

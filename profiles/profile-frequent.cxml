@@ -269,6 +269,8 @@
 	</bean>
 	<bean id="extractorJson" class="uk.bl.wap.modules.extractor.ExtractorJson">
 	</bean>
+	<bean id="extractorJs" class="org.archive.modules.extractor.ExtractorJS">
+	</bean>
 	<bean id="extractorMq" class="uk.bl.wap.modules.extractor.AsynchronousMQExtractor">
 		<property name="host" value="opera.bl.uk" />
 		<property name="routingKey" value="phantomjs" />
@@ -319,6 +321,8 @@
 				<ref bean="extractorHtml"/>
 				<!-- ...extract oulinks from CSS content... -->
 				<ref bean="extractorCss"/>
+				<!-- ...extract oulinks from JS content... -->
+				<ref bean="extractorJs"/>
 				<!-- ...extract oulinks from Flash content... -->
 				<ref bean="extractorSwf"/>
 				<!-- ...add IPs to crawl.log... -->
