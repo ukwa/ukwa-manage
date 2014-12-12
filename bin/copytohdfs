@@ -49,7 +49,7 @@ do
 			#Verify that the copy succeeded.
 			TEST="$(curl --silent "$HOOP$warc$SUFFIX")"
 			HDFS_LENGTH=$(curl --silent "$HOOP$warc$SUFFIX" | sed -r 's@^.+length":([0-9]+),".+$@\1@')
-			DISK_LENGTH=$(stat -c %s "$warc")
+			DISK_LENGTH=$(stat -Lc %s "$warc")
 			if [[ "$TEST" =~ "FileNotFoundException" ]] || [[ $HDFS_LENGTH -ne $DISK_LENGTH ]]
 			then
 				log "ERROR: Problem copying $warc"
@@ -62,7 +62,7 @@ do
 		COUNT=$((COUNT+1))
 		JOBS+=("$(echo "$warc" | cut -d "/" -f5)")
 	fi
-done < <(find $ROOT/ -not -path "*/images/*" -mtime -2 -name "*.warc.gz" 2> /dev/null)
+done < <(find $ROOT/ -mtime -2 -name "*.warc.gz" 2> /dev/null)
 JOBS=($(printf "%q\n" "${JOBS[@]}" | sort -u))
 
 if [[ -e $TMP/$OUTPUT.job ]] && [[ $(wc -l $TMP/$OUTPUT.job | awk '{ print $1 }') -gt 0 ]]
