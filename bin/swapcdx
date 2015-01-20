@@ -25,6 +25,6 @@ then
 	rm "$OLD"
 fi
 log "Copying new CDX."
-hadoop fs -cat "$OUT/part-*" > "$NEW"
+hadoop fs -cat "$OUT/part-*" | gunzip -c > "$NEW"
 log "Renaming indexes."
 mv "$CDX" "$OLD" && mv "$NEW" "$CDX"

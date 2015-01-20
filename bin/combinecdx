@@ -11,6 +11,8 @@ hadoop fs -test -e "$SORTED" && hadoop fs -rmr "$SORTED"
 hadoop jar "$JAR" \
 -Dmapred.reduce.tasks=80 \
 -Dmapred.textoutputformat.separator="#" \
+-Dmapred.output.compress=true \
+-Dmapred.output.compression.codec=org.apache.hadoop.io.compress.GzipCodec \
 -mapper "cat" \
 -reducer "cat" \
 -input "$INPUT" \
