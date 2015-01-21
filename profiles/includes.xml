@@ -135,14 +135,13 @@
 				</list>
 			</property>
 		</bean>
+		<!-- Park Domains IP addresses -->
 		<bean class="org.archive.crawler.spring.DecideRuledSheetAssociation">
 			<property name="rules">
 				<bean class="org.archive.modules.deciderules.IpAddressSetDecideRule">
 					<property name="ipAddresses">
 						<set>
 							<value>81.21.76.62</value>
-							<value>85.158.249.176</value>
-							<value>87.106.142.81</value>
 						</set>
 					</property>
 					<property name="decision" value="ACCEPT" />
@@ -152,6 +151,28 @@
 				<list>
 					<value>extraPolite</value>
 					<value>crawlLimited</value>
+				</list>
+			</property>
+		</bean>
+		<!-- Heavily populated IP addresses -->
+		<bean class="org.archive.crawler.spring.DecideRuledSheetAssociation">
+			<property name="rules">
+				<bean class="org.archive.modules.deciderules.IpAddressSetDecideRule">
+					<property name="ipAddresses">
+						<set>
+							<value>85.158.249.176</value>
+							<value>87.106.142.81</value>
+							<value>195.59.103.131</value>
+							<value>195.59.103.132</value>
+							<value>195.59.103.201</value>
+						</set>
+					</property>
+					<property name="decision" value="ACCEPT" />
+				</bean>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>extraPolite</value>
 				</list>
 			</property>
 		</bean>
