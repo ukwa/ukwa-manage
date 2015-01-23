@@ -64,6 +64,8 @@ class SipCreator:
 		"""Finds all WARCs for a each job."""
 		self.warcs = []
 		for job in self.jobs:
+			if len( glob.glob( "%s/%s/*.warc.gz.open" % ( WARC_ROOT, job ) ) ) > 0:
+				raise Exception( "Open WARCs found in job %s" % job )
 			for warc in glob.glob( "%s/%s/*.warc.gz" % ( WARC_ROOT, job ) ):
 				logger.info( "Found %s..." % os.path.basename( warc ) )
 				self.warcs.append( warc )
