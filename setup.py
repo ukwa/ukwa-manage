@@ -9,5 +9,9 @@ setup(
 	description="SIP creation library.",
 	long_description=open( "README.md" ).read(),
 	install_requires=[
+        "python-webhdfs",
+        "bagit",
+        "dateutil"
+        "lxml",
 	],
 )
