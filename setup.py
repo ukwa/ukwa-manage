@@ -5,6 +5,7 @@ setup(
 	version="0.0.1",
 	author="Roger G. Coram",
 	author_email="roger.coram@bl.uk",
+    package=["sipverify"],
 	description="SIP verification.",
 	long_description=open( "README.md" ).read(),
 	install_requires=[
