@@ -6,6 +6,7 @@ w3act.
 """
 
 import os
+import pika
 import json
 import shutil
 import logging
@@ -73,8 +74,6 @@ class JobDaemon(Daemon):
     def run(self):
         while True:
             try:
-                if settings.DUMMY:
-                    logger.debug("Running in dummy mode.")
                 logger.debug("Starting connection %s:%s." % (settings.JOB_QUEUE_HOST, settings.JOB_QUEUE_NAME))
                 connection = pika.BlockingConnection(pika.ConnectionParameters(settings.JOB_QUEUE_HOST))
                 channel = connection.channel()
