@@ -159,7 +159,7 @@ class W3actJob(object):
     def run_job_script(self):
         """Runs the 'script.beanshell' located in the job directory."""
         with open("%s/script.beanshell" % self.job_dir, "rb") as i:
-            self.heritrix.execute(job=name, script=i.read(), engine="beanshell")
+            self.heritrix.execute(job=self.name, script=i.read(), engine="beanshell")
 
 
     def waitfor(self, status):
@@ -167,17 +167,21 @@ class W3actJob(object):
         try:
             while self.heritrix.status(self.name) not in status:
                 time.sleep(10)
-        except ParseError, e:
+        except ParseError:
             time.sleep(10)
 
 
     def start(self):
         """Starts the job."""
+        logger.info("Building %s" % self.name)
         self.heritrix.build(self.name)
         self.waitfor("NASCENT")
+        logger.info("Launching %s" % self.name)
         self.heritrix.launch(self.name)
         self.waitfor("PAUSED")
+        logger.info("Running scripts for %s" % self.name)
         self.run_job_script()
+        logger.info("Unpausing %s" % self.name)
         self.heritrix.unpause(self.name)
         self.waitfor("RUNNING")
 
