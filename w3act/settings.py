@@ -2,8 +2,8 @@ LOG_ROOT="/var/log/w3act"
 PID_ROOT="/var/run/w3actd"
 
 JOB_ERROR_QUEUE_HOST="localhost"
-JOB_ERROR_QUEUE_NAME="w3actor-error"
-JOB_ERROR_QUEUE_KEY="w3actor-error"
+JOB_ERROR_QUEUE_NAME="w3act-error"
+JOB_ERROR_QUEUE_KEY="w3act-error"
 
 JOB_QUEUE_HOST="localhost"
 JOB_QUEUE_NAME="w3actqueue"
