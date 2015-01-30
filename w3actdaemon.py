@@ -22,7 +22,7 @@ logging.getLogger("").addHandler(handler)
 
 if __name__ == "__main__":
     """Sets up the daemon."""
-    daemon = JobDaemon("%s/%s.pid" % (settings.PID_ROOT, __name__))
+    daemon = JobDaemon("%s/w3actd.pid" % settings.PID_ROOT)
     logger.debug("Arguments: %s" % sys.argv)
     if len(sys.argv) == 2:
         if "start" == sys.argv[1]:

@@ -1,8 +1,8 @@
 from distutils.core import setup
 
 setup(
-    name="python-w3act-now",
-    version="0.0.1",
+    name="python-w3act",
+    version="0.0.2",
     author="Roger G. Coram",
     author_email="roger.coram@bl.uk",
     packages=["w3act"],
