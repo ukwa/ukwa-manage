@@ -32,6 +32,7 @@ logging.root.setLevel(logging.WARNING)
 logging.getLogger("").addHandler(handler)
 
 
+mandatory_fields = ["field_url", "field_depth", "field_scope", settings.W3ACT_JOB_FIELD]
 depth_sheets = {"capped_large": "higherLimit", "deep": "noLimit"}
 scope_sheets = {"resource": "resourceScope", "plus1": "plus1Scope", "subdomains": "subdomainsScope"}
 
