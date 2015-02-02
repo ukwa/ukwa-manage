@@ -11,7 +11,7 @@ setup(
 	install_requires=[
         "python-webhdfs",
         "bagit",
-        "dateutil"
+        "python-dateutil",
         "lxml",
 	],
 )
