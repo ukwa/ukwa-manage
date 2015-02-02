@@ -26,3 +26,4 @@ PERMISSION_PUBLISHED="True"
 HERITRIX = "heritrix-3.1.1+uk.bl.wap"
 
 CLAMD_CONF = "/opt/heritrix/clamd/3310.conf"
+NUM_THREADS=10
