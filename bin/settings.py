@@ -12,7 +12,11 @@ HERITRIX_SURTS = CONFIG_ROOT + "/surts.txt"
 HERITRIX_JOBS = "/opt/heritrix/jobs"
 WARC_ROOT = "/heritrix/output/warcs"
 LOG_ROOT = "/heritrix/output/logs"
-URL_ROOT = "http://www.webarchive.org.uk/act/websites/export/"
+URL_BASE = "https://www.webarchive.org.uk/act"
+URL_ROOT = "%s/%s" % (URL_BASE, "targets/export/ld/")
+URL_LOGIN = "%s/login" % URL_BASE
+EMAIL = "robot@webarchive.org.uk"
+PASSWORD = "Na35yhquj46"
 
 QA_CDX = "/heritrix/output/wayback/cdx-index/qa.cdx"
 CDX = "/heritrix/output/wayback/cdx-index/index.cdx"
@@ -30,4 +34,8 @@ QUEUE_HOST = "localhost"
 
 INDEX_QUEUE_NAME = "index"
 INDEX_QUEUE_KEY = "index"
+
+JOB_QUEUE_HOST = "localhost"
+JOB_QUEUE_NAME = "w3actqueue"
+ACT_TARGET_URL = "http://www.webarchive.org.uk/actdev/targets"
 
