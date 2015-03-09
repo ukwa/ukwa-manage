@@ -458,7 +458,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
   </bean>
   <bean id="disposition" class="org.archive.crawler.postprocessor.DispositionProcessor">
 <!-- <property name="delayFactor" value="5.0" /> -->
-<!-- <property name="minDelayMs" value="3000" /> -->
+     <property name="minDelayMs" value="1000" /> 
 <!-- <property name="respectCrawlDelayUpToSeconds" value="300" /> -->
 <!-- <property name="maxDelayMs" value="30000" /> -->
 <!-- <property name="maxPerHostBandwidthUsageKbSec" value="0" /> -->

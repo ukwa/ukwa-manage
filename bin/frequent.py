@@ -21,7 +21,7 @@ import subprocess32
 import dateutil.parser
 import timeout_decorator
 from lxml import etree
-from settings_w3act import *
+from settings import *
 from warcindexer import *
 from retry_decorator import *
 from datetime import datetime
@@ -131,7 +131,7 @@ def addBlockingRules():
     except httplib.IncompleteRead, i:
         logger.error("IncompleteRead: " + str(i.partial) + " [" + frequency + "]")
     for node in act_export:
-        for url in [str(u["url"]) for u in node["fieldUrls"]]:
+        for url in [u["url"] for u in node["fieldUrls"]]:
             try:
                 seed = Seed(url)
                 script.append("appCtx.getBean(\"sheetOverlaysManager\").addSurtAssociation(\"%s\", \"blockAll\");" % seed.surt)
@@ -457,7 +457,7 @@ def check_act(job, launchid):
     seeds = api.seeds(job)
     for node in act_export:
         wct_id = node["field_wct_id"]
-        urls = [str(u["url"]) for u in node["fieldUrls"]]
+        urls = [u["url"] for u in node["fieldUrls"]]
         aid = str(node["id"])
         for url in urls:
             if url in seeds:
