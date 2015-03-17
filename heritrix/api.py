@@ -140,7 +140,7 @@ class API(object):
         return seeds
 
     def empty_frontier( self, job ):
-        script = "count = job.crawlController.frontier.deleteURIs( ".*", "^.*" )\nrawOut.println count"
+        script = "count = job.crawlController.frontier.deleteURIs( \".*\", \"^.*\" )\nrawOut.println count"
         xml = self.execute( engine="groovy", script=script, job=job )
         tree = ET.fromstring( xml.content )
         return tree.find( "rawOutput" ).text.strip()
