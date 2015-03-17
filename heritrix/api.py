@@ -116,7 +116,7 @@ class API(object):
         if status == None:
             return [job.find("shortName").text for job in xml.xpath("//jobs/value")]
         else:
-            return [job.find("shortName").text for job in xml.xpath("//jobs[./crawlControllerState = '%s']" % status)]
+            return [job.find("shortName").text for job in xml.xpath("//jobs/value[./crawlControllerState = '%s']" % status)]
 
     def execute(self, engine="beanshell", script="", job=""):
         if script == "":
