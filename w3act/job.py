@@ -79,7 +79,7 @@ def get_blocking_scripts():
     j = w.get_ld_export("nevercrawl")
     script = []
     for target in j:
-        blocked_urls = [s.strip() for s in target["field_url"].split(",")]
+        blocked_urls = [u["url"] for u in target["fieldUrls"]]
         for url in blocked_urls:
             try:
                 surt = to_surt(url)
@@ -132,12 +132,29 @@ def setup_job_directory(name, seeds, depth, scope):
     return job_dir
 
 
+def get_relevant_fields(node):
+    """Retrieves subset of a Target's fields."""
+    target_info = { key: node[key] for key in ["id", "title", "watched"] }
+    target_info["seeds"] = [u["url"] for u in node["fieldUrls"]]
+    if target_info["watched"]:
+        target_info["watchedTarget"] = node["watchedTarget"]
+    return target_info
+
+
 class W3actJob(object):
     """Represents a Heritrix job for w3act."""
 
+    def get_name(self, url_field):
+        """Inconsistent 'url' values."""
+        if "/" in url_field:
+            fields = url_field.split("/")
+            return "%s-%s" % (fields[-2], fields[-1])
+        else:
+            return url_field
+
     def __init__(self, w3act_target, heritrix=None):
-        self.name = w3act_target[settings.W3ACT_JOB_FIELD]
-        self.seeds = [s.strip() for s in w3act_target["field_url"].split(",")]
+        self.name = self.get_name(w3act_target[settings.W3ACT_JOB_FIELD])
+        self.seeds = [u["url"] for u in w3act_target["fieldUrls"]]
         self.job_dir = setup_job_directory(
             self.name,
             self.seeds,
@@ -147,7 +164,9 @@ class W3actJob(object):
         if heritrix is not None:
             self.heritrix = heritrix
             self.heritrix.add(self.name)
-        
+        self.info = get_relevant_fields(w3act_target)
+        self.write_info()
+
 
     def setup_heritrix(self, api=None, host=None, port=None):
         if api is not None:
@@ -161,6 +180,12 @@ class W3actJob(object):
         """Runs the 'script.beanshell' located in the job directory."""
         with open("%s/script.beanshell" % self.job_dir, "rb") as i:
             self.heritrix.execute(job=self.name, script=i.read(), engine="beanshell")
+
+
+    def write_act_info(self):
+        """Writes w3act job information to disk."""
+        with open("%s/w3act-info.json" % self.job_dir, "wb") as o:
+            o.write(json.dumps([self.info], indent=4))
 
 
     def waitfor(self, status):
