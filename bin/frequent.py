@@ -33,8 +33,9 @@ from requests.exceptions import ConnectionError
 requests.packages.urllib3.disable_warnings()
 
 parser = argparse.ArgumentParser(description="Extract ARK-WARC lookup from METS.")
-parser.add_argument("-t", dest="timestamp", type=str, required=False, help="Timestamp")
-parser.add_argument("-f", dest="frequency", type=str, required=False, help="Frequency")
+parser.add_argument("-t", "--timestampt", dest="timestamp", type=str, required=False, help="Timestamp")
+parser.add_argument("-f", "--frequency", dest="frequency", type=str, required=False, help="Frequency")
+parser.add_argument("-n", "--no-check", dest="no_check", action="store_false", required=False, help="No QA")
 args = parser.parse_args()
 
 frequencies = ["daily", "weekly", "monthly", "quarterly", "sixmonthly", "annual"]
@@ -77,11 +78,7 @@ def verify_api():
         sys.exit(1)
 
 def jobs_by_status(status):
-    jobs = [] 
-    for job in api.listjobs(): 
-        if api.status(job) == status:
-            jobs.append((job, api.launchid(job)))
-    return jobs
+    return [(job, api.launchid(job)) for job in api.listjobs(status=status)]
 
 def waitfor(job, status):
     try:
@@ -224,6 +221,8 @@ def submitjob(newjob, seeds):
         writeJobScript(newjob, script)
         runJobScript(newjob)
     logger.info("Unpausing %s", newjob)
+    """Kludge to fix RabbitMQ issue."""
+    api.execute(script="appCtx.getBean(\"extractorMq\").setupChannel();", engine="groovy", job=newjob)
     api.unpause(newjob)
     waitfor(newjob, "RUNNING")
     logger.info("%s running. Exiting.", newjob)
@@ -271,8 +270,6 @@ def check_frequencies():
         #    "start_date"        Determined by frequency if start_date < now.
         #    "start_date end_date"    Determined by frequency if start_date < now and end_date > now
         for node in act_export:
-            if "watched" in node.keys() and not node["watched"]:
-                continue
             start_date = node["crawlStartDateText"]
             end_date = node["crawlEndDateText"]
             depth = node["field_depth"]
@@ -326,7 +323,7 @@ def check_frequencies():
             api = heritrix.API(host="https://crawler03.wa.bl.uk:" + heritrix_ports[frequency] + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False)
             jobs_to_start.append((jobname, seeds))
             if (jobname in api.listjobs()) and api.status(jobname) != "":
-                logger.info("Emptying Frontier for %s" % jobname)
+                logger.info("Emptying Frontier for %s/%s" % (jobname, api.launchid(jobname)))
                 api.pause(jobname)
                 waitfor(jobname, "PAUSED")
                 api.empty_frontier(jobname)
@@ -501,6 +498,7 @@ def add_act_instance(target, timestamp, data, wct_data, jobname):
 
 def send_sip_message(jobname, timestamp):
     message = "%s/%s" % (jobname, timestamp)
+    logger.info("Sending SIP message: %s" % message)
     connection = pika.BlockingConnection(pika.ConnectionParameters(QUEUE_HOST))
     channel = connection.channel()
     channel.queue_declare(queue=SIP_QUEUE_NAME, durable=True)
@@ -523,18 +521,19 @@ if __name__ == "__main__":
     # Check for scheduled jobs.
     jobs_to_start = check_frequencies()
     # Check for EMPTY jobs and render for completeness.
-    for port in set(heritrix_ports.values()):
+    for port in set([heritrix_ports[f] for f in frequencies]):
         api = heritrix.API(host="https://crawler03.wa.bl.uk:" + port + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False)
         for emptyJob, launchid in jobs_by_status("EMPTY"):
             if emptyJob.startswith("latest"):
                 # Don't render 'latest' job.
                 continue
-            logger.info(emptyJob + " is EMPTY; verifying.")
-            try:
-                checkCompleteness(emptyJob, launchid)
-                logger.info(emptyJob + " checked; terminating.")
-            except timeout_decorator.timeout_decorator.TimeoutError:
-                logger.warning("Completeness check timeout; terminating anyway.")
+            logger.info("%s/%s is EMPTY; verifying." % (emptyJob, launchid))
+            if args.no_check:
+                try:
+                    checkCompleteness(emptyJob, launchid)
+                    logger.info(emptyJob + " checked; terminating.")
+                except timeout_decorator.timeout_decorator.TimeoutError:
+                    logger.warning("Completeness check timeout; terminating anyway.")
             remove_action_files(emptyJob)
             api.terminate(emptyJob)
             waitfor(emptyJob, "FINISHED")
@@ -565,6 +564,8 @@ if __name__ == "__main__":
             # Send a message to the queue for SIP'ing.
             send_sip_message(emptyJob, launchid)
     # Now start up those jobs we forcibly EMPTY'd earlier.
+    if len(jobs_to_start) > 0:
+        logger.info("Starting jobs: %s" % [job for (job, seeds) in jobs_to_start])
     for job in jobs_to_start:
         name, seeds = job
         freq = name.split("-")[0]

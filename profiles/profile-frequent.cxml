@@ -272,7 +272,7 @@
 	<bean id="extractorJs" class="org.archive.modules.extractor.ExtractorJS">
 	</bean>
 	<bean id="extractorMq" class="uk.bl.wap.modules.extractor.AsynchronousMQExtractor">
-		<property name="host" value="opera.bl.uk" />
+		<property name="host" value="amqp.wa.bl.uk" />
 		<property name="routingKey" value="phantomjs" />
 		<property name="queue" value="phantomjs" />
 		<property name="durable" value="true" />
@@ -433,7 +433,7 @@
 	</bean>
 	<bean id="disposition" class="org.archive.crawler.postprocessor.DispositionProcessor">
 		<property name="delayFactor" value="5.0" />
-		<property name="minDelayMs" value="1000" />
+		<property name="minDelayMs" value="3000" />
 		<property name="respectCrawlDelayUpToSeconds" value="300" />
 		<property name="maxDelayMs" value="30000" />
 		<property name="maxPerHostBandwidthUsageKbSec" value="0" />

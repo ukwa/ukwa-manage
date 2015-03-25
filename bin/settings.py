@@ -21,7 +21,7 @@ PASSWORD = "Na35yhquj46"
 QA_CDX = "/heritrix/output/wayback/cdx-index/qa.cdx"
 CDX = "/heritrix/output/wayback/cdx-index/index.cdx"
 PATH_INDEX = "/heritrix/output/wayback/qa-path-index.txt"
-WAYBACK = "http://opera.bl.uk:9090/qa/"
+WAYBACK = "http://crawler03.wa.bl.uk:9090/qa/"
 WAYBACK_LOG = "/opt/qa-wayback/logs/catalina.out"
 JOB_ROOT = "/opt/heritrix/jobs/"
 PHANTOMJS = "/opt/phantomjs/bin/phantomjs"
@@ -30,12 +30,12 @@ TIMEOUT = 60 * 20
 
 SIP_QUEUE_NAME = "sips"
 SIP_QUEUE_KEY = "sips"
-QUEUE_HOST = "localhost"
+QUEUE_HOST = "amqp.wa.bl.uk"
 
 INDEX_QUEUE_NAME = "index"
 INDEX_QUEUE_KEY = "index"
 
-JOB_QUEUE_HOST = "localhost"
+JOB_QUEUE_HOST = "amqp.wa.bl.uk"
 JOB_QUEUE_NAME = "w3actqueue"
 ACT_TARGET_URL = "http://www.webarchive.org.uk/actdev/targets"
 
