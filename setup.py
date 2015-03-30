@@ -5,7 +5,10 @@ setup(
     version="0.0.2",
     author="Roger G. Coram",
     author_email="roger.coram@bl.uk",
-    packages=["w3act"],
+    packages=[
+        "w3act",
+        "w3act.watched",
+    ],
     license="LICENSE.txt",
     description="Heritrix/w3act job launcher.",
     long_description=open("README.md").read(),
