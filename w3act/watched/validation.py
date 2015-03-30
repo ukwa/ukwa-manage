@@ -2,6 +2,15 @@
 Specific validation steps for Watched Targets.
 """
 
+import logging
+import requests
+from lxml import html
+
+logger = logging.getLogger("w3act")
+logger.setLevel(logging.WARNING)
+logging.getLogger("requests").setLevel(logging.WARNING)
+requests.packages.urllib3.disable_warnings()
+
 def www_gov_uk(target, doc):
     """The 'organisation-link' text specifies the Gov. Dept."""
     try:
