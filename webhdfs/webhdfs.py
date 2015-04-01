@@ -39,6 +39,10 @@ class API():
         r = self._get( path=path, op="LISTSTATUS" )
         return json.loads( r.text )
 
+    def file(self, path):
+        r = self._get(path=path, op="GETFILESTATUS")
+        return json.loads(r.text)
+
     def open( self, path ):
         r = self._get( path=path, op="OPEN" )
         return r.content
