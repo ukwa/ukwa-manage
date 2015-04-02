@@ -25,13 +25,11 @@ HERITRIX_EXCLUDE="%s/exclude.txt" % HERITRIX_CONFIG_ROOT
 HERITRIX_SHORTENERS="%s/url.shorteners.txt" % HERITRIX_CONFIG_ROOT
 HERITRIX_SURTS="%s/surts.txt" % HERITRIX_CONFIG_ROOT
 
-CLAMD_PORT="3310"
-
 JOB_RESTART_HOUR=12
 JOB_RESTART_WEEKDAY=1
 JOB_RESTART_DAY=1
 JOB_RESTART_MONTH=1
-W3ACT_FIELDS=["id", "title", "watched", "crawlStartDateText", "crawlEndDateText", "field_depth", "field_scope", "field_ignore_robots_txt"]
+W3ACT_FIELDS=["id", "title", "crawlStartDateText", "crawlEndDateText", "field_depth", "field_scope", "field_ignore_robots_txt"]
 
 FREQUENCIES = ["daily", "weekly", "monthly", "quarterly", "sixmonthly", "annual"]
 HERITRIX_PORTS = { "daily": "8443", "weekly": "8443", "monthly": "8443", "quarterly": "8443", "sixmonthly": "8443", "annual": "8443" }

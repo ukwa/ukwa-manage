@@ -12,9 +12,9 @@ import logging
 import heritrix
 import requests
 from lxml import etree
-from w3act.lib import ACT
 from w3act import settings
 from urlparse import urlparse
+from w3act.lib import ACT, unique_list
 from xml.etree.ElementTree import ParseError
 
 requests.packages.urllib3.disable_warnings()
@@ -76,25 +76,10 @@ def get_blocking_scripts():
     """Blocks access to w3act's 'nevercrawl' targets."""
     w = ACT()
     j = w.get_ld_export("nevercrawl")
-    blocked_urls = [to_surt(u["url"]) for t in j for u in t["fieldUrls"]]
-
-
-    script = []
-    for target in j:
-        blocked_urls = [u["url"] for u in target["fieldUrls"]]
-        for url in blocked_urls:
-            try:
-                surt = to_surt(url)
-            except ValueError as v:
-                logger.warning(str(v))
-                continue
-            sheet = "blockAll"
-            script.append(get_surt_association_script(surt, sheet))
-            logger.info("Blocking access to %s" % (surt))
+    blocked_urls = unique_list([to_surt(u["url"]) for t in j for u in t["fieldUrls"]])
+    script = [get_surt_association_script(surt, "blockAll") for surt in blocked_urls]
     return script
 
-
-    
 
 def get_relevant_fields(nodes):
     """Retrieves subset of a Target's fields."""
@@ -102,7 +87,8 @@ def get_relevant_fields(nodes):
     for node in nodes:
         target_info = { key: node[key] for key in settings.W3ACT_FIELDS }
         target_info["seeds"] = [u["url"] for u in node["fieldUrls"]]
-        if target_info["watched"]:
+        if "watched" in node.keys():
+            target_info["watched"] = node["watched"]
             target_info["watchedTarget"] = node["watchedTarget"]
         targets.append(target_info)
     return targets
@@ -130,8 +116,8 @@ class W3actJob(object):
             self.seeds = seeds
         if setup:
             logger.debug("Configuring directory for job '%s'." % self.name)
-            self.setup_job_directory()
             self.info = get_relevant_fields(w3act_targets)
+            self.setup_job_directory()
         else:
             self.info = w3act_targets
         if heritrix is not None:

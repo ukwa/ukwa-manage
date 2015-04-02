@@ -11,6 +11,14 @@ LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig(format=LOGGING_FORMAT, level=logging.DEBUG)
 logger = logging.getLogger("w3act.%s" % __name__)
 
+
+def unique_list(input):
+   keys = {}
+   for e in input:
+       keys[e] = 1
+   return keys.keys()
+
+
 class ACT():
     def __init__(self, email=settings.W3ACT_EMAIL, password=settings.W3ACT_PASSWORD):
         response = requests.post(settings.W3ACT_LOGIN, data={"email": email, "password": password})
