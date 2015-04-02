@@ -12,6 +12,7 @@ import argparse
 import heritrix
 import requests
 import traceback
+from glob import glob
 import dateutil.parser
 from w3act import settings
 from datetime import datetime
@@ -41,16 +42,16 @@ def remove_action_files(jobname):
     done = "%s/%s/action/done" % (settings.HERITRIX_JOBS, jobname)
     for root in [actions_done, done]:
         if os.path.exists(root):
-            for action in glob.glob("%s/*" % root):
+            for action in glob("%s/*" % root):
                 logger.info("Removing %s" % action)
                 os.remove(action)
 
 
 def stop_running_job(frequency, heritrix):
     """Stops a running job, notifies RabbitMQ and cleans up the directory."""
+    message = "%s/%s" % (frequency, heritrix.launchid(frequency))
     job = W3actJob.from_directory("%s/%s" % (settings.HERITRIX_JOBS, frequency), heritrix=heritrix)
     job.stop()
-    message = "%s/%s" % (frequency, heritrix.launchid(frequency))
     logger.info("Sending SIP message: %s" % message)
     send_message(
         settings.QUEUE_HOST,

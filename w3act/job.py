@@ -50,6 +50,8 @@ def get_surt_association_script(surt, sheet):
 
 def get_depth_scripts(seeds, depth):
     """Creates a list of beanshell commands for seed/depth."""
+    if depth not in depth_sheets.keys():
+        return []
     sheet = depth_sheets[depth.lower()]
     script = [get_surt_association_script(to_surt(seed), sheet) for seed in seeds]
     return script
@@ -100,7 +102,7 @@ class W3actJob(object):
         else:
             return url_field
 
-    def __init__(self, w3act_targets, name=None, seeds=None, heritrix=None, setup=True):
+    def __init__(self, w3act_targets, name=None, seeds=None, directory=None, heritrix=None, setup=True):
         if name is None:
             self.name = self.get_name(w3act_targets[0][settings.W3ACT_JOB_FIELD])
         else:
@@ -115,6 +117,7 @@ class W3actJob(object):
             self.setup_job_directory()
         else:
             self.info = w3act_targets
+            self.job_dir = directory
         if heritrix is not None:
             self.heritrix = heritrix
             self.heritrix.add(self.job_dir)
@@ -131,8 +134,7 @@ class W3actJob(object):
             info = []
         with open("%s/latest/seeds.txt" % path, "rb") as i:
             seeds = [l.strip() for l in i if not l.startswith("#") and len(l.strip()) > 0]
-        job = W3actJob(info, name=name, seeds=seeds, heritrix=heritrix, setup=False)
-        job.job_dir = path
+        job = W3actJob(info, name=name, seeds=seeds, directory=path, heritrix=heritrix, setup=False)
         return job
 
 
@@ -225,13 +227,13 @@ class W3actJob(object):
     def stop(self):
         """Stops the job if already running, then starts."""
         if self.heritrix.status(self.name) != "":
-            logger.info("Killing alread-running job: %s" % job)
+            logger.info("Killing alread-running job: %s" % self.name)
             self.heritrix.pause(self.name)
-            waitfor("PAUSED")
+            self.waitfor("PAUSED")
             self.heritrix.terminate(self.name)
-            waitfor("FINISHED")
+            self.waitfor("FINISHED")
             self.heritrix.teardown(self.name)
-            waitfor("")
+            self.waitfor("")
 
 
     def restart(self):
