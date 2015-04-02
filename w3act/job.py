@@ -169,7 +169,7 @@ class W3actJob(object):
         profile.xinclude()
         cxml = etree.tostring(profile, pretty_print=True, xml_declaration=True, encoding="UTF-8")
         cxml = cxml.replace("REPLACE_JOB_NAME", self.name)
-        cxml = cxml.replace("REPLACE_CLAMD_PORT", settings.CLAMD_PORT)
+        cxml = cxml.replace("REPLACE_CLAMD_PORT", settings.CLAMD_PORTS[self.name])
         cxml = cxml.replace("REPLACE_JOB_ROOT", self.name)
         cxml = cxml.replace("REPLACE_HERITRIX_JOBS", settings.HERITRIX_JOBS)
         self.cxml = cxml
