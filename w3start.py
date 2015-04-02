@@ -44,11 +44,11 @@ def restart_job(frequency, start=datetime.now()):
         targets = [t for t in export if dateutil.parser.parse(t["crawlStartDateText"], dayfirst=True) < start and (t["crawlEndDateText"] is None or dateutil.parser.parse(t["crawlEndDateText"], dayfirst=True) > start)]
         logger.debug("Found %s Targets in date range." % len(targets))
         h = heritrix.API(host="https://%s:%s/engine" % (settings.HERITRIX_HOST, settings.HERITRIX_PORTS[frequency]), user="admin", passwd="bl_uk", verbose=False, verify=False)
-        if h.status(frequency) != "":
+        if frequency in h.listjobs() and h.status(frequency) != "":
             job = W3actJob.from_directory("%s/%s" % (settings.HERITRIX_JOBS, frequency), heritrix=h)
             job.stop()
             #TODO: Automated QA
-        job = w3act.W3actJob(targets, name=frequency, heritrix=h)
+        job = W3actJob(targets, name=frequency, heritrix=h)
         if not args.test:
             logger.debug("Starting job %s with %s seeds." % (job.name, len(job.seeds)))
             job.start()

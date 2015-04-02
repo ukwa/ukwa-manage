@@ -7,7 +7,8 @@ submits to Heritrix.
 
 import sys
 import logging
-from w3act import JobDaemon, settings
+from w3act import settings
+from w3act.w3actd import JobDaemon
 
 logger = logging.getLogger("w3actord")
 handler = logging.FileHandler("%s/%s.log" % (settings.LOG_ROOT, __name__))
