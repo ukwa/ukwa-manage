@@ -9,14 +9,13 @@ import json
 import time
 import shutil
 import logging
-import rfc3987
 import heritrix
 import requests
-import settings
-from w3act.lib import ACT
 from lxml import etree
+from w3act.lib import ACT
+from w3act import settings
+from urlparse import urlparse
 from xml.etree.ElementTree import ParseError
-
 
 requests.packages.urllib3.disable_warnings()
 
@@ -38,8 +37,8 @@ scope_sheets = {"resource": "resourceScope", "plus1": "plus1Scope", "subdomains"
 
 
 def to_surt(url):
-        parsed = rfc3987.parse(url, rule="URI")
-        authority = parsed["authority"].split(".")
+        parsed = urlparse(url).netloc
+        authority = parsed.split(".")
         authority.reverse()
         return "http://(" + ",".join(authority) + ","
 
@@ -52,10 +51,10 @@ def get_surt_association_script(surt, sheet):
 def get_depth_scripts(seeds, depth):
     """Creates a list of beanshell commands for seed/depth."""
     script = []
-    if depth in depth_sheets.keys():
+    if depth.lower() in depth_sheets.keys():
         for seed in seeds:
             surt = to_surt(seed)
-            sheet = depth_sheets[depth]
+            sheet = depth_sheets[depth.lower()]
             script.append(get_surt_association_script(surt, sheet))
             logger.info("Setting cap for %s to %s" % (surt, sheet))
     return script
@@ -77,6 +76,9 @@ def get_blocking_scripts():
     """Blocks access to w3act's 'nevercrawl' targets."""
     w = ACT()
     j = w.get_ld_export("nevercrawl")
+    blocked_urls = [to_surt(u["url"]) for t in j for u in t["fieldUrls"]]
+
+
     script = []
     for target in j:
         blocked_urls = [u["url"] for u in target["fieldUrls"]]
@@ -91,54 +93,19 @@ def get_blocking_scripts():
             logger.info("Blocking access to %s" % (surt))
     return script
 
-def create_profile(job_name):
-    """Creates the CXML content for a H3 job."""
-    profile = etree.parse(settings.HERITRIX_PROFILE)
-    profile.xinclude()
-    cxml = etree.tostring(profile, pretty_print=True, xml_declaration=True, encoding="UTF-8")
-    cxml = cxml.replace("REPLACE_JOB_NAME", job_name)
-    cxml = cxml.replace("REPLACE_CLAMD_PORT", settings.CLAMD_PORT)
-    cxml = cxml.replace("REPLACE_JOB_ROOT", job_name)
-    cxml = cxml.replace("REPLACE_HERITRIX_JOBS", settings.HERITRIX_JOBS)
-    return cxml
+
     
 
-def setup_job_directory(name, seeds, depth, scope):
-    """Creates the Heritrix job directory."""
-    job_dir = "%s/%s/" % (settings.HERITRIX_JOBS, name)
-    if not os.path.isdir(job_dir):
-        os.makedirs(job_dir)
-
-    shutil.copy(settings.HERITRIX_SHORTENERS, job_dir)
-    shutil.copy(settings.HERITRIX_EXCLUDE, job_dir)
-    shutil.copy(settings.HERITRIX_SURTS, job_dir)
-
-    # Write seeds to disk:
-    with open("%s/seeds.txt" % job_dir, "wb") as o:
-        o.write("\n".join(seeds))
-
-    # Write profile to disk:
-    cxml = create_profile(name)
-    with open("%s/crawler-beans.cxml" % job_dir, "wb") as o:
-        o.write(cxml)
-
-    # Write Sheet-associations to disk:
-    commands = get_depth_scripts(seeds, depth)
-    commands += get_scope_scripts(seeds, scope)
-    commands += get_blocking_scripts()
-    with open("%s/script.beanshell" % job_dir, "wb") as o:
-        o.write("\n".join(commands))
-
-    return job_dir
-
-
-def get_relevant_fields(node):
+def get_relevant_fields(nodes):
     """Retrieves subset of a Target's fields."""
-    target_info = { key: node[key] for key in ["id", "title", "watched"] }
-    target_info["seeds"] = [u["url"] for u in node["fieldUrls"]]
-    if target_info["watched"]:
-        target_info["watchedTarget"] = node["watchedTarget"]
-    return target_info
+    targets = []
+    for node in nodes:
+        target_info = { key: node[key] for key in settings.W3ACT_FIELDS }
+        target_info["seeds"] = [u["url"] for u in node["fieldUrls"]]
+        if target_info["watched"]:
+            target_info["watchedTarget"] = node["watchedTarget"]
+        targets.append(target_info)
+    return targets
 
 
 class W3actJob(object):
@@ -152,28 +119,89 @@ class W3actJob(object):
         else:
             return url_field
 
-    def __init__(self, w3act_target, heritrix=None):
-        self.name = self.get_name(w3act_target[settings.W3ACT_JOB_FIELD])
-        self.seeds = [u["url"] for u in w3act_target["fieldUrls"]]
-        self.job_dir = setup_job_directory(
-            self.name,
-            self.seeds,
-            w3act_target["field_depth"],
-            w3act_target["field_scope"]
-        )
+    def __init__(self, w3act_targets, name=None, seeds=None, heritrix=None, setup=True):
+        if name is None:
+            self.name = self.get_name(w3act_targets[0][settings.W3ACT_JOB_FIELD])
+        else:
+            self.name = name
+        if seeds is None:
+            self.seeds = [u["url"] for t in w3act_targets for u in t["fieldUrls"]]
+        else:
+            self.seeds = seeds
+        if setup:
+            logger.debug("Configuring directory for job '%s'." % self.name)
+            self.setup_job_directory()
+            self.info = get_relevant_fields(w3act_targets)
+        else:
+            self.info = w3act_targets
         if heritrix is not None:
             self.heritrix = heritrix
-            self.heritrix.add(self.name)
-        self.info = get_relevant_fields(w3act_target)
-        self.write_info()
+            self.heritrix.add(self.job_dir)
+
+    @staticmethod
+    def from_directory(path, heritrix=None):
+        """Build a job from an existing directory."""
+        logger.debug("Building job from directory: %s" % path)
+        name = os.path.basename(path)
+        if os.path.exists("%s/latest/w3act-info.json" % path):
+            with open("%s/latest/w3act-info.json" % path, "rb") as i:
+                info = json.loads(i.read())
+        else:
+            info = []
+        with open("%s/latest/seeds.txt" % path, "rb") as i:
+            seeds = [l.strip() for l in i if not l.startswith("#") and len(l.strip()) > 0]
+        job = W3actJob(info, name=name, seeds=seeds, heritrix=heritrix, setup=False)
+        job.job_dir = path
+        return job
 
 
-    def setup_heritrix(self, api=None, host=None, port=None):
+    def setup_heritrix(self, api=None, host=None, port=None, user="admin", passwd="bl_uk"):
         if api is not None:
             self.heritrix = api
         else:
-            self.heritrix = heritrix.API(host="https://%s:%s/engine" % (host, port), user="admin", passwd="bl_uk", verbose=False, verify=False)
-        self.heritrix.add(self.name)
+            self.heritrix = heritrix.API(host="https://%s:%s/engine" % (host, port), user=user, passwd=passwd, verbose=False, verify=False)
+        self.heritrix.add(self.job_dir)
+
+
+    def create_profile(self):
+        """Creates the CXML content for a H3 job."""
+        profile = etree.parse(settings.HERITRIX_PROFILE)
+        profile.xinclude()
+        cxml = etree.tostring(profile, pretty_print=True, xml_declaration=True, encoding="UTF-8")
+        cxml = cxml.replace("REPLACE_JOB_NAME", self.name)
+        cxml = cxml.replace("REPLACE_CLAMD_PORT", settings.CLAMD_PORT)
+        cxml = cxml.replace("REPLACE_JOB_ROOT", self.name)
+        cxml = cxml.replace("REPLACE_HERITRIX_JOBS", settings.HERITRIX_JOBS)
+        self.cxml = cxml
+
+
+    def setup_job_directory(self):
+        """Creates the Heritrix job directory."""
+        self.job_dir = "%s/%s/" % (settings.HERITRIX_JOBS, self.name)
+        if not os.path.isdir(self.job_dir):
+            os.makedirs(self.job_dir)
+
+        shutil.copy(settings.HERITRIX_SHORTENERS, self.job_dir)
+        shutil.copy(settings.HERITRIX_EXCLUDE, self.job_dir)
+        shutil.copy(settings.HERITRIX_SURTS, self.job_dir)
+
+        # Write seeds to disk:
+        with open("%s/seeds.txt" % self.job_dir, "wb") as o:
+            o.write("\n".join(self.seeds))
+
+        # Write profile to disk:
+        self.create_profile()
+        with open("%s/crawler-beans.cxml" % self.job_dir, "wb") as o:
+            o.write(self.cxml)
+
+        # Write Sheet-associations to disk:
+        commands = []
+        for target in self.info:
+            commands = get_depth_scripts(target["seeds"], target["field_depth"])
+            commands += get_scope_scripts(target["seeds"], target["field_scope"])
+        commands += get_blocking_scripts()
+        with open("%s/script.beanshell" % self.job_dir, "wb") as o:
+            o.write("\n".join(commands))
 
 
     def run_job_script(self):
@@ -184,7 +212,7 @@ class W3actJob(object):
 
     def write_act_info(self):
         """Writes w3act job information to disk."""
-        with open("%s/w3act-info.json" % self.job_dir, "wb") as o:
+        with open("%s/latest/w3act-info.json" % self.job_dir, "wb") as o:
             o.write(json.dumps([self.info], indent=4))
 
 
@@ -205,6 +233,7 @@ class W3actJob(object):
         logger.info("Launching %s" % self.name)
         self.heritrix.launch(self.name)
         self.waitfor("PAUSED")
+        self.write_act_info()
         logger.info("Running scripts for %s" % self.name)
         self.run_job_script()
         logger.info("Unpausing %s" % self.name)

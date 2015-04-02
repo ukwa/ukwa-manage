@@ -62,7 +62,7 @@ def callback(ch, method, properties, body):
         target = json.loads(body)
 
         api = heritrix.API(host="https://opera.bl.uk:8443/engine", user="admin", passwd="bl_uk", verbose=False, verify=False)
-        job = W3actJob(target, heritrix=api)
+        job = W3actJob([target], heritrix=api)
         job.start()
     except Exception as e:
         logger.error("%s [%s]" % (str(e), body))

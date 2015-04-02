@@ -14,7 +14,7 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 requests.packages.urllib3.disable_warnings()
 
 
-def validate(seed, doc):
+def validate(target, doc):
     key = urlparse(doc["landing_page_url"]).netloc.replace(".", "_")
     try:
         validator = getattr(sys.modules[__name__], key)
@@ -23,13 +23,13 @@ def validate(seed, doc):
         return True
 
 
-def www_gov_uk(seed, doc):
-    """Dept. links appear in a <aside class="meta"/> tag."""
+def www_gov_uk(target, doc):
+    """Dept. names appear in a <aside class="meta"/> tag."""
     try:
         r = requests.get(doc["landing_page_url"])
         h = html.fromstring(r.content)
-        hrefs = [urljoin(doc["landing_page_url"], href) for href in h.xpath("//aside[contains(@class, 'meta')]//a/@href")]
-        return seed in hrefs
+        texts = [t for t in h.xpath("//aside[contains(@class, 'meta')]//a/text()")]
+        return len([t for t in texts if t in target["title"]]) > 0
     except:
         logger.error("www_gov_uk: %s" % sys.exc_info()[0])
         return False

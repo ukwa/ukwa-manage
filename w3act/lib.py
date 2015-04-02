@@ -29,6 +29,5 @@ class ACT():
         return js
 
     def get_ld_export(self, frequency):
-        print "%s/%s" % (settings.W3ACT_EXPORT_BASE, frequency)
         return self._get_json("%s/ld/%s" % (settings.W3ACT_EXPORT_BASE, frequency))
 
