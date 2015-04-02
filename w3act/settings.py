@@ -1,12 +1,14 @@
 LOG_ROOT="/var/log/w3act"
 PID_ROOT="/var/run/w3actd"
 
-JOB_ERROR_QUEUE_HOST="localhost"
+QUEUE_HOST="localhost"
+JOB_QUEUE_NAME="w3actqueue"
 JOB_ERROR_QUEUE_NAME="w3act-error"
 JOB_ERROR_QUEUE_KEY="w3act-error"
-
-JOB_QUEUE_HOST="localhost"
-JOB_QUEUE_NAME="w3actqueue"
+SIP_QUEUE_NAME="sips"
+SIP_QUEUE_KEY="sips"
+QA_QUEUE_NAME="qa"
+QA_QUEUE_KEY="qa"
 
 W3ACT_BASE="https://www.webarchive.org.uk/act-ddhapt"
 W3ACT_LOGIN="%s/login" % W3ACT_BASE
