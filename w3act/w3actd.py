@@ -49,7 +49,7 @@ def send_message(host, queue, key, message):
 def send_error_message(message):
     """Sends a message to the 'w3actor-error' queue."""
     send_message(
-        settings.JOB_ERROR_QUEUE_HOST,
+        settings.QUEUE_HOST,
         settings.JOB_ERROR_QUEUE_NAME,
         settings.JOB_ERROR_QUEUE_KEY,
         message
@@ -74,7 +74,7 @@ class JobDaemon(Daemon):
     def run(self):
         while True:
             try:
-                logger.debug("Starting connection %s:%s." % (settings.JOB_QUEUE_HOST, settings.JOB_QUEUE_NAME))
+                logger.debug("Starting connection %s:%s." % (settings.QUEUE_HOST, settings.JOB_QUEUE_NAME))
                 connection = pika.BlockingConnection(pika.ConnectionParameters(settings.JOB_QUEUE_HOST))
                 channel = connection.channel()
                 channel.queue_declare(queue=settings.JOB_QUEUE_NAME, durable=True)

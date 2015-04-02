@@ -40,7 +40,7 @@ def to_surt(url):
         parsed = urlparse(url).netloc
         authority = parsed.split(".")
         authority.reverse()
-        return "http://(" + ",".join(authority) + ","
+        return "http://(%s," % ",".join(authority)
 
 
 def get_surt_association_script(surt, sheet):
@@ -50,13 +50,8 @@ def get_surt_association_script(surt, sheet):
 
 def get_depth_scripts(seeds, depth):
     """Creates a list of beanshell commands for seed/depth."""
-    script = []
-    if depth.lower() in depth_sheets.keys():
-        for seed in seeds:
-            surt = to_surt(seed)
-            sheet = depth_sheets[depth.lower()]
-            script.append(get_surt_association_script(surt, sheet))
-            logger.info("Setting cap for %s to %s" % (surt, sheet))
+    sheet = depth_sheets[depth.lower()]
+    script = [get_surt_association_script(to_surt(seed), sheet) for seed in seeds]
     return script
 
 

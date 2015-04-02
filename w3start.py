@@ -3,6 +3,7 @@
 Restarts Heritrix jobs depending on the current time and the frequency of the job.
 """
 
+import os
 import sys
 import json
 import w3act
@@ -15,6 +16,7 @@ import dateutil.parser
 from w3act import settings
 from datetime import datetime
 from w3act.job import W3actJob
+from w3act.w3actd import send_message
 
 requests.packages.urllib3.disable_warnings()
 
@@ -29,9 +31,41 @@ logger.setLevel(logging.DEBUG)
 parser = argparse.ArgumentParser(description="Restarts Heritrix jobs.")
 parser.add_argument("-t", "--timestamp", dest="timestamp", type=str, required=False, help="Timestamp", default=datetime.now().isoformat())
 parser.add_argument("-f", "--frequency", dest="frequency", type=str, required=False, help="Frequency", nargs="+", default=settings.FREQUENCIES)
-parser.add_argument("-n", "--no-check", dest="no_check", action="store_true", required=False, help="No QA")
 parser.add_argument("-x", "--test", dest="test", action="store_true", required=False, help="Test")
 args = parser.parse_args()
+
+
+def remove_action_files(jobname):
+    """Removes old 'action' files and symlinks."""
+    actions_done = "%s/%s/latest/actions-done" % (settings.HERITRIX_JOBS, jobname)
+    done = "%s/%s/action/done" % (settings.HERITRIX_JOBS, jobname)
+    for root in [actions_done, done]:
+        if os.path.exists(root):
+            for action in glob.glob("%s/*" % root):
+                logger.info("Removing %s" % action)
+                os.remove(action)
+
+
+def stop_running_job(frequency, heritrix):
+    """Stops a running job, notifies RabbitMQ and cleans up the directory."""
+    job = W3actJob.from_directory("%s/%s" % (settings.HERITRIX_JOBS, frequency), heritrix=heritrix)
+    job.stop()
+    message = "%s/%s" % (frequency, heritrix.launchid(frequency))
+    logger.info("Sending SIP message: %s" % message)
+    send_message(
+        settings.QUEUE_HOST,
+        settings.SIP_QUEUE_NAME,
+        settings.SIP_QUEUE_KEY,
+        message
+    )
+    logger.info("Sending QA message: %s" % message)
+    send_message(
+        settings.QUEUE_HOST,
+        settings.QA_QUEUE_NAME,
+        settings.QA_QUEUE_KEY,
+        message
+    )
+    remove_action_files(frequency)
 
 
 def restart_job(frequency, start=datetime.now()):
@@ -45,8 +79,7 @@ def restart_job(frequency, start=datetime.now()):
         logger.debug("Found %s Targets in date range." % len(targets))
         h = heritrix.API(host="https://%s:%s/engine" % (settings.HERITRIX_HOST, settings.HERITRIX_PORTS[frequency]), user="admin", passwd="bl_uk", verbose=False, verify=False)
         if frequency in h.listjobs() and h.status(frequency) != "":
-            job = W3actJob.from_directory("%s/%s" % (settings.HERITRIX_JOBS, frequency), heritrix=h)
-            job.stop()
+            stop_running_job(frequency, h)
             #TODO: Automated QA
         job = W3actJob(targets, name=frequency, heritrix=h)
         if not args.test:
