@@ -15,9 +15,12 @@ setup(
     install_requires=[
         "python-heritrix",
         "requests",
+        "python-dateutil",
+        "lxml",
     ],
     data_files=[
         ("/etc/init.d", ["bin/w3actd"]),
         ("/usr/local/bin", ["w3actdaemon.py"]),
+        ("/usr/local/bin", ["w3start.py"]),
     ]
 )
