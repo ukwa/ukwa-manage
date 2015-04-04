@@ -76,7 +76,7 @@ def restart_job(frequency, start=datetime.now()):
         w = w3act.ACT()
         export = w.get_ld_export(frequency)
         logger.debug("Found %s Targets in export." % len(export))
-        targets = [t for t in export if dateutil.parser.parse(t["crawlStartDateText"], dayfirst=True) < start and (t["crawlEndDateText"] is None or dateutil.parser.parse(t["crawlEndDateText"], dayfirst=True) > start)]
+        targets = [t for t in export if (t["crawlStartDateText"] is None or dateutil.parser.parse(t["crawlStartDateText"], dayfirst=True) < start) and (t["crawlEndDateText"] is None or dateutil.parser.parse(t["crawlEndDateText"], dayfirst=True) > start)]
         logger.debug("Found %s Targets in date range." % len(targets))
         h = heritrix.API(host="https://%s:%s/engine" % (settings.HERITRIX_HOST, settings.HERITRIX_PORTS[frequency]), user="admin", passwd="bl_uk", verbose=False, verify=False)
         if frequency in h.listjobs() and h.status(frequency) != "":
