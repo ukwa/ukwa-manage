@@ -9,7 +9,7 @@ hadoop fs -test -e "$OUTPUT" && hadoop fs -rmr "$OUTPUT"
 hadoop fs -test -e "$SORTED" && hadoop fs -rmr "$SORTED"
 
 hadoop jar "$JAR" \
--Dmapred.reduce.tasks=80 \
+-Dmapred.reduce.tasks=260 \
 -Dmapred.textoutputformat.separator="#" \
 -Dmapred.output.compress=true \
 -Dmapred.output.compression.codec=org.apache.hadoop.io.compress.GzipCodec \

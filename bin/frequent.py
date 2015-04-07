@@ -33,7 +33,7 @@ from requests.exceptions import ConnectionError
 requests.packages.urllib3.disable_warnings()
 
 parser = argparse.ArgumentParser(description="Extract ARK-WARC lookup from METS.")
-parser.add_argument("-t", "--timestampt", dest="timestamp", type=str, required=False, help="Timestamp")
+parser.add_argument("-t", "--timestamp", dest="timestamp", type=str, required=False, help="Timestamp")
 parser.add_argument("-f", "--frequency", dest="frequency", type=str, required=False, help="Frequency")
 parser.add_argument("-n", "--no-check", dest="no_check", action="store_false", required=False, help="No QA")
 args = parser.parse_args()
