@@ -93,18 +93,23 @@ def restart_job(frequency, start=datetime.now()):
 
 def restart_frequencies(frequencies, now):
     """Restarts jobs depending on the current time."""
-    for frequency in frequencies:
-        if now.hour == settings.JOB_RESTART_HOUR:
+    if now.hour == settings.JOB_RESTART_HOUR:
+        if "daily" in frequencies:
             restart_job("daily", start=now)
-            if now.isoweekday() == settings.JOB_RESTART_WEEKDAY:
+        if now.isoweekday() == settings.JOB_RESTART_WEEKDAY:
+            if "weekly" in frequencies:
                 restart_job("weekly", start=now)
-                if now.day == settings.JOB_RESTART_DAY:
+            if now.day == settings.JOB_RESTART_DAY:
+                if "monthly" in frequencies:
                     restart_job("monthly", start=now)
-                    if now.month%3 == 0:
+                if now.month%3 == 1:
+                    if "quarterly" in frequencies:
                         restart_job("quarterly", start=now)
-                    if now.month%6 == 0:
+                if now.month%6 == 1:
+                    if "sixmonthly" in frequencies:
                         restart_job("sixmonthly", start=now)
-                    if now.month == settings.JOB_RESTART_MONTH:
+                if now.month == settings.JOB_RESTART_MONTH:
+                    if "annual" in frequencies:
                         restart_job("annual", start=now)
 
 if __name__ == "__main__":
