@@ -40,14 +40,14 @@ def add_seeds(job, seeds):
     if len(seeds) > 0:
         filename = "%s.seeds" % datetime.now().strftime("%Y%m%d%H%M%S")
         tmp = "/tmp/%s" % filename
-        action = "%s/%s/action/%s" % (settings.HERITRIX_JOBS, frequency, filename)
+        action = "%s/%s/action/%s" % (settings.HERITRIX_JOBS, job, filename)
         if not args.test:
             with open(tmp, "wb") as o:
                 o.write("\n".join(seeds))
             shutil.move(tmp, action)
-            logger.info("Added %s seeds to %s crawl." % (len(seeds), frequency))
+            logger.info("Added %s seeds to %s crawl." % (len(seeds), job))
         else:
-            logger.info("Would add %s seeds to %s crawl." % (len(seeds), frequency))
+            logger.info("Would add %s seeds to %s crawl." % (len(seeds), job))
 
 
 def get_new_seeds(frequencies, start):
