@@ -22,5 +22,6 @@ setup(
         ("/etc/init.d", ["bin/w3actd"]),
         ("/usr/local/bin", ["w3actdaemon.py"]),
         ("/usr/local/bin", ["w3start.py"]),
+        ("/usr/local/bin", ["w3add.py"]),
     ]
 )
