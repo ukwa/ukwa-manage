@@ -50,6 +50,15 @@ def add_seeds(job, seeds):
             logger.info("Would add %s seeds to %s crawl." % (len(seeds), job))
 
 
+def get_action_seeds(job):
+    """Retrieves all seeds added via Action directory."""
+    seeds = []
+    for done in glob("%s/%s/action/done/*.seeds" % (settings.HERITRIX_JOBS, job)):
+        with open(done, "rb") as i:
+            seeds += [l.strip() for l in i]
+    return seeds
+
+
 def get_new_seeds(frequencies, start):
     """Determines new seeds for each frequency."""
     try:
@@ -60,7 +69,7 @@ def get_new_seeds(frequencies, start):
             targets = [t for t in export if (t["crawlStartDateText"] is not None and dateutil.parser.parse(t["crawlStartDateText"], dayfirst=True) < start) and (t["crawlEndDateText"] is None or dateutil.parser.parse(t["crawlEndDateText"], dayfirst=True) > start)]
             all_seeds = [u["url"] for t in targets for u in t["fieldUrls"]]
             h = heritrix.API(host="https://%s:%s/engine" % (settings.HERITRIX_HOST, settings.HERITRIX_PORTS[frequency]), user="admin", passwd="bl_uk", verbose=False, verify=False)
-            current_seeds = h.seeds(frequency)
+            current_seeds = h.seeds(frequency) + get_action_seeds(frequency)
             new_seeds = list(set(all_seeds) - set(current_seeds))
             add_seeds(frequency, new_seeds)
     except:
