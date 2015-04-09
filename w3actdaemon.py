@@ -10,7 +10,7 @@ import logging
 from w3act import settings
 from w3act.w3actd import JobDaemon
 
-logger = logging.getLogger("w3actord")
+logger = logging.getLogger("w3actd")
 handler = logging.FileHandler("%s/%s.log" % (settings.LOG_ROOT, __name__))
 formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
 handler.setFormatter(formatter)
