@@ -17,7 +17,7 @@ DAEMON_NAME=w3actd
 DAEMON_USER=heritrix
  
 # The process ID of the script when it runs is stored here:
-PIDFILE=/var/run/$DAEMON_NAME/$DAEMON_NAME.pid
+PIDFILE=/var/run/w3act/$DAEMON_NAME.pid
  
 . /lib/lsb/init-functions
  
