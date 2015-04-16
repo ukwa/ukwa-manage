@@ -12,8 +12,8 @@ import shutil
 import logging
 import heritrix
 import requests
-import settings
 from lxml import html
+from w3act import settings
 from daemonize import Daemon
 from w3act.job import W3actJob
 
@@ -26,7 +26,7 @@ logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
 #Try to set logging output for all modules.
-logging.root.setLevel(logging.WARNING)
+logging.getLogger("").setLevel(logging.WARNING)
 logging.getLogger("").addHandler(handler)
 
 
@@ -75,7 +75,7 @@ class JobDaemon(Daemon):
         while True:
             try:
                 logger.debug("Starting connection %s:%s." % (settings.QUEUE_HOST, settings.JOB_QUEUE_NAME))
-                connection = pika.BlockingConnection(pika.ConnectionParameters(settings.JOB_QUEUE_HOST))
+                connection = pika.BlockingConnection(pika.ConnectionParameters(settings.QUEUE_HOST))
                 channel = connection.channel()
                 channel.queue_declare(queue=settings.JOB_QUEUE_NAME, durable=True)
                 channel.basic_consume(callback, queue=settings.JOB_QUEUE_NAME, no_ack=True)
