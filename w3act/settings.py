@@ -1,5 +1,5 @@
 LOG_ROOT="/var/log/w3act"
-PID_ROOT="/var/run/w3actd"
+PID_ROOT="/var/run/w3act"
 
 QUEUE_HOST="localhost"
 JOB_QUEUE_NAME="w3actqueue"
@@ -37,3 +37,29 @@ FREQUENCIES = ["daily", "weekly", "monthly", "quarterly", "sixmonthly", "annual"
 HERITRIX_PORTS = { "daily": "8443", "weekly": "8443", "monthly": "8443", "quarterly": "8443", "sixmonthly": "8443", "annual": "8443" }
 CLAMD_PORTS = { "daily": "3310", "weekly": "3310", "monthly": "3310", "quarterly": "3310", "sixmonthly": "3310", "annual": "3310" }
 MAX_RENDER_DEPTH = { "daily": 0, "weekly": 1, "monthly": 1, "quarterly": 1, "sixmonthly": 1, "annual": 1 }
+
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": True,
+    "formatters": {
+        "simple": {
+            "format": "[%(asctime)s] %(levelname)s: %(message)s"
+        }
+    },
+    "handlers": {
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.handlers.RotatingFileHandler",
+            "formatter": "simple",
+            "filename": "%s/%s.log" % (LOG_ROOT, __name__),
+            "maxBytes": 10485760
+        }
+    },
+    "loggers": {
+        "w3act": {
+            "level": "DEBUG",
+            "handlers": ["file"]
+        }
+    }
+}
+
