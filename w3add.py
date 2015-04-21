@@ -43,7 +43,7 @@ def add_seeds(job, seeds):
         action = "%s/%s/action/%s" % (settings.HERITRIX_JOBS, job, filename)
         if not args.test:
             with open(tmp, "wb") as o:
-                o.write("\n".join(seeds))
+                o.write(str(unicode("\n".join(seeds)).encode("utf-8")))
             shutil.move(tmp, action)
             logger.info("Added %s seeds to %s crawl." % (len(seeds), job))
         else:
