@@ -36,6 +36,7 @@ W3ACT_FIELDS=["id", "title", "crawlStartDateText", "crawlEndDateText", "field_de
 FREQUENCIES = ["daily", "weekly", "monthly", "quarterly", "sixmonthly", "annual"]
 HERITRIX_PORTS = { "daily": "8443", "weekly": "8443", "monthly": "8443", "quarterly": "8443", "sixmonthly": "8443", "annual": "8443" }
 CLAMD_PORTS = { "daily": "3310", "weekly": "3310", "monthly": "3310", "quarterly": "3310", "sixmonthly": "3310", "annual": "3310" }
+CLAMD_DEFAULT_PORT = "3310"
 MAX_RENDER_DEPTH = { "daily": 0, "weekly": 1, "monthly": 1, "quarterly": 1, "sixmonthly": 1, "annual": 1 }
 
 LOGGING_CONFIG = {
