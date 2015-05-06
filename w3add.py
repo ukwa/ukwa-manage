@@ -55,7 +55,7 @@ def get_action_seeds(job):
     seeds = []
     for done in glob("%s/%s/action/done/*.seeds" % (settings.HERITRIX_JOBS, job)):
         with open(done, "rb") as i:
-            seeds += [l.strip() for l in i]
+            seeds += [l.strip().decode("utf-8") for l in i]
     return seeds
 
 
