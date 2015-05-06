@@ -42,8 +42,9 @@ def remove_action_files(jobname):
     done = "%s/%s/action/done" % (settings.HERITRIX_JOBS, jobname)
     for root in [actions_done, done]:
         if os.path.exists(root):
-            for action in glob("%s/*" % root):
-                logger.info("Removing %s" % action)
+            to_remove = glob("%s/*" % root)
+            logger.info("Removing %s action files." % len(to_remove))
+            for action in to_remove:
                 os.remove(action)
 
 
