@@ -199,7 +199,7 @@ class W3actJob(object):
     def write_act_info(self):
         """Writes w3act job information to disk."""
         with open("%s/latest/w3act-info.json" % self.job_dir, "wb") as o:
-            o.write(json.dumps([self.info], indent=4))
+            o.write(json.dumps(self.info, indent=4))
 
 
     def waitfor(self, status):
@@ -243,4 +243,4 @@ class W3actJob(object):
         self.stop()
         self.start()
 
-€ý5:q
+€ý5:q
