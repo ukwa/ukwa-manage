@@ -222,6 +222,7 @@ class W3actJob(object):
         self.write_act_info()
         logger.info("Running scripts for %s" % self.name)
         self.run_job_script()
+        self.heritrix.execute(engine="groovy", script="appCtx.getBean(\"extractorMq\").setupChannel();", job=self.name)
         logger.info("Unpausing %s" % self.name)
         self.heritrix.unpause(self.name)
         self.waitfor("RUNNING")
@@ -243,4 +244,3 @@ class W3actJob(object):
         self.stop()
         self.start()
 
-€ý5:q
