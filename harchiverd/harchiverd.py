@@ -13,6 +13,7 @@ import requests
 import settings
 from daemonize import Daemon
 from datetime import datetime
+from urlparse import urlparse
 from hanzo.warctools import WarcRecord
 from warcwriterpool import WarcWriterPool, warc_datetime_str
 
@@ -29,6 +30,9 @@ def write_outlinks(har, dir):
 	filename = "%s/%s.schedule.gz" % (dir, str(datetime.now().strftime("%s")))
 	with gzip.open(filename, "wb") as o:
 		for entry in j["log"]["entries"]:
+            protocol = urlparse(entry["request"]["url"]).scheme
+            if not protocol in settings.PROTOCOLS:
+                continue
 			referer = None
 			for header in entry["request"]["headers"]:
 				if header["name"].lower() == "referer":
@@ -70,6 +74,10 @@ def callback(warcwriter, body):
 		r = requests.post(ws, data=data)
 		if r.status_code == 200:
 			har = r.content
+            # Write outlinks first to catch any malformed JSON...
+			if dir is not None:
+				logger.debug("Writing outlinks to %s" % dir)
+				write_outlinks(har, dir)
 			headers = [
 				(WarcRecord.TYPE, WarcRecord.METADATA),
 				(WarcRecord.URL, url),
@@ -78,9 +86,6 @@ def callback(warcwriter, body):
 				(WarcRecord.ID, "<urn:uuid:%s>" % uuid.uuid1()),
 			]
 			warcwriter.write_record(headers, "application/json", har)
-			if dir is not None:
-				logger.debug("Writing outlinks to %s" % dir)
-				write_outlinks(har, dir)
 		else:
 			logger.warning("None-200 response for %s; %s" % (body, r.content))
 	except Exception as e:
