@@ -25,87 +25,87 @@ logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
 def write_outlinks(har, dir):
-	"""Writes outlinks in the HAR to a gzipped file."""
-	j = json.loads(har)
-	filename = "%s/%s.schedule.gz" % (dir, str(datetime.now().strftime("%s")))
-	with gzip.open(filename, "wb") as o:
-		for entry in j["log"]["entries"]:
+    """Writes outlinks in the HAR to a gzipped file."""
+    j = json.loads(har)
+    filename = "%s/%s.schedule.gz" % (dir, str(datetime.now().strftime("%s")))
+    with gzip.open(filename, "wb") as o:
+        for entry in j["log"]["entries"]:
             protocol = urlparse(entry["request"]["url"]).scheme
             if not protocol in settings.PROTOCOLS:
                 continue
-			referer = None
-			for header in entry["request"]["headers"]:
-				if header["name"].lower() == "referer":
-					referer = header["value"]
-			if referer is not None:
-				o.write("F+ %s E %s\n" % (entry["request"]["url"], referer))
-			else:
-				o.write("F+ %s\n" % entry["request"]["url"])
+            referer = None
+            for header in entry["request"]["headers"]:
+                if header["name"].lower() == "referer":
+                    referer = header["value"]
+            if referer is not None:
+                o.write("F+ %s E %s\n" % (entry["request"]["url"], referer))
+            else:
+                o.write("F+ %s\n" % entry["request"]["url"])
 
 def callback(warcwriter, body):
-	"""Parses messages, writing results to disk.
+    """Parses messages, writing results to disk.
 
-	Arguments:
-	warcwriter -- A python-warcwriterpool instance.
-	body -- The incoming message body.
+    Arguments:
+    warcwriter -- A python-warcwriterpool instance.
+    body -- The incoming message body.
 
-	"""
-	try:
-		logger.debug("Message received: %s." % body)
-		dir = None
-		selectors = [":root"]
-		parts = body.split("|")
-		if len(parts) == 1:
-			url = parts[0]
-		elif len(parts) == 2:
-			url, dir = parts
-		else:
-			url = parts[0]
-			dir = parts[1]
-			selectors += parts[2:]
+    """
+    try:
+        logger.debug("Message received: %s." % body)
+        dir = None
+        selectors = [":root"]
+        parts = body.split("|")
+        if len(parts) == 1:
+            url = parts[0]
+        elif len(parts) == 2:
+            url, dir = parts
+        else:
+            url = parts[0]
+            dir = parts[1]
+            selectors += parts[2:]
 
-		# Build up our POST data.
-		data = {}
-		for s in selectors:
-			data[s] = s
+        # Build up our POST data.
+        data = {}
+        for s in selectors:
+            data[s] = s
 
-		ws = "%s/%s" % (settings.WEBSERVICE, url)
-		logger.debug("Calling %s" % ws)
-		r = requests.post(ws, data=data)
-		if r.status_code == 200:
-			har = r.content
+        ws = "%s/%s" % (settings.WEBSERVICE, url)
+        logger.debug("Calling %s" % ws)
+        r = requests.post(ws, data=data)
+        if r.status_code == 200:
+            har = r.content
             # Write outlinks first to catch any malformed JSON...
-			if dir is not None:
-				logger.debug("Writing outlinks to %s" % dir)
-				write_outlinks(har, dir)
-			headers = [
-				(WarcRecord.TYPE, WarcRecord.METADATA),
-				(WarcRecord.URL, url),
-				(WarcRecord.CONTENT_TYPE, "application/json"),
-				(WarcRecord.DATE, warc_datetime_str(datetime.now())),
-				(WarcRecord.ID, "<urn:uuid:%s>" % uuid.uuid1()),
-			]
-			warcwriter.write_record(headers, "application/json", har)
-		else:
-			logger.warning("None-200 response for %s; %s" % (body, r.content))
-	except Exception as e:
-		logger.error("%s [%s]" % (str(e), body))
+            if dir is not None:
+                logger.debug("Writing outlinks to %s" % dir)
+                write_outlinks(har, dir)
+            headers = [
+                (WarcRecord.TYPE, WarcRecord.METADATA),
+                (WarcRecord.URL, url),
+                (WarcRecord.CONTENT_TYPE, "application/json"),
+                (WarcRecord.DATE, warc_datetime_str(datetime.now())),
+                (WarcRecord.ID, "<urn:uuid:%s>" % uuid.uuid1()),
+            ]
+            warcwriter.write_record(headers, "application/json", har)
+        else:
+            logger.warning("None-200 response for %s; %s" % (body, r.content))
+    except Exception as e:
+        logger.error("%s [%s]" % (str(e), body))
 
 class HarchiverDaemon(Daemon):
-	"""Maintains a connection to the queue."""
-	def run(self):
-		warcwriter = WarcWriterPool(gzip=True, output_dir=settings.OUTPUT_DIRECTORY)
-		while True:
-			try:
-				logger.debug("Starting connection %s:%s." % (settings.HAR_QUEUE_HOST, settings.HAR_QUEUE_NAME))
-				connection = pika.BlockingConnection(pika.ConnectionParameters(settings.HAR_QUEUE_HOST))
-				channel = connection.channel()
-				channel.queue_declare(queue=settings.HAR_QUEUE_NAME, durable=True)
-				for method_frame, properties, body in channel.consume(settings.HAR_QUEUE_NAME):
-					callback(warcwriter, body)
-					channel.basic_ack(method_frame.delivery_tag)
-			except Exception as e:
-				logger.error(str(e))
-				requeued_messages = channel.cancel()
-				logger.debug("Requeued %i messages" % requeued_messages)
+    """Maintains a connection to the queue."""
+    def run(self):
+        warcwriter = WarcWriterPool(gzip=True, output_dir=settings.OUTPUT_DIRECTORY)
+        while True:
+            try:
+                logger.debug("Starting connection %s:%s." % (settings.HAR_QUEUE_HOST, settings.HAR_QUEUE_NAME))
+                connection = pika.BlockingConnection(pika.ConnectionParameters(settings.HAR_QUEUE_HOST))
+                channel = connection.channel()
+                channel.queue_declare(queue=settings.HAR_QUEUE_NAME, durable=True)
+                for method_frame, properties, body in channel.consume(settings.HAR_QUEUE_NAME):
+                    callback(warcwriter, body)
+                    channel.basic_ack(method_frame.delivery_tag)
+            except Exception as e:
+                logger.error(str(e))
+                requeued_messages = channel.cancel()
+                logger.debug("Requeued %i messages" % requeued_messages)
 
