@@ -21,6 +21,7 @@ W3ACT_JOB_FIELD="url"
 HERITRIX_HOST="crawler03.wa.bl.uk"
 HERITRIX_ROOT="/opt/heritrix"
 HERITRIX_JOBS="%s/jobs" % HERITRIX_ROOT
+HERITRIX_LOGS="/heritrix/output/logs"
 HERITRIX_CONFIG_ROOT="/heritrix/git/heritrix_bl_configs"
 HERITRIX_PROFILE="%s/profiles/profile-frequent.cxml" % HERITRIX_CONFIG_ROOT
 HERITRIX_EXCLUDE="%s/exclude.txt" % HERITRIX_CONFIG_ROOT
