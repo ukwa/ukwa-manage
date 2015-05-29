@@ -54,14 +54,14 @@ def send_amqp_message(message, client_id):
                              durable=True, 
                              auto_delete=False)
     channel.queue_declare(queue=settings.AMQP_OUTLINK_QUEUE, 
-                          durable=True, 
+                          durable=False, 
                           exclusive=False, 
-                          auto_delete=False)
+                          auto_delete=True)
     channel.queue_bind(queue=settings.AMQP_OUTLINK_QUEUE, 
            exchange=settings.AMQP_EXCHANGE,
            routing_key=client_id)
     channel.basic_publish(exchange=settings.AMQP_EXCHANGE,
-        routing_key=client_id
+        routing_key=client_id,
         properties=pika.BasicProperties(
             delivery_mode=2,
         ),
