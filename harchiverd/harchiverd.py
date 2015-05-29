@@ -42,6 +42,34 @@ def write_outlinks(har, dir):
             else:
                 o.write("F+ %s\n" % entry["request"]["url"])
 
+def handle_json_message(message):
+    """Parses AMQPPublishProcessor-style JSON messages."""
+    dir = None
+    selectors = [":root"]
+    j = json.loads(message)
+    url = j["url"]
+    if "output_directory" in j.keys():
+        dir = j["output_directory"]
+    if "selectors" in j.keys():
+        selectors += j["selectors"]
+    return (url, dir, selectors)
+
+def handle_pipe_message(message):
+    """Parses pipe-separated message."""
+    url = None
+    dir = None
+    selectors = [":root"]
+    parts = message.split("|")
+    if len(parts) == 1:
+        url = parts[0]
+    elif len(parts) == 2:
+        url, dir = parts
+    else:
+        url = parts[0]
+        dir = parts[1]
+        selectors += parts[2:]
+    return (url, dir, selectors)
+
 def callback(warcwriter, body):
     """Parses messages, writing results to disk.
 
@@ -52,32 +80,23 @@ def callback(warcwriter, body):
     """
     try:
         logger.debug("Message received: %s." % body)
-        dir = None
-        selectors = [":root"]
-        parts = body.split("|")
-        if len(parts) == 1:
-            url = parts[0]
-        elif len(parts) == 2:
-            url, dir = parts
+        if body.startswith("{"):
+            (url, dir, selectors) = handle_json_message(body)
         else:
-            url = parts[0]
-            dir = parts[1]
-            selectors += parts[2:]
+            (url, dir, selectors) = handle_pipe_message(body)
 
         # Build up our POST data.
         data = {}
-        for s in selectors:
-            data[s] = s
+        data["selectors"] = selectors
 
         ws = "%s/%s" % (settings.WEBSERVICE, url)
         logger.debug("Calling %s" % ws)
         r = requests.post(ws, data=data)
         if r.status_code == 200:
-            har = r.content
-            # Write outlinks first to catch any malformed JSON...
             if dir is not None:
                 logger.debug("Writing outlinks to %s" % dir)
                 write_outlinks(har, dir)
+            har = r.content
             headers = [
                 (WarcRecord.TYPE, WarcRecord.METADATA),
                 (WarcRecord.URL, url),
