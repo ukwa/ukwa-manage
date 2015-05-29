@@ -24,8 +24,10 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
-def write_outlinks(har, dir):
+def write_outlinks(har, dir, parent):
     """Writes outlinks in the HAR to a gzipped file."""
+    if dir is None:
+        return
     j = json.loads(har)
     filename = "%s/%s.schedule.gz" % (dir, str(datetime.now().strftime("%s")))
     with gzip.open(filename, "wb") as o:
@@ -42,20 +44,64 @@ def write_outlinks(har, dir):
             else:
                 o.write("F+ %s\n" % entry["request"]["url"])
 
+def send_amqp_message(message, client_id):
+    """Send outlinks to AMQP."""
+    parameters = pika.URLParameters(settings.AMQP_URL)
+    connection = pika.BlockingConnection(parameters)
+    channel = connection.channel()
+    channel.exchange_declare(exchange=settings.AMQP_EXCHANGE,
+                             type="direct", 
+                             durable=True, 
+                             auto_delete=False)
+    channel.queue_declare(queue=settings.AMQP_OUTLINK_QUEUE, 
+                          durable=True, 
+                          exclusive=False, 
+                          auto_delete=False)
+    channel.queue_bind(queue=settings.AMQP_OUTLINK_QUEUE, 
+           exchange=settings.AMQP_EXCHANGE,
+           routing_key=client_id)
+    channel.basic_publish(exchange=settings.AMQP_EXCHANGE,
+        routing_key=client_id
+        properties=pika.BasicProperties(
+            delivery_mode=2,
+        ),
+        body=message)
+    channel.close()
+    connection.close()
+
+def amqp_outlinks(har, cliend_id, parent):
+    """Passes outlinks back to queue."""
+    har = json.loads(har)
+    parent = json.loads(parent)
+    for entry in j["log"]["entries"]:
+        protocol = urlparse(entry["request"]["url"]).scheme
+        if not protocol in settings.PROTOCOLS:
+            continue
+        message = {
+            "url": entry["request"]["url"],
+            "method": entry["request"]["method"],
+            "headers": entry["request"]["headers"],
+            "parentUrl": parent["url"],
+            "parentUrlMetadata": parent["metadata"]
+        }
+        try:
+            send_amqp_message(message, cliend_id)
+        except:
+            logger.error("Problem sending message: %s; %s" % (message, sys.exc_info()))
+
 def handle_json_message(message):
     """Parses AMQPPublishProcessor-style JSON messages."""
-    dir = None
+    logger.info("Handling JSON message: %s" % message)
     selectors = [":root"]
     j = json.loads(message)
     url = j["url"]
-    if "output_directory" in j.keys():
-        dir = j["output_directory"]
     if "selectors" in j.keys():
         selectors += j["selectors"]
-    return (url, dir, selectors)
+    return (url, message["clientId"], selectors, amqp_outlinks)
 
 def handle_pipe_message(message):
     """Parses pipe-separated message."""
+    logger.info("Handling pipe-separated message: %s" % message)
     url = None
     dir = None
     selectors = [":root"]
@@ -68,7 +114,7 @@ def handle_pipe_message(message):
         url = parts[0]
         dir = parts[1]
         selectors += parts[2:]
-    return (url, dir, selectors)
+    return (url, dir, selectors, write_outlinks)
 
 def callback(warcwriter, body):
     """Parses messages, writing results to disk.
@@ -81,9 +127,9 @@ def callback(warcwriter, body):
     try:
         logger.debug("Message received: %s." % body)
         if body.startswith("{"):
-            (url, dir, selectors) = handle_json_message(body)
+            (url, handler_id, selectors, url_handler) = handle_json_message(body)
         else:
-            (url, dir, selectors) = handle_pipe_message(body)
+            (url, handler_id, selectors, url_handler) = handle_pipe_message(body)
 
         # Build up our POST data.
         data = {}
@@ -93,9 +139,8 @@ def callback(warcwriter, body):
         logger.debug("Calling %s" % ws)
         r = requests.post(ws, data=data)
         if r.status_code == 200:
-            if dir is not None:
-                logger.debug("Writing outlinks to %s" % dir)
-                write_outlinks(har, dir)
+            # Handle outlinks, passing original message...
+            url_handler(har, handler_id, body)
             har = r.content
             headers = [
                 (WarcRecord.TYPE, WarcRecord.METADATA),
@@ -116,11 +161,22 @@ class HarchiverDaemon(Daemon):
         warcwriter = WarcWriterPool(gzip=True, output_dir=settings.OUTPUT_DIRECTORY)
         while True:
             try:
-                logger.debug("Starting connection %s:%s." % (settings.HAR_QUEUE_HOST, settings.HAR_QUEUE_NAME))
-                connection = pika.BlockingConnection(pika.ConnectionParameters(settings.HAR_QUEUE_HOST))
+                logger.debug("Starting connection: %s" % (settings.AMQP_URL))
+                parameters = pika.URLParameters(settings.AMQP_URL)
+                connection = pika.BlockingConnection(parameters)
                 channel = connection.channel()
-                channel.queue_declare(queue=settings.HAR_QUEUE_NAME, durable=True)
-                for method_frame, properties, body in channel.consume(settings.HAR_QUEUE_NAME):
+                channel.exchange_declare(exchange=settings.AMQP_EXCHANGE,
+                                         type="direct", 
+                                         durable=True, 
+                                         auto_delete=False)
+                channel.queue_declare(queue=settings.AMQP_QUEUE, 
+                                      durable=True, 
+                                      exclusive=False, 
+                                      auto_delete=False)
+                channel.queue_bind(queue=settings.AMQP_QUEUE, 
+                       exchange=settings.AMQP_EXCHANGE,
+                       routing_key=client_id)
+                for method_frame, properties, body in channel.consume(settings.AMQP_QUEUE):
                     callback(warcwriter, body)
                     channel.basic_ack(method_frame.delivery_tag)
             except Exception as e:
