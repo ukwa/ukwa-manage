@@ -173,7 +173,7 @@ class W3actJob(object):
 
         # Write seeds to disk:
         with open("%s/seeds.txt" % self.job_dir, "wb") as o:
-            o.write("\n".join(self.seeds))
+            o.write("\n".join(self.seeds).encode("utf-8"))
 
         # Write profile to disk:
         self.create_profile()
