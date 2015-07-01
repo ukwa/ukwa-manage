@@ -18,6 +18,7 @@ from w3act import settings
 from datetime import datetime
 from w3act.job import W3actJob
 from w3act.w3actd import send_message
+from w3act.util import generate_log_stats
 
 requests.packages.urllib3.disable_warnings()
 
@@ -68,6 +69,8 @@ def stop_running_job(frequency, heritrix):
         message
     )
     remove_action_files(frequency)
+    stats = generate_log_stats(glob("%s/%s/crawl.log*" % (HERITRIX_LOGS, frequency)))
+    logger.info(json.dumps(stats, indent=4))
 
 
 def restart_job(frequency, start=datetime.now()):
