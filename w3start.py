@@ -51,7 +51,8 @@ def remove_action_files(jobname):
 
 def stop_running_job(frequency, heritrix):
     """Stops a running job, notifies RabbitMQ and cleans up the directory."""
-    message = "%s/%s" % (frequency, heritrix.launchid(frequency))
+    launchid = heritrix.launchid(frequency)
+    message = "%s/%s" % (frequency, launchid)
     job = W3actJob.from_directory("%s/%s" % (settings.HERITRIX_JOBS, frequency), heritrix=heritrix)
     job.stop()
     logger.info("Sending SIP message: %s" % message)
@@ -69,7 +70,7 @@ def stop_running_job(frequency, heritrix):
         message
     )
     remove_action_files(frequency)
-    stats = generate_log_stats(glob("%s/%s/crawl.log*" % (HERITRIX_LOGS, frequency)))
+    stats = generate_log_stats(glob("%s/%s/%s/crawl.log*" % (HERITRIX_LOGS, frequency, launchid)))
     logger.info(json.dumps(stats, indent=4))
 
 
