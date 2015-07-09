@@ -50,7 +50,7 @@ def get_surt_association_script(surt, sheet):
 
 def get_depth_scripts(seeds, depth):
     """Creates a list of beanshell commands for seed/depth."""
-    if depth not in depth_sheets.keys():
+    if depth.lower() not in depth_sheets.keys():
         return []
     sheet = depth_sheets[depth.lower()]
     script = [get_surt_association_script(to_surt(seed), sheet) for seed in seeds]
