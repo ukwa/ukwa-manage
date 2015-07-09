@@ -15,7 +15,7 @@ The primary class herein is the `W3actJob`, a representation of a `w3act` job. A
     from w3act.job import W3actJob
     existing_job = W3actJob.from_directory("/path/to/heritrix/job/")
 
-Similarly, a new job can be created. This requires, however, an existing `heritrix` instance:
+Similarly, a new job can be created. This requires, however, an existing [heritrix](https://github.com/PsypherPunk/python-heritrix/) instance:
 
     import heritrix
     from w3act.job import W3actJob
