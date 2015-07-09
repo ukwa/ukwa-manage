@@ -2,6 +2,13 @@ w3act
 ==============
 `w3act` is a Python package for interraction with the [w3act](https://github.com/ukwa/w3act/) service.
 
+The main package contains methods for accessing the feeds exported by `w3act`:
+
+    import w3act
+    w = w3act.ACT()
+    daily_legal_deposit_export = w.get_ld_export("daily")
+    weekly_by_permission_export = w.get_by_export("weekly")
+
 ##### `job`
 The primary class herein is the `W3actJob`, a representation of a `w3act` job. An instance can be built from an already-existing directory (see `w3start.py` for an example):
 
