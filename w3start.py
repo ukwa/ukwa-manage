@@ -104,18 +104,18 @@ def restart_frequencies(frequencies, now):
         if now.isoweekday() == settings.JOB_RESTART_WEEKDAY:
             if "weekly" in frequencies:
                 restart_job("weekly", start=now)
-            if now.day == settings.JOB_RESTART_DAY:
-                if "monthly" in frequencies:
-                    restart_job("monthly", start=now)
-                if now.month%3 == 1:
-                    if "quarterly" in frequencies:
-                        restart_job("quarterly", start=now)
-                if now.month%6 == 1:
-                    if "sixmonthly" in frequencies:
-                        restart_job("sixmonthly", start=now)
-                if now.month == settings.JOB_RESTART_MONTH:
-                    if "annual" in frequencies:
-                        restart_job("annual", start=now)
+        if now.day == settings.JOB_RESTART_DAY:
+            if "monthly" in frequencies:
+                restart_job("monthly", start=now)
+            if now.month%3 == 1:
+                if "quarterly" in frequencies:
+                    restart_job("quarterly", start=now)
+            if now.month%6 == 1:
+                if "sixmonthly" in frequencies:
+                    restart_job("sixmonthly", start=now)
+            if now.month == settings.JOB_RESTART_MONTH:
+                if "annual" in frequencies:
+                    restart_job("annual", start=now)
 
 if __name__ == "__main__":
     restart_frequencies(args.frequency, dateutil.parser.parse(args.timestamp).replace(tzinfo=None))
