@@ -1,7 +1,7 @@
 python-legal-deposit-sip
 ==============
 
-Provides a `SipCreator` which can produce a `METS` file for Heritrix jobs. For example, SIPs created for the WDI ingest stream are created via:
+The `python-legal-deposit-sip` package is used to create Legal Deposit compliant SIPs for ingest in to the DLS. It provides a `SipCreator` which can produce a `METS` file for Heritrix jobs. For example, SIPs created for the WDI ingest stream are created via:
 
     sip_dir = "%s/%s" % (settings.SIP_ROOT, job)
     s = sip.SipCreator(jobs=["daily/20150708110924"], jobname="daily/20150708110924", dummy=False)
@@ -10,7 +10,7 @@ Provides a `SipCreator` which can produce a `METS` file for Heritrix jobs. For e
         s.createMets()
         filename = os.path.basename(job)
         os.makedirs(sip_dir)
-        with open( "%s/%s.xml" % (sip_dir, filename , "wb") as o:
+        with open("%s/%s.xml" % (sip_dir, filename , "wb") as o:
             s.writeMets(o)
         s.bagit(sip_dir)
     else:
