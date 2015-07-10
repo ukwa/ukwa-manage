@@ -9,7 +9,7 @@ from Queue import Queue
 from threading import Thread
 from datetime import datetime
 
-SOFTWARE_VERSION="create_mets;0.1682"
+SOFTWARE_VERSION="python-legal-deposit-sip==0.0.3"
 CLAMDSCAN = commands.getstatusoutput( "clamdscan --config-file=" + CLAMD_CONF + " --version" )[ 1 ].strip()
 METS= "{http://www.loc.gov/METS/}"
 MODS = "{http://www.loc.gov/mods/v3}"
