@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import json
 import logging
 import requests
+from fnmatch import fnmatch
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.WARNING )
@@ -38,6 +40,15 @@ class API():
     def list( self, path ):
         r = self._get( path=path, op="LISTSTATUS" )
         return json.loads( r.text )
+
+    def find(self, path, name="*"):
+        if self.isdir(path):
+            for entry in self.list(path)["FileStatuses"]["FileStatus"]:
+                for sub in self.find(os.path.join(path, entry["pathSuffix"]), name=name):
+                    yield sub
+        else:
+            if fnmatch(path, name):
+                yield path
 
     def file(self, path):
         r = self._get(path=path, op="GETFILESTATUS")
