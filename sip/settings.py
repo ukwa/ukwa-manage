@@ -1,5 +1,6 @@
 LOCAL_ROOT = "/heritrix/output"
 WARC_ROOT = "%s/warcs" % LOCAL_ROOT
+IMAGE_ROOT = "%s/images" % LOCAL_ROOT
 LOG_ROOT = "%s/logs" % LOCAL_ROOT
 VIRAL_ROOT = "%s/viral" % LOCAL_ROOT
 ARK_URL="http://pii.ad.bl.uk/pii/vdc?arks="
@@ -26,3 +27,4 @@ PERMISSION_PUBLISHED="True"
 HERITRIX = "heritrix-3.1.1+uk.bl.wap"
 
 CLAMD_CONF = "/opt/heritrix/clamd/3310.conf"
+NUM_THREADS=10

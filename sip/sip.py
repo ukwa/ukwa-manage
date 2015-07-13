@@ -26,18 +26,39 @@ logger = logging.getLogger( "ldp06.mets" )
 logging.root.setLevel( logging.DEBUG )
 
 class SipCreator:
-    def __init__( self, jobs, jobname, dummy=False ):
+    def __init__( self, jobs, jobname, dummy=False, warcs=None, viral=None, logs=None ):
         """Sets up APIs."""
         self.webhdfs = webhdfs.API( prefix=WEBHDFS_PREFIX, user=WEBHDFS_USER )
         self.dummy = dummy
         self.jobname = jobname
         self.jobs = jobs
+        self.warcs = warcs
+        self.viral = viral
+        self.logs = logs
+        self.startdate = None
 
     def processJobs( self ):
         """Finds all WARCs and logs associated with jobs."""
-        self.getWarcs()
-        self.getViral()
-        self.getLogs()
+        if self.warcs is not None:
+            with open(self.warcs, "r") as i:
+                self.warcs = [w.strip() for w in i]
+        else:
+            self.getWarcs()
+
+        if self.viral is not None:
+            with open(self.viral, "r") as i:
+                self.viral = [v.strip() for v in i]
+        else:
+            self.getViral()
+
+        if self.logs is not None:
+            with open(self.logs, "r") as i:
+                self.logs = [l.strip() for l in i]
+        else:
+            self.getLogs()
+
+        if self.startdate is None and self.dummy:
+            self.startdate = datetime.now().isoformat()
 
         if( self.dummy ):
             logger.info( "Getting dummy ARK identifiers..." )
@@ -68,6 +89,11 @@ class SipCreator:
             if len( glob.glob( "%s/%s/*.warc.gz.open" % ( WARC_ROOT, job ) ) ) > 0:
                 raise Exception( "Open WARCs found in job %s" % job )
             for warc in glob.glob( "%s/%s/*.warc.gz" % ( WARC_ROOT, job ) ):
+                logger.info( "Found %s..." % os.path.basename( warc ) )
+                self.warcs.append( warc )
+            if len( glob.glob( "%s/*.warc.gz.open" % ( IMAGE_ROOT ) ) ) > 0:
+                raise Exception( "Open WARCs found in /images." )
+            for warc in glob.glob( "%s/*.warc.gz" % ( IMAGE_ROOT ) ):
                 logger.info( "Found %s..." % os.path.basename( warc ) )
                 self.warcs.append( warc )
         if len( self.warcs ) == 0:
@@ -210,14 +236,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser( description="Create METS files." )
     parser.add_argument( "jobs", metavar="J", type=str, nargs="+", help="Heritrix job name" )
     parser.add_argument( "-d", dest="dummy", action="store_true" )
+    parser.add_argument( "-w", dest="warcs", help="File containing list of WARC paths." )
+    parser.add_argument( "-v", dest="viral", help="File containing list of viral WARC paths." )
+    parser.add_argument( "-l", dest="logs", help="File containing list of log paths." )
     args = parser.parse_args()
 
     jobname = datetime.now().strftime( "%Y%m%d%H%M%S" )
-    sip = SipCreator( args.jobs, jobname=jobname, dummy=args.dummy )
+    sip = SipCreator( args.jobs, jobname=jobname, dummy=args.dummy, warcs=args.warcs, viral=args.viral, logs=args.logs )
     if sip.verifySetup():
         sip.processJobs()
         sip.createMets()
+        if not os.path.isdir("%s/%s" % (OUTPUT_ROOT, jobname)):
+            os.makedirs("%s/%s/" % (OUTPUT_ROOT, jobname))
         with open( "%s/%s/%s.xml" % ( OUTPUT_ROOT, jobname, jobname ), "wb" ) as o:
             sip.writeMets( o )
         sip.bagit( "%s/%s" % ( OUTPUT_ROOT, jobname ) )
-        
+
