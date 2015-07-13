@@ -3,8 +3,9 @@ python-legal-deposit-sip
 
 The `python-legal-deposit-sip` package is used to create Legal Deposit compliant SIPs for ingest in to the DLS. It provides a `SipCreator` which can produce a `METS` file for Heritrix jobs. For example, SIPs created for the WDI ingest stream are created via:
 
+    job = "daily/20150708110924"
     sip_dir = "%s/%s" % (settings.SIP_ROOT, job)
-    s = sip.SipCreator(jobs=["daily/20150708110924"], jobname="daily/20150708110924", dummy=False)
+    s = sip.SipCreator(jobs=[job], jobname=job, dummy=False)
     if s.verifySetup():
         s.processJobs()
         s.createMets()
@@ -15,6 +16,14 @@ The `python-legal-deposit-sip` package is used to create Legal Deposit compliant
         s.bagit(sip_dir)
     else:
         raise Exception("Could not verify SIP for %s" % job)
+
+Optionally, you can pass in specific lists for WARCs, viral and logs:
+
+    with open("warcs.txt", "w") as o:
+        o.write("/heritrix/output/images/BL-20150713.warc.gz")
+    job = "images-20150713"
+    s = sip.SipCreator(jobs=[job], jobname=job, dummy=False, warcs="warcs.txt", viral="/dev/null", logs="/dev/null")
+    ...
 
 Note that it relies on proper configuration via the `settings` package. Largely the settings should be self-explanatory, however, two of note are:
 
