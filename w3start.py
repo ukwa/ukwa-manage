@@ -88,7 +88,7 @@ def stop_running_job(frequency, heritrix):
     )
     remove_action_files(frequency)
     stats = generate_log_stats(glob("%s/%s/%s/crawl.log*" % (HERITRIX_LOGS, frequency, launchid)))
-    SLACK_MESSAGES["json"] = stats
+    SLACK_MESSAGES["json"] = json.dumps(stats, indent=4)
     if settings.SLACK_CSV:
         SLACK_MESSAGES["csv"] = stats_to_csv(stats)
     if settings.SLACK:
