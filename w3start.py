@@ -44,8 +44,6 @@ parser.add_argument("-f", "--frequency", dest="frequency", type=str, required=Fa
 parser.add_argument("-x", "--test", dest="test", action="store_true", required=False, help="Test")
 args = parser.parse_args()
 
-SLACK_MESSAGES = {}
-
 def remove_action_files(jobname):
     """Removes old 'action' files and symlinks."""
     actions_done = "%s/%s/latest/actions-done" % (settings.HERITRIX_JOBS, jobname)
@@ -57,14 +55,17 @@ def remove_action_files(jobname):
             for action in to_remove:
                 os.remove(action)
 
-def send_slack_messages(name):
+def send_slack_messages(stats, name):
+    messages = {}
+    messages["json"] = json.dumps(stats, indent=4)
+    if settings.SLACK_CSV:
+        messages["csv"] = stats_to_csv(stats)
     slack = Slacker(settings.SLACK_TOKEN)
-    for extension, data in SLACK_MESSAGES.iteritems():
+    for extension, data in messages.iteritems():
         output = "%s/%s.%s" % (tempfile.gettempdir(), name, extension)
         with open(output, "wb") as o:
             o.write(data)
         res = slack.files.upload(output, channels=settings.SLACK_CHANNEL, filename="%s-%s.log" % (name, datetime.now().strftime("%Y%m%d%H%M%S")), title=name)
-    SLACK_MESSAGES = {}
 
 def stop_running_job(frequency, heritrix):
     """Stops a running job, notifies RabbitMQ and cleans up the directory."""
@@ -87,12 +88,9 @@ def stop_running_job(frequency, heritrix):
         message
     )
     remove_action_files(frequency)
-    stats = generate_log_stats(glob("%s/%s/%s/crawl.log*" % (HERITRIX_LOGS, frequency, launchid)))
-    SLACK_MESSAGES["json"] = json.dumps(stats, indent=4)
-    if settings.SLACK_CSV:
-        SLACK_MESSAGES["csv"] = stats_to_csv(stats)
     if settings.SLACK:
-        send_slack_message(frequency)
+        stats = generate_log_stats(glob("%s/%s/%s/crawl.log*" % (HERITRIX_LOGS, frequency, launchid)))
+        send_slack_messages(stats, frequency)
 
 def restart_job(frequency, start=datetime.now()):
     """Restarts the job for a particular frequency."""
