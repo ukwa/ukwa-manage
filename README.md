@@ -25,7 +25,7 @@ Passing the `-x` or `--test` flag will report on the number of seeds which _woul
       -f FREQUENCY [FREQUENCY ...], --frequency FREQUENCY [FREQUENCY ...]
                             Frequency
       -x, --test            Test
-  
+
 #### w3start.py
 This script is used to (re)start Heritrix jobs. Typically it is scheduled to run daily at noon. When run it will check whether the current time matches the criteria for each of the various frequencies. If so, the job is stopped (if already running) and a new one configured and started:
 
@@ -41,7 +41,7 @@ An optional `-t` or `--timestamp` flag can be passed, in which case this will be
 Optional `-f` or `--frequency` flag may be passed to restrict the range of exports which the script will review.
 
 Passing the `-x` or `--test` will stop any running jobs and set up the new job but not start it.
-  
+
       usage: w3start.py [-h] [-t TIMESTAMP] [-f FREQUENCY [FREQUENCY ...]] [-x]
 
     Restarts Heritrix jobs.
@@ -53,4 +53,6 @@ Passing the `-x` or `--test` will stop any running jobs and set up the new job b
       -f FREQUENCY [FREQUENCY ...], --frequency FREQUENCY [FREQUENCY ...]
                             Frequency
       -x, --test            Test
+
+Setting the `SLACK` value to `True` in `settings` will enable log data to be sent to Slack. By default this is JSON-formatted but optionally the `SLACK_CSV` value may be set to `True` to additionally send a CSV file. Both of these rely on a properly configured value for `SLACK_TOKEN` which requires a correctly [authorised Slack app](https://api.slack.com/tokens). These will be sent to the channel identified by the `SLACK_CHANNEL` settings (note that this is the ID of the channel, not its name).
 
