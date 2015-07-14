@@ -65,7 +65,7 @@ def send_slack_messages(stats, name):
         output = "%s/%s.%s" % (tempfile.gettempdir(), name, extension)
         with open(output, "wb") as o:
             o.write(data)
-        res = slack.files.upload(output, channels=settings.SLACK_CHANNEL, filename="%s-%s.log" % (name, datetime.now().strftime("%Y%m%d%H%M%S")), title=name)
+        res = slack.files.upload(output, channels=settings.SLACK_CHANNEL, filename="%s-%s.%s" % (name, datetime.now().strftime("%Y%m%d%H%M%S"), extension), title=name)
 
 def stop_running_job(frequency, heritrix):
     """Stops a running job, notifies RabbitMQ and cleans up the directory."""
