@@ -20,7 +20,7 @@ from slacker import Slacker
 from datetime import datetime
 from w3act.job import W3actJob
 from w3act.w3actd import send_message
-from w3act.util import generate_log_stats
+from w3act.util import generate_log_stats, stats_to_csv
 
 requests.packages.urllib3.disable_warnings()
 
@@ -33,12 +33,6 @@ var_log_handler = logging.FileHandler("%s/%s.log" % (settings.LOG_ROOT, __name__
 var_log_handler.setFormatter(formatter)
 logger.addHandler(var_log_handler)
 
-# Log to a temp. file...
-temp_log = tempfile.NamedTemporaryFile()
-tempfile_handler = logging.FileHandler(temp_log.name)
-tempfile_handler.setFormatter(formatter)
-logger.addHandler(tempfile_handler)
-
 # Log to stdout...
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
@@ -50,6 +44,7 @@ parser.add_argument("-f", "--frequency", dest="frequency", type=str, required=Fa
 parser.add_argument("-x", "--test", dest="test", action="store_true", required=False, help="Test")
 args = parser.parse_args()
 
+SLACK_MESSAGES = {}
 
 def remove_action_files(jobname):
     """Removes old 'action' files and symlinks."""
@@ -62,6 +57,14 @@ def remove_action_files(jobname):
             for action in to_remove:
                 os.remove(action)
 
+def send_slack_messages(name):
+    slack = Slacker(settings.SLACK_TOKEN)
+    for extension, data in SLACK_MESSAGES.iteritems():
+        output = "%s/%s.%s" % (tempfile.gettempdir(), name, extension)
+        with open(output, "wb") as o:
+            o.write(data)
+        res = slack.files.upload(output, channels=settings.SLACK_CHANNEL, filename="%s-%s.log" % (name, datetime.now().strftime("%Y%m%d%H%M%S")), title=name)
+    SLACK_MESSAGES = {}
 
 def stop_running_job(frequency, heritrix):
     """Stops a running job, notifies RabbitMQ and cleans up the directory."""
@@ -85,8 +88,11 @@ def stop_running_job(frequency, heritrix):
     )
     remove_action_files(frequency)
     stats = generate_log_stats(glob("%s/%s/%s/crawl.log*" % (HERITRIX_LOGS, frequency, launchid)))
-    logger.info(json.dumps(stats, indent=4))
-
+    SLACK_MESSAGES["json"] = stats
+    if settings.SLACK_CSV:
+        SLACK_MESSAGES["csv"] = stats_to_csv(stats)
+    if settings.SLACK:
+        send_slack_message(frequency)
 
 def restart_job(frequency, start=datetime.now()):
     """Restarts the job for a particular frequency."""
@@ -109,7 +115,6 @@ def restart_job(frequency, start=datetime.now()):
         logger.error("%s: %s" % (frequency, str(sys.exc_info())))
         logger.error("%s: %s" % (frequency, traceback.format_exc()))
     
-
 def restart_frequencies(frequencies, now):
     """Restarts jobs depending on the current time."""
     if now.hour == settings.JOB_RESTART_HOUR:
@@ -131,13 +136,6 @@ def restart_frequencies(frequencies, now):
                 if "annual" in frequencies:
                     restart_job("annual", start=now)
 
-def send_slack_message(log):
-    slack = Slacker(settings.SLACK_TOKEN)
-    res = slack.files.upload(log, channels=settings.SLACK_CHANNEL, filename="%s-%s.log" % (__name__, datetime.now().strftime("%Y%m%d%H%M%S")), title=__name__)
-
 if __name__ == "__main__":
     restart_frequencies(args.frequency, dateutil.parser.parse(args.timestamp).replace(tzinfo=None))
-    if os.stat(temp_log.name).st_size > 0 and settings.SLACK:
-        send_slack_message(temp_log.name)
-    os.unlink(temp_log.name)
 

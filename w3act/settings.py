@@ -43,6 +43,7 @@ MAX_RENDER_DEPTH = { "daily": 0, "weekly": 1, "monthly": 1, "quarterly": 1, "six
 SLACK=True
 SLACK_TOKEN="xoxp-2469624547-4861238005-7576447543-873bbb"
 SLACK_CHANNEL="C07H4U6DR"
+SLACK_CSV=True
 
 LOGGING_CONFIG = {
     "version": 1,

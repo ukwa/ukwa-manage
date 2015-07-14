@@ -1,6 +1,8 @@
 """Utility classes/methods."""
 import re
+import csv
 import operator
+from StringIO import StringIO
 from collections import Counter, OrderedDict
 
 def human_readable(bytes, precision=1):
@@ -56,4 +58,27 @@ def generate_log_stats(logs):
         data["response_codes"] = Counter(data["response_codes"])
         data["data_size"] = human_readable(data["data_size"])
     return all_hosts_data
+
+def stats_to_csv(stats):
+    rows = [["HOSTNAME", "2XX", "3XX", "4XX", "5XX", "DATA_SIZE", "REACHED_CAP"]]
+    for host, data in stats.iteritems():
+        row = ["-", "-", "-", "-", "-", "-", "False"]
+        row[0] = host
+        for code, count in data["response_codes"].iteritems():
+            if str(code).startswith("2"):
+                row[1] = count
+            if str(code).startswith("3"):
+                row[2] = count
+            if str(code).startswith("4"):
+                row[3] = count
+            if str(code).startswith("4"):
+                row[4] = count
+            if "reached_cap" in data.keys():
+                row[6] = "True"
+            row[5] = data["data_size"]
+        rows.append(row)
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerows(rows)
+    return output.getvalue()
 
