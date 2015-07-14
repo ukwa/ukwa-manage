@@ -17,6 +17,7 @@ setup(
         "requests",
         "python-dateutil",
         "lxml",
+        "slacker",
     ],
     data_files=[
         ("/etc/init.d", ["bin/w3actd"]),
