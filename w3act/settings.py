@@ -40,6 +40,10 @@ CLAMD_PORTS = { "daily": "3311", "weekly": "3312", "monthly": "3313", "quarterly
 CLAMD_DEFAULT_PORT = "3310"
 MAX_RENDER_DEPTH = { "daily": 0, "weekly": 1, "monthly": 1, "quarterly": 1, "sixmonthly": 1, "annual": 1 }
 
+SLACK=True
+SLACK_TOKEN="xoxp-2469624547-4861238005-7576447543-873bbb"
+SLACK_CHANNEL="C07H4U6DR"
+
 LOGGING_CONFIG = {
     "version": 1,
     "disable_existing_loggers": True,

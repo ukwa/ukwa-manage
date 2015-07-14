@@ -11,10 +11,12 @@ import logging
 import argparse
 import heritrix
 import requests
+import tempfile
 import traceback
 from glob import glob
 import dateutil.parser
 from w3act import settings
+from slacker import Slacker
 from datetime import datetime
 from w3act.job import W3actJob
 from w3act.w3actd import send_message
@@ -23,12 +25,24 @@ from w3act.util import generate_log_stats
 requests.packages.urllib3.disable_warnings()
 
 logger = logging.getLogger("w3act.%s" % __name__)
-handler = logging.FileHandler("%s/%s.log" % (settings.LOG_ROOT, __name__))
-formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
 
+# Log to /var/log/...
+var_log_handler = logging.FileHandler("%s/%s.log" % (settings.LOG_ROOT, __name__))
+var_log_handler.setFormatter(formatter)
+logger.addHandler(var_log_handler)
+
+# Log to a temp. file...
+temp_log = tempfile.NamedTemporaryFile()
+tempfile_handler = logging.FileHandler(temp_log.name)
+tempfile_handler.setFormatter(formatter)
+logger.addHandler(tempfile_handler)
+
+# Log to stdout...
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
 
 parser = argparse.ArgumentParser(description="Restarts Heritrix jobs.")
 parser.add_argument("-t", "--timestamp", dest="timestamp", type=str, required=False, help="Timestamp", default=datetime.now().isoformat())
@@ -117,5 +131,13 @@ def restart_frequencies(frequencies, now):
                 if "annual" in frequencies:
                     restart_job("annual", start=now)
 
+def send_slack_message(log):
+    slack = Slacker(settings.SLACK_TOKEN)
+    res = slack.files.upload(log, channels=settings.SLACK_CHANNEL, filename="%s-%s.log" % (__name__, datetime.now().strftime("%Y%m%d%H%M%S")), title=__name__)
+
 if __name__ == "__main__":
     restart_frequencies(args.frequency, dateutil.parser.parse(args.timestamp).replace(tzinfo=None))
+    if os.stat(temp_log.name).st_size > 0 and settings.SLACK:
+        send_slack_message(temp_log.name)
+    os.unlink(temp_log.name)
+
