@@ -1,7 +1,7 @@
 python-w3act
 ==============
 
-`python-w3act` is a Python package for handling interractions with the [w3act](https://github.com/ukwa/w3act/) service.
+`python-w3act` is a Python package for handling interactions with the [w3act](https://github.com/ukwa/w3act/) service.
 
 There are two main scripts: `w3add.py` and `w3start.py`.
 
@@ -55,4 +55,3 @@ Passing the `-x` or `--test` will stop any running jobs and set up the new job b
       -x, --test            Test
 
 Setting the `SLACK` value to `True` in `settings` will enable log data to be sent to Slack. By default this is JSON-formatted but optionally the `SLACK_CSV` value may be set to `True` to additionally send a CSV file. Both of these rely on a properly configured value for `SLACK_TOKEN` which requires a correctly [authorised Slack app](https://api.slack.com/tokens). These will be sent to the channel identified by the `SLACK_CHANNEL` settings (note that this is the ID of the channel, not its name).
-
