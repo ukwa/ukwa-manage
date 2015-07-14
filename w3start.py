@@ -89,7 +89,7 @@ def stop_running_job(frequency, heritrix):
     )
     remove_action_files(frequency)
     if settings.SLACK:
-        stats = generate_log_stats(glob("%s/%s/%s/crawl.log*" % (HERITRIX_LOGS, frequency, launchid)))
+        stats = generate_log_stats(glob("%s/%s/%s/crawl.log*" % (settings.HERITRIX_LOGS, frequency, launchid)))
         send_slack_messages(stats, frequency)
 
 def restart_job(frequency, start=datetime.now()):
