@@ -131,13 +131,9 @@ def callback(warcwriter, body):
         else:
             (url, handler_id, selectors, url_handler) = handle_pipe_message(body)
 
-        # Build up our POST data.
-        data = {}
-        data["selectors"] = selectors
-
         ws = "%s/%s" % (settings.WEBSERVICE, url)
         logger.debug("Calling %s" % ws)
-        r = requests.post(ws, data=data)
+        r = requests.post(ws, data=json.dumps(selectors))
         if r.status_code == 200:
             # Handle outlinks, passing original message...
             url_handler(har, handler_id, body)
