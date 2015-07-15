@@ -10,10 +10,10 @@ import uuid
 import shutil
 import logging
 import requests
-import settings
 from daemonize import Daemon
 from datetime import datetime
 from urlparse import urlparse
+from harchiverd import settings
 from hanzo.warctools import WarcRecord
 from warcwriterpool import WarcWriterPool, warc_datetime_str
 
