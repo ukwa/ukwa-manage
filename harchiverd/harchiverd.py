@@ -175,7 +175,7 @@ class HarchiverDaemon(Daemon):
                                       auto_delete=False)
                 channel.queue_bind(queue=settings.AMQP_QUEUE, 
                        exchange=settings.AMQP_EXCHANGE,
-                       routing_key=client_id)
+                       routing_key=settings.AMQP_KEY)
                 for method_frame, properties, body in channel.consume(settings.AMQP_QUEUE):
                     callback(warcwriter, body)
                     channel.basic_ack(method_frame.delivery_tag)
