@@ -136,8 +136,8 @@ def callback(warcwriter, body):
         r = requests.post(ws, data=json.dumps(selectors))
         if r.status_code == 200:
             # Handle outlinks, passing original message...
-            url_handler(har, handler_id, body)
             har = r.content
+            url_handler(har, handler_id, body)
             headers = [
                 (WarcRecord.TYPE, WarcRecord.METADATA),
                 (WarcRecord.URL, url),
