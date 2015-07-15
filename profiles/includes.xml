@@ -20,6 +20,7 @@
 			<value>^https?://[^/]+\.bbc\.co\.uk/iplayer/.*$</value>
 			<value>^.+action=buy_now.*$</value>
 			<value>^.+?mobile_switch=mobile</value>
+			<value>^https?://twitter\.com/.+\?lang=.+$</value>
 		</list>
 	</excludes>
 	<sheets>
