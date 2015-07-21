@@ -5,6 +5,14 @@ import operator
 from StringIO import StringIO
 from collections import Counter, OrderedDict
 
+
+def unique_list(input):
+   keys = {}
+   for e in input:
+       keys[e] = 1
+   return keys.keys()
+
+
 def human_readable(bytes, precision=1):
     abbrevs = (
         (1<<50L, "PB"),
