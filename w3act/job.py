@@ -12,9 +12,10 @@ import logging
 import heritrix
 import requests
 from lxml import etree
+from w3act.lib import ACT
 from w3act import settings
 from urlparse import urlparse
-from w3act.lib import ACT, unique_list
+from w3act.util import unique_list
 from xml.etree.ElementTree import ParseError
 
 requests.packages.urllib3.disable_warnings()
