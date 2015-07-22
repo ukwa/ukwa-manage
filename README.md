@@ -2,7 +2,7 @@
 Python wrapper around Hadoop's WebHDFS interface.
 
     import webhdfs
-    w = webhdfs.API(prefix="http://dls.httpfs.wa.bl.uk:14000/webhdfs/v1", user="webhdfs")
+    w = webhdfs.API(prefix="http://localhost:14000/webhdfs/v1", user="webhdfs")
 
 #### list(path)
 Returns the output of `LISTSTATUS` on `path`.
