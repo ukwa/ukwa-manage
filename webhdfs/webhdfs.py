@@ -48,8 +48,7 @@ class API():
             directory = path
         else:
             directory = os.path.dirname(path)
-        j = self.list(path)
-        for f in j["FileStatuses"]["FileStatus"]:
+        for f in self.list(path):
             if f["type"] == "FILE":
                 r = self.openstream(os.path.join(directory, f["pathSuffix"]))
                 for chunk in r.iter_content(chunk_size=chunk_size):
@@ -62,11 +61,12 @@ class API():
 
     def list(self, path):
         r = self._get(path=path, op="LISTSTATUS")
-        return json.loads(r.text)
+        js = json.loads(r.content)
+        return js["FileStatuses"]["FileStatus"]
 
     def find(self, path, name="*"):
         if self.isdir(path):
-            for entry in self.list(path)["FileStatuses"]["FileStatus"]:
+            for entry in self.list(path):
                 for sub in self.find(os.path.join(path, entry["pathSuffix"]), name=name):
                     yield sub
         else:
@@ -78,10 +78,14 @@ class API():
         return json.loads(r.text)
 
     def open(self, path):
+        if self.isdir(path):
+            raise TypeError("Cannot open a directory.")
         r = self._get(path=path, op="OPEN")
         return r.content
 
     def openstream(self, path):
+        if self.isdir(path):
+            raise TypeError("Cannot open a directory.")
         return self._get(path=path, op="OPEN", stream=True)
 
     def exists(self, path):
@@ -95,6 +99,8 @@ class API():
         return (self.exists(path) and j["FileStatus"]["type"] == "DIRECTORY")
 
     def create(self, path, file=None, data=None):
+        if self.exists(path):
+            raise IOError("Already exists: %s" % path)
         if (file is None and data is None) or (file is not None and data is not None):
             logger.warning("Need either input file or data.")
         else:
@@ -106,7 +112,7 @@ class API():
 
     def delete(self, path, recursive=False):
         if not self.exists(path):
-            logger.error("Does not exist: %s" % path)
+            raise IOError("Does not exist: %s" % path)
         else:
             r = self._delete(path, recursive=recursive)
             return json.loads(r.text)
