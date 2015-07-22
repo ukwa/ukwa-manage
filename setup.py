@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
 	name="python-webhdfs",
-	version="0.0.4",
+	version="0.1.0",
 	author="PsypherPunk",
 	author_email="psypherpunk@gmail.com",
 	packages=[ "webhdfs" ],
