@@ -13,26 +13,6 @@ LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.WARNING )
 logger = logging.getLogger( "webhdfs" )
 
-def readlines(generator):
-    previous = ""
-    for chunk in dechunk(generator):
-        lines = StringIO(previous + chunk).readlines()
-        for line in lines[:-1]:
-            yield line
-        previous = lines[-1]
-    yield previous
-
-def dechunk(generator):
-    d = zlib.decompressobj(zlib.MAX_WBITS|32)
-    while True:
-        block = generator.read(4096)
-        if not block:
-            break
-        dec = d.decompress(block)
-        if len(dec) == 0:
-            break
-        yield dec
-
 
 class API():
     def __init__( self, prefix="http://localhost:14000/webhdfs/v1", verbose=False, user="hadoop" ):
@@ -102,21 +82,6 @@ class API():
                 o.write( chunk )
                 o.flush()
 
-    def getmerge( self, path, output=sys.stdout ):
-        """Merges one or more HDFS files into a single, local file."""
-        if self.isdir(path):
-            directory = path
-        else:
-            directory = os.path.dirname(path)
-        j = self.list( path )
-        for file in j[ "FileStatuses" ][ "FileStatus" ]:
-            if file["type"] == "FILE":
-                r = self.openstream(os.path.join(directory, f["pathSuffix"]))
-                for chunk in r.iter_content( chunk_size=4096 ):
-                    if chunk:
-                        output.write( chunk )
-                        output.flush()
-
     def create( self, path, file=None, data=None ):
         if ( file is None and data is None ) or ( file is not None and data is not None ):
             logger.warning( "Need either input file or data." )
@@ -138,7 +103,10 @@ class API():
         r = self._get( path=path, op="GETFILECHECKSUM" )
         return json.loads( r.text )
 
-    def readlines(self, path):
+    def genblocks(self, path, chunk_size=4096, decompress=False):
+        """Yields blocks from either a directory or a single file."""
+        if decompress:
+            d = zlib.decompressobj(zlib.MAX_WBITS|32)
         if self.isdir(path):
             directory = path
         else:
@@ -147,7 +115,26 @@ class API():
         for f in j["FileStatuses"]["FileStatus"]:
             if f["type"] == "FILE":
                 r = self.openstream(os.path.join(directory, f["pathSuffix"]))
-                for line in readlines(r.raw):
-                    yield line.strip()
+                for chunk in r.iter_content(chunk_size=chunk_size):
+                    if chunk:
+                        if decompress:
+                            chunk = d.decompress(chunk)
+                        if len(chunk) > 0:
+                            yield chunk
                 r.close()
+
+    def getmerge( self, path, output=sys.stdout ):
+        """Merges one or more HDFS files into a single, local file."""
+        for chunk in self.genblocks(path):
+            output.write(chunk)
+
+    def readlines(self, path, decompress=False):
+        """Yields lines from either a directory or a single file."""
+        previous = ""
+        for chunk in self.genblocks(path, decompress=decompress):
+            lines = StringIO(previous + chunk).readlines()
+            for line in lines[:-1]:
+                yield line
+            previous = lines[-1]
+        yield previous
 
