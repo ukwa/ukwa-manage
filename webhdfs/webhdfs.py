@@ -3,13 +3,36 @@
 import os
 import sys
 import json
+import zlib
 import logging
 import requests
 from fnmatch import fnmatch
+from StringIO import StringIO
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig( format=LOGGING_FORMAT, level=logging.WARNING )
 logger = logging.getLogger( "webhdfs" )
+
+def readlines(generator):
+    previous = ""
+    for chunk in dechunk(generator):
+        lines = StringIO(previous + chunk).readlines()
+        for line in lines[:-1]:
+            yield line
+        previous = lines[-1]
+    yield previous
+
+def dechunk(generator):
+    d = zlib.decompressobj(zlib.MAX_WBITS|32)
+    while True:
+        block = generator.read(4096)
+        if not block:
+            break
+        dec = d.decompress(block)
+        if len(dec) == 0:
+            break
+        yield dec
+
 
 class API():
     def __init__( self, prefix="http://localhost:14000/webhdfs/v1", verbose=False, user="hadoop" ):
@@ -81,12 +104,14 @@ class API():
 
     def getmerge( self, path, output=sys.stdout ):
         """Merges one or more HDFS files into a single, local file."""
-        if self.isdir( path ) and not path.endswith( "/" ):
-            path = "%s/" % path
+        if self.isdir(path):
+            directory = path
+        else:
+            directory = os.path.dirname(path)
         j = self.list( path )
         for file in j[ "FileStatuses" ][ "FileStatus" ]:
             if file["type"] == "FILE":
-                r = self.openstream( path + file[ "pathSuffix" ] )
+                r = self.openstream(os.path.join(directory, f["pathSuffix"]))
                 for chunk in r.iter_content( chunk_size=4096 ):
                     if chunk:
                         output.write( chunk )
@@ -112,4 +137,17 @@ class API():
     def checksum( self, path ):
         r = self._get( path=path, op="GETFILECHECKSUM" )
         return json.loads( r.text )
+
+    def readlines(self, path):
+        if self.isdir(path):
+            directory = path
+        else:
+            directory = os.path.dirname(path)
+        j = self.list(path)
+        for f in j["FileStatuses"]["FileStatus"]:
+            if f["type"] == "FILE":
+                r = self.openstream(os.path.join(directory, f["pathSuffix"]))
+                for line in readlines(r.raw):
+                    yield line.strip()
+                r.close()
 
