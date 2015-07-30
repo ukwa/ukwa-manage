@@ -11,6 +11,6 @@ setup(
 	description="Maintains a pool of writable WARC files.",
 	long_description=open( "README.md" ).read(),
 	install_requires=[
-		"hanzo-warctools",
+		"warctools",
 	],
 )
