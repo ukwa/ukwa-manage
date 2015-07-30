@@ -22,6 +22,7 @@ __version__ = "0.2.0"
 
 DASH_AUDIO = 140
 DASH_VIDEO = 137
+YOUTUBE_DATA_URL = "https://gdata.youtube.com/feeds/api/videos/%s?v=2"
 
 def httpheaders( original ):
     status_line = "HTTP/%s %s %s" % ( 
@@ -139,24 +140,18 @@ if __name__ == "__main__":
             for iframe in root.xpath( "//iframe[contains(@src,'www.youtube.com/embed/')]" ):
                 yurl = iframe.attrib["src"]
                 results = ydl.extract_info(yurl, download=False )
-		headers = [
+                headers = [
                     ( WarcRecord.TYPE, WarcRecord.WARCINFO ),
                     ( WarcRecord.DATE, warc_datetime_str( datetime.now() ) ),
                     ( WarcRecord.ID, "<urn:uuid:%s>" % uuid.uuid1() ),
                 ]
-		warcwriter.write_record( headers, "application/json", json.dumps( results ) )
+                youtube_gdata = requests.get( YOUTUBE_DATA_URL % results["id"])
+                warcwriter.write_record( headers, "application/json", json.dumps( results, indent=8, separators=( ",", ":" ) ) )
                 xpath = "//iframe[contains(@src,'%s')]" % results["id"]
                 for format in results["formats"]:
                     date = warc_datetime_str( datetime.now() )
-                    audio_uuid = "<urn:uuid:%s>" % uuid.uuid1()
                     video_uuid = "<urn:uuid:%s>" % uuid.uuid1()
-                    if format["format_id"] == DASH_AUDIO:
-                        write_record(format["url"], audio_uuid, date, xpath, args.page, concurrent_to=video_uuid)
-                    elif format["format_id"] == DASH_VIDEO:
-                            write_record(format["url"], video_uuid, date, xpath, args.page, concurrent_to=audio_uuid)
-                    else:
-                            print format
-                            write_record(format["url"], "<urn:uuid:%s>" % uuid.uuid1(), warc_datetime_str( datetime.now() ), xpath, args.page, concurrent_to=None )
+                    write_record(format["url"], video_uuid, date, xpath, args.page, concurrent_to=None )
         else:
             write_record( args.url, "<urn:uuid:%s>" % uuid.uuid1(), args.timestamp, args.xpath, args.page, concurrent_to=None )
         
@@ -170,6 +165,7 @@ if __name__ == "__main__":
         mime, encoding = mimetypes.guess_type( args.filename )
         mtime = os.stat( args.filename ).st_mtime
         warcdate = warc_datetime_str( datetime.fromtimestamp( mtime ) )
+        video_uuid = "<urn:uuid:%s>" % uuid.uuid1()
         if args.multiple:
             for pair in args.multiple.split( "," ):
                 t, p = pair.split( "/", 1 )
