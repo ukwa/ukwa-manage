@@ -86,7 +86,7 @@ def amqp_outlinks(har, client_id, parent):
             "parentUrlMetadata": parent["metadata"]
         }
         try:
-            send_amqp_message(message, client_id)
+            send_amqp_message(json.dumps(message), client_id)
         except:
             logger.error("Problem sending message: %s; %s" % (message, sys.exc_info()))
 
