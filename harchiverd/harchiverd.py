@@ -3,6 +3,7 @@
 """Daemon which watches a configured queue for messages and for each, calls a
 webservice, storing the result in a WARC file."""
 
+import sys
 import gzip
 import json
 import pika
@@ -97,7 +98,7 @@ def handle_json_message(message):
     url = j["url"]
     if "selectors" in j.keys():
         selectors += j["selectors"]
-    return (url, message["clientId"], selectors, amqp_outlinks)
+    return (url, j["clientId"], selectors, amqp_outlinks)
 
 def handle_pipe_message(message):
     """Parses pipe-separated message."""
