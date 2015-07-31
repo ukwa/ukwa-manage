@@ -74,7 +74,7 @@ def amqp_outlinks(har, cliend_id, parent):
     """Passes outlinks back to queue."""
     har = json.loads(har)
     parent = json.loads(parent)
-    for entry in j["log"]["entries"]:
+    for entry in har["log"]["entries"]:
         protocol = urlparse(entry["request"]["url"]).scheme
         if not protocol in settings.PROTOCOLS:
             continue
