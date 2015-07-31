@@ -70,7 +70,7 @@ def send_amqp_message(message, client_id):
     channel.close()
     connection.close()
 
-def amqp_outlinks(har, cliend_id, parent):
+def amqp_outlinks(har, client_id, parent):
     """Passes outlinks back to queue."""
     har = json.loads(har)
     parent = json.loads(parent)
@@ -86,7 +86,7 @@ def amqp_outlinks(har, cliend_id, parent):
             "parentUrlMetadata": parent["metadata"]
         }
         try:
-            send_amqp_message(message, cliend_id)
+            send_amqp_message(message, client_id)
         except:
             logger.error("Problem sending message: %s; %s" % (message, sys.exc_info()))
 
