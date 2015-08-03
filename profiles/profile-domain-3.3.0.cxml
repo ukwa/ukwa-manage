@@ -495,6 +495,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
   </bean>
 <!-- FRONTIER: Record of all URIs discovered and queued-for-collection -->
   <bean id="frontier" class="org.archive.crawler.frontier.BdbFrontier">
+    <property name="extract404s" value="false" />
 <!-- <property name="queueTotalBudget" value="-1" /> -->
 <!-- <property name="balanceReplenishAmount" value="3000" /> -->
 <!-- <property name="errorPenaltyAmount" value="100" /> -->
