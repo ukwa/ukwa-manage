@@ -78,7 +78,7 @@ for target in targets:
     instances = w.list( "/data/wayback/cdx-index/%s/" % target["pathSuffix"] )["FileStatuses"]["FileStatus"]
     for instance in instances:
         mod = datetime.fromtimestamp(instance["modificationTime"]/1000)
-        if mod < (datetime.now() - relativedelta(months=-1)):
+        if mod > (datetime.now() - relativedelta(months=-1)):
             new_instances += 1
 
 new_sips = 0
