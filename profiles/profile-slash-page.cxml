@@ -127,7 +127,8 @@
 			<ref bean="scope" />
 		</property>
 	</bean>
-	<bean id="hashCrawlMapper" class="org.archive.crawler.processor.HashCrawlMapper">
+    <!-- Uncomment if using more than a single crawler. -->
+	<!--bean id="hashCrawlMapper" class="org.archive.crawler.processor.HashCrawlMapper">
 		<property name="enabled" value="true" />
 		<property name="localName" value="TO_BE_REPLACED" />
 		<property name="diversionDir" value="diversions" />
@@ -135,10 +136,7 @@
 		<property name="checkOutlinks" value="false"/>
 		<property name="rotationDigits" value="10" />
 		<property name="crawlerCount" value="TO_BE_REPLACED" />
-	</bean>
-	<bean id="quotaEnforcer" class="org.archive.crawler.prefetch.QuotaEnforcer">
-		<property name="serverMaxSuccessKb" value="524288" />
-	</bean>
+	</bean-->
 	<!-- assembled into ordered CandidateChain bean -->
 	<bean id="candidateProcessors" class="org.archive.modules.CandidateChain">
 		<property name="processors">
@@ -146,7 +144,7 @@
 				<!-- apply scoping rules to each individual candidate URI... -->
 				<ref bean="candidateScoper"/>
 				<!-- Check URIs for crawler assignment -->
-				<ref bean="hashCrawlMapper"/>
+				<!--ref bean="hashCrawlMapper"/-->
 				<!-- ...then prepare those ACCEPTed for enqueuing to frontier. -->
 				<ref bean="preparer"/>
 			</list>
@@ -204,6 +202,7 @@
 	<bean id="extractorHttp" class="org.archive.modules.extractor.ExtractorHTTP">
 		<property name="inferRootPage" value="true" />
 	</bean>
+    <!-- Currently does not work with deduplication! -->
 	<!--bean id="trapSuppressExtractor" class="org.archive.modules.extractor.TrapSuppressExtractor">
 	</bean-->
 	<bean id="extractorHtml" class="org.archive.modules.extractor.ExtractorHTML">
@@ -223,12 +222,15 @@
 	</bean>
 	<bean id="extractorJson" class="uk.bl.wap.modules.extractor.ExtractorJson">
 	</bean>
-	<bean id="extractorMq" class="uk.bl.wap.modules.extractor.AsynchronousMQExtractor">
+    <bean id="extractorJs" class="org.archive.modules.extractor.ExtractorJS">
+    </bean>
+    <!-- Uncomment if rendering web pages. -->
+	<!--bean id="extractorMq" class="uk.bl.wap.modules.extractor.AsynchronousMQExtractor">
 		<property name="host" value="localhost" />
 		<property name="routingKey" value="phantomjs" />
 		<property name="queue" value="phantomjs" />
 		<property name="outputPath" value="REPLACE_HERITRIX_JOBS/TO_BE_REPLACED/action/" />
-	</bean>
+	</bean-->
 	<bean id="viralContent" class="uk.bl.wap.crawler.processor.ViralContentProcessor">
 		<property name="clamdHost" value="localhost" />
    		<property name="clamdPort" value="REPLACE_CLAMD_PORT" />
@@ -236,36 +238,35 @@
 		<property name="streamMaxLength" value="94371840"/>
 	</bean>
 	<!-- Configure persistent URI history storage -->
-	<bean id="persistStoreProcessor" class="org.archive.modules.recrawl.PersistStoreProcessor">
-	</bean>
-	<bean id="fetchHistoryProcessor" class="org.archive.modules.recrawl.FetchHistoryProcessor">
+	<!-- Uncomment if maintaining state -->
+	<!--bean id="persistStoreProcessor" class="org.archive.modules.recrawl.PersistStoreProcessor">
+	</bean-->
+	<!--bean id="fetchHistoryProcessor" class="org.archive.modules.recrawl.FetchHistoryProcessor">
 		<property name="historyLength" value="2" />
-	</bean>
+	</bean-->
 	<!-- Configure persistent URI history loading for subsequent crawls -->
-	<bean id="persistLoadProcessor" class="org.archive.modules.recrawl.PersistLoadProcessor">
-	</bean>
+	<!--bean id="persistLoadProcessor" class="org.archive.modules.recrawl.PersistLoadProcessor">
+	</bean-->
 	<!-- assembled into ordered FetchChain bean -->
 	<bean id="fetchProcessors" class="org.archive.modules.FetchChain">
 		<property name="processors">
 			<list>
-				<!-- enforce per-host quotas... -->
-				<ref bean="quotaEnforcer"/>
 				<!-- recheck scope, if so enabled... -->
 				<ref bean="preselector"/>
 				<!-- ...then verify or trigger prerequisite URIs fetched, allow crawling... -->
 				<ref bean="preconditions"/>
-				<ref bean="persistLoadProcessor"/>
+				<!--ref bean="persistLoadProcessor"/-->
 				<!-- ...fetch if DNS URI... -->
 				<ref bean="fetchDns"/>
 				<!-- ...fetch if HTTP URI... -->
 				<ref bean="fetchHttp"/>
-				<ref bean="fetchHistoryProcessor" />
+				<!--ref bean="fetchHistoryProcessor" /-->
 				<!-- ...extract oulinks from HTTP headers... -->
 				<ref bean="extractorHttp"/>
 				<!-- ...suppress likely crawler traps... -->
-				<ref bean="trapSuppressExtractor" />
+				<!--ref bean="trapSuppressExtractor" /-->
 				<!-- ...extract outlinks via Asynchronous Messaging Queue... -->
-				<ref bean="extractorMq"/>
+				<!--ref bean="extractorMq"/-->
 				<!-- ...extract outlinks from JSON... -->
 				<ref bean="extractorJson" />
 				<!-- ...extract oulinks from HTML content... -->
@@ -295,16 +296,25 @@
 		</property>
 	</bean>
 	<bean id="warcWriterViral" class="uk.bl.wap.modules.writer.WARCViralWriterProcessor">
-		<property name="shouldProcessRule">
-			<bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
-				<property name="decision" value="ACCEPT" />
-				<property name="regexList">
-					<list>
-						<value>^.*stream:.+FOUND.*$</value>
-					</list>
-				</property>
-			</bean>
-		</property>
+        <property name="shouldProcessRule">
+            <bean class="org.archive.modules.deciderules.DecideRuleSequence">
+                <property name="rules">
+                    <list>
+                        <!-- Begin by REJECTing all... -->
+                        <bean class="org.archive.modules.deciderules.RejectDecideRule"/>
+                        <!-- ...then ACCEPT those with viral annotations... -->
+                        <bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
+                            <property name="decision" value="ACCEPT"/>
+                            <property name="regexList">
+                                <list>
+                                    <value>^.*stream:.+FOUND.*$</value>
+                                </list>
+                            </property>
+                        </bean>
+                    </list>
+                </property>
+            </bean>
+        </property>
 		<property name="compress" value="true" />
 		<property name="prefix" value="BL" />
 		<property name="maxFileSizeBytes" value="1006632959" />
@@ -323,16 +333,25 @@
 		<property name="writeRevisitForNotModified" value="false" />
 	</bean>
 	<bean id="warcWriterDefault" class="org.archive.modules.writer.WARCWriterProcessor">
-		<property name="shouldProcessRule">
-			<bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
-				<property name="decision" value="REJECT" />
-				<property name="regexList">
-					<list>
-						<value>^.*stream:.+FOUND.*$</value>
-					</list>
-				</property>
-			</bean>
-		</property>
+        <property name="shouldProcessRule">
+            <bean class="org.archive.modules.deciderules.DecideRuleSequence">
+                <property name="rules">
+                    <list>
+                        <!-- Begin by ACCEPTing all... -->
+                        <bean class="org.archive.modules.deciderules.AcceptDecideRule"/>
+                        <!-- ...then REJECT those with viral annotations... -->
+                        <bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
+                            <property name="decision" value="REJECT"/>
+                            <property name="regexList">
+                                <list>
+                                    <value>^.*stream:.+FOUND.*$</value>
+                                </list>
+                            </property>
+                        </bean>
+                    </list>
+                </property>
+            </bean>
+        </property>
 		<property name="compress" value="true" />
 		<property name="prefix" value="BL" />
 		<property name="maxFileSizeBytes" value="1006632959" />
@@ -369,7 +388,7 @@
 				<ref bean="warcWriterViral"/>
 				<!-- write to aggregate archival files... -->
 				<ref bean="warcWriterDefault"/>
-				<ref bean="persistStoreProcessor" />
+				<!--ref bean="persistStoreProcessor" /-->
 				<!-- ...send each outlink candidate URI to CandidatesChain, 
 					and enqueue those ACCEPTed to the frontier... -->
 				<ref bean="candidates"/>
@@ -530,7 +549,7 @@
 	</bean>
 	
 	<!-- BDBCOOKIESTORAGE: disk-based cookie storage for FetchHTTP -->
-	<bean id="cookieStorage" class="org.archive.modules.fetcher.BdbCookieStorage">
+	<bean id="cookieStorage" class="org.archive.modules.fetcher.BdbCookieStore">
 		<property name="cookiesLoadFile"><null/></property>
 		<property name="cookiesSaveFile"><null/></property>
 		<!-- property name="bdb">
@@ -548,5 +567,5 @@
 		 to crawler-beans.cxml file, and tracking crawl files for web UI -->
 	<bean id="configPathConfigurer" class="org.archive.spring.ConfigPathConfigurer">
 	</bean>
-	<xi:include href="includes.xml" xpointer="xpointer(//includes/sheets/bean)" />
+	<xi:include href="includes.xml" xpointer="xpointer(//*[@id='parkedDomains'])" />
 </beans>
