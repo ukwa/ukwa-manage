@@ -137,7 +137,7 @@
 			</property>
 		</bean>
 		<!-- Park Domains IP addresses -->
-		<bean class="org.archive.crawler.spring.DecideRuledSheetAssociation">
+		<bean id="parkedDomains" class="org.archive.crawler.spring.DecideRuledSheetAssociation">
 			<property name="rules">
 				<bean class="org.archive.modules.deciderules.IpAddressSetDecideRule">
 					<property name="ipAddresses">
@@ -156,7 +156,7 @@
 			</property>
 		</bean>
 		<!-- Heavily populated IP addresses -->
-		<bean class="org.archive.crawler.spring.DecideRuledSheetAssociation">
+		<bean id="ipPolite" class="org.archive.crawler.spring.DecideRuledSheetAssociation">
 			<property name="rules">
 				<bean class="org.archive.modules.deciderules.IpAddressSetDecideRule">
 					<property name="ipAddresses">
