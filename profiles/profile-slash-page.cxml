@@ -568,4 +568,7 @@
 	<bean id="configPathConfigurer" class="org.archive.spring.ConfigPathConfigurer">
 	</bean>
 	<xi:include href="includes.xml" xpointer="xpointer(//*[@id='parkedDomains'])" />
+	<xi:include href="includes.xml" xpointer="xpointer(//*[@id='ipPolite'])" />
+	<xi:include href="includes.xml" xpointer="xpointer(//*[@id='extraPolite'])" />
+	<xi:include href="includes.xml" xpointer="xpointer(//*[@id='crawlLimited'])" />
 </beans>
