@@ -13,9 +13,9 @@ import heritrix
 import requests
 from lxml import etree
 from w3act.lib import ACT
-from w3act import settings
 from urlparse import urlparse
 from w3act.util import unique_list
+from w3act import settings, credentials
 from xml.etree.ElementTree import ParseError
 
 requests.packages.urllib3.disable_warnings()
@@ -105,7 +105,8 @@ class W3actJob(object):
         else:
             return url_field
 
-    def __init__(self, w3act_targets, name=None, seeds=None, directory=None, heritrix=None, setup=True):
+    def __init__(self, w3act_targets, name=None, seeds=None, directory=None, heritrix=None, setup=True, use_credentials=False):
+        self.use_credentials = use_credentials
         if name is None:
             self.name = self.get_name(w3act_targets[0][settings.W3ACT_JOB_FIELD])
         else:
@@ -225,7 +226,14 @@ class W3actJob(object):
         self.write_act_info()
         logger.info("Running scripts for %s" % self.name)
         self.run_job_script()
+        #TODO: The below line is a kludge to avoid an issue in the AsynchronousMQExtractor...
         self.heritrix.execute(engine="groovy", script="appCtx.getBean(\"extractorMq\").setupChannel();", job=self.name)
+        if self.use_credentials:
+            for i, target in enumerate(self.info):
+                if "secretId" in target["watchedTarget"].keys() and target["watchedTarget"]["secretId"]:
+                    logger.info("Getting credentials for %s..." % target["title"])
+                    new_info = credentials.handle_credentials(target, self.name, self.heritrix)
+                    self.info[i] = new_info
         logger.info("Unpausing %s" % self.name)
         self.heritrix.unpause(self.name)
         self.waitfor("RUNNING")
