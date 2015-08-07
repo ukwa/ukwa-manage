@@ -12,8 +12,8 @@ QA_QUEUE_KEY="qa"
 
 W3ACT_BASE="https://www.webarchive.org.uk/act"
 W3ACT_LOGIN="%s/login" % W3ACT_BASE
-W3ACT_EMAIL="roger.coram@bl.uk"
-W3ACT_PASSWORD="g07*$ECAVDU8QoU"
+W3ACT_EMAIL=None
+W3ACT_PASSWORD=None
 W3ACT_EXPORT_BASE="%s/targets/export" % W3ACT_BASE
 W3ACT_LD_EXPORT="%s/ld" % W3ACT_EXPORT_BASE
 W3ACT_JOB_FIELD="url"
@@ -40,10 +40,10 @@ CLAMD_PORTS = { "daily": "3311", "weekly": "3312", "monthly": "3313", "quarterly
 CLAMD_DEFAULT_PORT = "3310"
 MAX_RENDER_DEPTH = { "daily": 0, "weekly": 1, "monthly": 1, "quarterly": 1, "sixmonthly": 1, "annual": 1 }
 
-SLACK=True
-SLACK_TOKEN="xoxp-2469624547-4861238005-7576447543-873bbb"
-SLACK_CHANNEL="C07H4U6DR"
-SLACK_CSV=True
+SLACK=False
+SLACK_TOKEN=None
+SLACK_CHANNEL=None
+SLACK_CSV=False
 
 LOGGING_CONFIG = {
     "version": 1,
