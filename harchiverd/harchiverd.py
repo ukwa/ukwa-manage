@@ -54,11 +54,11 @@ def send_amqp_message(message, client_id):
                              type="direct", 
                              durable=True, 
                              auto_delete=False)
-    channel.queue_declare(queue=settings.AMQP_OUTLINK_QUEUE, 
+    channel.queue_declare(queue=client_id,
                           durable=False, 
                           exclusive=False, 
                           auto_delete=True)
-    channel.queue_bind(queue=settings.AMQP_OUTLINK_QUEUE, 
+    channel.queue_bind(queue=client_id,
            exchange=settings.AMQP_EXCHANGE,
            routing_key=client_id)
     channel.basic_publish(exchange=settings.AMQP_EXCHANGE,
