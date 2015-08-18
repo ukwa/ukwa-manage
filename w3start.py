@@ -67,6 +67,22 @@ def send_slack_messages(stats, name):
             o.write(data)
         res = slack.files.upload(output, channels=settings.SLACK_CHANNEL, filename="%s-%s.%s" % (name, datetime.now().strftime("%Y%m%d%H%M%S"), extension), title=name)
 
+def check_watched_targets(jobname, timestamp):
+    """If there are any Watched Targets, send a message."""
+    if not os.path.exists("%s/%s/%s/w3act-info.json" % (settings.HERITRIX_JOBS, jobname, timestamp)):
+        return
+    with open("%s/%s/%s/w3act-info.json" % (settings.HERITRIX_JOBS, jobname, timestamp), "rb") as i:
+        info = i.read()
+    for job in json.loads(info):
+        if job["watched"]:
+            logger.info("Found a Watched Target in %s/%s." % (jobname, timestamp))
+            send_message(
+                settings.QUEUE_HOST,
+                settings.WATCHED_QUEUE_NAME,
+                settings.WATCHED_QUEUE_KEY,
+                "%s/%s" % (jobname, timestamp)
+            )
+
 def stop_running_job(frequency, heritrix):
     """Stops a running job, notifies RabbitMQ and cleans up the directory."""
     launchid = heritrix.launchid(frequency)
@@ -104,7 +120,6 @@ def restart_job(frequency, start=datetime.now()):
         h = heritrix.API(host="https://%s:%s/engine" % (settings.HERITRIX_HOST, settings.HERITRIX_PORTS[frequency]), user="admin", passwd="bl_uk", verbose=False, verify=False)
         if frequency in h.listjobs() and h.status(frequency) != "":
             stop_running_job(frequency, h)
-            #TODO: Automated QA
         job = W3actJob(targets, name=frequency, heritrix=h)
         if not args.test:
             logger.debug("Starting job %s with %s seeds." % (job.name, len(job.seeds)))

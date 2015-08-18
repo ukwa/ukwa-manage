@@ -9,6 +9,8 @@ SIP_QUEUE_NAME="sips"
 SIP_QUEUE_KEY="sips"
 QA_QUEUE_NAME="qa"
 QA_QUEUE_KEY="qa"
+WATCHED_QUEUE_NAME="watched"
+WATCHED_QUEUE_KEY="watched"
 
 W3ACT_BASE="https://www.webarchive.org.uk/act"
 W3ACT_LOGIN="%s/login" % W3ACT_BASE
