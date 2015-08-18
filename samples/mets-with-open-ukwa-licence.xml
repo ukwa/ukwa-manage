@@ -20,6 +20,9 @@
               <wct:Patterns>
                 <wct:Pattern>http://www.theheritagealliance.org.uk/*</wct:Pattern>
               </wct:Patterns>
+              <wct:SeedsURLs>
+                <wct:SeedURL>http://www.theheritagealliance.org.uk/</wct:SeedURL>
+              </wct:SeedsURLs>
               <wct:AuthorizingAgent>
                 <wct:Name>Emma Robinson</wct:Name>
                 <wct:Contact>emma.robinson@theheritagealliance.org.uk</wct:Contact>
