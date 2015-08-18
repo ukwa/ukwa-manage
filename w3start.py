@@ -67,8 +67,9 @@ def send_slack_messages(stats, name):
             o.write(data)
         res = slack.files.upload(output, channels=settings.SLACK_CHANNEL, filename="%s-%s.%s" % (name, datetime.now().strftime("%Y%m%d%H%M%S"), extension), title=name)
 
-def check_watched_targets(jobname, timestamp):
+def check_watched_targets(jobname, heritrix):
     """If there are any Watched Targets, send a message."""
+    timestamp = heritrix.launchid(jobname)
     if not os.path.exists("%s/%s/%s/w3act-info.json" % (settings.HERITRIX_JOBS, jobname, timestamp)):
         return
     with open("%s/%s/%s/w3act-info.json" % (settings.HERITRIX_JOBS, jobname, timestamp), "rb") as i:
