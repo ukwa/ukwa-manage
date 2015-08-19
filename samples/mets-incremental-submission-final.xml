@@ -1,0 +1,98 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<mets:mets xmlns:mets="http://www.loc.gov/METS/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-3.xsd info:lc/xmlns/premis-v2 http://www.loc.gov/standards/premis/premis.xsd http://www.w3.org/1999/xlink http://www.loc.gov/standards/xlink/xlink.xsd" TYPE="webarchive_domain">
+  <mets:metsHdr CREATEDATE="2014-12-19T15:34:08Z">
+    <mets:agent TYPE="OTHER" ROLE="CREATOR" OTHERTYPE="software">
+      <mets:name>create_mets;0.1682</mets:name>
+    </mets:agent>
+  </mets:metsHdr>
+  <mets:amdSec ID="AMD0000">
+    <mets:rightsMD ID="DP0000">
+      <mets:mdWrap OTHERMDTYPE="wctpermissions" MDTYPE="OTHER">
+        <mets:xmlData>
+          <wct:Permissions xmlns:wct="http://www.bl.uk/namespaces/wct">
+            <wct:Permission>
+              <wct:State>Granted</wct:State>
+              <wct:StartDate>2013-04-06</wct:StartDate>
+              <wct:HarvestAuthorization>
+                <wct:Name>The Legal Deposit Libraries (Non-Print Works) Regulations 2013</wct:Name>
+                <wct:IsPublished>True</wct:IsPublished>
+              </wct:HarvestAuthorization>
+            </wct:Permission>
+          </wct:Permissions>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:rightsMD>
+    <mets:digiprovMD ID="DP0001">
+      <mets:mdWrap MDTYPE="PREMIS:EVENT">
+        <mets:xmlData>
+          <premis:event xmlns:premis="info:lc/xmlns/premis-v2">
+            <premis:eventIdentifier>
+              <premis:eventIdentifierType>crawlIdentifier</premis:eventIdentifierType>
+              <premis:eventIdentifierValue>sixmonthly-0-090900/20141209090016</premis:eventIdentifierValue>
+            </premis:eventIdentifier>
+            <premis:eventType>crawlstart</premis:eventType>
+            <premis:eventDateTime>2014-12-09T09:00:32Z</premis:eventDateTime>
+            <premis:linkingAgentIdentifier>
+              <premis:linkingAgentIdentifierType>local</premis:linkingAgentIdentifierType>
+              <premis:linkingAgentIdentifierValue>AGENT0000</premis:linkingAgentIdentifierValue>
+            </premis:linkingAgentIdentifier>
+          </premis:event>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:digiprovMD>
+    <mets:digiprovMD ID="DP0002">
+      <mets:mdWrap MDTYPE="PREMIS:AGENT">
+        <mets:xmlData>
+          <premis:agent xmlns:premis="info:lc/xmlns/premis-v2">
+            <premis:agentIdentifier>
+              <premis:agentIdentifierType>local</premis:agentIdentifierType>
+              <premis:agentIdentifierValue>AGENT0000</premis:agentIdentifierValue>
+            </premis:agentIdentifier>
+            <premis:agentName>heritrix-3.1.1+uk.bl.wap</premis:agentName>
+            <premis:agentType>software</premis:agentType>
+          </premis:agent>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:digiprovMD>
+  </mets:amdSec>
+  <mets:amdSec ID="AMDZIP1744">
+    <mets:digiprovMD ID="DMDZIP1744">
+      <mets:mdWrap MDTYPE="PREMIS:OBJECT">
+        <mets:xmlData>
+          <premis:object xmlns:premis="info:lc/xmlns/premis-v2" xsi:type="premis:file">
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>ARK</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>ark:/81055/vdc_100023739906.0x000001</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel>1</premis:compositionLevel>
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-512</premis:messageDigestAlgorithm>
+                <premis:messageDigest>851020547b40a2908ecccba48cf4ea9a619085f3f1fc7ad7114513cc971d2997630d15d815480703ecbdf1a60a8dbb304d3c3153067be99371c0b64a4a2db7ec</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>2259627</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>application/zip</premis:formatName>
+                </premis:formatDesignation>
+              </premis:format>
+            </premis:objectCharacteristics>
+          </premis:object>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:digiprovMD>
+  </mets:amdSec>
+  <mets:fileSec>
+    <mets:fileGrp USE="Logfiles">
+      <mets:file MIMETYPE="application/zip" ADMID="AMDZIP1744" CHECKSUMTYPE="SHA-512" CHECKSUM="851020547b40a2908ecccba48cf4ea9a619085f3f1fc7ad7114513cc971d2997630d15d815480703ecbdf1a60a8dbb304d3c3153067be99371c0b64a4a2db7ec" ID="ZIP1744" SIZE="2259627">
+        <mets:FLocat xmlns:xlink="http://www.w3.org/1999/xlink" LOCTYPE="URL" xlink:href="http://dls.httpfs.wa.bl.uk:14000/webhdfs/v1/heritrix/output/logs/sixmonthly-0-090900/20141209090016/20141209090016.zip?user.name=hadoop&amp;op=OPEN"/>
+        <mets:transformFile TRANSFORMALGORITHM="ZIP" TRANSFORMORDER="1" TRANSFORMTYPE="decompression"/>
+      </mets:file>
+    </mets:fileGrp>
+  </mets:fileSec>
+  <mets:structMap TYPE="logical">
+    <mets:div ADMID="AMD0000" TYPE="uk-web-domain" ID="div0000">
+      <mets:fptr FILEID="ZIP1744"/>
+    </mets:div>
+  </mets:structMap>
+</mets:mets>
