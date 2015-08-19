@@ -81,7 +81,7 @@ def amqp_outlinks(har, client_id, parent):
         message = {
             "url": entry["request"]["url"],
             "method": entry["request"]["method"],
-            "headers": entry["request"]["headers"],
+            "headers": {h["name"]: h["value"] for h in entry["request"]["headers"]},
             "parentUrl": parent["url"],
             "parentUrlMetadata": parent["metadata"]
         }
