@@ -161,11 +161,20 @@
 				<bean class="org.archive.modules.deciderules.IpAddressSetDecideRule">
 					<property name="ipAddresses">
 						<set>
-							<value>85.158.249.176</value>
-							<value>87.106.142.81</value>
-							<value>195.59.103.131</value>
-							<value>195.59.103.132</value>
-							<value>195.59.103.201</value>
+							<value>81.21.76.62</value>
+							<value>213.171.195.105</value>
+							<value>94.126.40.154</value>
+							<value>85.233.160.22</value>
+							<value>93.184.220.60</value>
+							<value>72.52.4.91</value>
+							<value>79.170.40.4</value>
+							<value>94.136.40.103</value>
+							<value>94.136.40.82</value>
+							<value>72.52.4.119</value>
+							<value>69.172.201.208</value>
+							<value>216.8.179.23</value>
+							<value>204.11.56.26</value>
+							<value>85.233.160.70</value>
 						</set>
 					</property>
 					<property name="decision" value="ACCEPT" />
