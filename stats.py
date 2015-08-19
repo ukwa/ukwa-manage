@@ -16,7 +16,7 @@ LDREPORT = "/heritrix/git/heritrix_bl_configs/bin/ld-report"
 
 frequencies = ["daily", "weekly", "monthly", "quarterly", "sixmonthly", "annual", "domaincrawl", "nevercrawl"]
 
-ldls = [("The British Library", "DLS-LON-WB01"), ("Trinity College Dublin", "DLS-BSP-WB04"), ("Bodleian Library", "DLS-BSP-WB03"), ("Cambridge University Library", "DLS-BSP-WB02")]
+ldls = [("The British Library", "DLS-LON-WB01"), ("Trinity College Dublin", "DLS-BSP-WB04"), ("Bodleian Library", "DLS-BSP-WB03"), ("Cambridge University Library", "DLS-BSP-WB02"), ("The National Library of Scotland", "DLS-NLS-WB01"), ("The National Library of Wales", "dls-nlw-wb01")]
 
 a = w3act.ACT()
 w = webhdfs.API(prefix="http://dls.httpfs.wa.bl.uk:14000/webhdfs/v1")
@@ -128,4 +128,3 @@ with open( "/var/www/html/act/monthly-stats.html", "ab" ) as o:
 
 with open( "/var/www/html/act/monthly-stats.html", "rb" ) as i:
     print i.read()
-
