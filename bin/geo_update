@@ -1,5 +1,5 @@
 #!/bin/bash
-CITY_DATA=/opt/geoip/geoip-city.mmdb
+CITY_DATA=/tmp/geoip-city.mmdb
 SHM_DATA=/dev/shm/geoip-city.mmdb
 CITY_URL=http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz
 CITY_TMP_GZ=/tmp/GeoLite2-City.mmdb.gz

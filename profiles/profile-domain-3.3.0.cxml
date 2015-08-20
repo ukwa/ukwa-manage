@@ -105,9 +105,6 @@ metadata.description=UK Legal Deposit Domain Crawl.
         <ref bean="onDomainAccept"/>
 <!-- ... ACCEPT redirects... -->
         <ref bean="redirectAccept"/>
-<!-- ...and REJECT consecutive errors... -->
-        <bean class="uk.bl.wap.modules.deciderules.ConsecutiveFailureDecideRule">
-        </bean>
 <!-- ...and REJECT highly compressible URIs... -->
         <bean class="uk.bl.wap.modules.deciderules.CompressibilityDecideRule">
           <property name="min" value="0.28"/>
@@ -198,14 +195,14 @@ metadata.description=UK Legal Deposit Domain Crawl.
         <ref bean="costAssignmentPolicy" />
        </property> -->
   </bean>
-  <bean id="hashingCrawlMapper" class="uk.bl.wap.crawler.processor.HashingCrawlMapper">
-    <property name="checkUri" value="true"/>
+  <bean id="hashCrawlMapper" class="org.archive.crawler.processor.HashCrawlMapper">
+    <property name="enabled" value="true" />
+    <property name="localName" value="REPLACE_HASH_NAME" />
+    <property name="diversionDir" value="diversions" />
+    <property name="checkUri" value="true" />
     <property name="checkOutlinks" value="false"/>
-    <property name="localName" value="REPLACE_HASH_NAME"/>
-    <property name="diversionDir" value="diversions"/>
-    <property name="rotationDigits" value="10"/>
-    <property name="crawlerCount" value="REPLACE_HASH_COUNT"/>
-    <property name="minimumBits" value="32"/>
+    <property name="rotationDigits" value="10" />
+    <property name="crawlerCount" value="REPLACE_HASH_COUNT" />
   </bean>
   <bean id="quotaEnforcer" class="org.archive.crawler.prefetch.QuotaEnforcer">
     <property name="serverMaxSuccessKb" value="524288"/>
@@ -217,7 +214,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
 <!-- apply scoping rules to each individual candidate URI... -->
         <ref bean="candidateScoper"/>
 <!-- Check URIs for crawler assignment -->
-        <ref bean="hashingCrawlMapper"/>
+        <ref bean="hashCrawlMapper"/>
 <!-- ...then prepare those ACCEPTed to be enqueued to frontier. -->
         <ref bean="preparer"/>
       </list>
@@ -320,7 +317,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
     <property name="clientId" value="REPLACE_JOB_NAME" />
     <property name="routingKey" value="REPLACE_JOB_NAME" />
     <property name="exchange" value="heritrix" />
-    <property name="amqpUri" value="amqp://guest:guest@192.168.45.26:5672/%2f" />
+    <property name="amqpUri" value="amqp://guest:guest@amqp.wa.bl.uk:5672/%2f" />
     <property name="shouldProcessRule">
         <bean class="org.archive.modules.deciderules.DecideRuleSequence">
             <property name="rules">
@@ -339,7 +336,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
     </property>
   </bean>
   <bean class="org.archive.crawler.frontier.AMQPUrlReceiver">
-    <property name="amqpUri" value="amqp://guest:guest@194.66.232.91:5672/%2f" />
+    <property name="amqpUri" value="amqp://guest:guest@amqp.wa.bl.uk:5672/%2f" />
     <property name="exchange" value="heritrix" />
     <property name="queueName" value="REPLACE_JOB_NAME" />
   </bean>
