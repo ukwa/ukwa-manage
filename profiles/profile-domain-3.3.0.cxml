@@ -196,13 +196,8 @@ metadata.description=UK Legal Deposit Domain Crawl.
        </property> -->
   </bean>
   <bean id="hashCrawlMapper" class="org.archive.crawler.processor.HashCrawlMapper">
-    <property name="enabled" value="true" />
-    <property name="localName" value="REPLACE_HASH_NAME" />
-    <property name="diversionDir" value="diversions" />
-    <property name="checkUri" value="true" />
-    <property name="checkOutlinks" value="false"/>
-    <property name="rotationDigits" value="10" />
-    <property name="crawlerCount" value="REPLACE_HASH_COUNT" />
+    <property name="localName" value="0" />
+    <property name="crawlerCount" value="1" />
   </bean>
   <bean id="quotaEnforcer" class="org.archive.crawler.prefetch.QuotaEnforcer">
     <property name="serverMaxSuccessKb" value="524288"/>
