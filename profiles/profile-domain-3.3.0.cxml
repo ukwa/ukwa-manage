@@ -196,8 +196,10 @@ metadata.description=UK Legal Deposit Domain Crawl.
        </property> -->
   </bean>
   <bean id="hashCrawlMapper" class="org.archive.crawler.processor.HashCrawlMapper">
-    <property name="localName" value="0" />
-    <property name="crawlerCount" value="1" />
+   <!-- Specifiy this crawler's name (i.e. 0, 1, 2, etc.) -->
+    <property name="localName" value="REPLACE_LOCAL_NAME" />
+   <!-- Specifiy the number of crawlers in this job (i.e. 4 usually) -->
+    <property name="crawlerCount" value="REPLACE_CRAWLER_COUNT" />
   </bean>
   <bean id="quotaEnforcer" class="org.archive.crawler.prefetch.QuotaEnforcer">
     <property name="serverMaxSuccessKb" value="524288"/>
