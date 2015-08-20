@@ -281,7 +281,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
   <bean id="extractorHttp" class="org.archive.modules.extractor.ExtractorHTTP">
   </bean>
   <bean id="extractorHtml" class="org.archive.modules.extractor.ExtractorHTML">
-<!-- <property name="extractJavascript" value="true" /> -->
+    <property name="extractJavascript" value="false" />
 <!-- <property name="extractValueAttributes" value="true" /> -->
 <!-- <property name="ignoreFormActionUrls" value="false" /> -->
 <!-- <property name="extractOnlyFormGets" value="true" /> -->
@@ -306,16 +306,9 @@ metadata.description=UK Legal Deposit Domain Crawl.
     <property name="durable" value="true"/>
     <property name="outputPath" value="REPLACE_HERITRIX_JOBS/REPLACE_JOB_NAME/action/"/>
   </bean-->
-  <!--bean id="extractorMq" class="uk.bl.wap.modules.extractor.AsynchronousMQExtractor">
-    <property name="host" value="localhost"/>
-    <property name="routingKey" value="phantomjs"/>
-    <property name="queue" value="phantomjs"/>
-    <property name="durable" value="true"/>
-    <property name="outputPath" value="/opt/heritrix/jobs/intranet-20150601101519/action/"/>
-  </bean-->
   <bean id="extractorMq" class="org.archive.modules.AMQPPublishProcessor">
     <property name="clientId" value="REPLACE_JOB_NAME" />
-    <property name="routingKey" value="REPLACE_JOB_NAME" />
+    <property name="routingKey" value="phantomjs-domain" />
     <property name="exchange" value="heritrix" />
     <property name="amqpUri" value="amqp://guest:guest@amqp.wa.bl.uk:5672/%2f" />
     <property name="shouldProcessRule">
@@ -329,6 +322,11 @@ metadata.description=UK Legal Deposit Domain Crawl.
                     <bean class="org.archive.modules.deciderules.MatchesRegexDecideRule">
                         <property name="regex" value="^https?://[^/]+/$"/>
                         <property name="decision" value="ACCEPT"/>
+                    </bean>
+                    <bean class="org.archive.modules.deciderules.NotMatchesStatusCodeDecideRule">
+                        <property name="decision" value="REJECT" />
+                        <property name="lowerBound" value="200" />
+                        <property name="upperBound" value="299" />
                     </bean>
                 </list>
             </property>
@@ -385,7 +383,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
 <!-- ...extract outlinks from CSS content... -->
         <ref bean="extractorCss"/>
 <!-- ...extract outlinks from Javascript content... -->
-        <ref bean="extractorJs"/>
+        <!--ref bean="extractorJs"/-->
 <!-- ...extract outlinks from Flash content... -->
         <ref bean="extractorSwf"/>
 <!-- ...add IPs to crawl.log... -->
@@ -485,7 +483,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
   </bean>
   <bean id="candidates" class="org.archive.crawler.postprocessor.CandidatesProcessor">
 <!-- <property name="seedsRedirectNewSeeds" value="true" /> -->
-    <property name="processErrorOutlinks" value="true"/>
+<!-- <property name="processErrorOutlinks" value="false" /> -->
   </bean>
   <bean id="disposition" class="org.archive.crawler.postprocessor.DispositionProcessor">
 <!-- <property name="delayFactor" value="5.0" /> -->
