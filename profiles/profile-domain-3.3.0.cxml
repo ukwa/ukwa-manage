@@ -323,10 +323,9 @@ metadata.description=UK Legal Deposit Domain Crawl.
                         <property name="regex" value="^https?://[^/]+/$"/>
                         <property name="decision" value="ACCEPT"/>
                     </bean>
-                    <bean class="org.archive.modules.deciderules.NotMatchesStatusCodeDecideRule">
-                        <property name="decision" value="REJECT" />
-                        <property name="lowerBound" value="200" />
-                        <property name="upperBound" value="299" />
+                    <bean class="org.archive.modules.deciderules.ExpressionDecideRule">
+                        <property name="decision" value="REJECT"/>
+                        <property name="groovyExpression" value="(curi.getFetchStatus() &lt; 200 || curi.getFetchStatus() &gt;= 300)"/>
                     </bean>
                 </list>
             </property>
