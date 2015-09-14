@@ -19,10 +19,10 @@ logging.root.setLevel( logging.INFO )
 if __name__ == "__main__":
 	w = webhdfs.API( prefix="http://%s:14000/webhdfs/v1" % settings.hdfshost, user=settings.hdfscdxuser )
 	if not w.exists( settings.hdfscdxroot ):
-		logger.error( "No HDFS CDX found: %s" % hdfscdx )
+		logger.error( "No HDFS CDX found: %s" % settings.hdfscdx )
 		sys.exit( 1 )
 	if not os.path.exists( settings.localcdx ):
-		logger.error( "No local CDX found: %s" % localcdx )
+		logger.error( "No local CDX found: %s" % settings.localcdx )
 		sys.exit( 1 )
 
 	hdfssize = 0
@@ -34,4 +34,3 @@ if __name__ == "__main__":
 		logger.info( "Replacing local CDX (%s) with HDFS CDX (%s)." % ( settings.localcdx, settings.hdfscdxroot ) )
 		with open( settings.localcdx, "wb" ) as o:
 			w.getmerge( settings.hdfscdxroot, o )
-
