@@ -39,7 +39,7 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 parser = argparse.ArgumentParser(description="Restarts Heritrix jobs.")
-parser.add_argument("-t", "--timestamp", dest="timestamp", type=str, required=False, help="Timestamp", default=datetime.now().isoformat())
+parser.add_argument("-t", "--timestamp", dest="timestamp", type=str, required=False, help="Timestamp", default=datetime.utcnow().isoformat())
 parser.add_argument("-f", "--frequency", dest="frequency", type=str, required=False, help="Frequency", nargs="+", default=settings.FREQUENCIES)
 parser.add_argument("-x", "--test", dest="test", action="store_true", required=False, help="Test")
 args = parser.parse_args()
@@ -65,7 +65,7 @@ def send_slack_messages(stats, name):
         output = "%s/%s.%s" % (tempfile.gettempdir(), name, extension)
         with open(output, "wb") as o:
             o.write(data)
-        res = slack.files.upload(output, channels=settings.SLACK_CHANNEL, filename="%s-%s.%s" % (name, datetime.now().strftime("%Y%m%d%H%M%S"), extension), title=name)
+        res = slack.files.upload(output, channels=settings.SLACK_CHANNEL, filename="%s-%s.%s" % (name, datetime.utcnow().strftime("%Y%m%d%H%M%S"), extension), title=name)
 
 def check_watched_targets(jobname, heritrix):
     """If there are any Watched Targets, send a message."""
@@ -109,22 +109,29 @@ def stop_running_job(frequency, heritrix):
         stats = generate_log_stats(glob("%s/%s/%s/crawl.log*" % (settings.HERITRIX_LOGS, frequency, launchid)))
         send_slack_messages(stats, frequency)
 
-def restart_job(frequency, start=datetime.now()):
+def restart_job(frequency, start=datetime.utcnow()):
     """Restarts the job for a particular frequency."""
     logger.info("Restarting %s at %s" % (frequency, start))
     try:
         w = w3act.ACT()
         export = w.get_ld_export(frequency)
         logger.debug("Found %s Targets in export." % len(export))
-        targets = [t for t in export if (t["crawlStartDateText"] is None or dateutil.parser.parse(t["crawlStartDateText"], dayfirst=True) < start) and (t["crawlEndDateText"] is None or dateutil.parser.parse(t["crawlEndDateText"], dayfirst=True) > start)]
+        targets = [t for t in export if (t["crawlStartDateISO"] is None or dateutil.parser.parse(t["crawlStartDateISO"]) < start) and (t["crawlEndDateISO"] is None or dateutil.parser.parse(t["crawlEndDateISO"]) > start)]
         logger.debug("Found %s Targets in date range." % len(targets))
         h = heritrix.API(host="https://%s:%s/engine" % (settings.HERITRIX_HOST, settings.HERITRIX_PORTS[frequency]), user="admin", passwd="bl_uk", verbose=False, verify=False)
         if frequency in h.listjobs() and h.status(frequency) != "":
             stop_running_job(frequency, h)
+            #TODO: Automated QA
         job = W3actJob(targets, name=frequency, heritrix=h)
         if not args.test:
             logger.debug("Starting job %s with %s seeds." % (job.name, len(job.seeds)))
             job.start()
+        else:
+            logger.debug("Would start job %s with %s seeds." % (job.name, len(job.seeds)))
+            logger.debug("Seeds:")
+            for surl in job.seeds:
+                logger.debug("- %s" % surl)
+
     except:
         logger.error("%s: %s" % (frequency, str(sys.exc_info())))
         logger.error("%s: %s" % (frequency, traceback.format_exc()))
@@ -151,5 +158,5 @@ def restart_frequencies(frequencies, now):
                     restart_job("annual", start=now)
 
 if __name__ == "__main__":
-    restart_frequencies(args.frequency, dateutil.parser.parse(args.timestamp).replace(tzinfo=None))
+    restart_frequencies(args.frequency, dateutil.parser.parse(args.timestamp))
 
