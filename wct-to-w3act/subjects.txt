@@ -1,0 +1,81 @@
+                           at_name                           | regexp_replace 
+-------------------------------------------------------------+----------------
+ Company Web Sites                                           | 
+ Art and Design                                              | 
+ Demography                                                  | 
+ Economic Development, Enterprise and Aid                    | 
+ Comedy and Humour                                           | 
+ Architecture                                                | 
+ Dance                                                       | 
+ Geography                                                   | 
+ Languages                                                   | 
+ Sports and Recreation                                       | 
+ Music                                                       | 
+ Film / Cinema                                               | 
+ Philosophy and Ethics                                       | 
+ Theatre                                                     | 
+ Libraries, Archives and Museums                             | 
+ Banking, Insurance, Accountancy and Financial Economics     | 
+ Arts & Humanities                                           | 
+ Medicine & Health                                           | 
+ Industries                                                  | 
+ History                                                     | 
+ Agriculture, Fishing, and Forestry                          | 
+ Business Studies and Management Theory                      | 
+ Social Problems and Welfare                                 | 
+ Computer Science, Information Technology and Web Technology | 
+ Further Education                                           | 
+ Medicines, Treatments and Therapies                         | 
+ Higher Education                                            | 
+ Economics and Economic Theory                               | 
+ Preschool Education                                         | 
+ School Education                                            | 
+ Employment, Unemployment and Labour Economics               | 
+ Trade, Commerce, and Globalisation                          | 
+ Special Needs Education                                     | 
+ Dictionaries, Encyclopaedias, and Reference Works           | 
+ Vocational Education                                        | 
+ Society & Culture                                           | 
+ Lifelong Learning                                           | 
+ Engineering                                                 | 
+ Civil Rights, Pressure Groups, and Trade Unions             | 
+ Mathematics                                                 | 
+ Central Government                                          | 
+ International Relations, Diplomacy, and Peace               | 
+ Devolved Government                                         | 
+ Communities                                                 | 
+ Government, Law & Politics                                  | 
+ Sociology, Anthropology and Population Studies              | 
+ Health Organisations and Services                           | 
+ Inter-Governmental Agencies                                 | 
+ Transport and Infrastructure                                | 
+ Education & Research                                        | 
+ Marketing and Market Research                               | 
+ News and Contemporary Events                                | 
+ Zoology, Veterinary Science and Animal Health               | 
+ Food and Drink                                              | 
+ Alternative Medicine / Complementary Medicine               | 
+ Local Government                                            | 
+ Public Inquiries                                            | 
+ Conditions and Diseases                                     | 
+ Public Health and Safety                                    | 
+ Political Parties                                           | 
+ Local History                                               | 
+ Physical Sciences                                           | 
+ Family History / Genealogy                                  | 
+ TV and Radio                                                | 
+ Science & Technology                                        | 
+ Politics, Political Theory and Political Systems            | 
+ Law and Legal System                                        | 
+ Literature                                                  | 
+ Digital Society                                             | 
+ Travel & Tourism                                            | 
+ Popular Science                                             | 
+ Life Sciences                                               | 
+ Business, Economy & Industry                                | 
+ Publishing, Printing and Bookselling                        | 
+ Religion                                                    | 
+ Crime, Criminology, Police and Prisons                      | 
+ Environment                                                 | 
+(77 rows)
+
