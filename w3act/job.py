@@ -187,7 +187,7 @@ class W3actJob(object):
         # Write Sheet-associations to disk:
         commands = []
         for target in self.info:
-            commands = get_depth_scripts(target["seeds"], target["field_depth"])
+            commands += get_depth_scripts(target["seeds"], target["field_depth"])
             commands += get_scope_scripts(target["seeds"], target["field_scope"])
         commands += get_blocking_scripts()
         with open("%s/script.beanshell" % self.job_dir, "wb") as o:

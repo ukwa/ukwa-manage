@@ -14,13 +14,13 @@ WATCHED_QUEUE_KEY="watched"
 
 W3ACT_BASE="https://www.webarchive.org.uk/act"
 W3ACT_LOGIN="%s/login" % W3ACT_BASE
-W3ACT_EMAIL=None
-W3ACT_PASSWORD=None
+W3ACT_EMAIL="at@at.at"
+W3ACT_PASSWORD="dfdfdf"
 W3ACT_EXPORT_BASE="%s/targets/export" % W3ACT_BASE
 W3ACT_LD_EXPORT="%s/ld" % W3ACT_EXPORT_BASE
 W3ACT_JOB_FIELD="url"
 
-HERITRIX_HOST="crawler03.wa.bl.uk"
+HERITRIX_HOST="crawler03.bl.uk"
 HERITRIX_ROOT="/opt/heritrix"
 HERITRIX_JOBS="%s/jobs" % HERITRIX_ROOT
 HERITRIX_LOGS="/heritrix/output/logs"
