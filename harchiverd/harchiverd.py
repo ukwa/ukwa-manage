@@ -23,7 +23,7 @@ handler = logging.FileHandler(settings.LOG_FILE)
 formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 def write_outlinks(har, dir, parent):
     """Writes outlinks in the HAR to a gzipped file."""
