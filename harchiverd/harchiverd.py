@@ -174,6 +174,7 @@ def run_harchiver():
 
     warcwriter = WarcWriterPool(gzip=True, output_dir=settings.OUTPUT_DIRECTORY)
     while True:
+        channel = None
         try:
             logger.debug("Starting connection: %s" % (settings.AMQP_URL))
             parameters = pika.URLParameters(settings.AMQP_URL)

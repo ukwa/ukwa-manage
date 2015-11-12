@@ -1,6 +1,5 @@
-PID_FILE="/var/run/harchiverd/harchiverd.pid"
-LOG_FILE="/var/log/harchiverd/harchiverd.log"
-OUTPUT_DIRECTORY="/heritrix/output/images"
+LOG_FILE="harchiverd.log"
+OUTPUT_DIRECTORY="images"
 WEBSERVICE="http://webrender.bl.uk/webtools/domimage"
 PROTOCOLS=["http", "https"]
 AMQP_KEY="phantomjs"
