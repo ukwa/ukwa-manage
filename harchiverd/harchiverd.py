@@ -74,7 +74,7 @@ def send_amqp_message(message, client_id):
     channel.close()
     connection.close()
 
-def send_to_amqp(url,method,headers,parentUrl, parentUrlMetadata, forceFetch=False, isSeed=False):
+def send_to_amqp(client_id, url,method,headers,parentUrl, parentUrlMetadata, forceFetch=False, isSeed=False):
     sent = False
     message = {
         "url": url,
@@ -103,12 +103,12 @@ def amqp_outlinks(har, client_id, parent):
         protocol = urlparse(entry["request"]["url"]).scheme
         if not protocol in settings.PROTOCOLS:
             continue
-        send_to_amqp(entry["request"]["url"],entry["request"]["method"], 
+        send_to_amqp(client_id, entry["request"]["url"],entry["request"]["method"], 
             {h["name"]: h["value"] for h in entry["request"]["headers"]}, 
             parent["url"], parent["metadata"], forceFetch=True)
     for entry in har["log"]["pages"]:
         for item in entry["map"]:
-            send_to_amqp(item['href'],"GET", {}, "", "")
+            send_to_amqp(client_id, item['href'],"GET", {}, "", "")
 
 
 def handle_json_message(message):
