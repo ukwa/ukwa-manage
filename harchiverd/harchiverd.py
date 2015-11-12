@@ -18,12 +18,16 @@ from urlparse import urlparse
 from hanzo.warctools import WarcRecord
 from warcwriterpool import WarcWriterPool, warc_datetime_str
 
+# Default log level:
+logging.getLogger().setLevel(logging.WARNING)
+
+# Log level for our code:
 logger = logging.getLogger("harchiverd")
 handler = logging.FileHandler(settings.LOG_FILE)
 formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 def write_outlinks(har, dir, parent):
     """Writes outlinks in the HAR to a gzipped file."""
@@ -176,7 +180,7 @@ def run_harchiver():
     while True:
         channel = None
         try:
-            logger.debug("Starting connection: %s" % (settings.AMQP_URL))
+            logger.info("Starting connection: %s" % (settings.AMQP_URL))
             parameters = pika.URLParameters(settings.AMQP_URL)
             connection = pika.BlockingConnection(parameters)
             channel = connection.channel()
@@ -191,17 +195,20 @@ def run_harchiver():
             channel.queue_bind(queue=settings.AMQP_QUEUE, 
                    exchange=settings.AMQP_EXCHANGE,
                    routing_key=settings.AMQP_KEY)
+            logger.info("Started connection: %s" % (settings.AMQP_URL))
             for method_frame, properties, body in channel.consume(settings.AMQP_QUEUE):
                 callback(warcwriter, body)
                 channel.basic_ack(method_frame.delivery_tag)
         except Exception as e:
-            logger.error(str(e))
-            if channel:
-                requeued_messages = channel.cancel()
-                logger.debug("Requeued %i messages" % requeued_messages)
             logger.error("Error: %s" % e)
-            logger.warning("Sleeping for 30 seconds before retrying...")
-            time.sleep(30)
+            if channel and channel.is_open and not channel.is_closing:
+                try:
+                    requeued_messages = channel.cancel()
+                    logger.info("Requeued %i messages" % requeued_messages)
+                except Exception as e:
+                    logger.warning("Could not cancel/shutdown neatly.")
+            logger.warning("Sleeping for 15 seconds before retrying...")
+            time.sleep(15)
 
 if __name__ == "__main__":
     run_harchiver()
