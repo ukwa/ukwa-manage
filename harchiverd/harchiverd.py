@@ -74,7 +74,7 @@ def send_amqp_message(message, client_id):
     channel.close()
     connection.close()
 
-def send_to_amqp(client_id, url,method,headers,parentUrl, parentUrlMetadata, forceFetch=False, isSeed=False):
+def send_to_amqp(client_id, url,method,headers, parentUrl, parentUrlMetadata={}, forceFetch=False, isSeed=False):
     sent = False
     message = {
         "url": url,
@@ -107,8 +107,9 @@ def amqp_outlinks(har, client_id, parent):
             {h["name"]: h["value"] for h in entry["request"]["headers"]}, 
             parent["url"], parent["metadata"], forceFetch=True)
     for entry in har["log"]["pages"]:
+        parentUrl = entry["id"]
         for item in entry["map"]:
-            send_to_amqp(client_id, item['href'],"GET", {}, "", "")
+            send_to_amqp(client_id, item['href'],"GET", {}, parentUrl)
 
 
 def handle_json_message(message):
