@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Daemon which watches a configured queue for messages and for each, calls a
+"""Process which watches a configured queue for messages and for each, calls a
 webservice, storing the result in a WARC file."""
 
 import sys
@@ -12,7 +12,7 @@ import shutil
 import logging
 import requests
 import settings
-from daemonize import Daemon
+import time
 from datetime import datetime
 from urlparse import urlparse
 from hanzo.warctools import WarcRecord
@@ -70,6 +70,27 @@ def send_amqp_message(message, client_id):
     channel.close()
     connection.close()
 
+def send_to_amqp(url,method,headers,parentUrl, parentUrlMetadata, forceFetch=False, isSeed=False):
+    sent = False
+    message = {
+        "url": url,
+        "method": method,
+        "headers": headers,
+        "parentUrl": parentUrl,
+        "parentUrlMetadata": parentUrlMetadata,
+        "forceFetch": forceFetch,
+        "isSeed": isSeed
+    }
+    while not sent:
+        try:
+            send_amqp_message(json.dumps(message), client_id)
+            sent = True
+        except:
+            logger.error("Problem sending message: %s; %s" % (message, sys.exc_info()))
+            logger.error("Sleeping for 30 seconds...")
+            time.sleep(30)
+
+
 def amqp_outlinks(har, client_id, parent):
     """Passes outlinks back to queue."""
     har = json.loads(har)
@@ -78,17 +99,13 @@ def amqp_outlinks(har, client_id, parent):
         protocol = urlparse(entry["request"]["url"]).scheme
         if not protocol in settings.PROTOCOLS:
             continue
-        message = {
-            "url": entry["request"]["url"],
-            "method": entry["request"]["method"],
-            "headers": {h["name"]: h["value"] for h in entry["request"]["headers"]},
-            "parentUrl": parent["url"],
-            "parentUrlMetadata": parent["metadata"]
-        }
-        try:
-            send_amqp_message(json.dumps(message), client_id)
-        except:
-            logger.error("Problem sending message: %s; %s" % (message, sys.exc_info()))
+        send_to_amqp(entry["request"]["url"],entry["request"]["method"], 
+            {h["name"]: h["value"] for h in entry["request"]["headers"]}, 
+            parent["url"], parent["metadata"], forceFetch=True)
+    for entry in har["log"]["pages"]:
+        for item in entry["map"]:
+            send_to_amqp(item['href'],"GET", {}, "", "")
+
 
 def handle_json_message(message):
     """Parses AMQPPublishProcessor-style JSON messages."""
@@ -152,32 +169,39 @@ def callback(warcwriter, body):
     except Exception as e:
         logger.error("%s [%s]" % (str(e), body))
 
-class HarchiverDaemon(Daemon):
+def run_harchiver():
     """Maintains a connection to the queue."""
-    def run(self):
-        warcwriter = WarcWriterPool(gzip=True, output_dir=settings.OUTPUT_DIRECTORY)
-        while True:
-            try:
-                logger.debug("Starting connection: %s" % (settings.AMQP_URL))
-                parameters = pika.URLParameters(settings.AMQP_URL)
-                connection = pika.BlockingConnection(parameters)
-                channel = connection.channel()
-                channel.exchange_declare(exchange=settings.AMQP_EXCHANGE,
-                                         type="direct", 
-                                         durable=True, 
-                                         auto_delete=False)
-                channel.queue_declare(queue=settings.AMQP_QUEUE, 
-                                      durable=True, 
-                                      exclusive=False, 
-                                      auto_delete=False)
-                channel.queue_bind(queue=settings.AMQP_QUEUE, 
-                       exchange=settings.AMQP_EXCHANGE,
-                       routing_key=settings.AMQP_KEY)
-                for method_frame, properties, body in channel.consume(settings.AMQP_QUEUE):
-                    callback(warcwriter, body)
-                    channel.basic_ack(method_frame.delivery_tag)
-            except Exception as e:
-                logger.error(str(e))
+
+    warcwriter = WarcWriterPool(gzip=True, output_dir=settings.OUTPUT_DIRECTORY)
+    while True:
+        try:
+            logger.debug("Starting connection: %s" % (settings.AMQP_URL))
+            parameters = pika.URLParameters(settings.AMQP_URL)
+            connection = pika.BlockingConnection(parameters)
+            channel = connection.channel()
+            channel.exchange_declare(exchange=settings.AMQP_EXCHANGE,
+                                     type="direct", 
+                                     durable=True, 
+                                     auto_delete=False)
+            channel.queue_declare(queue=settings.AMQP_QUEUE, 
+                                  durable=True, 
+                                  exclusive=False, 
+                                  auto_delete=False)
+            channel.queue_bind(queue=settings.AMQP_QUEUE, 
+                   exchange=settings.AMQP_EXCHANGE,
+                   routing_key=settings.AMQP_KEY)
+            for method_frame, properties, body in channel.consume(settings.AMQP_QUEUE):
+                callback(warcwriter, body)
+                channel.basic_ack(method_frame.delivery_tag)
+        except Exception as e:
+            logger.error(str(e))
+            if channel:
                 requeued_messages = channel.cancel()
                 logger.debug("Requeued %i messages" % requeued_messages)
+            logger.error("Error: %s" % e)
+            logger.warning("Sleeping for 30 seconds before retrying...")
+            time.sleep(30)
+
+if __name__ == "__main__":
+    run_harchiver()
 
