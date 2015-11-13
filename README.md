@@ -8,4 +8,7 @@ warc-compare-hdfs.py
 
 Compare local files with those on HDFS.
 
+   $ python -u bin/warcs-compare-hdfs.py | tee delete.log
 
+
+   $ python -u bin/warcs-compare-hdfs.py delete | delete.log

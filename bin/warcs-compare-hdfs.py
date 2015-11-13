@@ -2,7 +2,10 @@ import os
 import sys
 import subprocess
 import string
+import time
 from hdfs import InsecureClient
+
+dummy_run = True
 
 client = InsecureClient('http://dls.httpfs.wa.bl.uk:14000')
 
@@ -31,7 +34,8 @@ def checkDir(dirPath):
         for fname in fileList:
             filePath = '%s/%s' % (dirName, fname)
             print "\nNEXT: %s" % filePath
-            if filePath.startswith('/heritrix/output/logs/') or filePath.endswith('.warc.gz.open'):
+            sys.stdout.flush()
+            if not filePath.endswith('.warc.gz'):
                 print "SKIPPING %s" % filePath
                 continue
             status = client.status(filePath, strict=False)
@@ -47,11 +51,22 @@ def checkDir(dirPath):
                         print "FILE ON HDFS HAS DIFFERENT MD5 HASH: %s %s %s" % (filePath, lh, rh)
                     else:
                         print "OK by MD5 hash (%s,%s): %s" %( lh, rh, filePath )
+                        if dummy_run:
+                            print "Would remove %s, but in dummy-run mode." % filePath
+                        else:
+                            print "DELETING %s" % filePath
+                            os.remove(filePath)
                 else:
                     print "FILE ON HDFS IS DIFFERENT SIZE: %i %i %s" % (length, status['length'], filePath)
 
 #print getMD5hash('/heritrix/output/images/BL-20151001184440404166-1.warc.gz')
 #print getMD5hash('/heritrix/output/images/BL-20151001184440404166-1.warc.gz',on_hadoop=True)
+
+if len(sys.argv) == 2 and sys.argv[1] == "delete":
+    print "THIS WILL DELETE FILES YOU HAVE 15 SECONDS TO CHANGE YOUR MIND!"
+    sys.stdout.flush()
+    time.sleep(15)
+    dummy_run = False
 
 checkDir('/heritrix/output/warcs')
 
