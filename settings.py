@@ -1,7 +1,7 @@
 PID_FILE="/harchiverd.pid"
 LOG_FILE="/logs/harchiverd.log"
 OUTPUT_DIRECTORY="/images"
-WEBSERVICE="http://ukwa-webrender:8000/webtools/domimage"
+WEBSERVICE="http://webrender:8000/webtools/domimage"
 PROTOCOLS=["http", "https"]
 AMQP_URL="amqp://guest:guest@rabbitmq:5672/%2f"
 AMQP_EXCHANGE="heritrix"

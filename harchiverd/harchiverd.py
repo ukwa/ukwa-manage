@@ -19,7 +19,7 @@ from hanzo.warctools import WarcRecord
 from warcwriterpool import WarcWriterPool, warc_datetime_str
 
 # Default log level:
-logging.getLogger().setLevel(logging.WARNING)
+logging.getLogger().setLevel(logging.ERROR)
 
 # Log level for our code:
 logger = logging.getLogger("harchiverd")
@@ -27,7 +27,19 @@ handler = logging.FileHandler(settings.LOG_FILE)
 formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-logger.setLevel(logging.INFO)
+logger.setLevel(settings.LOG_LEVEL)
+
+# Report settings:
+logger.info("LOG_FILE = %s", settings.LOG_FILE)
+logger.info("LOG_LEVEL = %s", settings.LOG_LEVEL)
+logger.info("OUTPUT_DIRECTORY = %s", settings.OUTPUT_DIRECTORY)
+logger.info("WEBSERVICE = %s", settings.WEBSERVICE)
+logger.info("PROTOCOLS = %s", settings.PROTOCOLS)
+logger.info("AMQP_URL = %s", settings.AMQP_URL)
+logger.info("AMQP_EXCHANGE = %s", settings.AMQP_EXCHANGE)
+logger.info("AMQP_QUEUE = %s", settings.AMQP_QUEUE)
+logger.info("AMQP_KEY = %s", settings.AMQP_KEY)
+logger.info("AMQP_OUTLINK_QUEUE = %s", settings.AMQP_OUTLINK_QUEUE)
 
 def write_outlinks(har, dir, parent):
     """Writes outlinks in the HAR to a gzipped file."""
@@ -71,7 +83,6 @@ def send_amqp_message(message, client_id):
             delivery_mode=2,
         ),
         body=message)
-    channel.close()
     connection.close()
 
 def send_to_amqp(client_id, url,method,headers, parentUrl, parentUrlMetadata, forceFetch=False, isSeed=False):
@@ -81,10 +92,13 @@ def send_to_amqp(client_id, url,method,headers, parentUrl, parentUrlMetadata, fo
         "method": method,
         "headers": headers,
         "parentUrl": parentUrl,
-        "parentUrlMetadata": parentUrlMetadata,
-        "forceFetch": forceFetch,
-        "isSeed": isSeed
+        "parentUrlMetadata": parentUrlMetadata
     }
+    if forceFetch:
+        message["forceFetch"] = True
+    if isSeed:
+        message["isSeed"] = True
+    logger.debug("Sending message: %s" % message)
     while not sent:
         try:
             send_amqp_message(json.dumps(message), client_id)
@@ -99,21 +113,26 @@ def amqp_outlinks(har, client_id, parent):
     """Passes outlinks back to queue."""
     har = json.loads(har)
     parent = json.loads(parent)
+    embeds = 0
     for entry in har["log"]["entries"]:
         protocol = urlparse(entry["request"]["url"]).scheme
         if not protocol in settings.PROTOCOLS:
             continue
+        embeds = embeds + 1
         send_to_amqp(client_id, entry["request"]["url"],entry["request"]["method"], 
             {h["name"]: h["value"] for h in entry["request"]["headers"]}, 
             parent["url"], parent["metadata"], forceFetch=True)
+    links = 0
     for entry in har["log"]["pages"]:
         for item in entry["map"]:
+            links = links + 1
             send_to_amqp(client_id, item['href'],"GET", {}, parent["url"], parent["metadata"])
+    logger.info("Queued %i embeds and %i links for url '%s'." % (embeds, links, parent["url"]) )
 
 
 def handle_json_message(message):
     """Parses AMQPPublishProcessor-style JSON messages."""
-    logger.info("Handling JSON message: %s" % message)
+    logger.debug("Handling JSON message: %s" % message)
     selectors = [":root"]
     j = json.loads(message)
     url = j["url"]
@@ -123,7 +142,7 @@ def handle_json_message(message):
 
 def handle_pipe_message(message):
     """Parses pipe-separated message."""
-    logger.info("Handling pipe-separated message: %s" % message)
+    logger.debug("Handling pipe-separated message: %s" % message)
     url = None
     dir = None
     selectors = [":root"]
