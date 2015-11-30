@@ -1,0 +1,133 @@
+#!/bin/bash
+
+usage()
+{
+	echo -e "Generate a CDX from the LD content for use in UKWA."
+	echo "OPTIONS:"
+	echo "  -h    Show this message."
+	echo "  -d    Domain to be extracted."
+	echo "  -j    Job name."
+	echo "  -t    Timestamp."
+	echo "  -o    Output file."
+}
+
+log()
+{
+	echo "[$(date "+%Y-%m-%d %H:%M:%S")] $1"
+}
+
+urlencode() {
+	local length="${#1}"
+	for(( i = 0 ; i < length ; i++ ))
+	do
+		local c="${1:i:1}"
+		case "$c" in
+			[a-zA-Z0-9.~_-])
+				printf "$c"
+				;;
+			' ')
+				printf +
+				;;
+			*)
+				printf '%%%X' "'$c"
+				;;
+		esac
+	done
+}  
+
+while getopts "hd:j:t:o:" OPTION
+do
+	case $OPTION in
+		h)
+			usage
+			exit 0
+			;;
+		d)
+			DOMAINS=$OPTARG
+			;;
+		j)
+			JOBNAME=$OPTARG
+			;;
+		t)
+			TIMESTAMP=$OPTARG
+			;;
+		o)
+			OUTPUT=$OPTARG
+			;;
+	esac
+done
+
+export JAVA_HOME=/usr/lib/jvm/java-1.6.0-openjdk-1.6.0.0.x86_64/jre
+SHM="/dev/shm"
+CDX="/heritrix/output/wayback/cdx-index/index.cdx"
+TMP_URL_TIMESTAMP="$SHM/$TIMESTAMP-$RANDOM$RANDOM$RANDOM.input"
+TMP_URLS="$SHM/$TIMESTAMP-$RANDOM$RANDOM$RANDOM.urls"
+OPERA="http://opera.bl.uk:8080/wayback"
+FLOCK="http://flock.bl.uk/webtools/urls/$OPERA"
+INDEXER="/home/rcoram/wayback/bin/warc-indexer"
+URL_CLIENT="/home/rcoram/wayback-1.6.0/bin/url-client"
+WARC_ROOT="/heritrix/output/warcs"
+
+if [[ -z $DOMAINS ]] || [[ -z $TIMESTAMP ]] || [[ -z $JOBNAME ]] || [[ -z $OUTPUT ]]
+then
+	usage
+	exit 1
+fi
+
+log "Getting URL/Timestamp list for $DOMAINS in $JOBNAME..."
+while read warc
+do
+	if [[ -e "${warc/.gz/.cdx.gz}" ]]
+	then
+		zcat "${warc/.gz/.cdx.gz}"
+	else
+		$INDEXER $warc 2> /dev/null
+	fi
+done < <(ls $WARC_ROOT/$JOBNAME/$TIMESTAMP/*.warc.gz) | grep -E "\b($DOMAINS)\b" | awk '{ print $2 "/" $3 }' > $TMP_URL_TIMESTAMP
+
+log "Generating list of all required URLs."
+while read url
+do
+	echo "$url"
+	curl --silent "$FLOCK/$url"
+done < $TMP_URL_TIMESTAMP > $TMP_URLS
+
+log "Dropping none-HTTP records..."
+grep -E "^https?:" "$TMP_URLS" > "$TMP_URLS.temp" && mv -f "$TMP_URLS.temp" "$TMP_URLS"
+
+log "Removing duplicates."
+sort -T /dev/shm/ -u $TMP_URLS > $TMP_URLS.temp && mv -f $TMP_URLS.temp $TMP_URLS
+
+log "Retrieving CDX lines from LD CDX."
+while read data
+do
+	array=($data)
+
+	#Need to fix single-slash URLs before the url-client.
+	if [[ $(echo ${array[1]} | grep -E "https?:/\b" | wc -l) -gt 0 ]]
+	then
+		array[1]="$(echo ${array[1]} | sed -r 's@/@//@')"
+	fi
+
+	CANON="$(echo "${array[1]}" | $URL_CLIENT 2> /dev/null | sed -r 's@^.+https?://?@@')"
+	look "$CANON " "$CDX" | grep "${array[0]}"
+done < <(sed -rn 's@^.+wayback/([0-9]+)([a-z]+_)?/(.+)$@\1 \3@p' $TMP_URLS) > "$OUTPUT"
+
+log "Getting other resources."
+while read url
+do
+	ARRAY=($(curl --silent -I "$OPERA/$TIMESTAMP/$url" | sed -rn 's@^location:\s+http.+/wayback/([0-9]+)(_[a-z]+)?/(.+)$@\1 \3@ip'))
+	CANON="$(echo "${ARRAY[1]}" | $URL_CLIENT 2> /dev/null | sed -r 's@^.+https?://?@@')"
+	look "$CANON " "$CDX" | grep "${ARRAY[0]}"
+done < <(grep -v "$OPERA" $TMP_URLS) >> "$OUTPUT"
+
+log "Fixing revisits."
+while read revisit
+do
+	ARRAY=($revisit)
+	look "${ARRAY[0]} " "$CDX" | grep "${ARRAY[5]}" | grep "${ARRAY[2]}" | grep -v "warc/revisit" | head -n1
+done < <(awk '{ if( $4 == "warc/revisit" ) print }' "$OUTPUT") >> "$OUTPUT"
+
+[[ -e $TMP_URLS ]] && rm $TMP_URLS
+[[ -e $TMP_URL_TIMESTAMP ]] && rm $TMP_URL_TIMESTAMP
+

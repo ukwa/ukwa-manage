@@ -1,0 +1,20 @@
+#!/bin/bash
+
+################################################
+# List of jobs as arguments; must be in order! #
+################################################
+ROOT=/opt/heritrix/jobs
+JOBS=( $@ )
+
+for job in "${JOBS[@]}"
+do
+	DIR=$ROOT/$job
+	while read divert
+	do
+		SCHEDULE=$(basename $divert) && SCHEDULE=${SCHEDULE/divert/schedule.gz}
+		TO=${SCHEDULE:16:1}
+		[[ -z ${JOBS[$TO]} ]] && continue
+		TO_DIR=$ROOT/${JOBS[$TO]}/action
+		sed -r 's@^null CrawlURI @F\+ @' $divert | gzip -c > $TO_DIR/$SCHEDULE && rm $divert
+	done < <(ls $DIR/diversions/*.divert 2> /dev/null)
+done

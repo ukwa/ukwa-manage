@@ -1,0 +1,26 @@
+#!/bin/bash
+
+ROOT=/heritrix/output
+HOOP="http://nellie.bl.uk:14000/webhdfs/v1"
+SUFFIX="?user.name=hadoop&op=GETFILESTATUS"
+
+log()
+{
+        echo "[$(date "+%Y-%m-%d %H:%M:%S")] $1"
+}
+
+while read warc
+do
+	TEST="$(curl --silent "$HOOP$warc$SUFFIX")"
+	if [[ ! "$TEST" =~ "FileNotFoundException" ]]
+	then
+		HDFS_LENGTH=$(echo "$TEST" | sed -r 's@^.+length":([0-9]+),".+$@\1@')
+		DISK_LENGTH=$(stat -c %s "$warc")
+		if [[ $HDFS_LENGTH -ne $DISK_LENGTH ]]
+		then
+			log "ERROR: WARC sizes do not match for $warc"
+		fi
+	else
+		log "ERROR: FileNotFoundException: $warc"
+	fi
+done < <(find $ROOT/ -name "*.warc.gz")
