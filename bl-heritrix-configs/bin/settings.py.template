@@ -15,8 +15,8 @@ LOG_ROOT = "/heritrix/output/logs"
 URL_BASE = "https://www.webarchive.org.uk/act"
 URL_ROOT = "%s/%s" % (URL_BASE, "targets/export/ld/")
 URL_LOGIN = "%s/login" % URL_BASE
-EMAIL = "robot@webarchive.org.uk"
-PASSWORD = "Na35yhquj46"
+EMAIL = "USER@HOST"
+PASSWORD = "PASSWRD"
 
 QA_CDX = "/heritrix/output/wayback/cdx-index/qa.cdx"
 CDX = "/heritrix/output/wayback/cdx-index/index.cdx"
