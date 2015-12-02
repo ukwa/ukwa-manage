@@ -4,4 +4,4 @@ export QUEUE_NAME=crawl-log-feed
 export LOG_FILE=logtocdx.log
 export DUMMY_RUN=
 
-./bin/logtocdx
+./bin/logtocdx.py
