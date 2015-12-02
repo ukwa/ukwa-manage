@@ -7,6 +7,7 @@ import re
 import sys
 import json
 import pika
+import time
 import shutil
 import logging
 import requests
@@ -44,9 +45,16 @@ def callback( ch, method, properties, body ):
 		redirect = "-"
 		status_code = cl["status_code"]
 		# Don't index negative status codes here:
-		if( status_code < 0 ):
+		if( status_code <= 0 ):
 			logger.info("Ignoring -ve status_code log entry: %s" % body)
-			ch.basic_ack(delivery_tag = method.delivery_tag)			
+			ch.basic_ack(delivery_tag = method.delivery_tag)
+			return
+		# Don't index revisit records as OW can't handle them (?)
+		if "duplicate:digest" in cl["annotations"]:
+			logger.info("Skipping de-duplicated resource: %s" % body)
+			ch.basic_ack(delivery_tag = method.delivery_tag)
+			return
+		# Record via for redirects:
 		if( status_code/100 == 3 ):
 			redirect = cl["via"]
 		cdx_11 = "- %s %s %s %s %s %s - - %s %s\n" % ( 
@@ -74,16 +82,20 @@ def callback( ch, method, properties, body ):
 if __name__ == "__main__":
 	try:
 		if DUMMY:
-			logger.debug( "Running in dummy mode." )
-		logger.debug( "Starting connection %s:%s." % ( AMQP_URL, QUEUE_NAME ) )
+			logger.warning( "Running in dummy mode." )
+		logger.info( "Starting connection %s:%s." % ( AMQP_URL, QUEUE_NAME ) )
 		parameters = pika.URLParameters(AMQP_URL)
 		connection = pika.BlockingConnection( parameters )
 		channel = connection.channel()
-		channel.basic_qos(prefetch_count=1)
+		channel.exchange_declare(exchange="heritrix", durable=True)
 		channel.queue_declare( queue=QUEUE_NAME, durable=True )
+		channel.queue_bind(queue=QUEUE_NAME, exchange="heritrix", routing_key="crawl-log-feed")
+		channel.basic_qos(prefetch_count=1)
 		channel.basic_consume( callback, queue=QUEUE_NAME, no_ack=False )
 		channel.start_consuming()
 	except Exception as e:
 		logger.error( str( e ) )
 		logging.exception(e)
+		logger.info("Sleeping for 10 seconds before a restart is attempted...")
+		time.sleep(10)
 
