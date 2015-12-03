@@ -14,23 +14,28 @@ import requests
 
 AMQP_URL = os.environ['AMQP_URL']
 QUEUE_NAME = os.environ['QUEUE_NAME']
-LOG_FILE = os.environ['LOG_FILE']
 DUMMY = os.environ['DUMMY_RUN']
 
 # Should we skip duplicate records?
 # It seems OWB cope with them.
 skip_duplicates = True
 
-logger = logging.getLogger( "logtocdx" )
-handler = logging.FileHandler( LOG_FILE )
-formatter = logging.Formatter( "[%(asctime)s] %(levelname)s: %(message)s" )
-handler.setFormatter( formatter )
-logger.addHandler( handler )
-logger.setLevel( logging.INFO )
 
-#Try to set logging output for all modules.
+# Set up a logging handler:
+handler = logging.StreamHandler()
+#handler = logging.StreamHandler(sys.stdout) # To use stdout rather than the default stderr
+formatter = logging.Formatter( "[%(asctime)s] %(levelname)s %(filename)s.%(funcName)s: %(message)s" )
+handler.setFormatter( formatter ) 
+
+# Attach to root logger
+logging.root.addHandler( handler )
+
+# Set default logging output for all modules.
 logging.root.setLevel( logging.WARNING )
-logging.getLogger( "" ).addHandler( handler )
+
+# Set logging for this module and keep the reference handy:
+logger = logging.getLogger( "logtocdx" )
+logger.setLevel( logging.INFO )
 
 
 # - 20150914222034 http://www.financeminister.gov.au/                     text/html 200      ZMSA5TNJUKKRYAIM5PRUJLL24DV7QYOO - - 83848 117273 WEB-20150914222031256-00000-43190~heritrix.nla.gov.au~8443.warc.gz
