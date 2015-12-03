@@ -320,7 +320,7 @@ def check_frequencies():
             if frequency == "annual":
                 jobname = frequency + "-" + now.strftime("%m%d%H") + "00"
             global api
-            api = heritrix.API(host="https://crawler03.wa.bl.uk:" + heritrix_ports[frequency] + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False)
+            api = heritrix.API(host="https://crawler03.bl.uk:" + heritrix_ports[frequency] + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False)
             jobs_to_start.append((jobname, seeds))
             if (jobname in api.listjobs()) and api.status(jobname) != "":
                 logger.info("Emptying Frontier for %s/%s" % (jobname, api.launchid(jobname)))
@@ -487,7 +487,7 @@ def add_act_instance(target, timestamp, data, wct_data, jobname):
     content = {}
     content["value"] = "WCT ID: %s\nJob ID: %s\nSeeds: %s\nWayback URLs:\n" % (wct_id, jobname, urls)
     for url in urls:
-        content["value"] += "http://crawler03.wa.bl.uk:8080/wayback/%s/%s\n" % (timestamp, url)
+        content["value"] += "http://crawler03.bl.uk:8080/wayback/%s/%s\n" % (timestamp, url)
     content["value"] += "<pre>%s</pre>" % data
     content["format"] = "filtered_html"
     # Need an OrderedDict: 'type' must be the first field.
@@ -522,7 +522,7 @@ if __name__ == "__main__":
     jobs_to_start = check_frequencies()
     # Check for EMPTY jobs and render for completeness.
     for port in set([heritrix_ports[f] for f in frequencies]):
-        api = heritrix.API(host="https://crawler03.wa.bl.uk:" + port + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False)
+        api = heritrix.API(host="https://crawler03.bl.uk:" + port + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False)
         for emptyJob, launchid in jobs_by_status("EMPTY"):
             if emptyJob.startswith("latest"):
                 # Don't render 'latest' job.
@@ -570,6 +570,6 @@ if __name__ == "__main__":
         name, seeds = job
         freq = name.split("-")[0]
         port = heritrix_ports[freq]
-        api = heritrix.API(host="https://crawler03.wa.bl.uk:" + port + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False)
+        api = heritrix.API(host="https://crawler03.bl.uk:" + port + "/engine", user="admin", passwd="bl_uk", verbose=False, verify=False)
         submitjob(name, seeds)
 

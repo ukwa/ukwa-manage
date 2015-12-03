@@ -14,7 +14,7 @@ SUFFIX="?user.name=hadoop&op=GETFILESTATUS"
 TMP=/tmp
 JAR=/heritrix/bin/warc-hadoop-indexer-1.1.1-SNAPSHOT-job.jar
 CLASS=uk.bl.wa.hadoop.mapreduce.cdx.ArchiveCDXGenerator
-SPLIT=/heritrix/output/wayback/split.txt
+SPLIT="/heritrix/output/wayback/split.txt"
 RED=1
 
 log()
