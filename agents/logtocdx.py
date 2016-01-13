@@ -3,12 +3,9 @@
 """Watched the crawl log queue and passes entries to the CDX server"""
 
 import os
-import re
-import sys
 import json
 import pika
 import time
-import shutil
 import logging
 import requests
 
@@ -19,8 +16,7 @@ CDX_SERVER_URL = os.environ['CDX_SERVER_URL']
 
 # Should we skip duplicate records?
 # It seems OWB cope with them.
-skip_duplicates = True
-
+skip_duplicates = False
 
 # Set up a logging handler:
 handler = logging.StreamHandler()
@@ -77,7 +73,7 @@ def callback( ch, method, properties, body ):
 		mimetype = cl["mimetype"]
 		if "duplicate:digest" in cl["annotations"]:
 			if skip_duplicates:
- 				logger.info("Skipping de-duplicated resource: %s" % body)
+				logger.info("Skipping de-duplicated resource: %s" % body)
 				ch.basic_ack(delivery_tag = method.delivery_tag)
 				return
 			else:
