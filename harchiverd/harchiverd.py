@@ -27,7 +27,7 @@ handler = logging.FileHandler(settings.LOG_FILE)
 formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-logger.setLevel(settings.LOG_LEVEL)
+logger.setLevel(logging.getLevelName(settings.LOG_LEVEL))
 
 # Report settings:
 logger.info("LOG_FILE = %s", settings.LOG_FILE)
@@ -71,9 +71,9 @@ def send_amqp_message(message, client_id):
                              durable=True, 
                              auto_delete=False)
     channel.queue_declare(queue=client_id,
-                          durable=False, 
+                          durable=True, 
                           exclusive=False, 
-                          auto_delete=True)
+                          auto_delete=False)
     channel.queue_bind(queue=client_id,
            exchange=settings.AMQP_EXCHANGE,
            routing_key=client_id)
@@ -125,8 +125,10 @@ def amqp_outlinks(har, client_id, parent):
     links = 0
     for entry in har["log"]["pages"]:
         for item in entry["map"]:
-            links = links + 1
-            send_to_amqp(client_id, item['href'],"GET", {}, parent["url"], parent["metadata"])
+            # Some map regions are JavaScript rather than direct links, so only take the links:
+            if 'href' in item:
+                links = links + 1
+                send_to_amqp(client_id, item['href'],"GET", {}, parent["url"], parent["metadata"])
     logger.info("Queued %i embeds and %i links for url '%s'." % (embeds, links, parent["url"]) )
 
 

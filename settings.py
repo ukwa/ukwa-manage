@@ -1,5 +1,8 @@
+import logging
+
 PID_FILE="/harchiverd.pid"
 LOG_FILE="/logs/harchiverd.log"
+LOG_LEVEL=logging.DEBUG
 OUTPUT_DIRECTORY="/images"
 WEBSERVICE="http://webrender:8000/webtools/domimage"
 PROTOCOLS=["http", "https"]
