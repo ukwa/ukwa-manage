@@ -622,11 +622,11 @@ metadata.description=UK Legal Deposit Domain Crawl.
  </bean>
  -->
 <!-- COST ASSIGNMENT POLICY -->
-<!--
+
  <bean id="costAssignmentPolicy" 
-   class="org.archive.crawler.frontier.AntiCalendarCostAssignmentPolicy">
+   class="org.archive.crawler.frontier.UnitCostAssignmentPolicy">
  </bean>
- -->
+
 <!-- CREDENTIAL STORE: HTTP authentication or FORM POST credentials -->
 <!-- 
  <bean id="credentialStore" 
