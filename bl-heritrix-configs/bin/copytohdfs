@@ -39,6 +39,7 @@ OUTPUT="$(date +%Y%m%d%H%M%S)"
 JOBS=()
 while read warc
 do
+        echo "Looking at $warc"
 	TEST="$(curl --silent "$HOOP$warc$SUFFIX")"
 	if [[ "$TEST" =~ "FileNotFoundException" ]]
 	then
@@ -69,11 +70,13 @@ if [[ -e $TMP/$OUTPUT.job ]] && [[ $(wc -l $TMP/$OUTPUT.job | awk '{ print $1 }'
 then
 	log "Generating CDX for $OUTPUT.job in $HDFS_CDX_ROOT/$OUTPUT/..."
 	hadoop fs -put $TMP/$OUTPUT.job $TMP/$OUTPUT.job && rm $TMP/$OUTPUT.job
-	hadoop jar $JAR $CLASS -Dmapred.compress.map.output=true -i $TMP/$OUTPUT.job -o $HDFS_CDX_ROOT/$OUTPUT/ -s $SPLIT -h -r $RED &
+	hadoop jar $JAR $CLASS -Dmapred.compress.map.output=true -i $TMP/$OUTPUT.job -o $HDFS_CDX_ROOT/$OUTPUT/ -s $SPLIT -h -r $RED
+	# 2016 Jan 6 gilh: removed '&' from previous line
 fi
 
 if [[ $COUNT -eq 0 ]]
 then
+	log "Ended with $COUNT files copied."
 	exit 1
 else
 	log "Complete. $COUNT files copied."

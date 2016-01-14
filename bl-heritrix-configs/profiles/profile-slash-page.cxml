@@ -491,7 +491,7 @@
 	</bean>
 	
 	<!-- COST ASSIGNMENT POLICY -->
-	<bean id="costAssignmentPolicy" class="org.archive.crawler.frontier.AntiCalendarCostAssignmentPolicy">
+	<bean id="costAssignmentPolicy" class="org.archive.crawler.frontier.UnitCostAssignmentPolicy">
 	</bean>
 	
 	<!-- CREDENTIAL STORE: HTTP authentication or FORM POST credentials -->

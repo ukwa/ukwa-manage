@@ -69,5 +69,3 @@ if len(sys.argv) == 2 and sys.argv[1] == "delete":
     dummy_run = False
 
 checkDir('/heritrix/output/warcs')
-
-
