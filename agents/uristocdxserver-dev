@@ -1,0 +1,2 @@
+#!/bin/bash
+./uristocdxserver.py --amqp-url "amqp://guest:guest@localhost:5672/%2f" --cdxserver-url "http://localhost:8080/fc" heritrix FC-060-uris-to-index

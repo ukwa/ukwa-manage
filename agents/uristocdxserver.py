@@ -3,16 +3,12 @@
 """Watched the crawl log queue and passes entries to the CDX server"""
 
 import os
+import argparse
 import json
 import pika
 import time
 import logging
 import requests
-
-AMQP_URL = os.environ['AMQP_URL']
-QUEUE_NAME = os.environ['QUEUE_NAME']
-DUMMY = os.environ['DUMMY_RUN']
-CDX_SERVER_URL = os.environ['CDX_SERVER_URL']
 
 # Should we skip duplicate records?
 # It seems OWB cope with them.
@@ -91,7 +87,7 @@ def callback( ch, method, properties, body ):
 			cl["warc_filename"]
 			)
 		logger.debug("CDX: %s" % cdx_11)
-		r = requests.post(CDX_SERVER_URL, data=cdx_11)
+		r = requests.post(args.cdxserver_url, data=cdx_11)
 		if( r.status_code == 200 ):
 			logger.debug("Success!")
 			ch.basic_ack(delivery_tag = method.delivery_tag)
@@ -103,18 +99,28 @@ def callback( ch, method, properties, body ):
 		logging.exception(e)
 
 if __name__ == "__main__":
+	parser = argparse.ArgumentParser('Peek at a message queue, downloading messages without ack-ing so that they remain on the queue.')
+	parser.add_argument('--amqp-url', dest='amqp_url', type=str, default="amqp://guest:guest@localhost:5672/%2f",
+		help="AMQP endpoint to use (defaults to amqp://guest:guest@localhost:5672/%%2f)" )
+	parser.add_argument('--cdxserver-url', dest='cdxserver_url', type=str, default="http://localhost:8080/fc", 
+		help="AMQP endpoint to use (defaults to http://localhost:8080/fc" )
+	parser.add_argument('--num', dest='qos_num', 
+		type=int, default=10, help="Maximum number of messages to handle at once, (defaults to 10)")
+	parser.add_argument('exchange', metavar='exchange', help="Name of the exchange to use.")
+	parser.add_argument('queue', metavar='queue', help="Name of queue to view messages from.")
+	
+	args = parser.parse_args()
+	
 	try:
-		if DUMMY:
-			logger.warning( "Running in dummy mode." )
-		logger.info( "Starting connection %s:%s." % ( AMQP_URL, QUEUE_NAME ) )
-		parameters = pika.URLParameters(AMQP_URL)
+		logger.info( "Starting connection %s:%s." % ( args.amqp_url, args.queue ) )		
+		parameters = pika.URLParameters(args.amqp_url)
 		connection = pika.BlockingConnection( parameters )
 		channel = connection.channel()
-		channel.exchange_declare(exchange="heritrix", durable=True)
-		channel.queue_declare( queue=QUEUE_NAME, durable=True )
-		channel.queue_bind(queue=QUEUE_NAME, exchange="heritrix", routing_key="crawl-log-feed")
-		channel.basic_qos(prefetch_count=10)
-		channel.basic_consume( callback, queue=QUEUE_NAME, no_ack=False )
+		channel.exchange_declare(exchange=args.exchange, durable=True)
+		channel.queue_declare( queue=args.queue, durable=True )
+		channel.queue_bind(queue=args.queue, exchange=args.exchange, routing_key="uris-to-index")
+		channel.basic_qos(prefetch_count=args.qos_num)
+		channel.basic_consume( callback, queue=args.queue, no_ack=False )
 		channel.start_consuming()
 	except Exception as e:
 		logger.error( str( e ) )

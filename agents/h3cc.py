@@ -1,47 +1,24 @@
-#!/usr/local/bin/python2.7
+#!/usr/bin/env python
 # encoding: utf-8
 '''
- -- shortdesc
+agents.h3cc -- Heritrix3 Crawl Controller
 
- is a description
+agents.h3cc is a tool for controlling Heritrix3, performing basic operations like starting 
+and stopping crawls, reporting on crawler status, or updating crawler configuration.
 
-It defines classes_and_methods
+@author:     Andrew Jackson
 
-# Go through them and ensure Heritrix has the right sheet associations.
-#
-# Q: Should this just be generally refreshed, rather than per about-to-launch seed?
-#
-# Probably (pause, configure, and resume), overnight?
-#
-# Sheet associations:
-# - Depth (implementable?)
-# - Target Scope (? done by clipping down SURT?)
-# - Robots
-# - Set up seed crawl scope directly (?)
-# - Credentials and logoutUrls
-# 
-# Reset sheets for SURT via getSheetsNamesBySurt().put(surt, null)
-# Then add them back (as usual).
-#
-# Reset any quotas, e.g. enforcement of max-crawl volume.
-#
-# All of this to use jinja2 template H3 scripts.
-#
-    
+@copyright:  2016 The British Library.
 
+@license:    Apache 2.0
 
-@author:     user_name
-
-@copyright:  2016 organization_name. All rights reserved.
-
-@license:    license
-
-@contact:    user_email
-@deffield    updated: Updated
+@contact:    Andrew.Jackson@bl.uk
+@deffield    updated: 2016-01-16
 '''
 
 import sys
 import os
+import logging
 
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
@@ -51,21 +28,23 @@ __version__ = 0.1
 __date__ = '2016-01-16'
 __updated__ = '2016-01-16'
 
-DEBUG = 1
-TESTRUN = 0
-PROFILE = 0
+# Set up a logging handler:
+handler = logging.StreamHandler()
+#handler = logging.StreamHandler(sys.stdout) # To use stdout rather than the default stderr
+formatter = logging.Formatter( "[%(asctime)s] %(levelname)s %(filename)s.%(funcName)s: %(message)s" )
+handler.setFormatter( formatter ) 
 
-class CLIError(Exception):
-    '''Generic exception to raise and log different fatal errors.'''
-    def __init__(self, msg):
-        super(CLIError).__init__(type(self))
-        self.msg = "E: %s" % msg
-    def __str__(self):
-        return self.msg
-    def __unicode__(self):
-        return self.msg
+# Attach to root logger
+logging.root.addHandler( handler )
 
-def main(argv=None): # IGNORE:C0111
+# Set default logging output for all modules.
+logging.root.setLevel( logging.WARNING )
+
+# Set logging for this module and keep the reference handy:
+logger = logging.getLogger( __name__ )
+logger.setLevel( logging.INFO )
+
+def main(argv=None):
     '''Command line options.'''
 
     if argv is None:
@@ -80,8 +59,8 @@ def main(argv=None): # IGNORE:C0111
     program_shortdesc = __import__('__main__').__doc__.split("\n")[1]
     program_license = '''%s
 
-  Created by user_name on %s.
-  Copyright 2016 organization_name. All rights reserved.
+  Created by Andrew Jackson on %s.
+  Copyright 2016 The British Library.
 
   Licensed under the Apache License 2.0
   http://www.apache.org/licenses/LICENSE-2.0
@@ -119,7 +98,7 @@ USAGE
                 print("Recursive mode off")
 
         if inpat and expat and inpat == expat:
-            raise CLIError("include and exclude pattern are equal! Nothing will be processed.")
+            raise("include and exclude pattern are equal! Nothing will be processed.")
 
         for inpath in paths:
             ### do something with inpath ###
@@ -129,31 +108,11 @@ USAGE
         ### handle keyboard interrupt ###
         return 0
     except Exception, e:
-        if DEBUG or TESTRUN:
-            raise(e)
         indent = len(program_name) * " "
         sys.stderr.write(program_name + ": " + repr(e) + "\n")
         sys.stderr.write(indent + "  for help use --help")
         return 2
 
 if __name__ == "__main__":
-    if DEBUG:
-        sys.argv.append("-h")
-        sys.argv.append("-v")
-        sys.argv.append("-r")
-    if TESTRUN:
-        import doctest
-        doctest.testmod()
-    if PROFILE:
-        import cProfile
-        import pstats
-        profile_filename = '_profile.txt'
-        cProfile.run('main()', profile_filename)
-        statsfile = open("profile_stats.txt", "wb")
-        p = pstats.Stats(profile_filename, stream=statsfile)
-        stats = p.strip_dirs().sort_stats('cumulative')
-        stats.print_stats()
-        statsfile.close()
-        sys.exit(0)
     sys.exit(main())
     
