@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Watched the crawl log queue and passes entries to the CDX server"""
+"""Watched the crawled documents log queue and passes entries to w3act"""
 
 import os
 import json
@@ -8,11 +8,6 @@ import pika
 import time
 import logging
 import requests
-
-AMQP_URL = os.environ['AMQP_URL']
-QUEUE_NAME = os.environ['QUEUE_NAME']
-DUMMY = os.environ['DUMMY_RUN']
-CDX_SERVER_URL = os.environ['CDX_SERVER_URL']
 
 # Should we skip duplicate records?
 # It seems OWB cope with them.
@@ -31,26 +26,12 @@ logging.root.addHandler( handler )
 logging.root.setLevel( logging.WARNING )
 
 # Set logging for this module and keep the reference handy:
-logger = logging.getLogger( "logtocdx" )
+logger = logging.getLogger( __name__ )
 logger.setLevel( logging.INFO )
 
 
-# - 20150914222034 http://www.financeminister.gov.au/                     text/html 200      ZMSA5TNJUKKRYAIM5PRUJLL24DV7QYOO - - 83848 117273 WEB-20150914222031256-00000-43190~heritrix.nla.gov.au~8443.warc.gz
-# - 20151201225932 http://anjackson.net/projects/images/keeping-codes.png image/png 200 sha1:DDOWG5GHKEDGUCOCOXZCAPRUXPND7GOK - - -     593544 BL-20151201225813592-00001-37~157a2278f619~8443.warc.gz
-# - 20151202001114 http://anjackson.net/robots.txt unknown 302 sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ http://anjackson.net/ - - 773 BL-20151202001107925-00001-41~157a2278f619~8443.warc.gz
-
-# Example de-duplicated CDX line from pywb cdx-indexer:
-#
-# net,anjackson)/assets/js/ie8-responsive-file-warning.js 20151202230549 http://anjackson.net/assets/js/ie8-responsive-file-warning.js text/html 404 HJ66ECSQVYNX22SEAFF7QAF4AZYKN2BD - - 2755 2945445 BL-20151202230405810-00000-38~101e6c786d7f~8443.warc.gz
-# net,anjackson)/assets/js/ie8-responsive-file-warning.js 20151202230632 http://anjackson.net/assets/js/ie8-responsive-file-warning.js warc/revisit - HJ66ECSQVYNX22SEAFF7QAF4AZYKN2BD - - 548 3604638 BL-20151202230405810-00000-38~101e6c786d7f~8443.warc.gz
-
-
-#[2015-12-02 22:35:45,851] ERROR: Failed with 400 Bad Request
-#java.lang.NumberFormatException: For input string: "None"
-#At line: - 20151202223545 dns:447119634 text/dns 1001 None - - - None None
-
 def callback( ch, method, properties, body ):
-	"""Passed a crawl log entry, it turns it into a CDX line and posts it to the index."""
+	"""Passed a document crawl log entry, POSTs it to W3ACT."""
 	try:
 		logger.debug( "Message received: %s." % body )
 		cl = json.loads(body)
@@ -104,8 +85,6 @@ def callback( ch, method, properties, body ):
 
 if __name__ == "__main__":
 	try:
-		if DUMMY:
-			logger.warning( "Running in dummy mode." )
 		logger.info( "Starting connection %s:%s." % ( AMQP_URL, QUEUE_NAME ) )
 		parameters = pika.URLParameters(AMQP_URL)
 		connection = pika.BlockingConnection( parameters )

@@ -8,6 +8,5 @@ git subtree pull --prefix python-sip-verification git@git.wa.bl.uk:products/pyth
 git subtree pull --prefix python-w3act https://github.com/ukwa/python-w3act.git master
 git subtree pull --prefix python-warcwriterpool https://github.com/ukwa/python-warcwriterpool.git master
 git subtree pull --prefix python-webhdfs https://github.com/ukwa/python-webhdfs.git master
-
-
+git subtree pull --prefix python-har-daemon https://github.com/ukwa/webrender-har-daemon.git master
 
