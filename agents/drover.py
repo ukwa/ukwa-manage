@@ -102,31 +102,30 @@ if __name__ == "__main__":
 					continue
 			# Is it the current hour?
 			if now.hour is startDate.hour:
-				logger.info("The hour is current.")
+				logger.info("The hour is current, sending seed for %s to the crawl queue." % t['title'])
+				for seed in t['seeds']:			
+					curim = {}
+					curim['headers'] = {}
+					#curim['headers']['User-Agent'] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/37.0.2062.120 Chrome/37.0.2062.120 Safari/537.36"
+					curim['method']= "GET"
+					curim['parentUrl'] = seed
+					curim['parentUrlMetadata'] = {}
+					curim['parentUrlMetadata']['pathFromSeed'] = ""
+					curim['parentUrlMetadata']['source'] = seed
+					curim['parentUrlMetadata']['heritable'] = ['source','heritable']
+					curim['isSeed'] = "true"
+					curim['url'] = seed
+					message = json.dumps(curim)
+					logger.info("Got message: "+message)
+	
+					# Push a 'seed' message onto the rendering queue:
+					send_message(message)
+				
 			else:
 				logger.info("The hour is not current.")
-			print(schedule)
-			print(startDate)
 			
-			for seed in t['seeds']:			
-				curim = {}
-				curim['headers'] = {}
-				#curim['headers']['User-Agent'] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/37.0.2062.120 Chrome/37.0.2062.120 Safari/537.36"
-				curim['method']= "GET"
-				curim['parentUrl'] = seed
-				curim['parentUrlMetadata'] = {}
-				curim['parentUrlMetadata']['pathFromSeed'] = ""
-				curim['parentUrlMetadata']['source'] = seed
-				curim['parentUrlMetadata']['heritable'] = ['source','heritable']
-				curim['isSeed'] = "true"
-				curim['url'] = seed
-				message = json.dumps(curim)
-				logger.info("Got message: "+message)
-
-				# Push a 'seed' message onto the rendering queue:
-				send_message(message)
 	
-	# Note that the other aspects, like depth etc, and setup periodically via fc-shaper.
+	# Note that the other aspects, like depth etc, and setup periodically via "h3cc fc-sync".
 	
 	# Separate process bundles up per checkpoint (gather.py)
 	
