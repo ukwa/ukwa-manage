@@ -1,7 +1,28 @@
 #!/usr/bin/env python
 
 """Process which watches a configured queue for messages and for each, calls a
-webservice, storing the result in a WARC file."""
+webservice, storing the result in a WARC file.
+
+JSON input uses 'clientId' to specify onward link routing key, and 'selectors' array to specify DOM selectors to render 
+(as well as ':root' which should always rendered by the rendering service.)
+
+{
+    "clientId": "ukwa-test-crawl",
+    "metadata": {
+        "heritableData": {
+            "heritable": [
+                "source",
+                "heritable"
+            ],
+            "source": "http://www.bbc.co.uk/news"
+        },
+        "pathFromSeed": ""
+    },
+    "isSeed": true,
+    "url": "http://www.bbc.co.uk/news"
+}
+
+"""
 
 import sys
 import json
@@ -36,31 +57,40 @@ logger.setLevel( logging.INFO )
 
 #
 def send_amqp_message(message, client_id):
-    """Send outlinks to AMQP."""
-    parameters = pika.URLParameters(settings.amqp_url)
-    connection = pika.BlockingConnection(parameters)
-    channel = connection.channel()
-    channel.exchange_declare(exchange=settings.exchange,
-                             type="direct", 
-                             durable=True, 
-                             auto_delete=False)
-    channel.queue_declare(queue=client_id,
-                          durable=True, 
-                          exclusive=False, 
-                          auto_delete=False)
-    channel.queue_bind(queue=client_id,
-           exchange=settings.exchange,
-           routing_key=client_id)
-    channel.basic_publish(exchange=settings.exchange,
-        routing_key=client_id,
-        properties=pika.BasicProperties(
-            delivery_mode=2,
-        ),
-        body=message)
-    connection.close()
+    """Send message to AMQP."""
+    sent = False
+    # Keep trying over and over:
+    while not sent:
+        try:
+            # Set up connection:
+            parameters = pika.URLParameters(settings.amqp_url)
+            connection = pika.BlockingConnection(parameters)
+            channel = connection.channel()
+            channel.exchange_declare(exchange=settings.exchange,
+                                     type="direct", 
+                                     durable=True, 
+                                     auto_delete=False)
+            channel.queue_declare(queue=client_id,
+                                  durable=True, 
+                                  exclusive=False, 
+                                  auto_delete=False)
+            channel.queue_bind(queue=client_id,
+                   exchange=settings.exchange,
+                   routing_key=client_id)
+            channel.basic_publish(exchange=settings.exchange,
+                routing_key=client_id,
+                properties=pika.BasicProperties(
+                    delivery_mode=2,
+                ),
+                body=message)
+            connection.close()
+            sent = True
+        except:
+            logger.error("Problem sending message: %s; %s" % (message, sys.exc_info()))
+            logger.error("Sleeping for 30 seconds...")
+            time.sleep(30)
 
 def send_to_amqp(client_id, url,method,headers, parentUrl, parentUrlMetadata, forceFetch=False, isSeed=False):
-    sent = False
     message = {
         "url": url,
         "method": method,
@@ -73,37 +103,43 @@ def send_to_amqp(client_id, url,method,headers, parentUrl, parentUrlMetadata, fo
     if isSeed:
         message["isSeed"] = True
     logger.debug("Sending message: %s" % message)
-    while not sent:
-        try:
-            send_amqp_message(json.dumps(message), client_id)
-            sent = True
-        except:
-            logger.error("Problem sending message: %s; %s" % (message, sys.exc_info()))
-            logger.error("Sleeping for 30 seconds...")
-            time.sleep(30)
+    send_amqp_message(json.dumps(message), client_id)
 
 
-def amqp_outlinks(har, client_id, parent):
+def amqp_outlinks(raw_har, client_id, raw_parent):
     """Passes outlinks back to queue."""
-    har = json.loads(har)
-    parent = json.loads(parent)
-    embeds = 0
+    har = json.loads(raw_har)
+    parent = json.loads(raw_parent)
+    # Send the parent on:
+    send_amqp_message(raw_parent, client_id)
+    # Process the embeds:
+    resources = 0
     for entry in har["log"]["entries"]:
+        resources = resources + 1
         protocol = urlparse(entry["request"]["url"]).scheme
         if not protocol in settings.protocols:
             continue
-        embeds = embeds + 1
+        # Skip sending the parent again:
+        if parent["url"] == entry["request"]["url"]:
+            continue
         send_to_amqp(client_id, entry["request"]["url"],entry["request"]["method"], 
             {h["name"]: h["value"] for h in entry["request"]["headers"]}, 
             parent["url"], parent["metadata"], forceFetch=True)
+    # PANIC if there are none at all, as this means the original URL did not work and should be looked at.
+    if resources == 0:
+        raise Exception("Download of %s failed completely - is this a valid URL?" % parent["url"])
+    # Process the discovered links:
     links = 0
     for entry in har["log"]["pages"]:
         for item in entry["map"]:
             # Some map regions are JavaScript rather than direct links, so only take the links:
             if 'href' in item:
+                # Skip sending the parent again:
+                if parent["url"] == item['href']:
+                    continue
                 links = links + 1
                 send_to_amqp(client_id, item['href'],"GET", {}, parent["url"], parent["metadata"])
-    logger.info("Queued %i embeds and %i links for url '%s'." % (embeds, links, parent["url"]) )
+    logger.info("Queued %i resources and %i links for url '%s'." % (resources, links, parent["url"]) )
 
 
 def handle_json_message(message):
@@ -130,16 +166,20 @@ def callback(warcwriter, body):
             (url, handler_id, selectors, url_handler) = handle_json_message(body)
         else:
             logger.error("Cannot parse message: %s" %body )
-            
+        # Allow settings to override
+        if settings.routing_key and not handler_id:
+            handler_id = settings.routing_key
+
+        # Start the render:            
         logger.debug("Rendering %s" % url )
         start_time = time.time()
         ws = "%s/%s" % (settings.webrender_url, url)
         logger.debug("Calling %s" % ws)
         r = requests.post(ws, data=json.dumps(selectors))
         if r.status_code == 200:
-            # Handle outlinks, passing original message...
+            # Get the HAR payload
             har = r.content
-            url_handler(har, handler_id, body)
+            # Write to the WARC
             headers = [
                 (WarcRecord.TYPE, WarcRecord.METADATA),
                 (WarcRecord.URL, url),
@@ -148,13 +188,18 @@ def callback(warcwriter, body):
                 (WarcRecord.ID, "<urn:uuid:%s>" % uuid.uuid1()),
             ]
             warcwriter.write_record(headers, "application/json", har)
+            # Send on embeds and outlinks, passing original message too...
+            url_handler(har, handler_id, body)
+            # Record total elapsed time:
             end_time = time.time()
             logger.debug("Rendered and recorded output for %s in %d seconds." %(url, end_time-start_time))
+            # It appears everything worked, so return True and ack the original message
+            return True
         else:
             logger.warning("None-200 response for %s; %s" % (body, r.content))
-        return True
     except Exception as e:
-        logger.error("%s [%s]" % (str(e), body))
+        logger.exception("Exception %s %s when handling [%s]" % (type(e).__name__, e, body))
+        return False
 
 def run_harchiver():
     """Maintains a connection to the queue."""
@@ -182,7 +227,7 @@ def run_harchiver():
             logger.info("Started connection: %s" % (settings.amqp_url))
             for method_frame, properties, body in channel.consume(settings.in_queue):
                 handled = callback(warcwriter, body)
-                if handled:
+                if handled is True:
                     channel.basic_ack(method_frame.delivery_tag)
                 
         except Exception as e:
@@ -213,6 +258,8 @@ if __name__ == "__main__":
         help="HAR webrender endpoint to use (defaults to http://webrender:8000/webtools/domimage" )
     parser.add_argument('--num', dest='qos_num', 
         type=int, default=10, help="Maximum number of messages to handle at once, (defaults to 10)")
+    parser.add_argument('--routing-key', dest='routing_key', 
+                        help="Routing key to use for extracted links if there is no clientId set in the incoming message.")
     parser.add_argument('exchange', metavar='exchange', help="Name of the exchange to use.")
     parser.add_argument('in_queue', metavar='in_queue', help="Name of queue to view messages from.")
     parser.add_argument('binding_key', metavar='binding_key', help="Name of binding_key for the input queue.")
@@ -221,7 +268,7 @@ if __name__ == "__main__":
     settings = parser.parse_args()
     
     settings.protocols = ['http', 'https']
-    settings.log_level = 'INFO'
+    settings.log_level = 'DEBUG'
         
     # Report settings:
     logger.info("log_level = %s", settings.log_level)
@@ -232,6 +279,9 @@ if __name__ == "__main__":
     logger.info("AMQP_EXCHANGE = %s", settings.exchange)
     logger.info("AMQP_QUEUE = %s", settings.in_queue)
     logger.info("AMQP_BINDING_KEY = %s", settings.binding_key)
+
+    # Set up the logging    
+    logger.setLevel( logging.getLevelName(settings.log_level))
 
     # ...and run:
     run_harchiver()
