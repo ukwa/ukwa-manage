@@ -1,15 +1,18 @@
 {
-    "clientId": "ukwa-test-crawl",
+    "clientId": "FC-3-uris-to-crawl",
+    "method": "GET",
+    "headers": {
+    },
     "metadata": {
         "heritableData": {
             "heritable": [
                 "source",
                 "heritable"
             ],
-            "source": "http://www.bbc.co.uk/news"
+            "source": "http://acid.matkelly.com/"
         },
         "pathFromSeed": ""
     },
     "isSeed": true,
-    "url": "http://www.bbc.co.uk/news"
+    "url": "http://acid.matkelly.com/"
 }

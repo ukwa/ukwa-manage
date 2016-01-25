@@ -77,14 +77,15 @@ def send_amqp_message(message, client_id):
             channel.queue_bind(queue=client_id,
                    exchange=settings.exchange,
                    routing_key=client_id)
-            channel.basic_publish(exchange=settings.exchange,
+            # Turn on delivery confirmations
+            channel.confirm_delivery()
+            sent = channel.basic_publish(exchange=settings.exchange,
                 routing_key=client_id,
                 properties=pika.BasicProperties(
                     delivery_mode=2,
                 ),
                 body=message)
             connection.close()
-            sent = True
         except:
             logger.error("Problem sending message: %s; %s" % (message, sys.exc_info()))
             logger.error("Sleeping for 30 seconds...")
