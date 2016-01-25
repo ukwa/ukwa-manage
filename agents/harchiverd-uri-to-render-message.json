@@ -1,8 +1,5 @@
 {
     "clientId": "FC-3-uris-to-crawl",
-    "method": "GET",
-    "headers": {
-    },
     "metadata": {
         "heritableData": {
             "heritable": [

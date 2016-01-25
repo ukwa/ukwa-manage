@@ -59,6 +59,7 @@ logger.setLevel( logging.INFO )
 def send_amqp_message(message, client_id):
     """Send message to AMQP."""
     sent = False
+    logger.debug("Sending (to %s) message %s" % (client_id, message));
     # Keep trying over and over:
     while not sent:
         try:
@@ -111,8 +112,8 @@ def amqp_outlinks(raw_har, client_id, raw_parent):
     """Passes outlinks back to queue."""
     har = json.loads(raw_har)
     parent = json.loads(raw_parent)
-    # Send the parent on:
-    send_amqp_message(raw_parent, client_id)
+    # Send the parent on, set as seed if required:
+    send_to_amqp(client_id, parent["url"], "GET", {}, parent["url"], parent["metadata"], True, parent["isSeed"])
     # Process the embeds:
     resources = 0
     for entry in har["log"]["entries"]:
