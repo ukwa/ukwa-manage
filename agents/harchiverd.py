@@ -130,17 +130,18 @@ def amqp_outlinks(raw_har, client_id, raw_parent):
     # PANIC if there are none at all, as this means the original URL did not work and should be looked at.
     if resources == 0:
         raise Exception("Download of %s failed completely - is this a valid URL?" % parent["url"])
-    # Process the discovered links:
-    links = 0
-    for entry in har["log"]["pages"]:
-        for item in entry["map"]:
-            # Some map regions are JavaScript rather than direct links, so only take the links:
-            if 'href' in item:
-                # Skip sending the parent again:
-                if parent["url"] == item['href']:
-                    continue
-                links = links + 1
-                send_to_amqp(client_id, item['href'],"GET", {}, parent["url"], parent["metadata"])
+    # Process the discovered links (if desired):
+    if settings.extract_links:
+        links = 0
+        for entry in har["log"]["pages"]:
+            for item in entry["map"]:
+                # Some map regions are JavaScript rather than direct links, so only take the links:
+                if 'href' in item:
+                    # Skip sending the parent again:
+                    if parent["url"] == item['href']:
+                        continue
+                    links = links + 1
+                    send_to_amqp(client_id, item['href'],"GET", {}, parent["url"], parent["metadata"])
     logger.info("Queued %i resources and %i links for url '%s'." % (resources, links, parent["url"]) )
 
 
@@ -255,11 +256,15 @@ if __name__ == "__main__":
     # Parse CLARGS
     parser = argparse.ArgumentParser('')
     parser.add_argument('--amqp-url', dest='amqp_url', type=str, default="amqp://guest:guest@localhost:5672/%2f",
-        help="AMQP endpoint to use (defaults to amqp://guest:guest@localhost:5672/%%2f)" )
+        help="AMQP endpoint to use. [default: %(default)s]" )
     parser.add_argument('--webrender-url', dest='webrender_url', type=str, default="http://webrender:8000/webtools/domimage", 
-        help="HAR webrender endpoint to use (defaults to http://webrender:8000/webtools/domimage" )
+        help="HAR webrender endpoint to use. [default: %(default)s]" )
+    parser.add_argument('--extract-links', dest='extract_links', type=bool, default=True, 
+        help="Also extract apparent hyperlinks as well as transcluded URLs? [default: %(default)s]" )
     parser.add_argument('--num', dest='qos_num', 
-        type=int, default=10, help="Maximum number of messages to handle at once, (defaults to 10)")
+        type=int, default=50, help="Maximum number of messages to handle at once. [default: %(default)s]")
+    parser.add_argument('--log-level', dest='log_level', 
+        type=str, default="INFO", help="Log level, e.g. ERROR, WARNING, INFO, DEBUG. [default: %(default)s]")
     parser.add_argument('--routing-key', dest='routing_key', 
                         help="Routing key to use for extracted links if there is no clientId set in the incoming message.")
     parser.add_argument('exchange', metavar='exchange', help="Name of the exchange to use.")
@@ -270,7 +275,6 @@ if __name__ == "__main__":
     settings = parser.parse_args()
     
     settings.protocols = ['http', 'https']
-    settings.log_level = 'DEBUG'
         
     # Report settings:
     logger.info("log_level = %s", settings.log_level)
