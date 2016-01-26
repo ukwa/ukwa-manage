@@ -15,11 +15,11 @@ def callback( ch, method, properties, body ):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser('Peek at a message queue, downloading messages without ack-ing so that they remain on the queue.')
-	default_amqp_url = "amqp://guest:guest@localhost:5672/%2f"
-	parser.add_argument('--amqp-url', dest='amqp_url', type=str, default=default_amqp_url, 
-		help="AMQP endpoint to use (defaults to amqp://guest:guest@localhost:5672/%%2f)" )
-	parser.add_argument('--num', dest='qos_num', 
-		type=int, default=10, help="Maximum number of messages to peek at, (defaults to 10)")
+	parser.add_argument('--amqp-url', dest='amqp_url', type=str, 
+					default="amqp://guest:guest@localhost:5672/%2f", 
+					help="AMQP endpoint to use. [default: %(default)s]" )
+	parser.add_argument('--num', dest='qos_num', type=int, 
+					default=10, help="Maximum number of messages to peek at. [default: %(default)s]")
 	parser.add_argument('exchange', metavar='exchange', help="Name of the exchange to use.")
 	parser.add_argument('queue', metavar='queue', help="Name of queue to view messages from.")
 	

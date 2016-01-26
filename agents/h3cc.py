@@ -19,6 +19,11 @@ and stopping crawls, reporting on crawler status, or updating crawler configurat
 import sys
 import os
 import logging
+import heritrix
+import requests
+
+# Prevent cert warnings
+requests.packages.urllib3.disable_warnings()
 
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
@@ -31,7 +36,7 @@ __updated__ = '2016-01-16'
 # Set up a logging handler:
 handler = logging.StreamHandler()
 #handler = logging.StreamHandler(sys.stdout) # To use stdout rather than the default stderr
-formatter = logging.Formatter( "[%(asctime)s] %(levelname)s %(filename)s.%(funcName)s: %(message)s" )
+formatter = logging.Formatter( "[%(asctime)s] %(levelname)s %(filename)s.%(funcName)s@%(lineno)d: %(message)s" )
 handler.setFormatter( formatter ) 
 
 # Attach to root logger
@@ -74,35 +79,35 @@ USAGE
     try:
         # Setup argument parser
         parser = ArgumentParser(description=program_license, formatter_class=RawDescriptionHelpFormatter)
-        parser.add_argument("-r", "--recursive", dest="recurse", action="store_true", help="recurse into subfolders [default: %(default)s]")
         parser.add_argument("-v", "--verbose", dest="verbose", action="count", help="set verbosity level [default: %(default)s]")
-        parser.add_argument("-i", "--include", dest="include", help="only include paths matching this regex pattern. Note: exclude is given preference over include. [default: %(default)s]", metavar="RE" )
-        parser.add_argument("-e", "--exclude", dest="exclude", help="exclude paths matching this regex pattern. [default: %(default)s]", metavar="RE" )
         parser.add_argument('-V', '--version', action='version', version=program_version_message)
-        parser.add_argument(dest="paths", help="paths to folder(s) with source file(s) [default: %(default)s]", metavar="path", nargs='+')
+        parser.add_argument('-j', '--job', dest='job', default='frequent',
+                            help="Name of job to operate upon. [default: %(default)s]")
+        parser.add_argument(dest="command", help="Command to carry out, 'list', 'status', 'info-xml'. [default: %(default)s]", metavar="command")
 
         # Process arguments
         args = parser.parse_args()
 
-        paths = args.paths
+        # Up the logging
         verbose = args.verbose
-        recurse = args.recurse
-        inpat = args.include
-        expat = args.exclude
-
         if verbose > 0:
-            print("Verbose mode on")
-            if recurse:
-                print("Recursive mode on")
-            else:
-                print("Recursive mode off")
+            logger.setLevel( logging.DEBUG )
 
-        if inpat and expat and inpat == expat:
-            raise("include and exclude pattern are equal! Nothing will be processed.")
+        # talk to h3:
+        ha = heritrix.API(host="https://%s:%s/engine" % ('192.168.99.100', '8443'), user='heritrix', passwd='heritrix', verbose=True, verify=False)
+        job = args.job
+        
+        # Commands:
+        command = args.command
+        if command == "list":
+            print ha.listjobs()
+        elif command == "status":
+            print ha.status(job)
+        elif command == "info-xml":
+            print ha._job_action("", job).text
+        else:
+            logger.error("Can't understand command '%s'" % command)
 
-        for inpath in paths:
-            ### do something with inpath ###
-            print(inpath)
         return 0
     except KeyboardInterrupt:
         ### handle keyboard interrupt ###

@@ -9,7 +9,9 @@ import json
 import shutil
 import logging
 import requests
-from shared import amqp;
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
+from lib.agents import amqp
 
 AMQP_URL = os.environ['AMQP_URL']
 QUEUE_NAME = os.environ['QUEUE_NAME']
