@@ -34,14 +34,19 @@ For the HAR daemon, we use:
 @deffield    updated: 2016-01-16
 '''
 
+import os
+import sys
 import logging
 import argparse
 import json
 import pika
 import dateutil.parser
 from datetime import datetime
-from shared.w3act import w3act
 from _watchdog_fsevents import schedule
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
+from lib.agents.w3act import w3act
+
 
 # Set up a logging handler:
 handler = logging.StreamHandler()
@@ -112,7 +117,12 @@ if __name__ == "__main__":
 	# Determine if any are due to start in the current hour
 	now = dateutil.parser.parse(args.timestamp)
 	for t in targets:
-		logger.info("Looking at "+t['title']);
+		logger.info("Looking at "+t['title'])
+		# Add a source tag if this is a watched target:
+		source = ''
+		if t['watched']:
+			source = "WTID:%d" % t['id']
+		# Check the scheduling:
 		for schedule in t['schedules']:
 			startDate = datetime.fromtimestamp(schedule['startDate']/1000)
 			if( now < startDate ):
@@ -133,7 +143,7 @@ if __name__ == "__main__":
 						curim['parentUrl'] = seed
 						curim['parentUrlMetadata'] = {}
 						curim['parentUrlMetadata']['pathFromSeed'] = ""
-						curim['parentUrlMetadata']['source'] = seed
+						curim['parentUrlMetadata']['source'] = source
 						curim['parentUrlMetadata']['heritable'] = ['source','heritable']
 						curim['isSeed'] = "true"
 						curim['url'] = seed
@@ -142,7 +152,7 @@ if __name__ == "__main__":
 						curim['metadata'] = {}
 						curim['metadata']['heritableData'] = {}
 						curim['metadata']['heritableData']['heritable'] = ['source','heritable']
-						curim['metadata']['heritableData']['source'] = seed
+						curim['metadata']['heritableData']['source'] = source
 						curim['metadata']['pathFromSeed'] = ""
 						curim['isSeed'] = "true"
 						curim['url'] = seed

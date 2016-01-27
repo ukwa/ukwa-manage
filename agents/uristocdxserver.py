@@ -99,11 +99,11 @@ def callback( ch, method, properties, body ):
 		logging.exception(e)
 
 if __name__ == "__main__":
-	parser = argparse.ArgumentParser('Peek at a message queue, downloading messages without ack-ing so that they remain on the queue.')
+	parser = argparse.ArgumentParser('Pull crawl log messages and post to the CDX server.')
 	parser.add_argument('--amqp-url', dest='amqp_url', type=str, default="amqp://guest:guest@localhost:5672/%2f",
 		help="AMQP endpoint to use [default: %(default)s]" )
 	parser.add_argument('--cdxserver-url', dest='cdxserver_url', type=str, default="http://localhost:8080/fc", 
-		help="AMQP endpoint to use [default: %(default)s]" )
+		help="CDX Server endpoint to use [default: %(default)s]" )
 	parser.add_argument('--num', dest='qos_num', 
 		type=int, default=100, help="Maximum number of messages to handle at once. [default: %(default)s]")
 	parser.add_argument('exchange', metavar='exchange', help="Name of the exchange to use.")
