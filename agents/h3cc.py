@@ -91,6 +91,16 @@ USAGE
 		parser.add_argument('-V', '--version', action='version', version=program_version_message)
 		parser.add_argument('-j', '--job', dest='job', default='frequent',
 							help="Name of job to operate upon. [default: %(default)s]")
+		parser.add_argument('-H', '--host', dest='host', default='localhost',
+							help="Name of host to connect to. [default: %(default)s]")
+		parser.add_argument('-P', '--port', dest='port', default='8443',
+							help="Secure port to connect to. [default: %(default)s]")
+		parser.add_argument('-u', '--user', dest='user', 
+							type=str, default="heritrix", 
+							help="H3 user to login with [default: %(default)s]" )
+		parser.add_argument('-p', '--password', dest='password', 
+							type=str, default="heritrix", 
+							help="H3 user password [default: %(default)s]" )
 		parser.add_argument(dest="command", help="Command to carry out, 'list', 'status', 'info-xml'. [default: %(default)s]", metavar="command")
 
 		# Process arguments
@@ -102,7 +112,7 @@ USAGE
 			logger.setLevel( logging.DEBUG )
 
 		# talk to h3:
-		ha = heritrix.API(host="https://%s:%s/engine" % ('192.168.99.100', '8443'), user='heritrix', passwd='heritrix', verbose=True, verify=False)
+		ha = heritrix.API(host="https://%s:%s/engine" % (args.host, args.port), user=args.user, passwd=args.password, verbose=True, verify=False)
 		job = args.job
 		
 		# Commands:
