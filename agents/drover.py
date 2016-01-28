@@ -42,7 +42,6 @@ import json
 import pika
 import dateutil.parser
 from datetime import datetime
-from _watchdog_fsevents import schedule
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
 from lib.agents.w3act import w3act
@@ -58,7 +57,7 @@ handler.setFormatter( formatter )
 logging.root.addHandler( handler )
 
 # Set default logging output for all modules.
-logging.root.setLevel( logging.WARNING )
+logging.root.setLevel( logging.INFO )
 
 # Set logging for this module and keep the reference handy:
 logger = logging.getLogger( __name__ )
@@ -71,7 +70,7 @@ def send_message( message ):
 	channel = connection.channel()
 	channel.exchange_declare(exchange=args.exchange, durable=True)
 	channel.queue_declare( queue=args.queue, durable=True )
-	channel.queue_bind(queue=args.queue, exchange=args.exchange)#, routing_key="uris-to-crawl")
+	channel.queue_bind(queue=args.queue, exchange=args.exchange)#, routing_key="uris-to-render")
 	channel.tx_select()
 	channel.basic_publish( exchange=args.exchange,
 		routing_key=args.queue,
@@ -98,26 +97,31 @@ if __name__ == "__main__":
 	parser.add_argument('-e', '--exchange', dest='exchange', 
 					type=str, default="heritrix",
 					help="Name of the exchange to use (defaults to heritrix).")	
-	parser.add_argument("-t", "--timestamp", dest="timestamp", type=str, required=False, 
+	parser.add_argument("-t", "--timestamp", dest="timestamp", type=str, 
 					help="Timestamp to use rather than the current time, e.g. \"2016-01-13 09:00:00\" ", 
 					default=datetime.utcnow().isoformat())
-	parser.add_argument("-f", "--frequency", dest="frequency", type=str, required=False, 
-					help="Frequency to look at. Use 'frequent' for all valid frequencies. [default: %(default)s]", nargs="+", default='frequent')
-	parser.add_argument("-d", "--destination", dest="destination", type=str, required=True, default='har',
+	parser.add_argument("-f", "--frequency", dest="frequency", type=str, 
+					help="Frequency to look at. Use 'frequent' for all valid frequencies. [default: %(default)s]", default='frequent')
+	parser.add_argument("-d", "--destination", dest="destination", type=str, default='har',
 					help="Destination, implying message format to use: 'har' or 'h3'. [default: %(default)s]")
+	parser.add_argument("-tid", "--target-id", dest="target_id", type=int,
+					help="Target ID to allow to launch (for testing purposes). [default: %(default)s]")
 	parser.add_argument('queue', metavar='queue', help="Name of queue to send seeds to.")
 	
 	args = parser.parse_args()
 	
 	# Get all the frequently-crawled items
 	act = w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
-	targets = act.get_ld_export('frequent')
-	destination = "har" # or use "h3" for message suitable for h3
+	targets = act.get_ld_export(args.frequency)
+	logger.info("Got %s targets" % len(targets))
+	destination = args.destination # or use "h3" for message suitable for h3
 	
 	# Determine if any are due to start in the current hour
 	now = dateutil.parser.parse(args.timestamp)
 	for t in targets:
-		logger.info("Looking at "+t['title'])
+		if args.target_id and not int(t['id']) == args.target_id:
+			continue
+		logger.info("Looking at %s (tid:%d)" % (t['title'], t['id']))
 		# Add a source tag if this is a watched target:
 		source = ''
 		if t['watched']:
@@ -165,7 +169,7 @@ if __name__ == "__main__":
 					send_message(message)
 				
 			else:
-				logger.info("The hour is not current.")
+				logger.info("The hour (%s) is not current." % startDate.hour)
 			
 
 
@@ -177,6 +181,5 @@ if __name__ == "__main__":
 	# Separate process sends Documents to a queue (in H3) and sends the queue to W3ACT (mule.py)
 	# muster.py, yoke.py, shear.py, rouseabout, riggwelter (upside down sheep), 
 	# lanolin (grease), cull.py, heft (land), flock, fold, dip, bellwether (flock lead)
-	
 	
 

@@ -17,7 +17,6 @@ Input messages are like this:
 
 import os
 import re
-import sip
 import sys
 import pika
 import bagit
@@ -25,7 +24,6 @@ import shutil
 import logging
 import webhdfs
 import argparse
-from ansible.utils import default
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
 from lib import sip

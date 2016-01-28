@@ -37,7 +37,9 @@ class w3act():
 		return js
 
 	def get_ld_export(self, frequency):
-		return self._get_json( "%s/api/crawl/feed/ld/%s" % (self.url, frequency))
+		qurl = "%s/api/crawl/feed/ld/%s" % (self.url, frequency)
+		logger.info("Getting %s" % qurl )
+		return self._get_json( qurl )
 
 	def get_by_export(self, frequency):
 		return self._get_json( "%s/api/crawl/feed/by/%s" % (self.url, frequency))
