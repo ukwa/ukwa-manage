@@ -23,6 +23,17 @@ Issues
 - Pick up Geo DB location from an environment variable (GEOLITE2_CITY_MMDB_LOCATION done)
 
 
+	# Note that the other aspects, like depth etc, and setup periodically via "h3cc fc-sync".
+	
+	# Separate process bundles up per checkpoint (gather.py)
+	
+	# Separate process sends Documents to a queue (in H3) and sends the queue to W3ACT (mule.py)
+	# muster.py, yoke.py, shear.py, rouseabout, riggwelter (upside down sheep), 
+	# lanolin (grease), cull.py, heft (land), flock, fold, dip, bellwether (flock lead)
+	
+
+
+
 
     $ python agents/sipstodls.py --amqp-url "amqp://guest:guest@192.168.99.100:5672/%2f"
 

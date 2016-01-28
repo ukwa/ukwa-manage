@@ -38,13 +38,12 @@ import os
 import sys
 import logging
 import argparse
-import json
-import pika
 import dateutil.parser
 from datetime import datetime
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
 from lib.agents.w3act import w3act
+from lib.agents.launch import launcher
 
 
 # Set up a logging handler:
@@ -63,23 +62,6 @@ logging.root.setLevel( logging.INFO )
 logger = logging.getLogger( __name__ )
 logger.setLevel( logging.INFO )
 
-def send_message( message ):
-	"""Sends a message to the given queue."""
-	parameters = pika.URLParameters(args.amqp_url)
-	connection = pika.BlockingConnection( parameters )
-	channel = connection.channel()
-	channel.exchange_declare(exchange=args.exchange, durable=True)
-	channel.queue_declare( queue=args.queue, durable=True )
-	channel.queue_bind(queue=args.queue, exchange=args.exchange)#, routing_key="uris-to-render")
-	channel.tx_select()
-	channel.basic_publish( exchange=args.exchange,
-		routing_key=args.queue,
-		properties=pika.BasicProperties(
-			delivery_mode=2,
-		),
-		body=message )
-	channel.tx_commit()
-	connection.close()
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser('(Re)Launch frequently crawled sites.')
@@ -116,6 +98,9 @@ if __name__ == "__main__":
 	logger.info("Got %s targets" % len(targets))
 	destination = args.destination # or use "h3" for message suitable for h3
 	
+	# Set up launcher:
+	launcher = launcher(args)
+	
 	# Determine if any are due to start in the current hour
 	now = dateutil.parser.parse(args.timestamp)
 	for t in targets:
@@ -138,48 +123,8 @@ if __name__ == "__main__":
 			# Is it the current hour?
 			if now.hour is startDate.hour:
 				logger.info("The hour is current, sending seed for %s to the crawl queue." % t['title'])
-				for seed in t['seeds']:			
-					curim = {}
-					if destination is "h3":
-						curim['headers'] = {}
-						#curim['headers']['User-Agent'] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/37.0.2062.120 Chrome/37.0.2062.120 Safari/537.36"
-						curim['method']= "GET"
-						curim['parentUrl'] = seed
-						curim['parentUrlMetadata'] = {}
-						curim['parentUrlMetadata']['pathFromSeed'] = ""
-						curim['parentUrlMetadata']['source'] = source
-						curim['parentUrlMetadata']['heritable'] = ['source','heritable']
-						curim['isSeed'] = "true"
-						curim['url'] = seed
-					elif destination is "har":
-						curim['clientId']= "FC-3-uris-to-crawl"
-						curim['metadata'] = {}
-						curim['metadata']['heritableData'] = {}
-						curim['metadata']['heritableData']['heritable'] = ['source','heritable']
-						curim['metadata']['heritableData']['source'] = source
-						curim['metadata']['pathFromSeed'] = ""
-						curim['isSeed'] = "true"
-						curim['url'] = seed
-					else:
-						logger.severe("Can't handle destination type '%s'" % destination )
-					message = json.dumps(curim)
-					logger.info("Got message: "+message)
-	
-					# Push a 'seed' message onto the rendering queue:
-					send_message(message)
+				for seed in t['seeds']:
+					launcher.launch(destination, seed, source, True, "FC-3-uris-to-crawl")
 				
 			else:
 				logger.info("The hour (%s) is not current." % startDate.hour)
-			
-
-
-	
-	# Note that the other aspects, like depth etc, and setup periodically via "h3cc fc-sync".
-	
-	# Separate process bundles up per checkpoint (gather.py)
-	
-	# Separate process sends Documents to a queue (in H3) and sends the queue to W3ACT (mule.py)
-	# muster.py, yoke.py, shear.py, rouseabout, riggwelter (upside down sheep), 
-	# lanolin (grease), cull.py, heft (land), flock, fold, dip, bellwether (flock lead)
-	
-

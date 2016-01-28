@@ -6,6 +6,10 @@ agents.h3cc -- Heritrix3 Crawl Controller
 agents.h3cc is a tool for controlling Heritrix3, performing basic operations like starting 
 and stopping crawls, reporting on crawler status, or updating crawler configuration.
 
+Contains some scripts taken from or based on those here: 
+
+https://webarchive.jira.com/wiki/display/Heritrix/Heritrix3+Useful+Scripts
+
 @author:	 Andrew Jackson
 
 @copyright:  2016 The British Library.
@@ -101,7 +105,7 @@ USAGE
 		parser.add_argument('-p', '--password', dest='password', 
 							type=str, default="heritrix", 
 							help="H3 user password [default: %(default)s]" )
-		parser.add_argument(dest="command", help="Command to carry out, 'list', 'status', 'info-xml'. [default: %(default)s]", metavar="command")
+		parser.add_argument(dest="command", help="Command to carry out, 'list', 'status', 'info-xml', 'surt-scope', 'pending-urls', 'show-metadata', 'show-decide-rules'. [default: %(default)s]", metavar="command")
 
 		# Process arguments
 		args = parser.parse_args()
