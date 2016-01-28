@@ -59,16 +59,16 @@ the crawled data and improve the landing page and filename data.
 """
 
 import os
+import sys
 import json
 import pika
 import time
 import logging
-import requests
 import argparse
+from urlparse import urlparse
 
-# Should we skip duplicate records?
-# It seems OWB cope with them.
-skip_duplicates = False
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
+from lib.agents.w3act import w3act
 
 # Set up a logging handler:
 handler = logging.StreamHandler()
@@ -97,39 +97,24 @@ def callback( ch, method, properties, body ):
 		if( not url[:4] == "http"):
 			ch.basic_ack(delivery_tag = method.delivery_tag)
 			return
-		redirect = "-"
 		status_code = cl["status_code"]
-		# Don't index negative status codes here:
-		if( status_code <= 0 ):
+		# Don't index negative or non 2xx status codes here:
+		if( status_code/100 != 2 ):
 			logger.info("Ignoring <=0 status_code log entry: %s" % body)
 			ch.basic_ack(delivery_tag = method.delivery_tag)
 			return
-		# Record via for redirects:
-		if( status_code/100 == 3 ):
-			redirect = cl["via"]
-		# Don't index revisit records as OW can't handle them (?)
-		mimetype = cl["mimetype"]
-		if "duplicate:digest" in cl["annotations"]:
-			if skip_duplicates:
-				logger.info("Skipping de-duplicated resource: %s" % body)
-				ch.basic_ack(delivery_tag = method.delivery_tag)
-				return
-			else:
-				mimetype = "warc/revisit"
-				status_code = "-"
-		# Build CDX line:
-		cdx_11 = "- %s %s %s %s %s %s - - %s %s\n" % ( 
-			cl["start_time_plus_duration"][:14],
-			url,
-			mimetype,
-			status_code,
-			cl["content_digest"],
-			redirect,
-			cl["warc_offset"],
-			cl["warc_filename"]
-			)
-		logger.debug("CDX: %s" % cdx_11)
-		r = requests.post(args.w3act_url, data=cdx_11)
+		# Build document info line:
+		doc = {}
+		wtid = cl['source'].replace('WTID:','')
+		doc['id_watched_target'] = wtid
+		doc['wayback_timestamp'] = cl['start_time_plus_duration'][:14]
+		doc['landing_page_url'] = cl['via']
+		doc['document_url'] = cl['url']
+		doc['filename'] = os.path.basename( urlparse(cl['url']).path )
+		doc['size'] = cl['content_length']
+		logger.debug("doc: %s" % doc)
+		act = w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
+		r = act.post_document(doc)
 		if( r.status_code == 200 ):
 			logger.debug("Success!")
 			ch.basic_ack(delivery_tag = method.delivery_tag)
@@ -144,8 +129,15 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser('Get documents from the queue and post to W3ACT.')
 	parser.add_argument('--amqp-url', dest='amqp_url', type=str, default="amqp://guest:guest@localhost:5672/%2f",
 		help="AMQP endpoint to use [default: %(default)s]" )
-	parser.add_argument('--w3act-url', dest='w3act_url', type=str, default="http://localhost:9000/act", 
-		help="W3ACT endpoint to use [default: %(default)s]" )
+	parser.add_argument('-w', '--w3act-url', dest='w3act_url', 
+					type=str, default="http://localhost:9000/act/", 
+					help="W3ACT endpoint to use [default: %(default)s]" )
+	parser.add_argument('-u', '--w3act-user', dest='w3act_user', 
+					type=str, default="wa-sysadm@bl.uk", 
+					help="W3ACT user email to login with [default: %(default)s]" )
+	parser.add_argument('-p', '--w3act-pw', dest='w3act_pw', 
+					type=str, default="sysAdmin", 
+					help="W3ACT user password [default: %(default)s]" )
 	parser.add_argument('--num', dest='qos_num', 
 		type=int, default=100, help="Maximum number of messages to handle at once. [default: %(default)s]")
 	parser.add_argument('exchange', metavar='exchange', help="Name of the exchange to use.")
