@@ -21,12 +21,19 @@ import os
 import logging
 import heritrix
 import requests
+import xml.etree.ElementTree as ET
 
 # Prevent cert warnings
 requests.packages.urllib3.disable_warnings()
 
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
+from lib.h3cc import *
+
+from jinja2 import Environment, PackageLoader
+env = Environment(loader=PackageLoader('lib.h3cc', 'scripts'))
 
 __all__ = []
 __version__ = 0.1
@@ -49,6 +56,7 @@ logging.root.setLevel( logging.WARNING )
 logger = logging.getLogger( __name__ )
 logger.setLevel( logging.INFO )
 
+#
 def main(argv=None):
     '''Command line options.'''
 
@@ -105,6 +113,11 @@ USAGE
             print ha.status(job)
         elif command == "info-xml":
             print ha._job_action("", job).text
+        elif command == "pending-urls":
+         	template = env.get_template('pending-urls.groovy')
+        	xml = ha.execute(engine="groovy", script=template.render(), job=job)
+         	tree = ET.fromstring( xml.content )
+          	print tree.find( "rawOutput" ).text.strip()        	
         else:
             logger.error("Can't understand command '%s'" % command)
 
