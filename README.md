@@ -3,36 +3,13 @@ Shepherd
 
 Coordinates the services that make up the UK Web Archive.
 
-Issues
-
-- Need to string together the actual crawl running process and try it out, see how well it works.
-
-- Need to finish docstow3act.py script.
-    - Need API hook to lookup watched target ID? Or maybe use that as the source instead? WTID:123?
-- Need copytohdfs to run, but no indexing please. Maybe extend based on the syncer script and remove the confirmed copies?
-- Need to complete sipstodls, based on scanning a crawl log file to determine the WARCs, and then packaging it all up together.
-- Do we need a WARC message chain? I'd say no.
-- Need to collect WARC filename to HDFS path mapping when we copy to HDFS.
-- Need to collect WARC filename to ARK mapping when we make the old SIPs.
-
-- Need to go through a real SIP and check I understand it and it's contents. DONE.
-- Watch out for rotated logs? (on restart, they are moved out of the way by setupLogFile like so: crawl.log.20160127091852)
-- Run a frequent-by (FC) crawl stream as well as the NPLD frequent crawl FC stream.
-- Also capture HAR WARCs for the same period? Tricky to precisely arrange. Simplest idea is just to take whatever was completed/closed in the last time period, and leave the .open ones where they are. Not worth optimising right now.
-
-- Pick up Geo DB location from an environment variable (GEOLITE2_CITY_MMDB_LOCATION done)
 
 
-	# Note that the other aspects, like depth etc, and setup periodically via "h3cc fc-sync".
-	
-	# Separate process bundles up per checkpoint (gather.py)
-	
-	# Separate process sends Documents to a queue (in H3) and sends the queue to W3ACT (mule.py)
-	# muster.py, yoke.py, shear.py, rouseabout, riggwelter (upside down sheep), 
-	# lanolin (grease), cull.py, heft (land), flock, fold, dip, bellwether (flock lead)
-	
-
-
+# Note that the other aspects, like depth etc, and setup periodically via "h3cc fc-sync".
+# Separate process bundles up per checkpoint (gather.py)	
+# Separate process sends Documents to a queue (in H3) and sends the queue to W3ACT (mule.py)
+# muster.py, yoke.py, shear.py, rouseabout, riggwelter (upside down sheep), 
+# lanolin (grease), cull.py, heft (land), flock, fold, dip, bellwether (flock lead)
 
 
     $ python agents/sipstodls.py --amqp-url "amqp://guest:guest@192.168.99.100:5672/%2f"
