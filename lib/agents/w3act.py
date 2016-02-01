@@ -6,6 +6,7 @@ import json
 import logging
 import requests
 import traceback
+import datetime, time
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig(format=LOGGING_FORMAT, level=logging.DEBUG)
@@ -23,7 +24,8 @@ class w3act():
 			sys.exit()
 		self.cookie = response.history[0].headers["set-cookie"]
 		self.headers = {
-			"Cookie": self.cookie
+			"Cookie": self.cookie,
+			"Content-Type": "application/json"
 		}
 
 	def _get_json(self, url):
@@ -35,6 +37,12 @@ class w3act():
 			logger.warning(str(sys.exc_info()[0]))
 			logger.warning(str(traceback.format_exc()))
 		return js
+	
+	def get_json(self,path):
+		path = path.lstrip("/")
+		qurl = "%s/%s" % (self.url,path)
+		logger.info("Getting %s" % qurl )
+		return self._get_json(qurl)
 
 	def get_ld_export(self, frequency):
 		qurl = "%s/api/crawl/feed/ld/%s" % (self.url, frequency)
@@ -46,5 +54,30 @@ class w3act():
 
 	def post_document(self, doc):
 		''' See https://github.com/ukwa/w3act/wiki/Document-REST-Endpoint '''
-		r = requests.post("%s/documents" % self.url, headers=self.headers, data=doc)
+		r = requests.post("%s/documents" % self.url, headers=self.headers, data=json.dumps(doc))
+		return r
+	
+	def post_target(self, url, title, frequency):
+		target = {}
+		target['field_urls'] = [ url ]
+		target['title'] = title
+		target['field_crawl_frequency'] = frequency
+		dtutcnow = datetime.datetime.utcnow()
+		target['field_crawl_start_date'] = time.mktime(dtutcnow.timetuple())
+		target['selector'] = 1
+		target['field_scope'] = "root"
+		target['field_depth'] = "CAPPED"
+		target['field_ignore_robots_txt']=  False
+		logger.info("POST %s" % (json.dumps(target)))
+		# Seems there's no way to set it up as a Watched Target via the API?
+		r = requests.post("%s/api/targets" % self.url, headers=self.headers, data=json.dumps(target))
+		return r
+	
+	def update_target(self,tid):
+		target = {}
+		dtutcnow = datetime.datetime.utcnow()
+		target['selector'] = 1
+		target['field_crawl_start_date'] = time.mktime(dtutcnow.timetuple())
+		logger.info("PUT %d %s" % (tid,json.dumps(target)))
+		r = requests.put("%s/api/targets/%d" % (self.url, tid), headers=self.headers, data=json.dumps(target))
 		return r
