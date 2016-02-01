@@ -68,16 +68,23 @@ class w3act():
 		target['field_scope'] = "root"
 		target['field_depth'] = "CAPPED"
 		target['field_ignore_robots_txt']=  False
+		# Make it a watched target:
+		target['watchedTarget'] = {}
 		logger.info("POST %s" % (json.dumps(target)))
-		# Seems there's no way to set it up as a Watched Target via the API?
 		r = requests.post("%s/api/targets" % self.url, headers=self.headers, data=json.dumps(target))
 		return r
 	
 	def update_target(self,tid):
 		target = {}
-		dtutcnow = datetime.datetime.utcnow()
-		target['selector'] = 1
-		target['field_crawl_start_date'] = time.mktime(dtutcnow.timetuple())
+		#dtutcnow = datetime.datetime.utcnow()
+		#target['selector'] = 1
+		#target['field_crawl_start_date'] = time.mktime(dtutcnow.timetuple())
+		#target['watched'] = True
+		#
+		#target['watchedTarget'] = {}
+		#target['watchedTarget']['documentUrlScheme'] = ""
+		#
+		target['watchedTarget'] = None
 		logger.info("PUT %d %s" % (tid,json.dumps(target)))
 		r = requests.put("%s/api/targets/%d" % (self.url, tid), headers=self.headers, data=json.dumps(target))
 		return r
