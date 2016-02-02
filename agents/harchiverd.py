@@ -169,10 +169,11 @@ def callback(warcwriter, body):
     """
     try:
         logger.debug("Message received: %s." % body)
-        if body.startswith("{"):
+        try:
             (url, handler_id, selectors, url_handler) = handle_json_message(body)
-        else:
-            logger.error("Cannot parse message: %s" %body )
+        except Exception as e:
+            logger.error("Ignoring invalid (unparseable) message! \"%s\"" % body, e )
+            return False
         # Allow settings to override
         if settings.routing_key and not handler_id:
             handler_id = settings.routing_key

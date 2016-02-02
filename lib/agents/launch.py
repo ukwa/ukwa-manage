@@ -62,18 +62,19 @@ class launcher(object):
 
 	def launch(self, destination, uri, source, isSeed=False, clientId="FC-3-uris-to-crawl"):
 		curim = {}
-		if destination is "h3":
+		if destination == "h3":
 			curim['headers'] = {}
 			#curim['headers']['User-Agent'] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/37.0.2062.120 Chrome/37.0.2062.120 Safari/537.36"
 			curim['method']= "GET"
 			curim['parentUrl'] = uri
 			curim['parentUrlMetadata'] = {}
 			curim['parentUrlMetadata']['pathFromSeed'] = ""
-			curim['parentUrlMetadata']['source'] = source
-			curim['parentUrlMetadata']['heritable'] = ['source','heritable']
+			curim['parentUrlMetadata']['heritableData'] = {}
+			curim['parentUrlMetadata']['heritableData']['source'] = source
+			curim['parentUrlMetadata']['heritableData']['heritable'] = ['source','heritable']
 			curim['isSeed'] = isSeed
 			curim['url'] = uri
-		elif destination is "har":
+		elif destination == "har":
 			curim['clientId']= clientId
 			curim['metadata'] = {}
 			curim['metadata']['heritableData'] = {}
@@ -83,7 +84,7 @@ class launcher(object):
 			curim['isSeed'] = isSeed
 			curim['url'] = uri
 		else:
-			logger.severe("Can't handle destination type '%s'" % destination )
+			logger.error("Can't handle destination type '%s'" % destination )
 		message = json.dumps(curim)
 		logger.info("Sending message: "+message)
 
