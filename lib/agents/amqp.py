@@ -45,8 +45,8 @@ class QueueConsumer(object):
             channel.exchange_declare(exchange=self.exchange, durable=True)
             channel.queue_declare( queue=self.queue_name, durable=True )
             channel.queue_bind(queue=self.queue_name, exchange=self.exchange, routing_key=self.routing_key)
-            channel.basic_qos(prefetch_count=10)
-            channel.basic_consume( self.callback, queue=self.queue_name, no_ack=False )
+            channel.basic_qos(prefetch_count=1)
+            channel.basic_consume( self.callback, queue=self.queue_name )
             channel.start_consuming()
         except Exception as e:
             logger.error( str( e ) )

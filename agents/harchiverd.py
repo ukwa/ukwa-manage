@@ -55,14 +55,8 @@ logging.getLogger( 'pika' ).setLevel(logging.ERROR)
 logger = logging.getLogger( __name__ )
 logger.setLevel( logging.INFO )
 
-#
-def send_amqp_message(message, client_id):
-    """Send message to AMQP."""
-    sent = False
-    logger.debug("Sending (to %s) message %s" % (client_id, message));
-    # Keep trying over and over:
-    while not sent:
-        try:
+
+def setup_outward_channel(client_id):
             # Set up connection:
             parameters = pika.URLParameters(settings.amqp_url)
             connection = pika.BlockingConnection(parameters)
@@ -80,19 +74,28 @@ def send_amqp_message(message, client_id):
                    routing_key=client_id)
             # Turn on delivery confirmations
             channel.confirm_delivery()
-            sent = channel.basic_publish(exchange=settings.exchange,
+            return channel
+
+#
+def send_amqp_message(message, client_id, outchannel):
+    """Send message to AMQP."""
+    sent = False
+    logger.debug("Sending (to %s) message %s" % (client_id, message));
+    # Keep trying over and over:
+    while not sent:
+        try:
+            sent = outchannel.basic_publish(exchange=settings.exchange,
                 routing_key=client_id,
                 properties=pika.BasicProperties(
                     delivery_mode=2,
                 ),
                 body=message)
-            connection.close()
         except:
             logger.error("Problem sending message: %s; %s" % (message, sys.exc_info()))
             logger.error("Sleeping for 30 seconds...")
             time.sleep(30)
 
-def send_to_amqp(client_id, url,method,headers, parentUrl, parentUrlMetadata, forceFetch=False, isSeed=False):
+def send_to_amqp(outchannel,client_id, url,method,headers, parentUrl, parentUrlMetadata, forceFetch=False, isSeed=False):
     message = {
         "url": url,
         "method": method,
@@ -105,15 +108,15 @@ def send_to_amqp(client_id, url,method,headers, parentUrl, parentUrlMetadata, fo
     if isSeed:
         message["isSeed"] = True
     logger.debug("Sending message: %s" % message)
-    send_amqp_message(json.dumps(message), client_id)
+    send_amqp_message(json.dumps(message), client_id, outchannel)
 
 
-def amqp_outlinks(raw_har, client_id, raw_parent):
+def amqp_outlinks(outchannel, raw_har, client_id, raw_parent):
     """Passes outlinks back to queue."""
     har = json.loads(raw_har)
     parent = json.loads(raw_parent)
     # Send the parent on, set as seed if required:
-    send_to_amqp(client_id, parent["url"], "GET", {}, parent["url"], parent["metadata"], True, parent.get("isSeed",False))
+    send_to_amqp(outchannel,client_id, parent["url"], "GET", {}, parent["url"], parent["metadata"], True, parent.get("isSeed",False))
     # Process the embeds:
     resources = 0
     for entry in har["log"]["entries"]:
@@ -124,7 +127,7 @@ def amqp_outlinks(raw_har, client_id, raw_parent):
         # Skip sending the parent again:
         if parent["url"] == entry["request"]["url"]:
             continue
-        send_to_amqp(client_id, entry["request"]["url"],entry["request"]["method"], 
+        send_to_amqp(outchannel,client_id, entry["request"]["url"],entry["request"]["method"], 
             {h["name"]: h["value"] for h in entry["request"]["headers"]}, 
             parent["url"], parent["metadata"], forceFetch=True)
     # PANIC if there are none at all, as this means the original URL did not work and should be looked at.
@@ -142,7 +145,7 @@ def amqp_outlinks(raw_har, client_id, raw_parent):
                     if parent["url"] == item['href']:
                         continue
                     links = links + 1
-                    send_to_amqp(client_id, item['href'],"GET", {}, parent["url"], parent["metadata"])
+                    send_to_amqp(outchannel,client_id, item['href'],"GET", {}, parent["url"], parent["metadata"])
     logger.info("Queued %i resources and %i links for url '%s'." % (resources, links, parent["url"]) )
 
 
@@ -175,14 +178,16 @@ def callback(warcwriter, body):
             handler_id = settings.routing_key
 
         # Start the render:            
-        logger.debug("Rendering %s" % url )
+        logger.info("Requesting render of %s" % url )
         start_time = time.time()
         ws = "%s/%s" % (settings.webrender_url, url)
         logger.debug("Calling %s" % ws)
         r = requests.post(ws, data=json.dumps(selectors))
         if r.status_code == 200:
             # Get the HAR payload
+            logger.info("Got response. Reading.")
             har = r.content
+            logger.info("Got HAR.")
             # Write to the WARC
             headers = [
                 (WarcRecord.TYPE, WarcRecord.METADATA),
@@ -192,11 +197,14 @@ def callback(warcwriter, body):
                 (WarcRecord.ID, "<urn:uuid:%s>" % uuid.uuid1()),
             ]
             warcwriter.write_record(headers, "application/json", har)
+            logger.info("Written WARC.")
             # Send on embeds and outlinks, passing original message too...
-            url_handler(har, handler_id, body)
+            outchannel = setup_outward_channel(handler_id)
+            url_handler(outchannel, har, handler_id, body)
+            logger.info("Sent messages.")
             # Record total elapsed time:
             end_time = time.time()
-            logger.debug("Rendered and recorded output for %s in %d seconds." %(url, end_time-start_time))
+            logger.info("Rendered and recorded output for %s in %d seconds." %(url, end_time-start_time))
             # It appears everything worked, so return True and ack the original message
             return True
         else:
@@ -228,6 +236,7 @@ def run_harchiver():
             channel.queue_bind(queue=settings.in_queue, 
                    exchange=settings.exchange,
                    routing_key=settings.binding_key)
+            channel.basic_qos(prefetch_count=settings.qos_num)
             logger.info("Started connection: %s" % (settings.amqp_url))
             for method_frame, properties, body in channel.consume(settings.in_queue):
                 handled = callback(warcwriter, body)
@@ -263,7 +272,7 @@ if __name__ == "__main__":
     parser.add_argument('--extract-links', dest='extract_links', type=bool, default=True, 
         help="Also extract apparent hyperlinks as well as transcluded URLs? [default: %(default)s]" )
     parser.add_argument('--num', dest='qos_num', 
-        type=int, default=50, help="Maximum number of messages to handle at once. [default: %(default)s]")
+        type=int, default=10, help="Maximum number of messages to handle at once. [default: %(default)s]")
     parser.add_argument('--log-level', dest='log_level', 
         type=str, default='INFO', help="Log level, e.g. ERROR, WARNING, INFO, DEBUG. [default: %(default)s]")
     parser.add_argument('--routing-key', dest='routing_key', 
