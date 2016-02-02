@@ -54,7 +54,15 @@ if __name__ == "__main__":
 		r = act.post_target(subargs[0], subargs[1], subargs[2])
 		print r.status_code
 		print r.text
-	elif args.action == 'update-target':
-		r = act.update_target(int(subargs[0]))
+	elif args.action == 'set-selector':
+		r = act.update_target_selector(int(subargs[0]))
+		print r.status_code
+		print r.text
+	elif args.action == 'watch-target':
+		r = act.watch_target(int(subargs[0]))
+		print r.status_code
+		print r.text
+	elif args.action == 'unwatch-target':
+		r = act.unwatch_target(int(subargs[0]))
 		print r.status_code
 		print r.text

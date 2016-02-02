@@ -7,6 +7,7 @@ import logging
 import requests
 import traceback
 import datetime, time
+import dateutil.parser
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig(format=LOGGING_FORMAT, level=logging.DEBUG)
@@ -68,22 +69,38 @@ class w3act():
 		target['field_scope'] = "root"
 		target['field_depth'] = "CAPPED"
 		target['field_ignore_robots_txt']=  False
-		# Make it a watched target:
-		target['watchedTarget'] = {}
 		logger.info("POST %s" % (json.dumps(target)))
 		r = requests.post("%s/api/targets" % self.url, headers=self.headers, data=json.dumps(target))
 		return r
 	
-	def update_target(self,tid):
+	def update_target_schedule(self,tid,start_date, end_date, frequency):
 		target = {}
-		#dtutcnow = datetime.datetime.utcnow()
-		#target['selector'] = 1
-		#target['field_crawl_start_date'] = time.mktime(dtutcnow.timetuple())
-		#target['watched'] = True
-		#
-		#target['watchedTarget'] = {}
-		#target['watchedTarget']['documentUrlScheme'] = ""
-		#
+		target['field_crawl_frequency'] = frequency
+		sd = dateutil.parser.parse(start_date)
+		target['field_crawl_start_date'] = time.mktime(sd.timetuple())
+		ed = dateutil.parser.parse(start_date)
+		target['field_crawl_end_date'] = time.mktime(ed.timetuple())
+		logger.info("PUT %d %s" % (tid,json.dumps(target)))
+		r = requests.put("%s/api/targets/%d" % (self.url, tid), headers=self.headers, data=json.dumps(target))
+		return r
+
+	def update_target_selector(self,tid,uid):
+		target = {}
+		target['selector'] = uid
+		logger.info("PUT %d %s" % (tid,json.dumps(target)))
+		r = requests.put("%s/api/targets/%d" % (self.url, tid), headers=self.headers, data=json.dumps(target))
+		return r
+
+	def watch_target(self,tid):
+		target = {}
+		target['watchedTarget'] = {}
+		target['watchedTarget']['documentUrlScheme'] = ""
+		logger.info("PUT %d %s" % (tid,json.dumps(target)))
+		r = requests.put("%s/api/targets/%d" % (self.url, tid), headers=self.headers, data=json.dumps(target))
+		return r
+
+	def unwatch_target(self,tid):
+		target = {}
 		target['watchedTarget'] = None
 		logger.info("PUT %d %s" % (tid,json.dumps(target)))
 		r = requests.put("%s/api/targets/%d" % (self.url, tid), headers=self.headers, data=json.dumps(target))
