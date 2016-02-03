@@ -211,6 +211,7 @@ def callback(warcwriter, body):
             return True
         else:
             logger.warning("None-200 response for %s; %s" % (body, r.content))
+            return True
     except Exception as e:
         logger.exception("Exception %s %s when handling [%s]" % (type(e).__name__, e, body))
         return False

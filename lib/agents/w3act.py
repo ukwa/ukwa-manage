@@ -26,14 +26,19 @@ class w3act():
 		self.cookie = response.history[0].headers["set-cookie"]
 		self.headers = {
 			"Cookie": self.cookie,
-			"Content-Type": "application/json"
 		}
+#			"Content-Type": "application/json"
 
 	def _get_json(self, url):
 		js = None
 		try:
+                        logger.info("Getting URL: %s" % url)
 			r = requests.get(url, headers=self.headers)
-			js = json.loads(r.content)
+			if r.status_code == 200:
+                            js = json.loads(r.content)
+                        else:
+			    logger.info(r.status_code)
+			    logger.info(r.text)
 		except:
 			logger.warning(str(sys.exc_info()[0]))
 			logger.warning(str(traceback.format_exc()))
