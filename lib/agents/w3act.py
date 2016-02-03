@@ -24,21 +24,25 @@ class w3act():
 			logger.error("Login failed!")
 			sys.exit()
 		self.cookie = response.history[0].headers["set-cookie"]
-		self.headers = {
+		self.get_headers = {
 			"Cookie": self.cookie,
 		}
-#			"Content-Type": "application/json"
+		self.up_headers = {
+			"Cookie": self.cookie,
+			"Content-Type": "application/json"
+		}
+
 
 	def _get_json(self, url):
 		js = None
 		try:
-                        logger.info("Getting URL: %s" % url)
-			r = requests.get(url, headers=self.headers)
+			logger.info("Getting URL: %s" % url)
+			r = requests.get(url, headers=self.get_headers)
 			if r.status_code == 200:
-                            js = json.loads(r.content)
-                        else:
-			    logger.info(r.status_code)
-			    logger.info(r.text)
+				js = json.loads(r.content)
+			else:
+				logger.info(r.status_code)
+				logger.info(r.text)
 		except:
 			logger.warning(str(sys.exc_info()[0]))
 			logger.warning(str(traceback.format_exc()))
@@ -60,7 +64,7 @@ class w3act():
 
 	def post_document(self, doc):
 		''' See https://github.com/ukwa/w3act/wiki/Document-REST-Endpoint '''
-		r = requests.post("%s/documents" % self.url, headers=self.headers, data=json.dumps([doc]))
+		r = requests.post("%s/documents" % self.url, headers=self.up_headers, data=json.dumps([doc]))
 		return r
 	
 	def post_target(self, url, title, frequency):
@@ -75,7 +79,7 @@ class w3act():
 		target['field_depth'] = "CAPPED"
 		target['field_ignore_robots_txt']=  False
 		logger.info("POST %s" % (json.dumps(target)))
-		r = requests.post("%s/api/targets" % self.url, headers=self.headers, data=json.dumps(target))
+		r = requests.post("%s/api/targets" % self.url, headers=self.up_headers, data=json.dumps(target))
 		return r
 	
 	def update_target_schedule(self,tid,start_date, end_date, frequency):
@@ -86,14 +90,14 @@ class w3act():
 		ed = dateutil.parser.parse(start_date)
 		target['field_crawl_end_date'] = time.mktime(ed.timetuple())
 		logger.info("PUT %d %s" % (tid,json.dumps(target)))
-		r = requests.put("%s/api/targets/%d" % (self.url, tid), headers=self.headers, data=json.dumps(target))
+		r = requests.put("%s/api/targets/%d" % (self.url, tid), headers=self.up_headers, data=json.dumps(target))
 		return r
 
 	def update_target_selector(self,tid,uid):
 		target = {}
 		target['selector'] = uid
 		logger.info("PUT %d %s" % (tid,json.dumps(target)))
-		r = requests.put("%s/api/targets/%d" % (self.url, tid), headers=self.headers, data=json.dumps(target))
+		r = requests.put("%s/api/targets/%d" % (self.url, tid), headers=self.up_headers, data=json.dumps(target))
 		return r
 
 	def watch_target(self,tid):
@@ -101,12 +105,12 @@ class w3act():
 		target['watchedTarget'] = {}
 		target['watchedTarget']['documentUrlScheme'] = ""
 		logger.info("PUT %d %s" % (tid,json.dumps(target)))
-		r = requests.put("%s/api/targets/%d" % (self.url, tid), headers=self.headers, data=json.dumps(target))
+		r = requests.put("%s/api/targets/%d" % (self.url, tid), headers=self.up_headers, data=json.dumps(target))
 		return r
 
 	def unwatch_target(self,tid):
 		target = {}
 		target['watchedTarget'] = None
 		logger.info("PUT %d %s" % (tid,json.dumps(target)))
-		r = requests.put("%s/api/targets/%d" % (self.url, tid), headers=self.headers, data=json.dumps(target))
+		r = requests.put("%s/api/targets/%d" % (self.url, tid), headers=self.up_headers, data=json.dumps(target))
 		return r

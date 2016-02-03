@@ -1,12 +1,23 @@
 '''
 Created on 1 Feb 2016
 
+
+Note:
+Sending doc: 
+{'wayback_timestamp': u'20160202235322', 
+'target_id': 1, 
+'filename': u'supplementary-guidance-january-2016.pdf', 
+'landing_page_url': u'https://www.gov.uk/government/publications/department-for-transport-delivers-more-grant-funding-to-transport-freight-by-rail', 
+'document_url': u'https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/492092/supplementary-guidance-january-2016.pdf',
+ 'size': 202581}
+
 @author: andy
 '''
 import os
 import sys
 import logging
 import argparse
+from urlparse import urlparse
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
 from lib.agents.w3act import w3act
@@ -66,3 +77,17 @@ if __name__ == "__main__":
 		r = act.unwatch_target(int(subargs[0]))
 		print r.status_code
 		print r.text
+	elif args.action == 'add-document':
+		doc = {}
+		wtid = subargs[0]
+		doc['target_id'] = int(wtid)
+		doc['wayback_timestamp'] = subargs[1]
+		doc['document_url'] = subargs[2]
+		doc['landing_page_url'] = subargs[3]
+		doc['filename'] = os.path.basename( urlparse(doc['document_url']).path )
+		doc['size'] = ""
+		logger.debug("Sending doc: %s" % doc)
+		r = act.post_document(doc)
+		print r.status_code
+		print r.text
+		
