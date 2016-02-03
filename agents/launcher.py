@@ -40,6 +40,7 @@ import logging
 import argparse
 import dateutil.parser
 from datetime import datetime
+from pip._vendor.distlib.wheel import SHEBANG_DETAIL_RE
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
 from lib.agents.w3act import w3act
@@ -156,3 +157,5 @@ if __name__ == "__main__":
 			elif schedule['frequency'] == "ANNUAL":
 				if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day and now.month == startDate.month:
 					launch_by_hour(now,startDate,t,destination,source)
+			else:
+				logger.error("Don't understand crawl frequency "+schedule['frequency'])
