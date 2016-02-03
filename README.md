@@ -4,19 +4,6 @@ Shepherd
 Coordinates the services that make up the UK Web Archive.
 
 
-
-# Note that the other aspects, like depth etc, and setup periodically via "h3cc fc-sync".
-# Separate process bundles up per checkpoint (gather.py)	
-# Separate process sends Documents to a queue (in H3) and sends the queue to W3ACT (mule.py)
-# muster.py, yoke.py, shear.py, rouseabout, riggwelter (upside down sheep), 
-# lanolin (grease), cull.py, heft (land), flock, fold, dip, bellwether (flock lead)
-
-
-    $ python agents/sipstodls.py --amqp-url "amqp://guest:guest@192.168.99.100:5672/%2f"
-
-    $ python agents/docstow3act.py --amqp-url "amqp://guest:guest@192.168.99.100:5672/%2f" post-crawl DH-1-documents-to-catalogue
-
-
 h3cc - Heritrix3 Crawl Controller
 ---------------------------------
 
@@ -68,3 +55,19 @@ You can turn make an existing Target be a Watched Target (for document harvestin
     $ python w3act.py add-document 1 20160202235322 "https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/492092/supplementary-guidance-january-2016.pdf" "https://www.gov.uk/government/publications/department-for-transport-delivers-more-grant-funding-to-transport-freight-by-rail"
 
 The Wayback timestamp is required, along with the document and 'landing page' URLs.
+
+
+Others (TBA)
+------------
+
+    $ python agents/sipstodls.py --amqp-url "amqp://guest:guest@192.168.99.100:5672/%2f"
+
+    $ python agents/docstow3act.py --amqp-url "amqp://guest:guest@192.168.99.100:5672/%2f" post-crawl DH-1-documents-to-catalogue
+
+
+Note that the other aspects, like depth etc, and setup periodically via "h3cc fc-sync".
+Separate process bundles up per checkpoint (gather.py)	
+Separate process sends Documents to a queue (in H3) and sends the queue to W3ACT (mule.py)
+muster.py, yoke.py, shear.py, rouseabout, riggwelter (upside down sheep), 
+lanolin (grease), cull.py, heft (land), flock, fold, dip, bellwether (flock lead)
+
