@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
 '''
 Created on 1 Feb 2016
 
@@ -46,7 +49,7 @@ if __name__ == "__main__":
 					type=str, default="http://localhost:9000/act/", 
 					help="W3ACT endpoint to use [default: %(default)s]" )
 	parser.add_argument('-u', '--w3act-user', dest='w3act_user', 
-					type=str, default="wa-sysadm@bl.uk", 
+					type=str, default="wa-sysadm@bl.uk",
 					help="W3ACT user email to login with [default: %(default)s]" )
 	parser.add_argument('-p', '--w3act-pw', dest='w3act_pw', 
 					type=str, default="sysAdmin", 
@@ -62,7 +65,11 @@ if __name__ == "__main__":
 		json = act.get_json("api/targets")
 		print json
 	elif args.action == 'add-target':
-		r = act.post_target(subargs[0], subargs[1], subargs[2])
+		r = act.post_target(subargs[0], subargs[1])
+		print r.status_code
+		print r.text		
+	elif args.action == 'update-target-schedule':
+		r = act.update_target_schedule(int(subargs[0]), subargs[1], subargs[2])
 		print r.status_code
 		print r.text
 	elif args.action == 'set-selector':

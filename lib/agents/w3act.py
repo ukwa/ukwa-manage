@@ -67,13 +67,10 @@ class w3act():
 		r = requests.post("%s/documents" % self.url, headers=self.up_headers, data=json.dumps([doc]))
 		return r
 	
-	def post_target(self, url, title, frequency):
+	def post_target(self, url, title):
 		target = {}
 		target['field_urls'] = [ url ]
 		target['title'] = title
-		target['field_crawl_frequency'] = frequency
-		dtutcnow = datetime.datetime.utcnow()
-		target['field_crawl_start_date'] = time.mktime(dtutcnow.timetuple())
 		target['selector'] = 1
 		target['field_scope'] = "root"
 		target['field_depth'] = "CAPPED"
@@ -82,13 +79,16 @@ class w3act():
 		r = requests.post("%s/api/targets" % self.url, headers=self.up_headers, data=json.dumps(target))
 		return r
 	
-	def update_target_schedule(self,tid,start_date, end_date, frequency):
+	def update_target_schedule(self,tid,frequency, start_date, end_date=None):
 		target = {}
-		target['field_crawl_frequency'] = frequency
+		target['field_crawl_frequency'] = frequency.upper()
 		sd = dateutil.parser.parse(start_date)
-		target['field_crawl_start_date'] = time.mktime(sd.timetuple())
-		ed = dateutil.parser.parse(start_date)
-		target['field_crawl_end_date'] = time.mktime(ed.timetuple())
+		target['field_crawl_start_date'] = int(time.mktime(sd.timetuple()))
+		if end_date:
+			ed = dateutil.parser.parse(start_date)
+			target['field_crawl_end_date'] = int(time.mktime(ed.timetuple()))
+		else:
+			target['field_crawl_end_date'] = 0
 		logger.info("PUT %d %s" % (tid,json.dumps(target)))
 		r = requests.put("%s/api/targets/%d" % (self.url, tid), headers=self.up_headers, data=json.dumps(target))
 		return r

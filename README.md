@@ -25,7 +25,7 @@ This simple CLI client for [W3ACT](https://github.com/ukwa/w3act) uses it's API 
 
 This submits a new Target to the system, with one URL, a Title, and a crawl frequency:
 
-    $ python w3act.py add-target "https://www.gov.uk/government/publications?departments[]=department-for-transport" "Department for Transport publications" daily
+    $ python w3act.py add-target "https://www.gov.uk/government/publications?departments[]=department-for-transport" "Department for Transport publications"
 
 The script is designed to log in using the default developer account and credentials. This can be overridden if required, like so:
 
@@ -45,6 +45,10 @@ If all goes well, you'll get back something like:
     http://localhost:9000/act/targets/1
 
 ...where the last line indicates the URL for the newly created Target.
+
+You can set the crawl schedule for a Target like this:
+
+    $ python w3act.py update-target-schedule 1 daily "2016-01-13 09:00:00"
 
 You can turn make an existing Target be a Watched Target (for document harvesting) using:
 

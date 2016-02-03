@@ -139,7 +139,7 @@ if __name__ == "__main__":
 					type=str, default="sysAdmin", 
 					help="W3ACT user password [default: %(default)s]" )
 	parser.add_argument('--num', dest='qos_num', 
-		type=int, default=3, help="Maximum number of messages to handle at once. [default: %(default)s]")
+		type=int, default=1, help="Maximum number of messages to handle at once. [default: %(default)s]")
 	parser.add_argument('exchange', metavar='exchange', help="Name of the exchange to use.")
 	parser.add_argument('queue', metavar='queue', help="Name of queue to view messages from.")
 	

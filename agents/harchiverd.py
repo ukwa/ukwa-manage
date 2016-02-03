@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# encoding: utf-8
 
 """Process which watches a configured queue for messages and for each, calls a
 webservice, storing the result in a WARC file.
