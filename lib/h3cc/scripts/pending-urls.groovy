@@ -4,7 +4,7 @@
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.OperationStatus;
  
-MAX_URLS_TO_LIST = 1000
+MAX_URLS_TO_LIST = 10000
  
 pendingUris = job.crawlController.frontier.pendingUris
  

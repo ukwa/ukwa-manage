@@ -55,7 +55,7 @@ class w3act():
 
 	def post_document(self, doc):
 		''' See https://github.com/ukwa/w3act/wiki/Document-REST-Endpoint '''
-		r = requests.post("%s/documents" % self.url, headers=self.headers, data=json.dumps(doc))
+		r = requests.post("%s/documents" % self.url, headers=self.headers, data=json.dumps([doc]))
 		return r
 	
 	def post_target(self, url, title, frequency):

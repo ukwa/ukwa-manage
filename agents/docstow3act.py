@@ -84,7 +84,7 @@ logging.root.setLevel( logging.WARNING )
 
 # Set logging for this module and keep the reference handy:
 logger = logging.getLogger( __name__ )
-logger.setLevel( logging.INFO )
+logger.setLevel( logging.DEBUG )
 
 
 def callback( ch, method, properties, body ):
@@ -105,14 +105,14 @@ def callback( ch, method, properties, body ):
 			return
 		# Build document info line:
 		doc = {}
-		wtid = cl['source'].replace('WTID:','')
-		doc['id_watched_target'] = wtid
+		wtid = cl['seed'].replace('WTID:','')
+		doc['target_id'] = int(wtid)
 		doc['wayback_timestamp'] = cl['start_time_plus_duration'][:14]
 		doc['landing_page_url'] = cl['via']
 		doc['document_url'] = cl['url']
 		doc['filename'] = os.path.basename( urlparse(cl['url']).path )
-		doc['size'] = cl['content_length']
-		logger.debug("doc: %s" % doc)
+		doc['size'] = int(cl['content_length'])
+		logger.debug("Sending doc: %s" % doc)
 		act = w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
 		r = act.post_document(doc)
 		if( r.status_code == 200 ):
@@ -139,7 +139,7 @@ if __name__ == "__main__":
 					type=str, default="sysAdmin", 
 					help="W3ACT user password [default: %(default)s]" )
 	parser.add_argument('--num', dest='qos_num', 
-		type=int, default=100, help="Maximum number of messages to handle at once. [default: %(default)s]")
+		type=int, default=3, help="Maximum number of messages to handle at once. [default: %(default)s]")
 	parser.add_argument('exchange', metavar='exchange', help="Name of the exchange to use.")
 	parser.add_argument('queue', metavar='queue', help="Name of queue to view messages from.")
 	

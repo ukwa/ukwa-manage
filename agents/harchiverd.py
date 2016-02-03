@@ -34,6 +34,7 @@ import time
 import argparse
 from datetime import datetime
 from urlparse import urlparse
+import urllib
 from hanzo.warctools import WarcRecord
 from warcwriterpool import WarcWriterPool, warc_datetime_str
 
@@ -132,8 +133,8 @@ def amqp_outlinks(outchannel, raw_har, client_id, raw_parent):
             parent["url"], parent["metadata"], forceFetch=True)
     # PANIC if there are none at all, as this means the original URL did not work and should be looked at.
     if resources == 0:
-        logger.error("No resources transcluded for %s !" % parent["url"])
-        raise Exception("Download of %s failed completely - is this a valid URL?" % parent["url"])
+        logger.warning("No resources transcluded for %s - not even itself!" % parent["url"])
+        #raise Exception("Download of %s failed completely - is this a valid URL?" % parent["url"])
     # Process the discovered links (if desired):
     if settings.extract_links:
         links = 0
@@ -181,7 +182,7 @@ def callback(warcwriter, body):
         # Start the render:            
         logger.info("Requesting render of %s" % url )
         start_time = time.time()
-        ws = "%s/%s" % (settings.webrender_url, url)
+        ws = "%s/%s" % (settings.webrender_url, urllib.quote(url))
         logger.debug("Calling %s" % ws)
         r = requests.post(ws, data=json.dumps(selectors))
         if r.status_code == 200:

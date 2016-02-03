@@ -62,6 +62,24 @@ logging.root.setLevel( logging.INFO )
 logger = logging.getLogger( __name__ )
 logger.setLevel( logging.INFO )
 
+def launch_by_hour(now,startDate,t,destination,source):
+			# Is it the current hour?
+			if now.hour is startDate.hour:
+				logger.info("The hour is current, sending seed for %s to the crawl queue." % t['title'])
+				counter = 0
+				for seed in t['seeds']:
+					# For now, only treat the first URL as a scope-defining seed that we force a re-crawl for:
+					if counter == 0:
+						isSeed = True
+					else:
+						isSeed = False
+					# And send launch message:
+					launcher.launch(destination, seed, source, isSeed, "FC-3-uris-to-crawl")
+					counter = counter + 1
+				
+			else:
+				logger.info("The hour (%s) is not current." % startDate.hour)
+
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser('(Re)Launch frequently crawled sites.')
@@ -120,11 +138,21 @@ if __name__ == "__main__":
 				endDate = datetime.fromtimestamp(schedule['endDate']/1000)
 				if now > endDate:
 					continue
-			# Is it the current hour?
-			if now.hour is startDate.hour:
-				logger.info("The hour is current, sending seed for %s to the crawl queue." % t['title'])
-				for seed in t['seeds']:
-					launcher.launch(destination, seed, source, True, "FC-3-uris-to-crawl")
-				
-			else:
-				logger.info("The hour (%s) is not current." % startDate.hour)
+			# Check if the frequency and date match up:
+			if schedule['frequency'] == "DAILY":
+				launch_by_hour(now,startDate,t,destination,source)
+			elif schedule['frequency'] == "WEEKLY":
+				if now.isoweekday() == startDate.isoweekday():
+					launch_by_hour(now,startDate,t,destination,source)
+			elif schedule['frequency'] == "MONTHLY":
+				if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day:
+					launch_by_hour(now,startDate,t,destination,source)
+			elif schedule['frequency'] == "QUARTERLY":
+				if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day and now.month%3 == startDate.month%3:
+					launch_by_hour(now,startDate,t,destination,source)
+			elif schedule['frequency'] == "SIXMONTHLY":
+				if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day and now.month%6 == startDate.month%6:
+					launch_by_hour(now,startDate,t,destination,source)
+			elif schedule['frequency'] == "ANNUAL":
+				if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day and now.month == startDate.month:
+					launch_by_hour(now,startDate,t,destination,source)
