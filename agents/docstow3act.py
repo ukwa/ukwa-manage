@@ -175,11 +175,12 @@ def callback( ch, method, properties, body ):
 		doc['size'] = int(cl['content_length'])
 		# Check if content appears to be in Wayback:
 		if document_available(doc['document_url'], doc['wayback_timestamp']):
-			# If so, extract any additional metadata:
-			doc = DocumentMDEx(doc).mdex()
-			# and then inform W3ACT it's available:
-			logger.debug("Sending doc: %s" % doc)
+			# Set up connection to ACT:
 			act = w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
+			# Extract any additional metadata:
+			doc = DocumentMDEx(act,doc).mdex()
+			# Inform W3ACT it's available:
+			logger.debug("Sending doc: %s" % doc)
 			r = act.post_document(doc)
 			if( r.status_code == 200 ):
 				logger.debug("Success!")

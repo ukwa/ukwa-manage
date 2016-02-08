@@ -79,6 +79,9 @@ class w3act():
 		r = requests.post("%s/api/targets" % self.url, headers=self.up_headers, data=json.dumps(target))
 		return r
 	
+	def get_target(self,tid):
+		return self.get_json("/api/targets/%d" % tid)
+	
 	def update_target_schedule(self,tid,frequency, start_date, end_date=None):
 		target = {}
 		target['field_crawl_frequency'] = frequency.upper()

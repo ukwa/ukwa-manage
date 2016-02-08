@@ -11,18 +11,22 @@ Created on 8 Feb 2016
 
 import json
 import requests
+import logging
 from lxml import html
 
+logger = logging.getLogger("document_mdex.%s" % __name__)
+logger.setLevel(logging.INFO)
 
 class DocumentMDEx(object):
 	'''
 	Given a Landing Page extract additional metadata.
 	'''
 
-	def __init__(self, document):
+	def __init__(self, act, document):
 		'''
-		The Document to be enhanced.
+		The connection to W3ACT and the Document to be enhanced.
 		'''
+		self.act = act
 		self.doc = document
 		
 
@@ -56,6 +60,14 @@ class DocumentMDEx(object):
 		self.doc['publisher'] = h.xpath("//aside[contains(@class, 'meta')]//a[contains(@class, 'organisation-link')]/text()")[0]
 		if not self.doc['title']:
 			raise Exception('Title extraction failed! Metadata extraction for this target should be reviewed.')
+		# Get the Target title for comparison:
+		if self.act:
+			tj = self.act.get_target(self.doc['target_id'])
+			# Only allow the document to be accepted if the title does not match up:
+			if self.doc['publishers'] in tj['title']:
+				print "The title matches!"
+			else:
+				raise Exception("Target title does not contain document publisher title")
 	
 		
 	def mdex_ifs_reports(self):
@@ -77,7 +89,7 @@ def run_doc_mdex_test(url,lpu):
 	doc = {}
 	doc['url'] = url
 	doc['landing_page_url'] = lpu
-	doc = DocumentMDEx(doc).mdex()
+	doc = DocumentMDEx(None, doc).mdex()
 	print json.dumps(doc)
 
 if __name__ == "__main__":
