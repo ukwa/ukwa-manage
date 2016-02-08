@@ -14,8 +14,8 @@ import requests
 import logging
 from lxml import html
 
-logger = logging.getLogger("document_mdex.%s" % __name__)
-logger.setLevel(logging.INFO)
+logger = logging.getLogger(__name__)
+logger.setLevel( logging.INFO )
 
 class DocumentMDEx(object):
 	'''
@@ -36,7 +36,7 @@ class DocumentMDEx(object):
 		'''
 		if( self.doc["landing_page_url"].startswith("https://www.gov.uk/government/")):
 			self.mdex_gov_uk_publications()
-		if( self.doc["landing_page_url"].startswith("http://www.ifs.org.uk/publications/")):
+		elif( self.doc["landing_page_url"].startswith("http://www.ifs.org.uk/publications/")):
 			self.mdex_ifs_reports()
 			
 		# And return the modified version:
@@ -47,7 +47,7 @@ class DocumentMDEx(object):
 		# Start by grabbing the Link-rel-up header to refine the landing page url:
 		# e.g. https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/497662/accidents-involving-illegal-alcohol-levels-2014.pdf
 		# Link: <https://www.gov.uk/government/statistics/reported-road-casualties-in-great-britain-estimates-involving-illegal-alcohol-levels-2014>; rel="up"
-		r = requests.head(url=self.doc['url'])
+		r = requests.head(url=self.doc['document_url'])
 		if r.links.has_key('up'):
 			lpu = r.links['up']
 			self.doc["landing_page_url"] = lpu['url']
@@ -64,10 +64,12 @@ class DocumentMDEx(object):
 		if self.act:
 			tj = self.act.get_target(self.doc['target_id'])
 			# Only allow the document to be accepted if the title does not match up:
-			if self.doc['publishers'] in tj['title']:
+			if self.doc['publisher'] in tj['title']:
 				print "The title matches!"
 			else:
-				raise Exception("Target title does not contain document publisher title")
+				logger.critical("Target title '%s' does not contain document publisher title '%s'" % (tj['title'], self.doc['publisher']))
+				# Wipe it out, which will drop this document altogether (currently)
+				self.doc = None
 	
 		
 	def mdex_ifs_reports(self):
@@ -87,7 +89,7 @@ class DocumentMDEx(object):
 
 def run_doc_mdex_test(url,lpu):
 	doc = {}
-	doc['url'] = url
+	doc['document_url'] = url
 	doc['landing_page_url'] = lpu
 	doc = DocumentMDEx(None, doc).mdex()
 	print json.dumps(doc)

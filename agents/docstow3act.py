@@ -86,9 +86,8 @@ logging.root.addHandler( handler )
 logging.root.setLevel( logging.WARNING )
 
 # Set logging for this module and keep the reference handy:
-logger = logging.getLogger( __name__ )
-logger.setLevel( logging.DEBUG )
-
+logger = logging.getLogger(__name__)
+logger.setLevel( logging.INFO )
 
 def document_available(url, ts):
 	"""
@@ -179,11 +178,16 @@ def callback( ch, method, properties, body ):
 			act = w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
 			# Extract any additional metadata:
 			doc = DocumentMDEx(act,doc).mdex()
+			# Documents may be rejected at this point:
+			if doc == None:
+				logger.critical("The document based on this message has been REJECTED! :: "+body)
+				ch.basic_ack(delivery_tag = method.delivery_tag)
+				return
 			# Inform W3ACT it's available:
 			logger.debug("Sending doc: %s" % doc)
 			r = act.post_document(doc)
 			if( r.status_code == 200 ):
-				logger.debug("Success!")
+				logger.info("Document POSTed to W3ACT: %s" % doc['document_url'])
 				ch.basic_ack(delivery_tag = method.delivery_tag)
 				return
 			else:
@@ -196,8 +200,8 @@ def callback( ch, method, properties, body ):
 	# All that failed? Then reject and requeue the message to try later:
 	ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
 	# Now sleep briefly to avoid overloading the servers:
-	logger.warning("Sleeping for 15 seconds before retrying...")
-	time.sleep(15)
+	logger.warning("Sleeping for a few seconds before retrying...")
+	time.sleep(10)
 	return
 
 if __name__ == "__main__":
@@ -217,7 +221,7 @@ if __name__ == "__main__":
 					type=str, default="http://localhost:8080/wayback", 
 					help="Wayback endpoint to check URL availability [default: %(default)s]" )
 	parser.add_argument('--num', dest='qos_num', 
-		type=int, default=1, help="Maximum number of messages to handle at once. [default: %(default)s]")
+		type=int, default=5, help="Maximum number of messages to handle at once. [default: %(default)s]")
 	parser.add_argument('exchange', metavar='exchange', help="Name of the exchange to use.")
 	parser.add_argument('queue', metavar='queue', help="Name of queue to view messages from.")
 	
