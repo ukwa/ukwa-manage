@@ -71,6 +71,7 @@ import xml.dom.minidom
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
 from lib.agents.w3act import w3act
+from lib.agents.document_mdex import DocumentMDEx
 
 # Set up a logging handler:
 handler = logging.StreamHandler()
@@ -174,7 +175,9 @@ def callback( ch, method, properties, body ):
 		doc['size'] = int(cl['content_length'])
 		# Check if content appears to be in Wayback:
 		if document_available(doc['document_url'], doc['wayback_timestamp']):
-			# If so, inform W3ACT it's available:
+			# If so, extract any additional metadata:
+			doc = DocumentMDEx(doc).mdex()
+			# and then inform W3ACT it's available:
 			logger.debug("Sending doc: %s" % doc)
 			act = w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
 			r = act.post_document(doc)

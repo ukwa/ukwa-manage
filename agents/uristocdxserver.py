@@ -28,7 +28,7 @@ logging.root.setLevel( logging.WARNING )
 
 # Set logging for this module and keep the reference handy:
 logger = logging.getLogger( __name__ )
-logger.setLevel( logging.INFO )
+logger.setLevel( logging.DEBUG )
 
 
 # - 20150914222034 http://www.financeminister.gov.au/                     text/html 200      ZMSA5TNJUKKRYAIM5PRUJLL24DV7QYOO - - 83848 117273 WEB-20150914222031256-00000-43190~heritrix.nla.gov.au~8443.warc.gz
