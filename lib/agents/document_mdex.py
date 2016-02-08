@@ -15,7 +15,6 @@ import logging
 from lxml import html
 
 logger = logging.getLogger(__name__)
-logger.setLevel( logging.INFO )
 
 class DocumentMDEx(object):
 	'''

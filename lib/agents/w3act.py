@@ -9,9 +9,7 @@ import traceback
 import datetime, time
 import dateutil.parser
 
-LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
-logging.basicConfig(format=LOGGING_FORMAT, level=logging.DEBUG)
-logger = logging.getLogger("w3act.%s" % __name__)
+logger = logging.getLogger( __name__)
 
 
 class w3act():

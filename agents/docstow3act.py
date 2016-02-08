@@ -79,15 +79,17 @@ handler = logging.StreamHandler()
 formatter = logging.Formatter( "[%(asctime)s] %(levelname)s %(filename)s.%(funcName)s: %(message)s" )
 handler.setFormatter( formatter ) 
 
-# Attach to root logger
+# Replace root logger
+logging.root.handlers = []
 logging.root.addHandler( handler )
 
 # Set default logging output for all modules.
-logging.root.setLevel( logging.WARNING )
+logging.getLogger().setLevel( logging.INFO )
+logging.getLogger('requests').setLevel( logging.WARNING )
+logging.getLogger('pika').setLevel( logging.WARNING )
 
 # Set logging for this module and keep the reference handy:
 logger = logging.getLogger(__name__)
-logger.setLevel( logging.INFO )
 
 def document_available(url, ts):
 	"""
