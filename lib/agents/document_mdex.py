@@ -67,6 +67,10 @@ class DocumentMDEx(object):
 		self.doc['publication_date'] = h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//*[contains(@itemprop,'datePublished')]/@content")[0]
 		self.doc['author'] = h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//*[contains(@itemprop,'author')]/a/text()")
 		self.doc['publisher'] = h.xpath("//footer//*[contains(@itemtype, 'http://schema.org/Organization')]//*[contains(@itemprop,'name')]/text()")[0]
+		self.doc['isbn'] = h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//tr[td[1]/text()='ISBN:']/td[2]/text()")
+		if self.doc['isbn']:
+			self.doc['isbn'] = self.doc['isbn'][0].strip()
+		self.doc['doi'] = h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//tr[td[1]/text()='DOI:']/td[2]/a[1]/text()")[0]
 		
 
 def run_doc_mdex_test(url,lpu):
@@ -80,12 +84,14 @@ if __name__ == "__main__":
 	'''
 	A few test cases
 	'''
+	run_doc_mdex_test('http://www.ifs.org.uk/uploads/cemmap/wps/cwp721515.pdf',
+					'http://www.ifs.org.uk/publications/8080')
+	run_doc_mdex_test('http://www.ifs.org.uk/uploads/publications/bns/BN179.pdf',
+					'http://www.ifs.org.uk/publications/8049')
+	#
 	run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/246770/0121.pdf',
 					'https://www.gov.uk/government/publications/met-office-annual-report-and-accounts-2012-to-2013')
 	run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/497536/rtfo-year-8-report-2.pdf',
 					'https://www.gov.uk/government/statistics/biofuel-statistics-year-8-2015-to-2016-report-2')
 	run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/495227/harbour-closure-orders-consultation-summary-responses.pdf',
 					'https://www.gov.uk/government/consultations/harbour-closure-and-pilotage-function-removal-orders-draft-guidance')
-	#
-	run_doc_mdex_test('http://www.ifs.org.uk/uploads/cemmap/wps/cwp721515.pdf',
-					'http://www.ifs.org.uk/publications/8080')
