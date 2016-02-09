@@ -21,14 +21,16 @@ formatter = logging.Formatter( "[%(asctime)s] %(levelname)s %(filename)s.%(funcN
 handler.setFormatter( formatter ) 
 
 # Attach to root logger
+logging.root.handlers = []
 logging.root.addHandler( handler )
 
 # Set default logging output for all modules.
-logging.root.setLevel( logging.WARNING )
+logging.root.setLevel( logging.INFO )
+logging.getLogger('requests').setLevel( logging.WARNING )
+logging.getLogger('pika').setLevel( logging.WARNING )
 
 # Set logging for this module and keep the reference handy:
 logger = logging.getLogger( __name__ )
-logger.setLevel( logging.INFO )
 
 
 # - 20150914222034 http://www.financeminister.gov.au/                     text/html 200      ZMSA5TNJUKKRYAIM5PRUJLL24DV7QYOO - - 83848 117273 WEB-20150914222031256-00000-43190~heritrix.nla.gov.au~8443.warc.gz
@@ -59,7 +61,7 @@ def callback( ch, method, properties, body ):
 		status_code = cl["status_code"]
 		# Don't index negative status codes here:
 		if( status_code <= 0 ):
-			logger.info("Ignoring <=0 status_code log entry: %s" % body)
+			logger.info("Ignoring <=0 status_code log entry for: %s" % url)
 			ch.basic_ack(delivery_tag = method.delivery_tag)
 			return
 		# Record via for redirects:
@@ -69,7 +71,7 @@ def callback( ch, method, properties, body ):
 		mimetype = cl["mimetype"]
 		if "duplicate:digest" in cl["annotations"]:
 			if skip_duplicates:
-				logger.info("Skipping de-duplicated resource: %s" % body)
+				logger.info("Skipping de-duplicated resource for: %s" % url)
 				ch.basic_ack(delivery_tag = method.delivery_tag)
 				return
 			else:
@@ -89,7 +91,7 @@ def callback( ch, method, properties, body ):
 		logger.debug("CDX: %s" % cdx_11)
 		r = requests.post(args.cdxserver_url, data=cdx_11)
 		if( r.status_code == 200 ):
-			logger.debug("Success!")
+			logger.info("POSTed to cdxserver: %s" % url)
 			ch.basic_ack(delivery_tag = method.delivery_tag)
 		else:
 			logger.error("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
