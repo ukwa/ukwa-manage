@@ -31,14 +31,24 @@ class DocumentMDEx(object):
 
 	def mdex(self):
 		'''
-		Pass the document through a different extractor based on how the URL starts.
+		Metadata extraction and target association.
 		'''
+		# Pass the document through a different extractor based on how the URL starts.
 		if( self.doc["landing_page_url"].startswith("https://www.gov.uk/government/")):
 			self.mdex_gov_uk_publications()
 		elif( self.doc["landing_page_url"].startswith("http://www.ifs.org.uk/publications/")):
 			self.mdex_ifs_reports()
+
+		# Look up which Target this URL should be associated with:
+		if self.act:
+			self.doc['target_id'] = self.act.find_watched_target_for(self.doc['landing_page_url'], self.doc['publisher'])
+		
+		# If there is no association, drop it:
+		if not self.doc['target_id']:
+			logger.critical("Failed to associated document with any target: %s" % self.doc['document_url'])
+			return None
 			
-		# And return the modified version:
+		# Or return the modified version:
 		return self.doc
 	
 	
@@ -59,16 +69,6 @@ class DocumentMDEx(object):
 		self.doc['publisher'] = h.xpath("//aside[contains(@class, 'meta')]//a[contains(@class, 'organisation-link')]/text()")[0]
 		if not self.doc['title']:
 			raise Exception('Title extraction failed! Metadata extraction for this target should be reviewed.')
-		# Get the Target title for comparison:
-		if self.act:
-			tj = self.act.get_target(self.doc['target_id'])
-			# Only allow the document to be accepted if the title does not match up:
-			if self.doc['publisher'] in tj['title']:
-				print "The title matches!"
-			else:
-				logger.critical("Target title '%s' does not contain document publisher title '%s'" % (tj['title'], self.doc['publisher']))
-				# Wipe it out, which will drop this document altogether (currently)
-				self.doc = None
 	
 		
 	def mdex_ifs_reports(self):

@@ -67,7 +67,7 @@ class launcher(object):
 		connection.close()
 
 
-	def launch(self, destination, uri, source, isSeed=False, clientId="FC-3-uris-to-crawl"):
+	def launch(self, destination, uri, source, isSeed=False, clientId="FC-3-uris-to-crawl", forceFetch=False):
 		curim = {}
 		if destination == "h3":
 			curim['headers'] = {}
@@ -80,6 +80,8 @@ class launcher(object):
 			curim['parentUrlMetadata']['heritableData']['source'] = source
 			curim['parentUrlMetadata']['heritableData']['heritable'] = ['source','heritable']
 			curim['isSeed'] = isSeed
+			if not isSeed and forceFetch:
+				curim['forceFetch'] = True
 			curim['url'] = uri
 		elif destination == "har":
 			curim['clientId']= clientId
@@ -89,6 +91,8 @@ class launcher(object):
 			curim['metadata']['heritableData']['source'] = source
 			curim['metadata']['pathFromSeed'] = ""
 			curim['isSeed'] = isSeed
+			if not isSeed and forceFetch:
+				curim['forceFetch'] = True
 			curim['url'] = uri
 		else:
 			logger.error("Can't handle destination type '%s'" % destination )

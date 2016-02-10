@@ -168,8 +168,6 @@ def callback( ch, method, properties, body ):
 			return
 		# Build document info line:
 		doc = {}
-		wtid = cl['seed'].replace('WTID:','')
-		doc['target_id'] = int(wtid)
 		doc['wayback_timestamp'] = cl['start_time_plus_duration'][:14]
 		doc['landing_page_url'] = cl['via']
 		doc['document_url'] = cl['url']
@@ -177,9 +175,7 @@ def callback( ch, method, properties, body ):
 		doc['size'] = int(cl['content_length'])
 		# Check if content appears to be in Wayback:
 		if document_available(doc['document_url'], doc['wayback_timestamp']):
-			# Set up connection to ACT:
-			act = w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
-			# Extract any additional metadata:
+			# Lookup Target and extract any additional metadata:
 			doc = DocumentMDEx(act,doc).mdex()
 			# Documents may be rejected at this point:
 			if doc == None:
@@ -231,6 +227,9 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	
 	try:
+		# Set up connection to ACT:
+		act = w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
+		# Connect to AMQP:
 		logger.info( "Starting connection %s:%s." % ( args.amqp_url, args.queue ) )
 		parameters = pika.URLParameters(args.amqp_url)
 		connection = pika.BlockingConnection( parameters )

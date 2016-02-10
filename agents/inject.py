@@ -53,6 +53,7 @@ if __name__ == "__main__":
 	parser.add_argument("-s", "--source", dest="source", type=str, default='',
 					help="Source tag to attach to this URI, if any. [default: %(default)s]")
 	parser.add_argument("-S", "--seed", dest="seed", action="store_true", default=False, required=False, help="Treat supplied URI as a seed, thus widening crawl scope. [default: %(default)s]")
+	parser.add_argument("-F", "--force-fetch", dest="forceFetch", action="store_true", default=False, required=False, help="Force the URL to be fetched, even if already seen and queued/rejected. [default: %(default)s]")
 	parser.add_argument("-P", "--pager", dest="pager", action="store_true", default=False, required=False, help="Attempt to extract URLs for all pages, and submit those too.")
 	parser.add_argument('queue', metavar='queue', help="Name of queue to send seeds to.")
 	parser.add_argument('uri', metavar='uri', help="URI to enqueue.")
@@ -63,7 +64,7 @@ if __name__ == "__main__":
 	launcher = launcher(args)
 	
 	# Add the main URL
-	launcher.launch(args.destination, args.uri, args.source, isSeed=args.seed, clientId="FC-3-uris-to-crawl")
+	launcher.launch(args.destination, args.uri, args.source, isSeed=args.seed, clientId="FC-3-uris-to-crawl", forceFetch=args.forceFetch)
 	
 	# Also, for some hosts, attempt to extract all pages from a oaged list:
 	if args.pager:
@@ -76,5 +77,5 @@ if __name__ == "__main__":
 			last = int(span.split()[-1]) + 1
 			for i in range(2, last):
 				page_uri =  "%s&page=%i" % (args.uri, i)
-				launcher.launch(args.destination, page_uri, args.source, isSeed=False, clientId="FC-3-uris-to-crawl")
+				launcher.launch(args.destination, page_uri, args.source, isSeed=False, clientId="FC-3-uris-to-crawl", forceFetch=args.forceFetch)
 			

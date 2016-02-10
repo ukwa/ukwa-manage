@@ -7,7 +7,7 @@ Created on 10 Feb 2016
 import os
 from urlparse import urlparse
 
-def url_to_surt(in_url):
+def url_to_surt(in_url, host_only=False):
 	'''
 	Converts a URL to SURT form.
 	'''
@@ -15,6 +15,6 @@ def url_to_surt(in_url):
 	authority = parsed.netloc.split(".")
 	authority.reverse()
 	surt = "http://(%s," % ",".join(authority)
-	if parsed.path:
+	if parsed.path and not host_only:
 		surt = "%s%s" %( surt , os.path.dirname(parsed.path) )
 	return surt

@@ -44,7 +44,6 @@ from datetime import datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
 from lib.agents.w3act import w3act
 from lib.agents.launch import launcher
-from lib.h3cc.utils import url_to_surt
 
 
 # Set up a logging handler:
@@ -86,14 +85,16 @@ def write_surt_file(targets,filename):
 	with open(filename, 'w') as f:
 		for t in targets:
 			for seed in t['seeds']:
-				f.write("%s\n" % url_to_surt(seed))
+				#f.write("%s\n" % url_to_surt(seed))
+				f.write("%s\n" % seed)
 
 def write_watched_surt_file(targets,filename):
 	with open(filename, 'w') as f:
 		for t in targets:
 			if t['watched']:
 				for seed in t['seeds']:
-					f.write("%s\n" % url_to_surt(seed))
+					#f.write("%s\n" % url_to_surt(seed))
+					f.write("%s\n" % seed)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser('(Re)Launch frequently crawled sites.')
