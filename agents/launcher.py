@@ -88,6 +88,13 @@ def write_surt_file(targets,filename):
 			for seed in t['seeds']:
 				f.write("%s\n" % url_to_surt(seed))
 
+def write_watched_surt_file(targets,filename):
+	with open(filename, 'w') as f:
+		for t in targets:
+			if t['watched']:
+				for seed in t['seeds']:
+					f.write("%s\n" % url_to_surt(seed))
+
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser('(Re)Launch frequently crawled sites.')
 	parser.add_argument('-w', '--w3act-url', dest='w3act_url', 
@@ -115,6 +122,8 @@ if __name__ == "__main__":
 					help="Target ID to allow to launch (for testing purposes). [default: %(default)s]")
 	parser.add_argument("-S", "--surt-file", dest="surt_file", type=str, 
 					help="SURT file to write to, for scoping Heritrix crawls [default: %(default)s]", default=None)	
+	parser.add_argument("-W", "--watched-surt-file", dest="watched_surt_file", type=str, 
+					help="SURT file to write Watched Targets, for scoping document extraction [default: %(default)s]", default=None)	
 	parser.add_argument('queue', metavar='queue', help="Name of queue to send seeds to.")
 	
 	args = parser.parse_args()
@@ -129,6 +138,10 @@ if __name__ == "__main__":
 	if args.surt_file:
 		write_surt_file(targets, args.surt_file)
 	
+	# Update watched target scope file, if enabled:
+	if args.watched_surt_file:
+		write_watched_surt_file(targets, args.watched_surt_file)
+		
 	# Set up launcher:
 	launcher = launcher(args)
 	
