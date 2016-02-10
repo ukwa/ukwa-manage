@@ -40,18 +40,25 @@ class launcher(object):
 		Constructor
 		'''
 		self.args = args
-	
-	def send_message(self, message):
-		"""Sends a message to the given queue."""
+		
+
+	def send_message(self, message, queue=None):
+		"""
+		Sends a message to the given queue.
+		"""
+		#
+		if not queue:
+			queue = self.args.queue
+		#
 		parameters = pika.URLParameters(self.args.amqp_url)
 		connection = pika.BlockingConnection( parameters )
 		channel = connection.channel()
 		channel.exchange_declare(exchange=self.args.exchange, durable=True)
-		channel.queue_declare( queue=self.args.queue, durable=True )
-		channel.queue_bind(queue=self.args.queue, exchange=self.args.exchange)#, routing_key="uris-to-render")
+		channel.queue_declare( queue=queue, durable=True )
+		channel.queue_bind(queue=queue, exchange=self.args.exchange)#, routing_key="uris-to-render")
 		channel.tx_select()
 		channel.basic_publish( exchange=self.args.exchange,
-			routing_key=self.args.queue,
+			routing_key=queue,
 			properties=pika.BasicProperties(
 				delivery_mode=2,
 			),
@@ -90,3 +97,5 @@ class launcher(object):
 
 		# Push a 'seed' message onto the rendering queue:
 		self.send_message(message)
+		# Also push the same message to the FC-1-uris-to-check
+		self.send_message(message,'FC-1-uris-to-check')

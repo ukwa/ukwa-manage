@@ -44,6 +44,7 @@ from datetime import datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
 from lib.agents.w3act import w3act
 from lib.agents.launch import launcher
+from lib.h3cc.utils import url_to_surt
 
 
 # Set up a logging handler:
@@ -81,6 +82,12 @@ def launch_by_hour(now,startDate,t,destination,source):
 				logger.info("The hour (%s) is not current." % startDate.hour)
 
 
+def write_surt_file(targets,filename):
+	with open(filename, 'w') as f:
+		for t in targets:
+			for seed in t['seeds']:
+				f.write("%s\n" % url_to_surt(seed))
+
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser('(Re)Launch frequently crawled sites.')
 	parser.add_argument('-w', '--w3act-url', dest='w3act_url', 
@@ -106,6 +113,8 @@ if __name__ == "__main__":
 					help="Destination, implying message format to use: 'har' or 'h3'. [default: %(default)s]")
 	parser.add_argument("-tid", "--target-id", dest="target_id", type=int,
 					help="Target ID to allow to launch (for testing purposes). [default: %(default)s]")
+	parser.add_argument("-S", "--surt-file", dest="surt_file", type=str, 
+					help="SURT file to write to, for scoping Heritrix crawls [default: %(default)s]", default=None)	
 	parser.add_argument('queue', metavar='queue', help="Name of queue to send seeds to.")
 	
 	args = parser.parse_args()
@@ -115,6 +124,10 @@ if __name__ == "__main__":
 	targets = act.get_ld_export(args.frequency)
 	logger.info("Got %s targets" % len(targets))
 	destination = args.destination # or use "h3" for message suitable for h3
+	
+	# Update scope file, if enabled:
+	if args.surt_file:
+		write_surt_file(targets, args.surt_file)
 	
 	# Set up launcher:
 	launcher = launcher(args)
