@@ -273,7 +273,7 @@ if __name__ == "__main__":
         help="AMQP endpoint to use. [default: %(default)s]" )
     parser.add_argument('--webrender-url', dest='webrender_url', type=str, default="http://webrender:8000/webtools/domimage", 
         help="HAR webrender endpoint to use. [default: %(default)s]" )
-    parser.add_argument('--extract-links', dest='extract_links', type=bool, default=True, 
+    parser.add_argument('--extract-links', dest='extract_links', type=bool, default=False, 
         help="Also extract apparent hyperlinks as well as transcluded URLs? [default: %(default)s]" )
     parser.add_argument('--num', dest='qos_num', 
         type=int, default=10, help="Maximum number of messages to handle at once. [default: %(default)s]")

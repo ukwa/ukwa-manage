@@ -41,7 +41,8 @@ class DocumentMDEx(object):
 
 		# Look up which Target this URL should be associated with:
 		if self.act:
-			self.doc['target_id'] = self.act.find_watched_target_for(self.doc['landing_page_url'], self.doc['publisher'])
+                        logger.info("Looking for match for %s and publisher '%s'" % (self.doc['landing_page_url'], self.doc.get('publisher',None)))
+			self.doc['target_id'] = self.act.find_watched_target_for(self.doc['landing_page_url'], self.doc.get('publisher', None))
 		
 		# If there is no association, drop it:
 		if not self.doc['target_id']:

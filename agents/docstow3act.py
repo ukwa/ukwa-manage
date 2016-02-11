@@ -220,7 +220,7 @@ if __name__ == "__main__":
 					type=str, default="http://localhost:8080/wayback", 
 					help="Wayback endpoint to check URL availability [default: %(default)s]" )
 	parser.add_argument('--num', dest='qos_num', 
-		type=int, default=5, help="Maximum number of messages to handle at once. [default: %(default)s]")
+		type=int, default=10, help="Maximum number of messages to handle at once. [default: %(default)s]")
 	parser.add_argument('exchange', metavar='exchange', help="Name of the exchange to use.")
 	parser.add_argument('queue', metavar='queue', help="Name of queue to view messages from.")
 	

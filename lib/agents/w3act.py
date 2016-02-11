@@ -103,7 +103,8 @@ class w3act():
 		# No matches:
 		if len(matches) == 0:
 			logger.error("No match found for url %s" % url)
-			raise Exception("No matching target for url "+url)			
+                        return None
+			#raise Exception("No matching target for url "+url)			
 		# If one match:
 		if len(matches) == 1:
 			return int(matches[0]['id'])
