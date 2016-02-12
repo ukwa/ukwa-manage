@@ -82,10 +82,9 @@ handler.setFormatter( formatter )
 # Replace root logger
 logging.root.handlers = []
 logging.root.addHandler( handler )
-#logging.root.setLevel( logging.WARNING )
+logging.root.setLevel( logging.INFO )
 
 # Set default logging output for all modules.
-logging.getLogger().setLevel( logging.INFO )
 logging.getLogger('requests').setLevel( logging.WARNING )
 logging.getLogger('pika').setLevel( logging.WARNING )
 
@@ -191,7 +190,8 @@ def callback( ch, method, properties, body ):
 				return
 			else:
 				logger.error("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
-
+		else:
+			logger.info("Not yet available in wayback: %s" % doc['document_url'])
 	except Exception as e:
 		logger.error( "%s [%s]" % ( str( e ), body ) )
 		logging.exception(e)

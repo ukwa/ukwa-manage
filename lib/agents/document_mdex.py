@@ -48,6 +48,10 @@ class DocumentMDEx(object):
 		if not self.doc['target_id']:
 			logger.critical("Failed to associated document with any target: %s" % self.doc['document_url'])
 			return None
+
+		# If there is no title, use a default:
+		if not self.doc['title']:
+			self.doc['title'] = '[untitled]'
 			
 		# Or return the modified version:
 		return self.doc
