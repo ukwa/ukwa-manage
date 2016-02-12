@@ -97,13 +97,14 @@ def send_amqp_message(message, client_id, outchannel):
             logger.error("Sleeping for 30 seconds...")
             time.sleep(30)
 
-def send_to_amqp(outchannel,client_id, url,method,headers, parentUrl, parentUrlMetadata, forceFetch=False, isSeed=False):
+def send_to_amqp(outchannel,client_id, url,method,headers, parentUrl, parentUrlMetadata, forceFetch=False, isSeed=False, hop='L'):
     message = {
         "url": url,
         "method": method,
         "headers": headers,
         "parentUrl": parentUrl,
-        "parentUrlMetadata": parentUrlMetadata
+        "parentUrlMetadata": parentUrlMetadata,
+        "hop": hop
     }
     if forceFetch:
         message["forceFetch"] = True
@@ -129,16 +130,17 @@ def amqp_outlinks(outchannel, raw_har, client_id, raw_parent):
         # Skip sending the parent again:
         if parent["url"] == entry["request"]["url"]:
             continue
+        logger.info("Sending transcluded URL (E) %s" % entry['request']['url'])
         send_to_amqp(outchannel,client_id, entry["request"]["url"],entry["request"]["method"], 
             {h["name"]: h["value"] for h in entry["request"]["headers"]}, 
-            parent["url"], parent["metadata"], forceFetch=True)
+            parent["url"], parent["metadata"], forceFetch=True, hop='E')
     # PANIC if there are none at all, as this means the original URL did not work and should be looked at.
     if resources == 0:
         logger.warning("No resources transcluded for %s - not even itself!" % parent["url"])
         #raise Exception("Download of %s failed completely - is this a valid URL?" % parent["url"])
     # Process the discovered links (if desired):
+    links = 0
     if settings.extract_links:
-        links = 0
         for entry in har["log"]["pages"]:
             for item in entry["map"]:
                 # Some map regions are JavaScript rather than direct links, so only take the links:
@@ -147,6 +149,7 @@ def amqp_outlinks(outchannel, raw_har, client_id, raw_parent):
                     if parent["url"] == item['href']:
                         continue
                     links = links + 1
+                    logger.info("Sending discovered (L) URL %s" % item['href'])
                     send_to_amqp(outchannel,client_id, item['href'],"GET", {}, parent["url"], parent["metadata"])
     logger.info("Queued %i resources and %i links for url '%s'." % (resources, links, parent["url"]) )
 
