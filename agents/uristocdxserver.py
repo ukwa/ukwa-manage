@@ -32,7 +32,6 @@ logging.getLogger('pika').setLevel( logging.WARNING )
 # Set logging for this module and keep the reference handy:
 logger = logging.getLogger( __name__ )
 
-
 # - 20150914222034 http://www.financeminister.gov.au/                     text/html 200      ZMSA5TNJUKKRYAIM5PRUJLL24DV7QYOO - - 83848 117273 WEB-20150914222031256-00000-43190~heritrix.nla.gov.au~8443.warc.gz
 # - 20151201225932 http://anjackson.net/projects/images/keeping-codes.png image/png 200 sha1:DDOWG5GHKEDGUCOCOXZCAPRUXPND7GOK - - -     593544 BL-20151201225813592-00001-37~157a2278f619~8443.warc.gz
 # - 20151202001114 http://anjackson.net/robots.txt unknown 302 sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ http://anjackson.net/ - - 773 BL-20151202001107925-00001-41~157a2278f619~8443.warc.gz
@@ -64,9 +63,9 @@ def callback( ch, method, properties, body ):
 			logger.info("Ignoring <=0 status_code log entry for: %s" % url)
 			ch.basic_ack(delivery_tag = method.delivery_tag)
 			return
-		# Record via for redirects:
+		# Record redirects:
 		if( status_code/100 == 3 ):
-			redirect = cl["via"]
+			redirect = cl["redirecturl"]
 		# Don't index revisit records as OW can't handle them (?)
 		mimetype = cl["mimetype"]
 		if "duplicate:digest" in cl["annotations"]:

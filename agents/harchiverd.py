@@ -139,7 +139,7 @@ def amqp_outlinks(outchannel, raw_har, client_id, raw_parent):
     har = json.loads(raw_har)
     parent = json.loads(raw_parent)
     # Send the parent on, set as seed if required:
-    send_to_amqp(outchannel,client_id, parent["url"], "GET", {}, parent["url"], parent["metadata"], True, parent.get("isSeed",False))
+    send_to_amqp(outchannel,client_id, parent["url"], "GET", {}, parent["url"], parent["metadata"], True, parent.get("isSeed",False), hop='')
     # Process the embeds:
     resources = 0
     if settings.extract_embeds:
@@ -215,9 +215,9 @@ def callback(warcwriter, body):
         r = requests.post(ws, data=json.dumps(selectors))
         if r.status_code == 200:
             # Get the HAR payload
-            logger.info("Got response. Reading.")
+            logger.debug("Got response. Reading.")
             har = r.content
-            logger.info("Got HAR.")
+            logger.debug("Got HAR.")
             # Write to the WARC
             wrid = uuid.uuid1()
             headers = [
@@ -230,11 +230,11 @@ def callback(warcwriter, body):
             warcwriter.write_record(headers, "application/json", har)
             # TODO Also pull out the rendings as separate records?
             # see http://wpull.readthedocs.org/en/master/warc.html
-            logger.info("Written WARC.")
+            logger.debug("Written WARC.")
             # Send on embeds and outlinks, passing original message too...
             outchannel = setup_outward_channel(handler_id)
             url_handler(outchannel, har, handler_id, body)
-            logger.info("Sent messages.")
+            logger.debug("Sent messages.")
             # Record total elapsed time:
             end_time = time.time()
             logger.info("Rendered and recorded output for %s in %d seconds." %(url, end_time-start_time))
