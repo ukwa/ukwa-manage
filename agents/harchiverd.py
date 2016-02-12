@@ -113,6 +113,26 @@ def send_to_amqp(outchannel,client_id, url,method,headers, parentUrl, parentUrlM
     logger.debug("Sending message: %s" % message)
     send_amqp_message(json.dumps(message), client_id, outchannel)
 
+def is_embed(entry):
+    '''
+    Checks whether a HAR request/response entry is likely to be an embed
+    '''
+    # If the browser sends a request that Accepts HTML, it's unlikely to be an embed:
+    for header in entry['request']['headers']:
+        if header['name'] == 'Accept':
+            if 'text/html' in header['value']:
+                return False
+               
+    # If the response appears to be HTML, it's unlikely to be an embed:
+    for header in entry['response']['headers']:
+        if header['name'] == 'Content-Type':
+            if 'text/html' in header['value']:
+                return False
+            if 'application/xhtml' in header['value']:
+                return False
+            
+    # Otherwise, assume it's an embed
+    return True
 
 def amqp_outlinks(outchannel, raw_har, client_id, raw_parent):
     """Passes outlinks back to queue."""
@@ -122,21 +142,25 @@ def amqp_outlinks(outchannel, raw_har, client_id, raw_parent):
     send_to_amqp(outchannel,client_id, parent["url"], "GET", {}, parent["url"], parent["metadata"], True, parent.get("isSeed",False))
     # Process the embeds:
     resources = 0
-    for entry in har["log"]["entries"]:
-        resources = resources + 1
-        protocol = urlparse(entry["request"]["url"]).scheme
-        if not protocol in settings.protocols:
-            continue
-        # Skip sending the parent again:
-        if parent["url"] == entry["request"]["url"]:
-            continue
-        logger.info("Sending transcluded URL (E) %s" % entry['request']['url'])
-        send_to_amqp(outchannel,client_id, entry["request"]["url"],entry["request"]["method"], 
-            {h["name"]: h["value"] for h in entry["request"]["headers"]}, 
-            parent["url"], parent["metadata"], forceFetch=True, hop='E')
-    # PANIC if there are none at all, as this means the original URL did not work and should be looked at.
-    if resources == 0:
-        logger.warning("No resources transcluded for %s - not even itself!" % parent["url"])
+    if settings.extract_embeds:
+        for entry in har["log"]["entries"]:
+            resources = resources + 1
+            # Only send URLs with the allowed protocols:
+            protocol = urlparse(entry["request"]["url"]).scheme
+            if not protocol in settings.protocols:
+                continue
+            # Set the hop types:
+            hop = 'E'
+            if not is_embed(entry):
+                hop = 'L'
+            # Send
+            logger.info("Sending transcluded URL (%s) %s" % (hop, entry['request']['url']))
+            send_to_amqp(outchannel,client_id, entry["request"]["url"],entry["request"]["method"], 
+                {h["name"]: h["value"] for h in entry["request"]["headers"]}, 
+                parent["url"], parent["metadata"], forceFetch=True, hop=hop)
+        # PANIC if there are none at all, as this means the original URL did not work and should be looked at.
+        if resources == 0:
+            logger.warning("No resources transcluded for %s - not even itself!" % parent["url"])
         #raise Exception("Download of %s failed completely - is this a valid URL?" % parent["url"])
     # Process the discovered links (if desired):
     links = 0
@@ -195,14 +219,17 @@ def callback(warcwriter, body):
             har = r.content
             logger.info("Got HAR.")
             # Write to the WARC
+            wrid = uuid.uuid1()
             headers = [
                 (WarcRecord.TYPE, WarcRecord.METADATA),
                 (WarcRecord.URL, url),
                 (WarcRecord.CONTENT_TYPE, "application/json"),
                 (WarcRecord.DATE, warc_datetime_str(datetime.now())),
-                (WarcRecord.ID, "<urn:uuid:%s>" % uuid.uuid1()),
+                (WarcRecord.ID, "<urn:uuid:%s>" % wrid),
             ]
             warcwriter.write_record(headers, "application/json", har)
+            # TODO Also pull out the rendings as separate records?
+            # see http://wpull.readthedocs.org/en/master/warc.html
             logger.info("Written WARC.")
             # Send on embeds and outlinks, passing original message too...
             outchannel = setup_outward_channel(handler_id)
@@ -276,8 +303,10 @@ if __name__ == "__main__":
         help="AMQP endpoint to use. [default: %(default)s]" )
     parser.add_argument('--webrender-url', dest='webrender_url', type=str, default="http://webrender:8000/webtools/domimage", 
         help="HAR webrender endpoint to use. [default: %(default)s]" )
-    parser.add_argument('--extract-links', dest='extract_links', type=bool, default=False, 
-        help="Also extract apparent hyperlinks as well as transcluded URLs? [default: %(default)s]" )
+    parser.add_argument("-E", "--extract_embeds", dest="extract_embeds", action="store_true", default=True, required=False, 
+                    help="Extract URLs of transcluded resources [default: %(default)s]")
+    parser.add_argument('-L', '--extract-links', dest='extract_links', action="store_true", default=False, required=False,
+        help="Extract discovered hyperlinks [default: %(default)s]" )
     parser.add_argument('--num', dest='qos_num', 
         type=int, default=10, help="Maximum number of messages to handle at once. [default: %(default)s]")
     parser.add_argument('--log-level', dest='log_level', 
