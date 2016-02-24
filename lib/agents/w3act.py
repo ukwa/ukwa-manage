@@ -112,7 +112,7 @@ class w3act():
 		title_matches = []
 		for t in matches:
 			logger.info("Looking for publisher match '%s' in title '%s' " % (publisher.lower(), t['title'].lower()))
-			if publisher.lower() in t['title'].lower():
+			if publisher and publisher.lower() in t['title'].lower():
 				title_matches.append(t)
 		if len(title_matches) == 0:
 			logger.critical("No matching title to associate with url %s " % url)
