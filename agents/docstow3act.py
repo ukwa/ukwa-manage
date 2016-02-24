@@ -82,7 +82,7 @@ handler.setFormatter( formatter )
 # Replace root logger
 logging.root.handlers = []
 logging.root.addHandler( handler )
-logging.root.setLevel( logging.INFO )
+logging.root.setLevel( logging.DEBUG )
 
 # Set default logging output for all modules.
 logging.getLogger('requests').setLevel( logging.WARNING )

@@ -66,10 +66,12 @@ class DocumentMDEx(object):
 			lpu = r.links['up']
 			self.doc["landing_page_url"] = lpu['url']
 		# Grab the landing page URL as HTML
+		logger.debug("Downloading and parsing: %s" % self.doc['landing_page_url'])
 		r = requests.get(self.doc["landing_page_url"])
 		h = html.fromstring(r.content)
 		# Extract the metadata:
-		self.doc['title'] = h.xpath('//article//header//h1/text()')[0]
+		logger.debug('xpath/title %s' % h.xpath('//header//h1/text()') )
+		self.doc['title'] = h.xpath('//header//h1/text()')[0]
 		self.doc['publication_date'] = h.xpath("//aside[contains(@class, 'meta')]//time/@datetime")[0][0:10]
 		self.doc['publisher'] = h.xpath("//aside[contains(@class, 'meta')]//a[contains(@class, 'organisation-link')]/text()")[0]
 		if not self.doc['title']:
