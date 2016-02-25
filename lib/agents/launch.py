@@ -24,6 +24,7 @@ For the HAR daemon, we use:
 
 import pika
 import json
+from datetime import datetime
 import logging
 
 logger = logging.getLogger( __name__ )
@@ -102,4 +103,8 @@ class launcher(object):
 		# Push a 'seed' message onto the rendering queue:
 		self.send_message(message)
 		# Also push the same message to the FC-1-uris-to-check
-		self.send_message(message,'FC-1-uris-to-check')
+		check_message = {}
+		check_message['launch_timestamp'] = datetime.utcnow().isoformat()
+		check_message['launch_message'] = curim
+		check_message['launch_queue'] = self.args.queue
+		self.send_message(json.dumps(check_message),'FC-1-uris-to-check')
