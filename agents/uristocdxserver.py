@@ -64,7 +64,7 @@ def callback( ch, method, properties, body ):
 			ch.basic_ack(delivery_tag = method.delivery_tag)
 			return
 		# Record redirects:
-		if( status_code/100 == 3 ):
+		if( status_code/100 == 3 and ("redirecturl" in cl)):
 			redirect = cl["redirecturl"]
 		# Don't index revisit records as OW can't handle them (?)
 		mimetype = cl["mimetype"]
