@@ -32,6 +32,8 @@ logging.getLogger('pika').setLevel( logging.WARNING )
 # Set logging for this module and keep the reference handy:
 logger = logging.getLogger( __name__ )
 
+session = requests.Session()
+
 # - 20150914222034 http://www.financeminister.gov.au/                     text/html 200      ZMSA5TNJUKKRYAIM5PRUJLL24DV7QYOO - - 83848 117273 WEB-20150914222031256-00000-43190~heritrix.nla.gov.au~8443.warc.gz
 # - 20151201225932 http://anjackson.net/projects/images/keeping-codes.png image/png 200 sha1:DDOWG5GHKEDGUCOCOXZCAPRUXPND7GOK - - -     593544 BL-20151201225813592-00001-37~157a2278f619~8443.warc.gz
 # - 20151202001114 http://anjackson.net/robots.txt unknown 302 sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ http://anjackson.net/ - - 773 BL-20151202001107925-00001-41~157a2278f619~8443.warc.gz
@@ -88,9 +90,11 @@ def callback( ch, method, properties, body ):
 			cl["warc_filename"]
 			)
 		logger.debug("CDX: %s" % cdx_11)
-		r = requests.post(args.cdxserver_url, data=cdx_11)
+		r = session.post(args.cdxserver_url, data=cdx_11)
 		if( r.status_code == 200 ):
 			logger.info("POSTed to cdxserver: %s" % url)
+			#content = r.content
+			#logger.debug("Response: %s" % content)
 			ch.basic_ack(delivery_tag = method.delivery_tag)
 		else:
 			logger.error("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))

@@ -155,7 +155,7 @@ if __name__ == "__main__":
 		# Add a source tag if this is a watched target:
 		source = ''
 		if t['watched']:
-			source = "WTID:%d" % t['id']
+			source = t['seeds'][0]
 		# Check the scheduling:
 		for schedule in t['schedules']:
 			startDate = datetime.fromtimestamp(schedule['startDate']/1000)
