@@ -21,13 +21,13 @@ class DocumentMDEx(object):
     Given a Landing Page extract additional metadata.
     '''
 
-    def __init__(self, act, document):
+    def __init__(self, act, document, source):
         '''
         The connection to W3ACT and the Document to be enhanced.
         '''
         self.act = act
         self.doc = document
-        
+        self.source = source
 
     def mdex(self):
         '''
@@ -45,8 +45,8 @@ class DocumentMDEx(object):
 
         # Look up which Target this URL should be associated with:
         if self.act:
-            logger.info("Looking for match for %s and publisher '%s'" % (self.doc['landing_page_url'], self.doc.get('publisher',None)))
-            self.doc['target_id'] = self.act.find_watched_target_for(self.doc['landing_page_url'], self.doc.get('publisher', None))
+            logger.info("Looking for match for %s source %s and publisher '%s'" % (self.doc['landing_page_url'], self.source, self.doc.get('publisher',None)))
+            self.doc['target_id'] = self.act.find_watched_target_for(self.doc['landing_page_url'], self.source, self.doc.get('publisher', None))
         
         # If there is no association, drop it:
         if not self.doc['target_id']:

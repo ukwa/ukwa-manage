@@ -89,7 +89,7 @@ class w3act():
 	def get_by_export(self, frequency):
 		return self._get_json( "%s/api/crawl/feed/by/%s" % (self.url, frequency))
 	
-	def find_watched_target_for(self,url,publisher):
+	def find_watched_target_for(self, url, source, publisher):
 		'''
 		Given a URL and a publisher string, determine which Watched Target to associate them with.
 		'''
@@ -108,7 +108,17 @@ class w3act():
 		# If one match:
 		if len(matches) == 1:
 			return int(matches[0]['id'])
-		# Else multiple matches, so need to disambiguate:
+		#
+		# Else multiple matches, so need to disambiguate.
+		#
+		# Attempt to disambiguate based on source:
+		if source is not None:
+			for t in matches:
+				for seed in t['seeds']:
+					logger.info("Looking for source match '%s' against '%s' " % (source,seed))
+					if seed == source:
+						return int(t['id'])
+		# Then attempt to disambiguate based on published
 		title_matches = []
 		for t in matches:
 			logger.info("Looking for publisher match '%s' in title '%s' " % (publisher, t['title']))

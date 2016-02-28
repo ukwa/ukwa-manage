@@ -165,6 +165,8 @@ def callback( ch, method, properties, body ):
 			logger.info("Ignoring <=0 status_code log entry: %s" % body)
 			ch.basic_ack(delivery_tag = method.delivery_tag)
 			return
+		# grab source tag
+		source = cl.get('source', None)
 		# Build document info line:
 		doc = {}
 		doc['wayback_timestamp'] = cl['start_time_plus_duration'][:14]
@@ -175,7 +177,7 @@ def callback( ch, method, properties, body ):
 		# Check if content appears to be in Wayback:
 		if document_available(doc['document_url'], doc['wayback_timestamp']):
 			# Lookup Target and extract any additional metadata:
-			doc = DocumentMDEx(act,doc).mdex()
+			doc = DocumentMDEx(act, doc, source).mdex()
 			# Documents may be rejected at this point:
 			if doc == None:
 				logger.critical("The document based on this message has been REJECTED! :: "+body)
