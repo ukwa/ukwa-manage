@@ -18,6 +18,7 @@ Input messages are like this:
 import os
 import re
 import sys
+import json
 import pika
 import bagit
 import shutil
@@ -64,10 +65,10 @@ class sipstodls(amqp.QueueConsumer):
 		channel.tx_commit()
 		connection.close()
 	
-	def verify_message( self, message ):
-		"""Verifies that a message is valid. i.e. it's similar to: 'daily-0400/20140207041736'"""
-		r = re.compile( "^[a-z]+(-[0-9])?-([a-z]{3})?[0-9]+/[0-9]+" )
-		return r.match( message )
+	def verify_message( self, path_id ):
+		"""Verifies that a message is valid. i.e. it's similar to: 'frequent/cp00001-20140207041736'"""
+		r = re.compile( "^[a-z]+/cp[0-9]+-[0-9]+$" )
+		return r.match( path_id )
 	
 	def copy_to_dls( self, sip ):
 		"""Copies a source directory to its destination; skips over errors as
@@ -113,26 +114,28 @@ class sipstodls(amqp.QueueConsumer):
 		return gztar
 	
 	def callback(self, ch, method, properties, body ):
-		"""Passed a 'jobname/timestamp', creates a SIP. Having created the
+		"""Passed a 'jobname/cp00000-timestamp', creates a SIP. Having created the
 		SIP, adds a message to the indexing queue."""
 		try:
 			logger.info( "Message received: %s." % body )
-			if self.verify_message( body ):
-				sip_dir = self.create_sip( body )
+			cpm = json.loads(body)
+			path_id = "frequent/%s" % cpm['name']
+			if self.verify_message( path_id ):
+				sip_dir = self.create_sip( path_id )
 				logger.debug( "Created SIP: %s" % sip_dir )
 				# Create our Bagit.
 				bag = bagit.Bag( sip_dir )
 				if bag.validate():
-					logger.debug( "Moving %s to %s." % ( body, settings.DLS_DROP ) )
-					dls = self.copy_to_dls( body )
+					logger.debug( "Moving %s to %s." % ( path_id, settings.DLS_DROP ) )
+					dls = self.copy_to_dls( path_id )
 					bag = bagit.Bag( dls )
 					if bag.validate():
 						logger.debug( "Moving %s to %s." % ( dls, settings.DLS_WATCH ) )
-						shutil.move( dls, "%s/%s" % ( settings.DLS_WATCH, os.path.basename( body ) ) )
+						shutil.move( dls, "%s/%s" % ( settings.DLS_WATCH, os.path.basename( path_id ) ) )
 						gztar = self.copy_to_hdfs( sip_dir )
 						logger.debug( "SIP tarball at hdfs://%s" % gztar )
-						logger.debug( "Sending message to '%s': %s" % ( settings.SUBMITTED_QUEUE_NAME, body ) )
-						self.send_index_message( body )
+						logger.debug( "Sending message to '%s': %s" % ( settings.SUBMITTED_QUEUE_NAME, path_id ) )
+						self.send_index_message( path_id )
 						# It's all gone well. ACK
 						ch.basic_ack(delivery_tag = method.delivery_tag)
 					else:
