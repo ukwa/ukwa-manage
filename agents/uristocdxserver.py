@@ -96,12 +96,16 @@ def callback( ch, method, properties, body ):
 			#content = r.content
 			#logger.debug("Response: %s" % content)
 			ch.basic_ack(delivery_tag = method.delivery_tag)
+			return
 		else:
 			logger.error("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
 
 	except Exception as e:
 		logger.error( "%s [%s]" % ( str( e ), body ) )
 		logging.exception(e)
+	
+	# All that failed? Then reject and requeue the message to try later:
+	ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser('Pull crawl log messages and post to the CDX server.')
