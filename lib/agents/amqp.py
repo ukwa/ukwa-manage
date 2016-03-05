@@ -4,20 +4,8 @@ import time
 import logging
 
 
-# Set up a logging handler:
-handler = logging.StreamHandler()
-#handler = logging.StreamHandler(sys.stdout) # To use stdout rather than the default stderr
-formatter = logging.Formatter( "[%(asctime)s] %(levelname)s %(filename)s.%(funcName)s: %(message)s" )
-handler.setFormatter( formatter ) 
-
-# Attach to root logger
-logging.root.addHandler( handler )
-
-# Set default logging output for all modules
-logging.root.setLevel( logging.WARNING )
-
 # Set up a logger for this class
-logger = logging.getLogger( "amqp" )
+logger = logging.getLogger( __name__ )
 
 class QueueConsumer(object):
     __metaclass__ = abc.ABCMeta

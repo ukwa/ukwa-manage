@@ -3,13 +3,13 @@
 import os
 import hashlib
 import commands
-from settings import *
 from lxml import etree
 from Queue import Queue
 from threading import Thread
 from datetime import datetime
 
-SOFTWARE_VERSION="python-legal-deposit-sip==0.0.3"
+SOFTWARE_VERSION="python-shepherd=1.0.0"
+CLAMD_CONF = "/opt/heritrix/clamd/3310.conf"
 CLAMDSCAN = commands.getstatusoutput( "clamdscan --config-file=" + CLAMD_CONF + " --version" )[ 1 ].strip()
 METS= "{http://www.loc.gov/METS/}"
 MODS = "{http://www.loc.gov/mods/v3}"
@@ -17,6 +17,14 @@ PREMIS = "{info:lc/xmlns/premis-v2}"
 WCT = "{http://www.bl.uk/namespaces/wct}"
 XSI = "{http://www.w3.org/2001/XMLSchema-instance}"
 XLINK = "{http://www.w3.org/1999/xlink}"
+NUM_THREADS=10
+PERMISSION_STATE="Granted"
+PERMISSION_START_DATE="2013-04-06"
+PERMISSION_NAME="The Legal Deposit Libraries (Non-Print Works) Regulations 2013"
+PERMISSION_PUBLISHED="True"
+HERITRIX = "heritrix-3.1.1+uk.bl.wap"
+WEBHDFS_PREFIX="http://dls.httpfs.wa.bl.uk:14000/webhdfs/v1"
+WEBHDFS_SUFFIX="?user.name=hadoop&op=OPEN"
 
 schemaLocation = "http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-3.xsd info:lc/xmlns/premis-v2 http://www.loc.gov/standards/premis/premis.xsd http://www.w3.org/1999/xlink http://www.loc.gov/standards/xlink/xlink.xsd"
 
