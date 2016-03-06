@@ -293,9 +293,9 @@ class sipstodls(amqp.QueueConsumer):
 					logger.debug( "Copying %s to HDFS..." % path_id )
 					gztar = self.copy_sip_to_hdfs( sip_dir )
 					logger.debug( "SIP tarball at hdfs://%s" % gztar )
-					# Cleanup now were done
-					shutil.rmtree(sip_dir)
-					os.remove(gztar)
+					# Clean up temp files now were done (not required?)
+					#shutil.rmtree(sip_dir)
+					#os.remove(gztar)
 					# And post on
 					logger.debug( "Sending message to '%s': %s" % ( args.out_queue, path_id ) )
 					self.send_submit_message( path_id )
