@@ -294,13 +294,17 @@ class sipstodls(amqp.QueueConsumer):
 					gztar = self.copy_sip_to_hdfs( sip_dir )
 					logger.debug( "SIP tarball at hdfs://%s" % gztar )
 					# Clean up temp files now were done (not required?)
-					#shutil.rmtree(sip_dir)
-					#os.remove(gztar)
+					shutil.rmtree(sip_dir)
+					os.remove(gztar)
 					# And post on
 					logger.debug( "Sending message to '%s': %s" % ( args.out_queue, path_id ) )
-					self.send_submit_message( path_id )
+					siptosub = {}
+					siptosub['sip_id'] = path_id
+					siptosub['gztar_path'] = gztar
+					self.send_submit_message( json.dumps(siptosub) )
 					# It's all gone well. ACK
 					ch.basic_ack(delivery_tag = method.delivery_tag)
+					logger.debug("Message sent.")
 				else:
 					raise Exception( "Invalid Bagit: %s" % sip_dir )
 			else:
