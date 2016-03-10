@@ -1,5 +1,6 @@
-uri="http://www.bbc.co.uk/news/"
-pathFromSeed = "-"
+uri="http://www.theguardian.com/uk"
+pathFromSeed = ""
+MAX_URLS_TO_LIST = 10
 
 import org.json.JSONObject
 import com.sleepycat.je.CursorConfig
@@ -26,11 +27,11 @@ job.crawlController.frontier.frontierPreparer.prepare(curi)
 
 // Get the seed and frontier status:
 frontier = new JSONObject();
-MAX_URLS_TO_LIST = 10
 m = null
 pendingUris = job.crawlController.frontier.pendingUris
 cursor = pendingUris.pendingUrisDB.openCursor(null, CursorConfig.READ_COMMITTED)
-key = BdbMultipleWorkQueues.calculateInsertKey(curi)
+//key = BdbMultipleWorkQueues.calculateInsertKey(curi)
+key = new DatabaseEntry(BdbMultipleWorkQueues.calculateOriginKey(curi.getClassKey()))
 value = new DatabaseEntry();
 count = 0;
 cursor.getSearchKey(key, value, null);
@@ -50,6 +51,7 @@ while (cursor.getNext(key, value, null) == OperationStatus.SUCCESS && count < MA
 cursor.close();
 json.append(uri,frontier);
 
+
 // get the fetch history:
 loadProcessor = appCtx.getBean("persistLoadProcessor")
 key = loadProcessor.persistKeyFor(uri)
@@ -61,6 +63,7 @@ if( history != null ) {
 	}
   json.append(uri, fetches)
 }
+
 rawOut.println( json.toString(2) )
 
 

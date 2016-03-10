@@ -139,7 +139,7 @@ def amqp_outlinks(outchannel, raw_har, client_id, raw_parent):
     har = json.loads(raw_har)
     parent = json.loads(raw_parent)
     # Send the parent on, set as seed if required:
-    send_to_amqp(outchannel,client_id, parent["url"], "GET", {}, parent["url"], parent["metadata"], True, parent.get("isSeed",False), hop='')
+    send_to_amqp(outchannel,client_id, parent["url"], "GET", {}, parent["url"], parent["metadata"], True, parent.get("isSeed",False), hop='I')
     # Process the embeds:
     resources = 0
     if settings.extract_embeds:
@@ -148,6 +148,9 @@ def amqp_outlinks(outchannel, raw_har, client_id, raw_parent):
             # Only send URLs with the allowed protocols:
             protocol = urlparse(entry["request"]["url"]).scheme
             if not protocol in settings.protocols:
+                continue
+            # Do not sent duplicates URLs out again:
+            if parent["url"] == entry['request']['url']:
                 continue
             # Set the hop types:
             hop = 'E'

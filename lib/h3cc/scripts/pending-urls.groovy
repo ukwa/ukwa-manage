@@ -1,7 +1,8 @@
 MAX_URLS_TO_LIST = 10000
 
 // see org.archive.crawler.frontier.BdbMultipleWorkQueues.forAllPendingDo()
- 
+
+import com.sleepycat.je.CursorConfig 
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.OperationStatus;
  

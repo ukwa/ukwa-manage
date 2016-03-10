@@ -1,6 +1,6 @@
-uri="http://www.bbc.co.uk/"
-pathFromSeed=""
-MAX_URLS_TO_LIST = 10000
+//classKey = "com,theguardian,www,"
+classKey = "uk,co,bbc,www,"
+MAX_URLS_TO_LIST = 10
 
 // groovy
 // see org.archive.crawler.frontier.BdbMultipleWorkQueues.forAllPendingDo()
@@ -16,18 +16,8 @@ import org.archive.crawler.frontier.WorkQueueFrontier
  
 pendingUris = job.crawlController.frontier.pendingUris
 
-// Set up the curi:
-try {
-  uuri = new UURI(uri,false);
-} catch( groovy.lang.GroovyRuntimeException e ) {
-  uuri = new UURI(uri,false,"UTF-8");
-}
-lc = LinkContext.NAVLINK_MISC;
-curi = new CrawlURI( uuri, pathFromSeed, null, lc)
-job.crawlController.frontier.frontierPreparer.prepare(curi) 
-
 cursor = pendingUris.pendingUrisDB.openCursor(null, CursorConfig.READ_COMMITTED);
-key = BdbMultipleWorkQueues.calculateInsertKey(curi)
+key = new DatabaseEntry(BdbMultipleWorkQueues.calculateOriginKey(classKey));
 value = new DatabaseEntry();
 count = 0;
 cursor.getSearchKey(key, value, null);
@@ -36,10 +26,10 @@ while (cursor.getNext(key, value, null) == OperationStatus.SUCCESS && count < MA
         continue;
     }
     curi = pendingUris.crawlUriBinding.entryToObject(value);
-    if( curi.toString().startsWith(uri) ) {
-      rawOut.println( "" + curi.getSchedulingDirective() + "-" + curi.getPrecedence() + "-" + curi.pathFromSeed + " " + curi );
+    //if( curi.toString().startsWith(uri) ) {
+      rawOut.println( curi.getClassKey() + "" + curi.getSchedulingDirective() + "." + curi.getPrecedence() + "." + curi.getOrdinal() + " " + curi.pathFromSeed + " " + curi );
       count++
-    }
+    //}
 }
 cursor.close();
  
