@@ -1,10 +1,11 @@
-uri="http://static.bbc.co.uk/"
+uri="http://www.bbc.co.uk/"
 pathFromSeed=""
 MAX_URLS_TO_LIST = 10000
 
 // groovy
 // see org.archive.crawler.frontier.BdbMultipleWorkQueues.forAllPendingDo()
  
+import com.sleepycat.je.CursorConfig
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.OperationStatus;
 import org.archive.modules.CrawlURI
@@ -25,7 +26,7 @@ lc = LinkContext.NAVLINK_MISC;
 curi = new CrawlURI( uuri, pathFromSeed, null, lc)
 job.crawlController.frontier.frontierPreparer.prepare(curi) 
 
-cursor = pendingUris.pendingUrisDB.openCursor(null, null);
+cursor = pendingUris.pendingUrisDB.openCursor(null, CursorConfig.READ_COMMITTED);
 key = BdbMultipleWorkQueues.calculateInsertKey(curi)
 value = new DatabaseEntry();
 count = 0;
@@ -36,7 +37,7 @@ while (cursor.getNext(key, value, null) == OperationStatus.SUCCESS && count < MA
     }
     curi = pendingUris.crawlUriBinding.entryToObject(value);
     if( curi.toString().startsWith(uri) ) {
-      rawOut.println( curi.pathFromSeed + " " + curi );
+      rawOut.println( "" + curi.getSchedulingDirective() + "-" + curi.getPrecedence() + "-" + curi.pathFromSeed + " " + curi );
       count++
     }
 }

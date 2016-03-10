@@ -10,7 +10,7 @@ pendingUris = job.crawlController.frontier.pendingUris
 //rawOut.println "(this seems to be more of a ceiling) pendingUris.pendingUrisDB.count()=" + pendingUris.pendingUrisDB.count()
 //rawOut.println()
  
-cursor = pendingUris.pendingUrisDB.openCursor(null, null);
+cursor = pendingUris.pendingUrisDB.openCursor(null, CursorConfig.READ_COMMITTED);
 key = new DatabaseEntry();
 value = new DatabaseEntry();
 count = 0;
@@ -20,7 +20,7 @@ while (cursor.getNext(key, value, null) == OperationStatus.SUCCESS && count < MA
         continue;
     }
     curi = pendingUris.crawlUriBinding.entryToObject(value);
-    rawOut.println( curi.pathFromSeed + " " + curi );
+    rawOut.println( "" + curi.getSchedulingDirective() + "-" + curi.getPrecedence() + "-" + curi.pathFromSeed + " " + curi );
     count++
 }
 cursor.close();
