@@ -54,7 +54,7 @@ class DocumentMDEx(object):
             return None
 
         # If there is no title, use a default:
-        if not self.doc['title']:
+        if not self.doc.get('title',None):
             self.doc['title'] = '[untitled]'
             
         # Or return the modified version:

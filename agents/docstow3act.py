@@ -67,6 +67,7 @@ import logging
 import argparse
 from urlparse import urlparse
 import requests
+from requests.utils import quote
 import xml.dom.minidom
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
@@ -132,7 +133,7 @@ def document_available(url, ts):
 	
 	"""
 	try:
-		wburl = '%s/xmlquery.jsp?type=urlquery&url=%s' % (args.wb_url, url)
+		wburl = '%s/xmlquery.jsp?type=urlquery&url=%s' % (args.wb_url, quote(url))
 		logger.debug("Checking %s" % wburl);
 		r = requests.get(wburl)
 		logger.debug("Response: %d" % r.status_code)

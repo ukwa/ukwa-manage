@@ -7,6 +7,7 @@ import argparse
 import json
 import pika
 import time
+import random
 import logging
 import requests
 
@@ -90,7 +91,8 @@ def callback( ch, method, properties, body ):
 			cl["warc_filename"]
 			)
 		logger.debug("CDX: %s" % cdx_11)
-		r = session.post(args.cdxserver_url, data=cdx_11)
+		r = session.post(args.cdxserver_url, data=cdx_11.encode('utf-8'))
+                #  headers={'Content-type': 'text/plain; charset=utf-8'})
 		if( r.status_code == 200 ):
 			logger.info("POSTed to cdxserver: %s" % url)
 			ch.basic_ack(delivery_tag = method.delivery_tag)
@@ -104,7 +106,10 @@ def callback( ch, method, properties, body ):
 	
 	# All that failed? Then reject and requeue the message to try later:
 	ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
-	return
+	# Occasionally re-try unacked messages using basic_recover
+	if random.randint(0,1000) == 0:
+		ch.basic_recover(requeue=False)
+
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser('Pull crawl log messages and post to the CDX server.')
