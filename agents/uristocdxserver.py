@@ -93,8 +93,6 @@ def callback( ch, method, properties, body ):
 		r = session.post(args.cdxserver_url, data=cdx_11)
 		if( r.status_code == 200 ):
 			logger.info("POSTed to cdxserver: %s" % url)
-			#content = r.content
-			#logger.debug("Response: %s" % content)
 			ch.basic_ack(delivery_tag = method.delivery_tag)
 			return
 		else:
@@ -106,6 +104,7 @@ def callback( ch, method, properties, body ):
 	
 	# All that failed? Then reject and requeue the message to try later:
 	ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
+	return
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser('Pull crawl log messages and post to the CDX server.')

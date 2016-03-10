@@ -1,11 +1,10 @@
-// groovy
+MAX_URLS_TO_LIST = 10000
+
 // see org.archive.crawler.frontier.BdbMultipleWorkQueues.forAllPendingDo()
  
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.OperationStatus;
  
-MAX_URLS_TO_LIST = 100000
-
 pendingUris = job.crawlController.frontier.pendingUris
  
 //rawOut.println "(this seems to be more of a ceiling) pendingUris.pendingUrisDB.count()=" + pendingUris.pendingUrisDB.count()

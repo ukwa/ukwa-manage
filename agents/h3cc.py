@@ -127,11 +127,15 @@ USAGE
 			print ha.status(job)
 		elif command == "info-xml":
 			print ha._job_action("", job).text
-		elif command in ["surt-scope", "pending-urls", "show-decide-rules", "show-metadata"]:
+		elif command in ["surt-scope", "pending-urls", "show-decide-rules", "show-metadata", "pending-urls-from", "url-status"]:
 			template = env.get_template('%s.groovy' % command)
 			xml = ha.execute(engine="groovy", script=template.render(), job=job)
-			tree = ET.fromstring( xml.content )
-			print tree.find( "rawOutput" ).text.strip()			
+			try:
+				tree = ET.fromstring( xml.content )
+				print tree.find( "rawOutput" ).text.strip()
+			except Exception, e:
+				logger.exception(e)
+				print(xml.text)
 		else:
 			logger.error("Can't understand command '%s'" % command)
 
