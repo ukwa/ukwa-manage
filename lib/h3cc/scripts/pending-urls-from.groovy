@@ -1,5 +1,5 @@
-//classKey = "com,theguardian,www,"
-classKey = "uk,co,bbc,www,"
+classKey = "com,theguardian,www,"
+//classKey = "uk,co,bbc,www,"
 MAX_URLS_TO_LIST = 10
 
 // groovy
