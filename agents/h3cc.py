@@ -105,6 +105,10 @@ USAGE
 		parser.add_argument('-p', '--password', dest='password', 
 							type=str, default="heritrix", 
 							help="H3 user password [default: %(default)s]" )
+		parser.add_argument('-q' '--query-url', dest='query_url', type=str, default='http://www.bbc.co.uk/news',
+							help="URL to use for queries [default: %(default)s]")
+		parser.add_argument('-l' '--query-limit', dest='query_limit', type=int, default=10,
+							help="Maximum number of results to return from queries [default: %(default)s]")
 		parser.add_argument(dest="command", help="Command to carry out, 'list', 'status', 'info-xml', 'surt-scope', 'pending-urls', 'show-metadata', 'show-decide-rules'. [default: %(default)s]", metavar="command")
 
 		# Process arguments
@@ -127,9 +131,18 @@ USAGE
 			print ha.status(job)
 		elif command == "info-xml":
 			print ha._job_action("", job).text
-		elif command in ["surt-scope", "pending-urls", "show-decide-rules", "show-metadata", "pending-urls-from", "url-status"]:
+		elif command in ["surt-scope", "show-decide-rules", "show-metadata"]:
 			template = env.get_template('%s.groovy' % command)
 			xml = ha.execute(engine="groovy", script=template.render(), job=job)
+			try:
+				tree = ET.fromstring( xml.content )
+				print tree.find( "rawOutput" ).text.strip()
+			except Exception, e:
+				logger.exception(e)
+				print(xml.text)
+		elif command in ["pending-urls", "pending-urls-from", "url-status"]:
+			template = env.get_template('%s.groovy' % command)
+			xml = ha.execute(engine="groovy", script=template.render({ "url": args.query_url ,"limit": args.query_limit }), job=job)
 			try:
 				tree = ET.fromstring( xml.content )
 				print tree.find( "rawOutput" ).text.strip()

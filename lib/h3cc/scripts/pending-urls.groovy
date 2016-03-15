@@ -1,4 +1,4 @@
-MAX_URLS_TO_LIST = 10000
+MAX_URLS_TO_LIST = {{ limit }}
 
 // see org.archive.crawler.frontier.BdbMultipleWorkQueues.forAllPendingDo()
 

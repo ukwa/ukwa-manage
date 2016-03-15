@@ -1,6 +1,6 @@
-uri="http://www.theguardian.com/uk"
+uri="{{ url }}"
+MAX_URLS_TO_LIST = {{ limit }}
 pathFromSeed = ""
-MAX_URLS_TO_LIST = 10
 
 import org.json.JSONObject
 import com.sleepycat.je.CursorConfig
