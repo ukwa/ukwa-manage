@@ -97,9 +97,13 @@ class w3act():
 		matches = []
 		for t in self.get_ld_export('frequent'):
 			if t['watched']:
+				a_match = False
 				for seed in t['seeds']:
 					if surt.startswith(url_to_surt(seed,host_only=True)):
-						matches.append(t)
+						a_match = True
+				if a_match:
+					matches.append(t)
+					
 		# No matches:
 		if len(matches) == 0:
 			logger.error("No match found for url %s" % url)
