@@ -12,6 +12,7 @@ Created on 8 Feb 2016
 import json
 import requests
 import logging
+from urlparse import urljoin
 from lxml import html
 
 logger = logging.getLogger(__name__)
@@ -78,6 +79,22 @@ class DocumentMDEx(object):
         self.doc['title'] = h.xpath('//header//h1/text()')[0]
         self.doc['publication_date'] = h.xpath("//aside[contains(@class, 'meta')]//time/@datetime")[0][0:10]
         self.doc['publisher'] = h.xpath("//aside[contains(@class, 'meta')]//a[contains(@class, 'organisation-link')]/text()")[0]
+        # Look through landing page for links, find metadata section corresponding to the document:
+        for a in h.xpath("//a"):
+            if self.doc["document_url"] in urljoin(self.doc["landing_page_url"], a.attrib["href"]):
+                if a.getparent().getparent().attrib["class"] == "attachment-details":
+                    div = a.getparent().getparent()
+                    # Process title, allowing document title metadata to override:
+                    lp_title = div.xpath("./h2[@class='title']/a/text()")[0]
+                    if len(lp_title) > 0:
+                        self.doc['title'] = lp_title
+                    # Process references
+                    refs = div.xpath("./p/span[@class='references']")
+                    self.doc['isbn'] = refs.xpath("./span[@class='isbn']/text()")[0]
+                    # We also need to look out for Command and Act papers and match them by modifying the publisher
+                    for ref in refs:
+                        if len(ref.xpath("./span[starts-with(text(), 'HC') or starts-with(text(), 'Cm')]")) > 0:
+                            self.doc['publisher'] = "Command and Act Papers"
         if not self.doc['title']:
             raise Exception('Title extraction failed! Metadata extraction for this target should be reviewed.')
     
