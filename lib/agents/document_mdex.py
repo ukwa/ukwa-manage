@@ -61,6 +61,11 @@ class DocumentMDEx(object):
         # Or return the modified version:
         return self.doc
     
+    def _get0(self, result):
+        if len(result) > 0:
+            return result[0]
+        else:
+            return ""
     
     def mdex_gov_uk_publications(self):
         # Start by grabbing the Link-rel-up header to refine the landing page url:
@@ -76,21 +81,21 @@ class DocumentMDEx(object):
         h = html.fromstring(r.content)
         # Extract the metadata:
         logger.debug('xpath/title %s' % h.xpath('//header//h1/text()') )
-        self.doc['title'] = h.xpath('//header//h1/text()')[0]
-        self.doc['publication_date'] = h.xpath("//aside[contains(@class, 'meta')]//time/@datetime")[0][0:10]
-        self.doc['publisher'] = h.xpath("//aside[contains(@class, 'meta')]//a[contains(@class, 'organisation-link')]/text()")[0]
+        self.doc['title'] = self._get0(h.xpath('//header//h1/text()'))
+        self.doc['publication_date'] = self._get0(h.xpath("//aside[contains(@class, 'meta')]//time/@datetime"))[0:10]
+        self.doc['publisher'] = self._get0(h.xpath("//aside[contains(@class, 'meta')]//a[contains(@class, 'organisation-link')]/text()"))
         # Look through landing page for links, find metadata section corresponding to the document:
         for a in h.xpath("//a"):
             if self.doc["document_url"] in urljoin(self.doc["landing_page_url"], a.attrib["href"]):
                 if a.getparent().getparent().attrib["class"] == "attachment-details":
                     div = a.getparent().getparent()
                     # Process title, allowing document title metadata to override:
-                    lp_title = div.xpath("./h2[@class='title']/a/text()")[0]
+                    lp_title = self._get0(div.xpath("./h2[@class='title']/a/text()"))
                     if len(lp_title) > 0:
                         self.doc['title'] = lp_title
                     # Process references
                     refs = div.xpath("./p/span[@class='references']")
-                    self.doc['isbn'] = refs.xpath("./span[@class='isbn']/text()")[0]
+                    self.doc['isbn'] = self._get0(refs.xpath("./span[@class='isbn']/text()"))
                     # We also need to look out for Command and Act papers and match them by modifying the publisher
                     for ref in refs:
                         if len(ref.xpath("./span[starts-with(text(), 'HC') or starts-with(text(), 'Cm')]")) > 0:
@@ -104,14 +109,12 @@ class DocumentMDEx(object):
         r = requests.get(self.doc["landing_page_url"])
         h = html.fromstring(r.content)
         # Extract the metadata:
-        self.doc['title'] = h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//*[contains(@itemprop,'name')]/text()")[0].strip()
-        self.doc['publication_date'] = h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//*[contains(@itemprop,'datePublished')]/@content")[0]
-        self.doc['author'] = h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//*[contains(@itemprop,'author')]/a/text()")
-        self.doc['publisher'] = h.xpath("//footer//*[contains(@itemtype, 'http://schema.org/Organization')]//*[contains(@itemprop,'name')]/text()")[0]
-        self.doc['isbn'] = h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//tr[td[1]/text()='ISBN:']/td[2]/text()")
-        if self.doc['isbn']:
-            self.doc['isbn'] = self.doc['isbn'][0].strip()
-        self.doc['doi'] = h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//tr[td[1]/text()='DOI:']/td[2]/a[1]/text()")[0]
+        self.doc['title'] = self._get0(h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//*[contains(@itemprop,'name')]/text()")).strip()
+        self.doc['publication_date'] = self._get0(h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//*[contains(@itemprop,'datePublished')]/@content"))
+        self.doc['author'] = self._get0(h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//*[contains(@itemprop,'author')]/a/text()"))
+        self.doc['publisher'] = self._get0(h.xpath("//footer//*[contains(@itemtype, 'http://schema.org/Organization')]//*[contains(@itemprop,'name')]/text()"))
+        self.doc['isbn'] = self._get0(h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//tr[td[1]/text()='ISBN:']/td[2]/text()")).strip()
+        self.doc['doi'] = self._get0(h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//tr[td[1]/text()='DOI:']/td[2]/a[1]/text()"))
         
 
 def run_doc_mdex_test(url,lpu):
