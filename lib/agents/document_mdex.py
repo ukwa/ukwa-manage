@@ -50,8 +50,8 @@ class DocumentMDEx(object):
             self.doc['target_id'] = self.act.find_watched_target_for(self.doc['landing_page_url'], self.source, self.doc.get('publisher', None))
         
         # If there is no association, drop it:
-        if not self.doc['target_id']:
-            logger.critical("Failed to associated document with any target: %s" % self.doc['document_url'])
+        if not self.doc.get('target_id', None):
+            logger.critical("Failed to associated document with any target: %s" % self.doc)
             return None
 
         # If there is no title, use a default:
@@ -63,7 +63,7 @@ class DocumentMDEx(object):
     
     def _get0(self, result):
         if len(result) > 0:
-            return result[0]
+            return result[0].strip()
         else:
             return ""
     
@@ -95,9 +95,11 @@ class DocumentMDEx(object):
                         self.doc['title'] = lp_title
                     # Process references
                     refs = div.xpath("./p/span[@class='references']")
-                    self.doc['isbn'] = self._get0(refs.xpath("./span[@class='isbn']/text()"))
                     # We also need to look out for Command and Act papers and match them by modifying the publisher
                     for ref in refs:
+                        isbn = self._get0(ref.xpath("./span[@class='isbn']/text()"))
+                        if len(isbn) > 0:
+                            self.doc['isbn'] = isbn
                         if len(ref.xpath("./span[starts-with(text(), 'HC') or starts-with(text(), 'Cm')]")) > 0:
                             self.doc['publisher'] = "Command and Act Papers"
         if not self.doc['title']:
@@ -117,25 +119,39 @@ class DocumentMDEx(object):
         self.doc['doi'] = self._get0(h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//tr[td[1]/text()='DOI:']/td[2]/a[1]/text()"))
         
 
-def run_doc_mdex_test(url,lpu):
+def run_doc_mdex_test(url,lpu,src):
     doc = {}
     doc['document_url'] = url
     doc['landing_page_url'] = lpu
-    doc = DocumentMDEx(None, doc).mdex()
+    doc = DocumentMDEx(None, doc, src).mdex()
     print json.dumps(doc)
 
 if __name__ == "__main__":
     '''
     A few test cases
     '''
+    
+    # Set up a logging handler:
+    handler = logging.StreamHandler()
+    #handler = logging.StreamHandler(sys.stdout) # To use stdout rather than the default stderr
+    formatter = logging.Formatter( "[%(asctime)s] %(levelname)s %(filename)s.%(funcName)s: %(message)s" )
+    handler.setFormatter( formatter ) 
+    
+    # Attach to root logger
+    logging.root.addHandler( handler )
+    
+    # Set default logging output for all modules.
+    logging.root.setLevel( logging.INFO )
+
+    # the tests:
     run_doc_mdex_test('http://www.ifs.org.uk/uploads/cemmap/wps/cwp721515.pdf',
-                    'http://www.ifs.org.uk/publications/8080')
+                    'http://www.ifs.org.uk/publications/8080','http://www.ifs.org.uk')
     run_doc_mdex_test('http://www.ifs.org.uk/uploads/publications/bns/BN179.pdf',
-                    'http://www.ifs.org.uk/publications/8049')
+                    'http://www.ifs.org.uk/publications/8049','http://www.ifs.org.uk')
     #
     run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/246770/0121.pdf',
-                    'https://www.gov.uk/government/publications/met-office-annual-report-and-accounts-2012-to-2013')
+                    'https://www.gov.uk/government/publications/met-office-annual-report-and-accounts-2012-to-2013', 'https://www.gov.uk/')
     run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/497536/rtfo-year-8-report-2.pdf',
-                    'https://www.gov.uk/government/statistics/biofuel-statistics-year-8-2015-to-2016-report-2')
+                    'https://www.gov.uk/government/statistics/biofuel-statistics-year-8-2015-to-2016-report-2', 'https://www.gov.uk/')
     run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/495227/harbour-closure-orders-consultation-summary-responses.pdf',
-                    'https://www.gov.uk/government/consultations/harbour-closure-and-pilotage-function-removal-orders-draft-guidance')
+                    'https://www.gov.uk/government/consultations/harbour-closure-and-pilotage-function-removal-orders-draft-guidance', 'https://www.gov.uk/')
