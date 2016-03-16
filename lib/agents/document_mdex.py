@@ -100,7 +100,7 @@ class DocumentMDEx(object):
                         isbn = self._get0(ref.xpath("./span[@class='isbn']/text()"))
                         if len(isbn) > 0:
                             self.doc['isbn'] = isbn
-                        if len(ref.xpath("./span[starts-with(text(), 'HC') or starts-with(text(), 'Cm')]")) > 0:
+                        if len(ref.xpath("./span[starts-with(text(), 'HC') or starts-with(text(), 'Cm') or starts-with(text(), 'CM')]")) > 0:
                             self.doc['publisher'] = "Command and Act Papers"
         if not self.doc['title']:
             raise Exception('Title extraction failed! Metadata extraction for this target should be reviewed.')
