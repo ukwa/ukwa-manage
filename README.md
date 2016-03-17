@@ -3,6 +3,7 @@ Shepherd
 
 Coordinates the services that make up the UK Web Archive.
 
+* auto-gen TOC:
 {:toc}
 
 h3cc - Heritrix3 Crawl Controller
