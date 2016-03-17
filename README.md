@@ -69,6 +69,51 @@ You can turn make an existing Target be a Watched Target (for document harvestin
 The Wayback timestamp is required, along with the document and 'landing page' URLs.
 
 
+Post-Crawl Workflow
+-------------------
+
+- GIVEN a checkpoint-to-package: {checkpoint ID string}
+    - Parse crawl log to identify WARCs
+    - Mint ARKs for the WARCs
+    - Generate hash manifest for all files
+    - ZIP up all crawl files (beans, logs, manifest.sha512,warc-arks.txt,warc-hdfs-paths.txt) except WARCs
+    - Transfer WARCs and crawl file ZIP to HDFS
+    - Verify transfer to HDFS.
+    - Delete WARCs/ZIPs from local storage.
+    - Update WARC-to-HDFS mapping file.
+    - Update WARC-to-ARK mapping file.
+    - Update WARC-to-location file(s) (for QA Wayback)
+- PASS to package-to-sip
+
+- GIVEN a package-to-sip: {id: "", warcs: {}, zips: {}}
+    - Generate SIP, by generating the METS file and BagIting it.
+    - Copy SIP to HDFS.
+    - Verify transfer to HDFS.
+- PASS to sip-to-submit
+
+- GIVEN sip-to-submit: {in, warcs, zips, sip:"/heritrix/sips/..."}
+    - Submit to DLS.
+- PASS to submission-to-verify
+
+- GIVEN a submission-to-verify: {in, warcs, zips, sip}
+    - Verify WARCs are available from DLS.
+- PASS each warc to warcs-to-cdx
+
+- GIVEN a warcs-to-cdx
+    - Generate CDX for all WARCs in a checkpoint.
+    - Update cdx-to-merge and warc-to-location files on HDFS
+- PASS to cdx-to-check
+
+- CRON on delivery node looks for new cdxs-to-merge
+    - Updates local CDX file.
+    - Updates local WARC-to-location file.
+- Puts cdx-merged file on HDFS.
+
+- GIVEN a cdx-to-check
+    - Look for cdx-merged files on HDFS
+- DONE
+
+
 Others (TBA)
 ------------
 

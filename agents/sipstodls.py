@@ -55,14 +55,16 @@ class sipstodls(amqp.QueueConsumer):
 		connection = pika.BlockingConnection( parameters )
 		channel = connection.channel()
 		channel.queue_declare( queue=settings.SUBMITTED_QUEUE_NAME, durable=True )
-		channel.tx_select()
-		channel.basic_publish( exchange="",
-			routing_key=settings.out_queue,
-			properties=pika.BasicProperties(
-				delivery_mode=2,
-			),
-			body=message )
-		channel.tx_commit()
+		channel.confirm_delivery()
+		sent = False
+		while not sent:
+			sent = channel.basic_publish( exchange="",
+			    routing_key=settings.out_queue,
+			    properties=pika.BasicProperties(
+					content_type='application/json',
+				    delivery_mode=2,
+			    ),
+			    body=message )
 		connection.close()
 	
 	def verify_message( self, path_id ):
