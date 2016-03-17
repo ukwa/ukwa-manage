@@ -3,11 +3,8 @@ Shepherd
 
 Coordinates the services that make up the UK Web Archive.
 
-* auto-gen TOC:
-{:toc}
-
 h3cc - Heritrix3 Crawl Controller
----------------------------------
+=================================
 
 Script to interact with Heritrix directly, to perform some general crawler operations.
 
@@ -29,7 +26,7 @@ This will show the first five URLs that are queued to be crawled next on that ho
 
 
 w3act.py - W3ACT Command-Line Client
-------------------------------------
+====================================
 
 This simple CLI client for [W3ACT](https://github.com/ukwa/w3act) uses it's API to extract and submit information. It does not cover every aspect of W3ACT, and is mainly intended for helping with testing the system during development.
 
@@ -70,9 +67,57 @@ You can turn make an existing Target be a Watched Target (for document harvestin
 
 The Wayback timestamp is required, along with the document and 'landing page' URLs.
 
+Other Utilities
+===============
 
-Post-Crawl Workflow
--------------------
+### mq_peek.py ###
+
+Useful for peeking at messages on a RabbitMQ queue.
+
+Crawl Workflow
+==============
+
+launcher.py
+-----------
+
+* Started by CRON on the hour.
+* Reads from W3ACT.
+* Launches and crawls due to start that hour.
+* Does so using the ```uris-to-render``` queue
+
+### inject.py ###
+
+This utility allows URIs to be launched directly, either into ```uris-to-render``` or ```uris-to-crawl```.
+
+harchiverd.py
+-------------
+
+Screenshots the ```uris-to-render```, writes the rendered form to WARCs, and passes the URIs on to ```uris-to-crawl```.
+
+Heritrix3 AMQPUrlReceiver
+-------------------------
+
+This class consumes the uris-to-crawl and queues them inside H3.
+
+Heritrix3 TBA
+-------------
+
+This post-crawl module sends the result of crawling each URI to the ```uris-to-index`` queue. Another sends ones that appear to be documents to the ```documents-to-catalogue``` queue.
+
+uristocdxserver.py
+------------------
+
+This pulls the ```uris-to-crawl``` and POSTs relevant URIs to the ```tinycdxserver``` for QA Wayback.
+
+docstow3act.py
+--------------
+
+This pulls the ```documents-to-catalogue``` and checks the resources are available in QA Wayback. It then examines the URLs to extract document-level metadata, and attempts to ensure documents are associated with the right targets. The documents are then POSTed to W3ACT for cataloguing.
+
+    $ python agents/docstow3act.py --amqp-url "amqp://guest:guest@192.168.99.100:5672/%2f" post-crawl DH-1-documents-to-catalogue
+
+Post-Crawl Ingest Workflow
+==========================
 
 At every checkpoint, H3 has been configured to emit a message like this:
 
@@ -85,7 +130,12 @@ At every checkpoint, H3 has been configured to emit a message like this:
 }
 ~~~
 
-### package-checkpoints.py ###
+Original script was:
+
+    $ python agents/sipstodls.py --amqp-url "amqp://guest:guest@192.168.99.100:5672/%2f"
+
+
+## package-checkpoints.py ##
 
 Takes a checkpoint and bundles up all the files and data we need for a submission.
 
@@ -132,7 +182,7 @@ Takes a checkpoint and bundles up all the files and data we need for a submissio
 }
 ~~~
 
-### generate-sips.py ###
+## generate-sips.py ##
 
 Now we need to wrap the content up for ingest into the DLS.
 
@@ -153,7 +203,7 @@ The format is the same as received, except now with an added ```sip``` field ind
     }
 ~~~
 
-### submit-sips.py ###
+## submit-sips.py ##
 
 - Extract HDFS path to SIP from CIPD message
 - Download.
@@ -162,7 +212,7 @@ The format is the same as received, except now with an added ```sip``` field ind
 - Submit to DLS.
 - PASS the message on to ```generate-cdx-for-sip```
 
-### generate-cdx.py ###
+## generate-cdx.py ##
 
 - Read the list of WARCs from the CIPD message
 - Generate CDX for all WARCs in a checkpoint.
@@ -170,7 +220,7 @@ The format is the same as received, except now with an added ```sip``` field ind
 - Merge QA Wayback CDX (TBC?)
 - PASS the message on to ```submission-to-verify``` queue.
 
-### verify-sips.py ###
+## verify-sips.py ##
 
 - Extract list of WARCs and their ARKs from the CIPD message.
 - Check status of all WARCs according to the DLS report.
@@ -180,14 +230,14 @@ The format is the same as received, except now with an added ```sip``` field ind
     - **PUT** a file on HDFS indicating that there is new content to be made available.
     - **PASS** message on to ```check-updated-access-cdx-for-sip``` with an extra field to indicate which node is ready.
 
-### merge-cdx.py (Runs on every access node) ###
+## merge-cdx.py (Runs on every access node) ##
 
 - **CRON** on delivery node looks for new cdxs-to-merge info on HDFS for this node.
 - Updates local WARC-to-location file.
 - Updates local CDX file.
 - **PUTS** cdx-merged file on HDFS.
 
-### check-cdx-merged.py ###
+## check-cdx-merged.py ##
 
 - Extract identity of the cdx-to-check from the CIPD message from the ```check-updated-access-cdx-for-sip``` queue.
 - Look for cdx-merged notification on HDFS.
@@ -195,15 +245,15 @@ The format is the same as received, except now with an added ```sip``` field ind
 - DONE
 
 
+Post-Crawl QA Workflow
+======================
+
+checkforuris.py
+---------------
+
 
 Others (TBA)
 ------------
-
-    $ python agents/sipstodls.py --amqp-url "amqp://guest:guest@192.168.99.100:5672/%2f"
-
-    $ python agents/docstow3act.py --amqp-url "amqp://guest:guest@192.168.99.100:5672/%2f" post-crawl DH-1-documents-to-catalogue
-
-
 Note that the other aspects, like depth etc, and setup periodically via "h3cc fc-sync".
 Separate process bundles up per checkpoint (gather.py)	
 Separate process sends Documents to a queue (in H3) and sends the queue to W3ACT (mule.py)
