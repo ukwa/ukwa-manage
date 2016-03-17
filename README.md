@@ -72,46 +72,124 @@ The Wayback timestamp is required, along with the document and 'landing page' UR
 Post-Crawl Workflow
 -------------------
 
-- GIVEN a checkpoint-to-package: {checkpoint ID string}
-    - Parse crawl log to identify WARCs
-    - Mint ARKs for the WARCs
-    - Generate hash manifest for all files
-    - ZIP up all crawl files (beans, logs, manifest.sha512,warc-arks.txt,warc-hdfs-paths.txt) except WARCs
-    - Transfer WARCs and crawl file ZIP to HDFS
-    - Verify transfer to HDFS.
-    - Delete WARCs/ZIPs from local storage.
-    - Update WARC-to-HDFS mapping file.
-    - Update WARC-to-ARK mapping file.
-    - Update WARC-to-location file(s) (for QA Wayback)
-- PASS to package-to-sip
+At every checkpoint, H3 has been configured to emit a message like this:
 
-- GIVEN a package-to-sip: {id: "", warcs: {}, zips: {}}
-    - Generate SIP, by generating the METS file and BagIting it.
-    - Copy SIP to HDFS.
-    - Verify transfer to HDFS.
-- PASS to sip-to-submit
+~~~ json
+{
+    "checkpointDirAbsolutePath": "/jobs/frequent/checkpoints/cp00001-20160229142814",
+    "checkpointDirPath": "cp00001-20160229142814",
+    "name": "cp00001-20160229142814",
+    "shortName": "cp00001"
+}
+~~~
 
-- GIVEN sip-to-submit: {in, warcs, zips, sip:"/heritrix/sips/..."}
-    - Submit to DLS.
-- PASS to submission-to-verify
+### package-checkpoints.py ###
 
-- GIVEN a submission-to-verify: {in, warcs, zips, sip}
-    - Verify WARCs are available from DLS.
-- PASS each warc to warcs-to-cdx
+- Extracts the checkpoint ID (e.g. ```cp00001-20160229142814```) from the message and locates the crawl files.
+- Parses the crawl log to determine the start date and identify WARCs that make up this checkpoint, including any viral WARCs.
+- Mint ARKs for the WARCs and one for the ZIP file, store them in a warc-to-arks.txt file.
+- Generate hash manifest for all files, using the SHA-512 algorithm.
+- Transfer WARCs to HDFS.
+- Create warc-to-hdfs.txt file that maps WARC filenames to HDFS paths.
+- ZIP up all crawl files (crawler-beans.cxml, the crawl log and other log files, manifest.sha512, warc-arks.txt,warc-hdfs-paths.txt) except WARCs
+- Also hash the ZIP file file
+- Transfer ZIP to HDFS and verify the transfer.
+- Update WARC-to-HDFS mapping file.
+- Update WARC-to-ARK mapping file.
+- Update WARC-to-location file(s) (for QA Wayback)
+- Delete WARCs/ZIPs from local storage.
+- **PASS** a message in the following format to the ```package-to-sip``` queue.
 
-- GIVEN a warcs-to-cdx
-    - Generate CDX for all WARCs in a checkpoint.
-    - Update cdx-to-merge and warc-to-location files on HDFS
-- PASS to cdx-to-check
 
-- CRON on delivery node looks for new cdxs-to-merge
-    - Updates local CDX file.
-    - Updates local WARC-to-location file.
-- Puts cdx-merged file on HDFS.
+~~~ json
+{
+    "startDate": "2016-02-29T12:00:00Z",
+    "crawlStream": "frequent",
+    "packageId": "frequent-cp00001-20160229142814",
+    "warcs": [
+        "BL-20160224194138561-00000-44~04917ac61543~8443.warc.gz",
+        ...
+    ],
+    "viral": [
+        "BL-20160224194138561-00000-44~04917ac61543~8443.warc.gz",
+        ...
+    ],
+    "logs": [
+        "frequent-cp00001-20160229142814.zip",
+    ],
+    "arks": {
+        "BL-20160224194138561-00000-44~04917ac61543~8443.warc.gz": "ark:/81055/vdc_100022535899.0x",
+        ...
+    },
+    "hdfs": {
+        "BL-20160224194138561-00000-44~04917ac61543~8443.warc.gz": "/heritrix/output/warcs/frequent/BL-20160224194138561-00000-44~04917ac61543~8443.warc.gz",
+        ...
+    }
+}
+~~~
 
-- GIVEN a cdx-to-check
-    - Look for cdx-merged files on HDFS
+### generate-sips.py ###
+
+Now we need to package the content up for ingest into the DLS.
+
+- Extract the necessary information from the JSON message
+- Generate SIP, by:
+    - Generating the METS file.
+    - Building a BagIt arounding it.
+    - Putting that into a tar.gz file.
+- Copy SIP to HDFS.
+- Verify transfer to HDFS.
+- ***PASS*** a sutiable message to the ```sips-to-submit``` queue.
+
+The format is the same as received, except now with an added ```sip``` field indicating the location of the SIP on HDFS.
+
+~~~ json
+        ...
+        "sip": "/heritrix/sips/..."
+    }
+~~~
+
+### submit-sips.py ###
+
+- Extract HDFS path to SIP from message
+- Download.
+- Unpack (TBC?)
+- Verify BagIt bag (TBC?)
+- Submit to DLS.
+- PASS the message on to ```generate-cdx-for-sip```
+
+### generate-cdx.py ###
+
+- Read the list of WARCs
+- Generate CDX for all WARCs in a checkpoint.
+- Update cdx-to-merge and warc-to-location files on HDFS
+- Merge QA Wayback CDX (TBC?)
+- PASS the message on to ```submission-to-verify``` queue.
+
+### verify-sips.py ###
+
+- Extract list of WARCs and their ARKs from the message.
+- Check status of all WARCs according to the DLS report.
+- Log the result.
+- For Boston Spa, verify all WARCs are available from DLS and that the hashes are the same. (TBC?)
+- Once all WARCs are present at a given DLS node:
+    - **PUT** a file on HDFS indicating that there is new content to be made available.
+    - **PASS** message on to ```check-updated-access-cdx-for-sip``` with an extra field to indicate which node is ready.
+
+### merge-cdx.py ###
+
+- **CRON** on delivery node looks for new cdxs-to-merge
+- Updates local WARC-to-location file.
+- Updates local CDX file.
+- **PUTS** cdx-merged file on HDFS.
+
+### check-cdx-merged.py ###
+
+- GIVEN a cdx-to-check from ```check-updated-access-cdx-for-sip```
+- Look for cdx-merged files on HDFS.
+- Remove the files from HDFS.
 - DONE
+
 
 
 Others (TBA)
