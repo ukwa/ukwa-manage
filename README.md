@@ -99,10 +99,12 @@ Heritrix3 AMQPUrlReceiver
 
 This class consumes the uris-to-crawl and queues them inside H3.
 
-Heritrix3 TBA
--------------
+Heritrix3 AMQPIndexableCrawlLogFeed
+-----------------------------------
 
-This post-crawl module sends the result of crawling each URI to the ```uris-to-index`` queue. Another sends ones that appear to be documents to the ```documents-to-catalogue``` queue.
+This disposition-chain processor sends the result of crawling each URI to the ```uris-to-index``` queue. 
+
+Another instance sends ones that appear to be documents to the ```documents-to-catalogue``` queue.
 
 uristocdxserver.py
 ------------------
@@ -119,7 +121,14 @@ This pulls the ```documents-to-catalogue``` and checks the resources are availab
 Post-Crawl Ingest Workflow
 ==========================
 
-At every checkpoint, H3 has been configured to emit a message like this:
+Original script was:
+
+    $ python agents/sipstodls.py --amqp-url "amqp://guest:guest@192.168.99.100:5672/%2f"
+
+Heritrix 3 AMQPCheckpointSuccessMessageProducer
+-----------------------------------------------
+
+After every successful checkpoint operation, this module makes Heritrix emit a message like this:
 
 ~~~ json
 {
@@ -129,11 +138,6 @@ At every checkpoint, H3 has been configured to emit a message like this:
     "shortName": "cp00001"
 }
 ~~~
-
-Original script was:
-
-    $ python agents/sipstodls.py --amqp-url "amqp://guest:guest@192.168.99.100:5672/%2f"
-
 
 ## package-checkpoints.py ##
 
