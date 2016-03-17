@@ -3,6 +3,7 @@ Shepherd
 
 Coordinates the services that make up the UK Web Archive.
 
+{:toc}
 
 h3cc - Heritrix3 Crawl Controller
 ---------------------------------
@@ -85,6 +86,8 @@ At every checkpoint, H3 has been configured to emit a message like this:
 
 ### package-checkpoints.py ###
 
+Takes a checkpoint and bundles up all the files and data we need for a submission.
+
 - Extracts the checkpoint ID (e.g. ```cp00001-20160229142814```) from the message and locates the crawl files.
 - Parses the crawl log to determine the start date and identify WARCs that make up this checkpoint, including any viral WARCs.
 - Mint ARKs for the WARCs and one for the ZIP file, store them in a warc-to-arks.txt file.
@@ -98,7 +101,7 @@ At every checkpoint, H3 has been configured to emit a message like this:
 - Update WARC-to-ARK mapping file.
 - Update WARC-to-location file(s) (for QA Wayback)
 - Delete WARCs/ZIPs from local storage.
-- **PASS** a message in the following format to the ```package-to-sip``` queue.
+- **PASS** a message in the following 'CIPD' (Crawl Information Package Description) format to the ```package-to-sip``` queue.
 
 
 ~~~ json
@@ -108,31 +111,31 @@ At every checkpoint, H3 has been configured to emit a message like this:
     "packageId": "frequent-cp00001-20160229142814",
     "warcs": [
         "BL-20160224194138561-00000-44~04917ac61543~8443.warc.gz",
-        ...
+        "..."
     ],
     "viral": [
         "BL-20160224194138561-00000-44~04917ac61543~8443.warc.gz",
-        ...
+        "..."
     ],
     "logs": [
-        "frequent-cp00001-20160229142814.zip",
+        "frequent-cp00001-20160229142814.zip"
     ],
     "arks": {
         "BL-20160224194138561-00000-44~04917ac61543~8443.warc.gz": "ark:/81055/vdc_100022535899.0x",
-        ...
+        "..."
     },
     "hdfs": {
         "BL-20160224194138561-00000-44~04917ac61543~8443.warc.gz": "/heritrix/output/warcs/frequent/BL-20160224194138561-00000-44~04917ac61543~8443.warc.gz",
-        ...
+        "..."
     }
 }
 ~~~
 
 ### generate-sips.py ###
 
-Now we need to package the content up for ingest into the DLS.
+Now we need to wrap the content up for ingest into the DLS.
 
-- Extract the necessary information from the JSON message
+- Extract the necessary information from the CIPD message
 - Generate SIP, by:
     - Generating the METS file.
     - Building a BagIt arounding it.
@@ -144,14 +147,14 @@ Now we need to package the content up for ingest into the DLS.
 The format is the same as received, except now with an added ```sip``` field indicating the location of the SIP on HDFS.
 
 ~~~ json
-        ...
+        "...",
         "sip": "/heritrix/sips/..."
     }
 ~~~
 
 ### submit-sips.py ###
 
-- Extract HDFS path to SIP from message
+- Extract HDFS path to SIP from CIPD message
 - Download.
 - Unpack (TBC?)
 - Verify BagIt bag (TBC?)
@@ -160,7 +163,7 @@ The format is the same as received, except now with an added ```sip``` field ind
 
 ### generate-cdx.py ###
 
-- Read the list of WARCs
+- Read the list of WARCs from the CIPD message
 - Generate CDX for all WARCs in a checkpoint.
 - Update cdx-to-merge and warc-to-location files on HDFS
 - Merge QA Wayback CDX (TBC?)
@@ -168,7 +171,7 @@ The format is the same as received, except now with an added ```sip``` field ind
 
 ### verify-sips.py ###
 
-- Extract list of WARCs and their ARKs from the message.
+- Extract list of WARCs and their ARKs from the CIPD message.
 - Check status of all WARCs according to the DLS report.
 - Log the result.
 - For Boston Spa, verify all WARCs are available from DLS and that the hashes are the same. (TBC?)
@@ -176,18 +179,18 @@ The format is the same as received, except now with an added ```sip``` field ind
     - **PUT** a file on HDFS indicating that there is new content to be made available.
     - **PASS** message on to ```check-updated-access-cdx-for-sip``` with an extra field to indicate which node is ready.
 
-### merge-cdx.py ###
+### merge-cdx.py (Runs on every access node) ###
 
-- **CRON** on delivery node looks for new cdxs-to-merge
+- **CRON** on delivery node looks for new cdxs-to-merge info on HDFS for this node.
 - Updates local WARC-to-location file.
 - Updates local CDX file.
 - **PUTS** cdx-merged file on HDFS.
 
 ### check-cdx-merged.py ###
 
-- GIVEN a cdx-to-check from ```check-updated-access-cdx-for-sip```
-- Look for cdx-merged files on HDFS.
-- Remove the files from HDFS.
+- Extract identity of the cdx-to-check from the CIPD message from the ```check-updated-access-cdx-for-sip``` queue.
+- Look for cdx-merged notification on HDFS.
+- Remove the temporary files from HDFS.
 - DONE
 
 
