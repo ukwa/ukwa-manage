@@ -78,7 +78,7 @@ Useful for peeking at messages on a RabbitMQ queue.
 Workflow Overview
 =================
 
-In order to improve the quality and automation of our crawl workflows, we are shifting to a more modular, queue-based architecture rather than trying to bake all the functionality we need into a single monolithic package. Specifically, we are chaining sequences of small operations together, and using queues as buffers in between them so each component can be managed and scaled separately.
+In order to improve the quality and automation of our crawl workflows, we are shifting to a more modular, queue-based architecture rather than trying to bake all the functionality we need into a single monolithic package. Specifically, we are chaining sequences of small operations together, and using queues as buffers in between them so each component can be managed and scaled separately. This architecture also makes it easier to reuse off-the-shelf components, and makes monitoring the state of the system much easier.
 
 Here's an overview of our current workflow. The light-blue boxes are the queues (provided by a RabbitMQ), and the light-green boxes are the simple Python processes (managed by the supervisord daemon) that pick up the messages and pass the results of their operations on. The darker blue boxes are the other long-running components or applications that manage the data and state information. 
 

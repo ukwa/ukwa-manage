@@ -144,13 +144,19 @@ if __name__ == "__main__":
     logging.root.setLevel( logging.INFO )
 
     # the tests:
+    
+    # - ifs.org.uk
     run_doc_mdex_test('http://www.ifs.org.uk/uploads/cemmap/wps/cwp721515.pdf',
                     'http://www.ifs.org.uk/publications/8080','http://www.ifs.org.uk')
     run_doc_mdex_test('http://www.ifs.org.uk/uploads/publications/bns/BN179.pdf',
                     'http://www.ifs.org.uk/publications/8049','http://www.ifs.org.uk')
-    #
+    # - gov.uk
+    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/507081/2904936_Bean_Review_Web_Accessible.pdf',
+					'https://www.gov.uk/government/publications/independent-review-of-uk-economic-statistics-final-report',
+					'https://www.gov.uk/publications')
     run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/246770/0121.pdf',
-                    'https://www.gov.uk/government/publications/met-office-annual-report-and-accounts-2012-to-2013', 'https://www.gov.uk/')
+                    'https://www.gov.uk/government/publications/met-office-annual-report-and-accounts-2012-to-2013', 
+                    'https://www.gov.uk/')
     run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/497536/rtfo-year-8-report-2.pdf',
                     'https://www.gov.uk/government/statistics/biofuel-statistics-year-8-2015-to-2016-report-2', 'https://www.gov.uk/')
     run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/495227/harbour-closure-orders-consultation-summary-responses.pdf',
