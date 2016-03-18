@@ -46,8 +46,8 @@ class DocumentMDEx(object):
 
         # Look up which Target this URL should be associated with:
         if self.act:
-            logger.info("Looking for match for %s source %s and publisher '%s'" % (self.doc['landing_page_url'], self.source, self.doc.get('publisher',None)))
-            self.doc['target_id'] = self.act.find_watched_target_for(self.doc['landing_page_url'], self.source, self.doc.get('publisher', None))
+            logger.info("Looking for match for %s source %s and publishers '%s'" % (self.doc['landing_page_url'], self.source, self.doc.get('publishers',[])))
+            self.doc['target_id'] = self.act.find_watched_target_for(self.doc['landing_page_url'], self.source, self.doc.get('publishers', []))
         
         # If there is no association, drop it:
         if not self.doc.get('target_id', None):
@@ -57,6 +57,10 @@ class DocumentMDEx(object):
         # If there is no title, use a default:
         if not self.doc.get('title',None):
             self.doc['title'] = '[untitled]'
+            
+        # If the publisher appears unambiguous, store it where it can be re-used
+        if len(self.doc['publishers']) is 1:
+            self.doc['publisher'] = self.doc['publishers'][0]
             
         # Or return the modified version:
         return self.doc
@@ -83,7 +87,7 @@ class DocumentMDEx(object):
         logger.debug('xpath/title %s' % h.xpath('//header//h1/text()') )
         self.doc['title'] = self._get0(h.xpath('//header//h1/text()'))
         self.doc['publication_date'] = self._get0(h.xpath("//aside[contains(@class, 'meta')]//time/@datetime"))[0:10]
-        self.doc['publisher'] = self._get0(h.xpath("//aside[contains(@class, 'meta')]//a[contains(@class, 'organisation-link')]/text()"))
+        self.doc['publishers'] = h.xpath("//aside[contains(@class, 'meta')]//a[contains(@class, 'organisation-link')]/text()")
         # Look through landing page for links, find metadata section corresponding to the document:
         for a in h.xpath("//a"):
             if self.doc["document_url"] in urljoin(self.doc["landing_page_url"], a.attrib["href"]):
@@ -95,13 +99,13 @@ class DocumentMDEx(object):
                         self.doc['title'] = lp_title
                     # Process references
                     refs = div.xpath("./p/span[@class='references']")
-                    # We also need to look out for Command and Act papers and match them by modifying the publisher
+                    # We also need to look out for Command and Act papers and match them by modifying the publisher list
                     for ref in refs:
                         isbn = self._get0(ref.xpath("./span[@class='isbn']/text()"))
                         if len(isbn) > 0:
                             self.doc['isbn'] = isbn
                         if len(ref.xpath("./span[starts-with(text(), 'HC') or starts-with(text(), 'Cm') or starts-with(text(), 'CM')]")) > 0:
-                            self.doc['publisher'] = "Command and Act Papers"
+                            self.doc['publishers'] = ["Command and Act Papers"]
         if not self.doc['title']:
             raise Exception('Title extraction failed! Metadata extraction for this target should be reviewed.')
     
@@ -114,7 +118,7 @@ class DocumentMDEx(object):
         self.doc['title'] = self._get0(h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//*[contains(@itemprop,'name')]/text()")).strip()
         self.doc['publication_date'] = self._get0(h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//*[contains(@itemprop,'datePublished')]/@content"))
         self.doc['author'] = self._get0(h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//*[contains(@itemprop,'author')]/a/text()"))
-        self.doc['publisher'] = self._get0(h.xpath("//footer//*[contains(@itemtype, 'http://schema.org/Organization')]//*[contains(@itemprop,'name')]/text()"))
+        self.doc['publishers'] = [self._get0(h.xpath("//footer//*[contains(@itemtype, 'http://schema.org/Organization')]//*[contains(@itemprop,'name')]/text()"))]
         self.doc['isbn'] = self._get0(h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//tr[td[1]/text()='ISBN:']/td[2]/text()")).strip()
         self.doc['doi'] = self._get0(h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//tr[td[1]/text()='DOI:']/td[2]/a[1]/text()"))
         
@@ -123,7 +127,7 @@ def run_doc_mdex_test(url,lpu,src):
     doc = {}
     doc['document_url'] = url
     doc['landing_page_url'] = lpu
-    doc = DocumentMDEx(None, doc, src).mdex()
+    doc = DocumentMDEx(act, doc, src).mdex()
     print json.dumps(doc)
 
 if __name__ == "__main__":
@@ -142,6 +146,11 @@ if __name__ == "__main__":
     
     # Set default logging output for all modules.
     logging.root.setLevel( logging.INFO )
+
+    # Hook to W3ACT
+    import sys
+    from w3act import w3act
+    act = w3act(sys.argv[1],sys.argv[2],sys.argv[3])
 
     # the tests:
     
