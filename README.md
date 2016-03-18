@@ -78,7 +78,21 @@ Useful for peeking at messages on a RabbitMQ queue.
 Workflow Overview
 =================
 
+In order to improve the quality and automation of our crawl workflows, we are shifting to a more modular, queue-based architecture rather than trying to bake all the functionality we need into a single monolithic package. Specifically, we are chaining sequences of small operations together, and using queues as buffers in between them so each component can be managed and scaled separately.
+
+Here's an overview of our current workflow. The light-blue boxes are the queues (provided by a RabbitMQ), and the light-green boxes are the simple Python processes (managed by the supervisord daemon) that pick up the messages and pass the results of their operations on. The darker blue boxes are the other long-running components or applications that manage the data and state information. 
+
 ![Workflow Overview](./doc/img/crawl-agents.png)
+
+For example, the main crawl workflow is initated by a ```cron``` task that checks if any crawls are dues to be launched. If so, the script posts a message to a queue of seeds to be processed, and sends a copy of that message to a different queue so we can check later on if it worked okay. A dedicated process (current called the HARchiver) then consumes those messages, uses a RESTful microservice to render the URLs in a web browser (PhantomJS), and then passes the URLs it discovers over to the next queue.
+
+The main crawler, Heritrix3, consumes the list of discovered URLs and queues them internally, with the prioritisation set so as to minimise the delay between the initial launch and the actual data capture.
+
+As each resource is captured, Heritrix3 posts a message to another queue, where they are read by another simple process that POSTs them to a CDX server called tinycdxserver. Once in tinycdxserver, the URLs we have been crawling can be discovered via OpenWayback, only a few seconds after they have been crawled. The OpenWayback service itself knows where the WARCs are stored, and is configured to look in the WARCs currently being written as well as the older content, meaning successfully crawled content can be browsed *in real time*.
+
+In this way, we have a constant stream of archived content -- a continous crawl with live updates.
+
+Generally, the processes in the chain are designed to be stateless, and to only acknowledge the messages they consume when the whole operation has succeeded. This means if something goes wrong at any point in the chain, the system will cope by simply backing-up unprocessed messages on the queue preceding the damaged component.
 
 Crawl Workflow
 ==============
