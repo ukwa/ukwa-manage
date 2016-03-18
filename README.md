@@ -74,6 +74,12 @@ Other Utilities
 
 Useful for peeking at messages on a RabbitMQ queue.
 
+
+Workflow Overview
+=================
+
+![Workflow Overview](./doc/img/crawl-agents.png)
+
 Crawl Workflow
 ==============
 
