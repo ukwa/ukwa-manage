@@ -87,26 +87,26 @@ def check_message(ch, method, properties, body):
 		if (not msg_url or not dt_msg_launchtimestamp):
 			logger.error('Missing required message url: %s\tlaunch_timestamp: %s' %
 				(msg_url, str(dt_msg_launchtimestamp)))
-#			ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
+			ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
 			return
 	except Exception as e:
 		logger.error('Exception whilst consuming %s messages: %s' % (str(args.amqp_url), str(e)))
-#		ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
+		ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
 		return
 
 	# skip non http(s) records
 	try:
 		if not msg_url[:4] == 'http':
 			logger.error('Skipping non http(s) message %s' % msg_url)
-#			ch.basic_ack(delivery_tag = method.delivery_tag)
+			ch.basic_ack(delivery_tag = method.delivery_tag)
 			return
 		if not isinstance(dt_msg_launchtimestamp, datetime):
 			logger.error('Skipping non datetime values in message %s' % msg_url)
-#			ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
+			ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
 			return
 	except Exception as e:
 		logger.error('Exception with message url %s or launch_timestamp %s: %s' % (msg_url, str(e)))
-#		ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
+		ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
 		return
 
 	# try to get url from wayback
@@ -116,14 +116,15 @@ def check_message(ch, method, properties, body):
 		wbreq = requests.get(wburl)
 		if not isinstance(wbreq.status_code, int):
 			logger.error('url %s status code not integer' % wburl)
-#			ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
+			ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
 			return
 	except Exception as e:
 		logger.error('Failed to get wayback url %s' % wburl)
-#		ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
+		ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
 		return
 
 	# search for wayback timestamp > launch_timestamp
+	most_recent_instance = None
 	if wbreq.status_code == 200:
 		wbreq_dom = xml.dom.minidom.parseString(wbreq.text)
 		instance_capturedates = []
@@ -131,6 +132,7 @@ def check_message(ch, method, properties, body):
 			instance_capturedates.append(inst_date.firstChild.nodeValue)
 		for inst_date in sorted(instance_capturedates, key=int):
 			logger.debug('launch date: %s instance capture date: %s' % (dt_msg_launchtimestamp, inst_date))
+			most_recent_instance = inst_date
 			dt_inst_date = datetime.strptime(inst_date, '%Y%m%d%H%M%S')
 			if dt_inst_date >= dt_msg_launchtimestamp:
 				logger.info('instance of %s queued %s captured at %s - duration %s seconds' %
@@ -138,15 +140,16 @@ def check_message(ch, method, properties, body):
 					datetime.strftime(dt_msg_launchtimestamp, '%Y-%m-%d %H:%M:%S'),
 					datetime.strftime(dt_inst_date, '%Y-%m-%d %H:%M:%S'),
 					int((dt_inst_date - dt_msg_launchtimestamp).total_seconds())))
-#				ch.basic_ack(delivery_tag = method.delivery_tag)
+				ch.basic_ack(delivery_tag = method.delivery_tag)
 				return
 	else:
 		# reject amqp message and requeue for future test
 		logger.debug('%s status for %s' % (wbreq.status_code, args.amqp_url))
-#		ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
+		ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
+		return
 
-	logger.debug('url %s not yet in wayback' % args.amqp_url)
-#	ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
+	logger.info('launch %s of url %s not yet in wayback (%s)' % (dt_msg_launchtimestamp,msg_url, most_recent_instance))
+	ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
 
 # main -------------------------------------
 if __name__ == '__main__':

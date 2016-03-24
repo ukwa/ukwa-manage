@@ -139,7 +139,7 @@ def amqp_outlinks(outchannel, raw_har, client_id, raw_parent):
     har = json.loads(raw_har)
     parent = json.loads(raw_parent)
     # Send the parent on, set as seed if required:
-    send_to_amqp(outchannel,client_id, parent["url"], "GET", {}, parent["url"], parent["metadata"], True, parent.get("isSeed",False), hop='I')
+    send_to_amqp(outchannel,client_id, parent["url"], "GET", {}, parent["url"], parent["metadata"], True, parent.get("isSeed",False), hop='')
     # Process the embeds:
     resources = 0
     if settings.extract_embeds:
@@ -216,7 +216,7 @@ def callback(warcwriter, body):
         ws = "%s/%s" % (settings.webrender_url, urllib.quote(url))
         logger.debug("Calling %s" % ws)
         r = requests.post(ws, data=json.dumps(selectors))
-        if r.status_code == 200:
+        if r.status_code:
             # Get the HAR payload
             logger.debug("Got response. Reading.")
             har = r.content
@@ -244,7 +244,7 @@ def callback(warcwriter, body):
             # It appears everything worked, so return True and ack the original message
             return True
         else:
-            logger.warning("None-200 response for %s; %s" % (body, r.content))
+            logger.warning("Invalid response code for %s; %s" % (body, r.content))
             return True
     except Exception as e:
         logger.exception("Exception %s %s when handling [%s]" % (type(e).__name__, e, body))

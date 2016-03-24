@@ -155,6 +155,10 @@ def callback( ch, method, properties, body ):
 	try:
 		logger.debug( "Message received: %s." % body )
 		cl = json.loads(body)
+		if cl.has_key('launch_message'):
+			logger.warning("Discarding message delivered to wrong queue: %s" % body)
+			ch.basic_ack(delivery_tag = method.delivery_tag)
+			return
 		url = cl["url"]
 		# Skip non http(s) records (?)
 		if( not url[:4] == "http"):

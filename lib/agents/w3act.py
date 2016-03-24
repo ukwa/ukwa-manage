@@ -140,7 +140,8 @@ class w3act():
 			logger.error("Too many matching titles for %s" % url)
 			for t in title_matches:
 				logger.error("Candidate: %d %s "% (t['id'],t['title']))
-			raise Exception("Too many matching titles to disambiguate  url %s " % url)
+			logger.critical("Assuming first match is sufficient... (%s)" % title_matches[0]['title'] )
+			return int(title_matches[0]['id'])
 			
 
 	def post_document(self, doc):

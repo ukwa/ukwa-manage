@@ -45,7 +45,7 @@ class DocumentMDEx(object):
             logging.exception(e)
 
         # Look up which Target this URL should be associated with:
-        if self.act:
+        if self.act and self.doc.has_key('landing_page_url'):
             logger.info("Looking for match for %s source %s and publishers '%s'" % (self.doc['landing_page_url'], self.source, self.doc.get('publishers',[])))
             self.doc['target_id'] = self.act.find_watched_target_for(self.doc['landing_page_url'], self.source, self.doc.get('publishers', []))
         
@@ -59,7 +59,7 @@ class DocumentMDEx(object):
             self.doc['title'] = '[untitled]'
             
         # If the publisher appears unambiguous, store it where it can be re-used
-        if len(self.doc['publishers']) is 1:
+        if len(self.doc.get('publishers',[])) is 1:
             self.doc['publisher'] = self.doc['publishers'][0]
             
         # Or return the modified version:
@@ -121,6 +121,9 @@ class DocumentMDEx(object):
         self.doc['publishers'] = h.xpath("//footer//*[contains(@itemtype, 'http://schema.org/Organization')]//*[contains(@itemprop,'name')]/text()")
         self.doc['isbn'] = self._get0(h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//tr[td[1]/text()='ISBN:']/td[2]/text()")).strip()
         self.doc['doi'] = self._get0(h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//tr[td[1]/text()='DOI:']/td[2]/a[1]/text()"))
+        if not 'www.ifs.org.uk' in self.doc['document_url']:
+            logger.critical("Dropping off-site publication discovered on the IFS site. %s " % self.doc['document_url'])
+            self.doc = dict()
         
 
 def run_doc_mdex_test(url,lpu,src):
