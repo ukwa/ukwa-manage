@@ -81,8 +81,8 @@ class launcher(object):
 			curim['parentUrlMetadata']['heritableData']['source'] = source
 			curim['parentUrlMetadata']['heritableData']['heritable'] = ['source','heritable']
 			curim['isSeed'] = isSeed
-			if not isSeed and forceFetch:
-				curim['forceFetch'] = True
+			if not isSeed:
+				curim['forceFetch'] = forceFetch
 			curim['url'] = uri
 		elif destination == "har":
 			curim['clientId']= clientId
@@ -92,8 +92,8 @@ class launcher(object):
 			curim['metadata']['heritableData']['source'] = source
 			curim['metadata']['pathFromSeed'] = ""
 			curim['isSeed'] = isSeed
-			if not isSeed and forceFetch:
-				curim['forceFetch'] = True
+			if not isSeed:
+				curim['forceFetch'] = forceFetch
 			curim['url'] = uri
 		else:
 			logger.error("Can't handle destination type '%s'" % destination )
