@@ -23,18 +23,17 @@ https://webarchive.jira.com/wiki/display/Heritrix/Heritrix3+Useful+Scripts
 import sys
 import os
 import logging
-import heritrix
-import requests
+import hapy
 import xml.etree.ElementTree as ET
 
 # Prevent cert warnings
+import requests.packages.urllib3
 requests.packages.urllib3.disable_warnings()
 
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
-from lib.h3cc import *
 
 from jinja2 import Environment, PackageLoader
 env = Environment(loader=PackageLoader('lib.h3cc', 'scripts'))
@@ -109,7 +108,7 @@ USAGE
 							help="URL to use for queries [default: %(default)s]")
 		parser.add_argument('-l' '--query-limit', dest='query_limit', type=int, default=10,
 							help="Maximum number of results to return from queries [default: %(default)s]")
-		parser.add_argument(dest="command", help="Command to carry out, 'list', 'status', 'info-xml', 'surt-scope', 'pending-urls', 'show-metadata', 'show-decide-rules'. [default: %(default)s]", metavar="command")
+		parser.add_argument(dest="command", help="Command to carry out, 'list-jobs', 'status', 'job-status', 'job-info', job-cxml', 'surt-scope', 'pending-urls', 'show-metadata', 'show-decide-rules'. [default: %(default)s]", metavar="command")
 
 		# Process arguments
 		args = parser.parse_args()
@@ -120,35 +119,34 @@ USAGE
 			logger.setLevel( logging.DEBUG )
 
 		# talk to h3:
-		ha = heritrix.API(host="https://%s:%s/engine" % (args.host, args.port), user=args.user, passwd=args.password, verbose=True, verify=False)
+		ha = hapy.Hapy("https://%s:%s" % (args.host, args.port), username=args.user, password=args.password)
 		job = args.job
 		
 		# Commands:
 		command = args.command
-		if command == "list":
-			print ha.listjobs()
-		elif command == "status":
-			print ha.status(job)
-		elif command == "info-xml":
-			print ha._job_action("", job).text
+		if command == "status":
+			print ha.get_info()
+		elif command == "list-jobs":
+			for j in ha.get_info()['engine']['jobs']['value']:
+				print j['key']
+		elif command == "job-summary":
+			for j in ha.get_info()['engine']['jobs']['value']:
+				if job == j['key']:
+					print j
+		elif command == "job-status":
+			print ha.get_job_info(job)['job']['statusDescription']
+		elif command == "job-info":
+			print ha.get_job_info(job)
+		elif command == "job-cxml":
+			print ha.get_job_configuration(job)
 		elif command in ["surt-scope", "show-decide-rules", "show-metadata"]:
 			template = env.get_template('%s.groovy' % command)
-			xml = ha.execute(engine="groovy", script=template.render(), job=job)
-			try:
-				tree = ET.fromstring( xml.content )
-				print tree.find( "rawOutput" ).text.strip()
-			except Exception, e:
-				logger.exception(e)
-				print(xml.text)
+			r = ha.execute_script(engine="groovy", script=template.render(), name=job)
+			print(r[0])
 		elif command in ["pending-urls", "pending-urls-from", "url-status"]:
 			template = env.get_template('%s.groovy' % command)
-			xml = ha.execute(engine="groovy", script=template.render({ "url": args.query_url ,"limit": args.query_limit }), job=job)
-			try:
-				tree = ET.fromstring( xml.content )
-				print tree.find( "rawOutput" ).text.strip()
-			except Exception, e:
-				logger.exception(e)
-				print(xml.text)
+			r = ha.execute_script(engine="groovy", script=template.render({ "url": args.query_url ,"limit": args.query_limit }), name=job)
+			print(r[0])
 		else:
 			logger.error("Can't understand command '%s'" % command)
 
