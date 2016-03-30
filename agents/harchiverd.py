@@ -279,6 +279,8 @@ def run_harchiver():
                 handled = callback(warcwriter, body)
                 if handled is True:
                     channel.basic_ack(method_frame.delivery_tag)
+                else:
+                    channel.basic_reject(delivery_tag = method_frame.delivery_tag, requeue=True)
                 
         except Exception as e:
             logger.error("Error: %s" % e)
