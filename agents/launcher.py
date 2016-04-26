@@ -42,6 +42,7 @@ import dateutil.parser
 from datetime import datetime
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
+#sys.path.append('/opt/python-shepherd')
 from lib.agents.w3act import w3act
 from lib.agents.launch import launcher
 
@@ -56,29 +57,30 @@ handler.setFormatter( formatter )
 logging.root.addHandler( handler )
 
 # Set default logging output for all modules.
-logging.root.setLevel( logging.INFO )
+logging.root.setLevel( logging.WARN )
 
 # Set logging for this module and keep the reference handy:
 logger = logging.getLogger( __name__ )
 logger.setLevel( logging.INFO )
 
-def launch_by_hour(now,startDate,t,destination,source):
-			# Is it the current hour?
-			if now.hour is startDate.hour:
-				logger.info("The hour is current, sending seed for %s to the crawl queue." % t['title'])
-				counter = 0
-				for seed in t['seeds']:
-					# For now, only treat the first URL as a scope-defining seed that we force a re-crawl for:
-					if counter == 0:
-						isSeed = True
-					else:
-						isSeed = False
-					# And send launch message:
-					launcher.launch(destination, seed, source, isSeed, "FC-3-uris-to-crawl")
-					counter = counter + 1
-				
+def launch_by_hour(now,startDate,endDate,t,destination,source):
+	# Is it the current hour?
+	if now.hour is startDate.hour:
+		logger.info("Target %s (tid: %s) start hour current (now: %s, start: %s, end: %s), sending to FC-3-uris-to-crawl" % (t['title'], t['id'], now, startDate, endDate))
+		counter = 0
+		for seed in t['seeds']:
+			# For now, only treat the first URL as a scope-defining seed that we force a re-crawl for:
+			if counter == 0:
+				isSeed = True
 			else:
-				logger.info("The hour (%s) is not current." % startDate.hour)
+				isSeed = False
+
+			# And send launch message:
+			launcher.launch(destination, seed, source, isSeed, "FC-3-uris-to-crawl")
+			counter = counter + 1
+				
+	else:
+		logger.debug("The hour (%s) is not current." % startDate.hour)
 
 
 def write_surt_file(targets,filename):
@@ -145,43 +147,59 @@ if __name__ == "__main__":
 		
 	# Set up launcher:
 	launcher = launcher(args)
-	
-	# Determine if any are due to start in the current hour
+
+	# Get current time	
 	now = dateutil.parser.parse(args.timestamp)
+
+	# Determine if any are due to start in the current hour
 	for t in targets:
+		# if test argument -tid set, only process this particular target ID; skip others
 		if args.target_id and not int(t['id']) == args.target_id:
 			continue
-		logger.info("Looking at %s (tid:%d)" % (t['title'], t['id']))
+
+		logger.debug("Looking at %s (tid:%d)" % (t['title'], t['id']))
+
 		# Add a source tag if this is a watched target:
 		source = ''
 		if t['watched']:
 			source = t['seeds'][0]
+
 		# Check the scheduling:
 		for schedule in t['schedules']:
+			# Skip if target schedule outside of start/end range
 			startDate = datetime.fromtimestamp(schedule['startDate']/1000)
 			if( now < startDate ):
+				logger.debug("Start date %s not yet reached" % startDate)
 				continue
+			endDate = 'N/S'
 			if schedule['endDate']:
 				endDate = datetime.fromtimestamp(schedule['endDate']/1000)
 				if now > endDate:
+					logger.debug("End date %s passed" % endDate)
 					continue
+
 			# Check if the frequency and date match up:
 			if schedule['frequency'] == "DAILY":
-				launch_by_hour(now,startDate,t,destination,source)
+				launch_by_hour(now,startDate,endDate,t,destination,source)
+
 			elif schedule['frequency'] == "WEEKLY":
 				if now.isoweekday() == startDate.isoweekday():
-					launch_by_hour(now,startDate,t,destination,source)
+					launch_by_hour(now,startDate,endDate,t,destination,source)
+
 			elif schedule['frequency'] == "MONTHLY":
 				if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day:
-					launch_by_hour(now,startDate,t,destination,source)
+					launch_by_hour(now,startDate,endDate,t,destination,source)
+
 			elif schedule['frequency'] == "QUARTERLY":
 				if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day and now.month%3 == startDate.month%3:
-					launch_by_hour(now,startDate,t,destination,source)
+					launch_by_hour(now,startDate,endDate,t,destination,source)
+
 			elif schedule['frequency'] == "SIXMONTHLY":
 				if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day and now.month%6 == startDate.month%6:
-					launch_by_hour(now,startDate,t,destination,source)
+					launch_by_hour(now,startDate,endDate,t,destination,source)
+
 			elif schedule['frequency'] == "ANNUAL":
 				if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day and now.month == startDate.month:
-					launch_by_hour(now,startDate,t,destination,source)
+					launch_by_hour(now,startDate,endDate,t,destination,source)
 			else:
 				logger.error("Don't understand crawl frequency "+schedule['frequency'])
