@@ -96,8 +96,9 @@ def get_args():
 		args.dir = args.dir[:-1]
 
 	# dump arguments
-	logger.debug("%s" % args)
-	logger.debug("patternRegex: %s" % patternRegex)
+	logger.info("==== Start ==== ==== ====")
+	logger.info("%s" % args)
+	logger.info("patternRegex: %s" % patternRegex)
 
 def get_checksum(fpFile, on_hdfs=False):
 	# get hash for local or hdfs file
@@ -173,3 +174,5 @@ if __name__ == "__main__":
 					logger.info("hdfsFile size %i hash %s" % (hdfsFileStatus['length'], hdfsHash))
 					logger.info("Deleting %s" % localFile)
 					os.remove(localFile)
+
+	logger.info("==== Stop  ==== ==== ====")
