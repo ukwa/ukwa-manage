@@ -57,7 +57,7 @@ handler.setFormatter( formatter )
 logging.root.addHandler( handler )
 
 # Set default logging output for all modules.
-logging.root.setLevel( logging.WARN )
+logging.root.setLevel( logging.WARNING )
 
 # Set logging for this module and keep the reference handy:
 logger = logging.getLogger( __name__ )
