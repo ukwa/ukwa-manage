@@ -11,7 +11,7 @@ from StringIO import StringIO
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig(format=LOGGING_FORMAT, level=logging.WARNING)
-logger = logging.getLogger("webhdfs")
+logger = logging.getLogger(__name__)
 
 
 class API():
@@ -42,13 +42,15 @@ class API():
 
     def _genblocks(self, path, chunk_size=4096, decompress=False):
         """Yields blocks from either a directory or a single file."""
-        if decompress:
-            d = zlib.decompressobj(zlib.MAX_WBITS|32)
         if self.isdir(path):
             directory = path
         else:
             directory = os.path.dirname(path)
+        logger.info("Examining path %s" % path)
         for f in self.list(path):
+            if decompress:
+                d = zlib.decompressobj(zlib.MAX_WBITS|32)
+            logger.debug("Opening %s" % f)
             if f["type"] == "FILE":
                 r = self.openstream(os.path.join(directory, f["pathSuffix"]))
                 for chunk in r.iter_content(chunk_size=chunk_size):
@@ -56,6 +58,7 @@ class API():
                         if decompress:
                             chunk = d.decompress(chunk)
                         if len(chunk) > 0:
+                            logger.debug("Yielding chunk of length %i" % len(chunk))
                             yield chunk
                 r.close()
 
