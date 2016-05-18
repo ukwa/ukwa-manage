@@ -23,6 +23,7 @@ JSON input uses 'clientId' to specify onward link routing key, and 'selectors' a
     "url": "http://www.bbc.co.uk/news"
 }
 
+command=/usr/local/bin/python2.7 /opt/python-shepherd/agents/harchiverd.py --amqp-url "amqp://guest:guest@amqp.ddb.wa.bl.uk:5672/%%2f" --webrender-url http://webrender.bl.uk:8000/webtools/domimage heritrix FC-2-uris-to-render uris-to-render /heritrix/output/images
 """
 
 import sys

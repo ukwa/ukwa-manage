@@ -66,6 +66,6 @@ if len(sys.argv) == 2 and sys.argv[1] == "delete":
     print "THIS WILL DELETE FILES YOU HAVE 15 SECONDS TO CHANGE YOUR MIND!"
     sys.stdout.flush()
     time.sleep(15)
-    dummy_run = False
+    dummy_run = True
 
 checkDir('/heritrix/output/warcs')

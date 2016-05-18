@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-Description:	Script to copy files to HDFS
+Description:	Script to move files to HDFS
 Author:		Gil
 Date:		2016 April 26
 '''
@@ -49,7 +49,7 @@ def setup_logging():
 def get_args():
 	parser = argparse.ArgumentParser('Copy discovered files to HDFS')
 	parser.add_argument('--dir', dest='dir', type=str, default='/heritrix/output/warcs/', help="Directory path to recursively traverse for files [default: %(default)s]")
-	parser.add_argument('--pattern', dest='pattern', type=str, help="File pattern to copy [no default]")
+	parser.add_argument('--pattern', dest='pattern', type=str, help="File pattern to move [no default]")
 	parser.add_argument('--startdate', dest='startDate', type=str, help="Start timestamp to search from, in YYYY-MM-DD:HH.MM.SS format [no default]")
 	parser.add_argument('--enddate', dest='endDate', help="Optional end timestamp to search up to [no default]")
 	parser.add_argument('--hdfsdir', dest='hdfsDir', help="HDFS directory prefix [no default]")

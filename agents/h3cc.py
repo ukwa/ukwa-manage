@@ -158,6 +158,7 @@ USAGE
 		indent = len(program_name) * " "
 		sys.stderr.write(program_name + ": " + repr(e) + "\n")
 		sys.stderr.write(indent + "  for help use --help")
+		logger.exception(e)
 		return 2
 
 if __name__ == "__main__":

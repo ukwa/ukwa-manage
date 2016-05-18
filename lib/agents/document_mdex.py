@@ -40,6 +40,8 @@ class DocumentMDEx(object):
                 self.mdex_gov_uk_publications()
             elif( self.doc["landing_page_url"].startswith("http://www.ifs.org.uk/publications/")):
                 self.mdex_ifs_reports()
+            else:
+                self.mdex_default()
         except Exception as e:
             logger.error("Ignoring error during extraction for document %s and landing page %s" % (self.doc['document_url'], self.doc['landing_page_url']))
             logging.exception(e)
@@ -54,10 +56,6 @@ class DocumentMDEx(object):
             logger.critical("Failed to associated document with any target: %s" % self.doc)
             return None
 
-        # If there is no title, use a default:
-        if not self.doc.get('title',None):
-            self.doc['title'] = '[untitled]'
-            
         # If the publisher appears unambiguous, store it where it can be re-used
         if len(self.doc.get('publishers',[])) is 1:
             self.doc['publisher'] = self.doc['publishers'][0]
@@ -70,6 +68,16 @@ class DocumentMDEx(object):
             return result[0].strip()
         else:
             return ""
+
+    def mdex_default(self):
+        ''' Default extractor uses landing page for title etc.'''
+        # Grab the landing page URL as HTML
+        r = requests.get(self.doc["landing_page_url"])
+        h = html.fromstring(r.content)
+        # Extract a title from the first header, or failing that, the page title:
+        self.doc['title'] = self._get0(h.xpath("//h1/text()")).strip()
+        if not self.doc['title']:
+            self.doc['title'] = self._get0(h.xpath("//title/text()")).strip()
     
     def mdex_gov_uk_publications(self):
         # Start by grabbing the Link-rel-up header to refine the landing page url:
@@ -126,50 +134,3 @@ class DocumentMDEx(object):
             self.doc = dict()
         
 
-def run_doc_mdex_test(url,lpu,src):
-    doc = {}
-    doc['document_url'] = url
-    doc['landing_page_url'] = lpu
-    doc = DocumentMDEx(act, doc, src).mdex()
-    print json.dumps(doc)
-
-if __name__ == "__main__":
-    '''
-    A few test cases
-    '''
-    
-    # Set up a logging handler:
-    handler = logging.StreamHandler()
-    #handler = logging.StreamHandler(sys.stdout) # To use stdout rather than the default stderr
-    formatter = logging.Formatter( "[%(asctime)s] %(levelname)s %(filename)s.%(funcName)s: %(message)s" )
-    handler.setFormatter( formatter ) 
-    
-    # Attach to root logger
-    logging.root.addHandler( handler )
-    
-    # Set default logging output for all modules.
-    logging.root.setLevel( logging.INFO )
-
-    # Hook to W3ACT
-    import sys
-    from w3act import w3act
-    act = w3act(sys.argv[1],sys.argv[2],sys.argv[3])
-
-    # the tests:
-    
-    # - ifs.org.uk
-    run_doc_mdex_test('http://www.ifs.org.uk/uploads/cemmap/wps/cwp721515.pdf',
-                    'http://www.ifs.org.uk/publications/8080','http://www.ifs.org.uk')
-    run_doc_mdex_test('http://www.ifs.org.uk/uploads/publications/bns/BN179.pdf',
-                    'http://www.ifs.org.uk/publications/8049','http://www.ifs.org.uk')
-    # - gov.uk
-    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/507081/2904936_Bean_Review_Web_Accessible.pdf',
-					'https://www.gov.uk/government/publications/independent-review-of-uk-economic-statistics-final-report',
-					'https://www.gov.uk/publications')
-    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/246770/0121.pdf',
-                    'https://www.gov.uk/government/publications/met-office-annual-report-and-accounts-2012-to-2013', 
-                    'https://www.gov.uk/')
-    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/497536/rtfo-year-8-report-2.pdf',
-                    'https://www.gov.uk/government/statistics/biofuel-statistics-year-8-2015-to-2016-report-2', 'https://www.gov.uk/')
-    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/495227/harbour-closure-orders-consultation-summary-responses.pdf',
-                    'https://www.gov.uk/government/consultations/harbour-closure-and-pilotage-function-removal-orders-draft-guidance', 'https://www.gov.uk/')
