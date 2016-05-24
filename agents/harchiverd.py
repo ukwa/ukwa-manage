@@ -56,7 +56,7 @@ logging.getLogger( 'pika' ).setLevel(logging.ERROR)
 
 # Set logging for this module and keep the reference handy:
 logger = logging.getLogger( __name__ )
-logger.setLevel( logging.INFO )
+logger.setLevel( logging.WARNING )
 
 
 def setup_outward_channel(client_id):
