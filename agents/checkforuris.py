@@ -142,6 +142,11 @@ def check_message(ch, method, properties, body):
 					int((dt_inst_date - dt_msg_launchtimestamp).total_seconds())))
 				ch.basic_ack(delivery_tag = method.delivery_tag)
 				return
+	elif (datetime.now() - dt_msg_launchtimestamp).total_seconds() > 43200:
+		# Crawl has taken too long!
+		logger.error('FAILED: no crawl 12 hours after launch at %s for url %s' % (dt_msg_launchtimestamp, msg_url))
+		ch.basic_ack(delivery_tag = method.delivery_tag)
+		return
 	else:
 		# reject amqp message and requeue for future test
 		logger.debug('%s status for %s' % (wbreq.status_code, args.amqp_url))
