@@ -123,6 +123,14 @@ def check_message(ch, method, properties, body):
 		ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
 		return
 
+	# Total elapsed seconds since launch:
+	elapsed = (datetime.now() - dt_msg_launchtimestamp).total_seconds()
+	if elapsed > 43200:
+		# Crawl has taken too long!
+		logger.error('FAILED: no crawl 12 hours after launch at %s for url %s' % (dt_msg_launchtimestamp, msg_url))
+		ch.basic_ack(delivery_tag = method.delivery_tag)
+		return
+
 	# search for wayback timestamp > launch_timestamp
 	most_recent_instance = None
 	if wbreq.status_code == 200:
@@ -142,18 +150,13 @@ def check_message(ch, method, properties, body):
 					int((dt_inst_date - dt_msg_launchtimestamp).total_seconds())))
 				ch.basic_ack(delivery_tag = method.delivery_tag)
 				return
-	elif (datetime.now() - dt_msg_launchtimestamp).total_seconds() > 43200:
-		# Crawl has taken too long!
-		logger.error('FAILED: no crawl 12 hours after launch at %s for url %s' % (dt_msg_launchtimestamp, msg_url))
-		ch.basic_ack(delivery_tag = method.delivery_tag)
-		return
 	else:
 		# reject amqp message and requeue for future test
 		logger.debug('%s status for %s' % (wbreq.status_code, args.amqp_url))
 		ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
 		return
 
-	logger.info('launch %s of url %s not yet in wayback (%s)' % (dt_msg_launchtimestamp,msg_url, most_recent_instance))
+	logger.info('launch %s of url %s not yet in wayback (%s), elapsed time = %i' % (dt_msg_launchtimestamp,msg_url, most_recent_instance, elapsed))
 	ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
 
 # main -------------------------------------
