@@ -116,7 +116,7 @@ if __name__ == "__main__":
 					help="Name of the exchange to use (defaults to heritrix).")	
 	parser.add_argument("-t", "--timestamp", dest="timestamp", type=str, 
 					help="Timestamp to use rather than the current time, e.g. \"2016-01-13 09:00:00\" ", 
-					default=datetime.utcnow().isoformat())
+					default=datetime.now().isoformat())
 	parser.add_argument("-f", "--frequency", dest="frequency", type=str, 
 					help="Frequency to look at. Use 'frequent' for all valid frequencies. [default: %(default)s]", default='frequent')
 	parser.add_argument("-d", "--destination", dest="destination", type=str, default='har',
@@ -167,13 +167,13 @@ if __name__ == "__main__":
 		# Check the scheduling:
 		for schedule in t['schedules']:
 			# Skip if target schedule outside of start/end range
-			startDate = datetime.fromtimestamp(schedule['startDate']/1000)
+			startDate = datetime.utcfromtimestamp(schedule['startDate']/1000)
 			if( now < startDate ):
 				logger.debug("Start date %s not yet reached" % startDate)
 				continue
 			endDate = 'N/S'
 			if schedule['endDate']:
-				endDate = datetime.fromtimestamp(schedule['endDate']/1000)
+				endDate = datetime.utcfromtimestamp(schedule['endDate']/1000)
 				if now > endDate:
 					logger.debug("End date %s passed" % endDate)
 					continue
