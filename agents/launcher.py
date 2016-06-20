@@ -80,6 +80,7 @@ def launch_by_hour(now,startDate,endDate,t,destination,source, freq):
 			# And send launch message:
 			launcher.launch(destination, seed, source, isSeed, "FC-3-uris-to-crawl")
 			counter = counter + 1
+			global i_launches
 			i_launches = i_launches + 1
 				
 	else:
