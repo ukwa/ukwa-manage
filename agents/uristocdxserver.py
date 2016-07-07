@@ -79,6 +79,11 @@ def callback( ch, method, properties, body ):
 			else:
 				mimetype = "warc/revisit"
 				status_code = "-"
+		# Catch edge case where line looks okay but no WARC set!
+		if cl["warc_filename"] is None:
+			logger.critical("Dropping message because WARC filename is unset! Message: %s" % body)
+			ch.basic_ack(delivery_tag = method.delivery_tag)
+			return
 		# Build CDX line:
 		cdx_11 = "- %s %s %s %s %s %s - - %s %s\n" % ( 
 			cl["start_time_plus_duration"][:14],
@@ -99,6 +104,8 @@ def callback( ch, method, properties, body ):
 			return
 		else:
 			logger.error("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
+			logger.error("Failed submission was: %s" % cdx_11.encode('utf-8'))
+			logger.error("Failed source message was: %s" % body)
 
 	except Exception as e:
 		logger.error( "%s [%s]" % ( str( e ), body ) )
@@ -107,8 +114,8 @@ def callback( ch, method, properties, body ):
 	# All that failed? Then reject and requeue the message to try later:
 	ch.basic_reject(delivery_tag = method.delivery_tag, requeue=True)
 	# Occasionally re-try unacked messages using basic_recover
-	if random.randint(0,1000) == 0:
-		ch.basic_recover(requeue=False)
+	#if random.randint(0,1000) == 0:
+	#	ch.basic_recover(requeue=False)
 
 
 if __name__ == "__main__":

@@ -23,8 +23,10 @@ JSON input uses 'clientId' to specify onward link routing key, and 'selectors' a
     "url": "http://www.bbc.co.uk/news"
 }
 
+command=/usr/local/bin/python2.7 /opt/python-shepherd/agents/harchiverd.py --amqp-url "amqp://guest:guest@amqp.ddb.wa.bl.uk:5672/%%2f" --webrender-url http://webrender.bl.uk:8000/webtools/domimage heritrix FC-2-uris-to-render uris-to-render /heritrix/output/images
 """
 
+import os
 import sys
 import json
 import pika
@@ -37,7 +39,11 @@ from datetime import datetime
 from urlparse import urlparse
 import urllib
 from hanzo.warctools import WarcRecord
+
+#### wa libraries
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"../python-warcwriterpool")))
 from warcwriterpool import WarcWriterPool, warc_datetime_str
+
 
 # Set up a logging handler:
 handler = logging.StreamHandler()
@@ -55,7 +61,7 @@ logging.getLogger( 'pika' ).setLevel(logging.ERROR)
 
 # Set logging for this module and keep the reference handy:
 logger = logging.getLogger( __name__ )
-logger.setLevel( logging.INFO )
+logger.setLevel( logging.WARNING )
 
 
 def setup_outward_channel(client_id):
