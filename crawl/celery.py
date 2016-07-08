@@ -22,7 +22,7 @@ app = Celery('crawl',
              broker='amqp://',
 # This is only needed if we consume the results of the calls
 #             backend='rpc://',
-             include=['crawl.job'])
+             include=['crawl.tasks'])
 
 # Optional configuration, see the application user guide.
 app.conf.update(
@@ -47,13 +47,13 @@ app.conf.update(
         "default": {
             "exchange": "default",
             "binding_key": "default"},
-        "crawl.job.add": {
+        "crawl.task.add": {
             "exchange": "default",
-            "binding_key": "crawl.job.add",
+            "binding_key": "crawl.task.add",
         },
-        "crawl.job.mul": {
+        "crawl.task.mul": {
             "exchange": "default",
-            "binding_key": "crawl.job.mul",
+            "binding_key": "crawl.task.mul",
         }
     },
     CELERY_DEFAULT_QUEUE = "default",
@@ -62,11 +62,11 @@ app.conf.update(
 
     # Mapping from tasks to queues:
     CELERY_ROUTES = {
-        'crawl.job.add': {
-            'queue' : 'crawl.job.add',
+        'crawl.task.add': {
+            'queue' : 'crawl.task.add',
         },
-        'crawl.job.mul': {
-            'queue': 'crawl.job.mul',
+        'crawl.task.mul': {
+            'queue': 'crawl.task.mul',
         },
     },
 )

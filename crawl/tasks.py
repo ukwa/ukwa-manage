@@ -59,26 +59,27 @@ def check_watched_targets(jobname, heritrix):
 #                "%s/%s" % (jobname, timestamp)
 #            )
 
+@app.task()
+def build_sip(job_id,launch_id):
+    logger.info("Got sip build request")
+
+@app.task()
+def qa_job(job_id,launch_id):
+    logger.info("Got job qa request")
+
 def stop_running_job(frequency, heritrix):
     """Stops a running job, notifies RabbitMQ and cleans up the directory."""
     launchid = heritrix.launchid(frequency)
     message = "%s/%s" % (frequency, launchid)
     job = W3actJob.from_directory("%s/%s" % (HERITRIX_JOBS, frequency), heritrix=heritrix)
     job.stop()
+
     logger.info("Sending SIP message: %s" % message)
-#    send_message(
-#        settings.QUEUE_HOST,
-#        settings.SIP_QUEUE_NAME,
-#        settings.SIP_QUEUE_KEY,
-#        message
-#    )
+    build_sip.delay(frequency,launchid)
+
     logger.info("Sending QA message: %s" % message)
-#    send_message(
-#        settings.QUEUE_HOST,
-#        settings.QA_QUEUE_NAME,
-#        settings.QA_QUEUE_KEY,
-#        message
-#    )
+    qa_job.delay(frequency,launchid)
+
     remove_action_files(frequency)
 
 @app.task()

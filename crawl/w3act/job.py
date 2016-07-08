@@ -27,7 +27,7 @@ scope_sheets = {"resource": "resourceScope", "plus1": "plus1Scope", "subdomains"
 
 W3ACT_FIELDS=["id", "title", "crawlStartDateText", "crawlEndDateText", "field_depth", "field_scope", "field_ignore_robots_txt"]
 
-HERITRIX_CONFIG_ROOT=os.path.join(os.path.realpath(os.path.dirname(__file__),"../profiles"))
+HERITRIX_CONFIG_ROOT=os.path.join(os.path.realpath(os.path.dirname(__file__)),"../profiles")
 HERITRIX_PROFILE="%s/profile-frequent.cxml" % HERITRIX_CONFIG_ROOT
 HERITRIX_EXCLUDE="%s/exclude.txt" % HERITRIX_CONFIG_ROOT
 HERITRIX_SHORTENERS="%s/url.shorteners.txt" % HERITRIX_CONFIG_ROOT

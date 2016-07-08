@@ -1,17 +1,29 @@
 import re
 import sys
 import json
-import w3act
 import logging
-import heritrix
 import requests
 from lxml import html
-from slugify import slugify
 from urlparse import urlparse, urljoin
+import re
+import unicodedata
 
 logger = logging.getLogger("w3act.credentials")
 logging.getLogger("requests").setLevel(logging.WARNING)
 requests.packages.urllib3.disable_warnings()
+
+def slugify(string):
+
+    """
+    Slugify a unicode string.
+    """
+
+    return re.sub(r'[-\s]+', '-',
+            unicode(
+                re.sub(r'[^\w\s-]', '',
+                    unicodedata.normalize('NFKD', string)
+                    .encode('ascii', 'ignore'))
+                .strip().lower()))
 
 def scrape_login_page(url, username, password):
     """Scrape a page for hidden fields pre-login."""
@@ -79,7 +91,7 @@ def get_seeds_script(seeds):
 def get_logout_exclusion_script(logout_regex):
     return """appCtx.getBean("listRegexFilterOut").regexList.add(java.util.regex.Pattern.compile("%s"))""" % (logout_regex)
 
-def handle_credentials(info, job, api):
+def handle_credentials(w, info, job, api):
     """Retrieves credentials for a w3act Target and adds these via the Heritrix API.
 
     Arguments:
@@ -88,7 +100,6 @@ def handle_credentials(info, job, api):
     api -- a python-heritrix instance.
 
     """
-    w = w3act.ACT()
     if "watched" in info.keys() and info["watched"]:
         if info["watchedTarget"]["secretId"] is not None:
             secret = w.get_secret(info["watchedTarget"]["secretId"])
