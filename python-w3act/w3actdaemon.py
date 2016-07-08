@@ -5,9 +5,10 @@ Daemon which watches a configured queue for messages and for each, creates
 submits to Heritrix.
 """
 
-import sys
 import logging
-from w3act import settings
+import sys
+
+from crawl import settings
 from w3act.w3actd import JobDaemon
 
 logger = logging.getLogger("w3actd")

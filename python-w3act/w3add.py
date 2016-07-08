@@ -3,20 +3,20 @@
 Adds new seeds to already-running jobs.
 """
 
-import os
-import sys
-import json
-import w3act
-import shutil
-import logging
 import argparse
-import heritrix
-import requests
+import logging
+import shutil
+import sys
 import traceback
-from glob import glob
-import dateutil.parser
-from w3act import settings
 from datetime import datetime
+from glob import glob
+
+import heritrix
+
+import dateutil.parser
+import requests
+import w3act
+from crawl import settings
 
 requests.packages.urllib3.disable_warnings()
 

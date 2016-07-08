@@ -25,6 +25,17 @@ mandatory_fields = ["field_url", "field_depth", "field_scope", "url"]
 depth_sheets = {"capped_large": "higherLimit", "deep": "noLimit"}
 scope_sheets = {"resource": "resourceScope", "plus1": "plus1Scope", "subdomains": "subdomainsScope"}
 
+W3ACT_FIELDS=["id", "title", "crawlStartDateText", "crawlEndDateText", "field_depth", "field_scope", "field_ignore_robots_txt"]
+
+HERITRIX_CONFIG_ROOT=os.path.join(os.path.realpath(os.path.dirname(__file__),"../profiles"))
+HERITRIX_PROFILE="%s/profile-frequent.cxml" % HERITRIX_CONFIG_ROOT
+HERITRIX_EXCLUDE="%s/exclude.txt" % HERITRIX_CONFIG_ROOT
+HERITRIX_SHORTENERS="%s/url.shorteners.txt" % HERITRIX_CONFIG_ROOT
+HERITRIX_SURTS="%s/surts.txt" % HERITRIX_CONFIG_ROOT
+
+CLAMD_PORTS = { "daily": "3311", "weekly": "3312", "monthly": "3313", "quarterly": "3310", "sixmonthly": "3310", "annual": "3310" }
+CLAMD_DEFAULT_PORT = "3310"
+
 
 def to_surt(url):
         parsed = urlparse(url).netloc
@@ -64,7 +75,7 @@ def get_relevant_fields(nodes):
     """Retrieves subset of a Target's fields."""
     targets = []
     for node in nodes:
-        target_info = { key: node[key] for key in settings.W3ACT_FIELDS }
+        target_info = { key: node[key] for key in W3ACT_FIELDS }
         target_info["seeds"] = [u["url"] for u in node["fieldUrls"]]
         if "watched" in node.keys():
             target_info["watched"] = node["watched"]
@@ -88,7 +99,7 @@ class W3actJob(object):
         self.w3act = w3act
         self.use_credentials = use_credentials
         if name is None:
-            self.name = self.get_name(w3act_targets[0][settings.W3ACT_JOB_FIELD])
+            self.name = self.get_name(w3act_targets[0]['url'])
         else:
             self.name = name
         if seeds is None:
@@ -133,34 +144,34 @@ class W3actJob(object):
         if api is not None:
             self.heritrix = api
         else:
-            self.heritrix = hapy.hapy(host="https://%s:%s/engine" % (host, port), user=user, passwd=passwd, verbose=False, verify=False)
-        self.heritrix.add(self.job_dir)
+            self.heritrix = hapy.Hapy(host="https://%s:%s/engine" % (host, port), user=user, passwd=passwd, verbose=False, verify=False)
+        self.heritrix.add_job_directory(self.job_dir)
 
 
     def create_profile(self):
         """Creates the CXML content for a H3 job."""
-        profile = etree.parse(settings.HERITRIX_PROFILE)
+        profile = etree.parse(HERITRIX_PROFILE)
         profile.xinclude()
         cxml = etree.tostring(profile, pretty_print=True, xml_declaration=True, encoding="UTF-8")
         cxml = cxml.replace("REPLACE_JOB_NAME", self.name)
-        if self.name in settings.CLAMD_PORTS.keys():
-            cxml = cxml.replace("REPLACE_CLAMD_PORT", settings.CLAMD_PORTS[self.name])
+        if self.name in CLAMD_PORTS.keys():
+            cxml = cxml.replace("REPLACE_CLAMD_PORT", CLAMD_PORTS[self.name])
         else:
-            cxml = cxml.replace("REPLACE_CLAMD_PORT", settings.CLAMD_DEFAULT_PORT)
+            cxml = cxml.replace("REPLACE_CLAMD_PORT", CLAMD_DEFAULT_PORT)
         cxml = cxml.replace("REPLACE_JOB_ROOT", self.name)
-        cxml = cxml.replace("REPLACE_HERITRIX_JOBS", settings.HERITRIX_JOBS)
+        cxml = cxml.replace("REPLACE_HERITRIX_JOBS", HERITRIX_JOBS)
         self.cxml = cxml
 
 
     def setup_job_directory(self):
         """Creates the Heritrix job directory."""
-        self.job_dir = "%s/%s/" % (settings.HERITRIX_JOBS, self.name)
+        self.job_dir = "%s/%s/" % (HERITRIX_JOBS, self.name)
         if not os.path.isdir(self.job_dir):
             os.makedirs(self.job_dir)
 
-        shutil.copy(settings.HERITRIX_SHORTENERS, self.job_dir)
-        shutil.copy(settings.HERITRIX_EXCLUDE, self.job_dir)
-        shutil.copy(settings.HERITRIX_SURTS, self.job_dir)
+        shutil.copy(HERITRIX_SHORTENERS, self.job_dir)
+        shutil.copy(HERITRIX_EXCLUDE, self.job_dir)
+        shutil.copy(HERITRIX_SURTS, self.job_dir)
 
         # Write seeds to disk:
         with open("%s/seeds.txt" % self.job_dir, "wb") as o:

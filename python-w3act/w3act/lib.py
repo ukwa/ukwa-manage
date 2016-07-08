@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- 
 
-import sys
 import json
 import logging
-import requests
-import settings
+import sys
 import traceback
+
+import requests
+from crawl import settings
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig(format=LOGGING_FORMAT, level=logging.DEBUG)

@@ -7,22 +7,18 @@ import argparse
 import json
 import logging
 import sys
-import tempfile
 import traceback
 from datetime import datetime
 from glob import glob
 
-import heritrix
-from slacker import Slacker
-
 import dateutil.parser
+import hapy
 import os
 import requests
-import w3act
 from crawl import settings
-from w3act.job import W3actJob
-from w3act.util import generate_log_stats, stats_to_csv
-from w3act.w3actd import send_message
+from crawl.w3act.job import W3actJob
+from crawl.w3act.w3actd import send_message
+from lib.agents.w3act import w3act
 
 requests.packages.urllib3.disable_warnings()
 
@@ -56,18 +52,6 @@ def remove_action_files(jobname):
             logger.info("Removing %s action files." % len(to_remove))
             for action in to_remove:
                 os.remove(action)
-
-def send_slack_messages(stats, name):
-    messages = {}
-    messages["json"] = json.dumps(stats, indent=4)
-    if settings.SLACK_CSV:
-        messages["csv"] = stats_to_csv(stats)
-    slack = Slacker(settings.SLACK_TOKEN)
-    for extension, data in messages.iteritems():
-        output = "%s/%s.%s" % (tempfile.gettempdir(), name, extension)
-        with open(output, "wb") as o:
-            o.write(data)
-        res = slack.files.upload(output, channels=settings.SLACK_CHANNEL, filename="%s-%s.%s" % (name, datetime.utcnow().strftime("%Y%m%d%H%M%S"), extension), title=name)
 
 def check_watched_targets(jobname, heritrix):
     """If there are any Watched Targets, send a message."""
@@ -107,20 +91,19 @@ def stop_running_job(frequency, heritrix):
         message
     )
     remove_action_files(frequency)
-    if settings.SLACK:
-        stats = generate_log_stats(glob("%s/%s/%s/crawl.log*" % (settings.HERITRIX_LOGS, frequency, launchid)))
-        send_slack_messages(stats, frequency)
 
 def restart_job(frequency, start=datetime.utcnow()):
     """Restarts the job for a particular frequency."""
     logger.info("Restarting %s at %s" % (frequency, start))
     try:
-        w = w3act.ACT()
+        w = w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
+
         export = w.get_ld_export(frequency)
         logger.debug("Found %s Targets in export." % len(export))
         targets = [t for t in export if (t["crawlStartDateISO"] is None or dateutil.parser.parse(t["crawlStartDateISO"]) < start) and (t["crawlEndDateISO"] is None or dateutil.parser.parse(t["crawlEndDateISO"]) > start)]
         logger.debug("Found %s Targets in date range." % len(targets))
-        h = heritrix.API(host="https://%s:%s/engine" % (settings.HERITRIX_HOST, settings.HERITRIX_PORTS[frequency]), user="admin", passwd="bl_uk", verbose=False, verify=False)
+        h = hapy.Hapy("https://%s:%s" % (args.host, args.port), username=args.user, password=args.password)
+        #h = heritrix.API(host="https://%s:%s/engine" % (settings.HERITRIX_HOST, settings.HERITRIX_PORTS[frequency]), user="admin", passwd="bl_uk", verbose=False, verify=False)
         if frequency in h.listjobs() and h.status(frequency) != "":
             stop_running_job(frequency, h)
             #TODO: Automated QA

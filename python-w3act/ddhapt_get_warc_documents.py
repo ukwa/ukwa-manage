@@ -4,27 +4,29 @@ Script to extract documents (currently == PDF) from a Heritrix job's WARCs.
 Attempts to trace a route from every document to a seed within 3 hops.
 """
 
-import os
-import re
-import ssl
-import json
-import pika
-import logging
-import rfc6266
 import argparse
-import requests
 import collections
-from glob import glob
-from settings import *
+import json
+import logging
+import ssl
 from StringIO import StringIO
-from pywb.warc import cdxindexer
-from w3act.watched import validation
-from hanzo.warctools import WarcRecord
+from glob import glob
 from urlparse import urlparse, urldefrag
-from requests.adapters import HTTPAdapter
-from hanzo.warcpayload import FileHTTPResponse
+
+import rfc6266
+from pywb.warc import cdxindexer
 from pywb.warc.archiveiterator import DefaultRecordIter
+
+import os
+import pika
+import re
+import requests
+from crawl.settings import *
+from hanzo.warcpayload import FileHTTPResponse
+from hanzo.warctools import WarcRecord
+from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
+from w3act.watched import validation
 
 parser = argparse.ArgumentParser(description="Extract documents from WARCs.")
 parser.add_argument("-t", "--test", dest="test", action="store_true", required=False, help="Test")
