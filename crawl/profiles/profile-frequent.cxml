@@ -267,10 +267,13 @@
 	</bean> 
 	<bean id="extractorSwf" class="org.archive.modules.extractor.ExtractorSWF">
 	</bean>
+	<!--
 	<bean id="extractorJson" class="uk.bl.wap.modules.extractor.ExtractorJson">
 	</bean>
+	-->
 	<bean id="extractorJs" class="org.archive.modules.extractor.ExtractorJS">
 	</bean>
+	<!--
 	<bean id="extractorMq" class="uk.bl.wap.modules.extractor.AsynchronousMQExtractor">
 		<property name="host" value="amqp.wa.bl.uk" />
 		<property name="routingKey" value="phantomjs" />
@@ -278,12 +281,15 @@
 		<property name="durable" value="true" />
 		<property name="outputPath" value="REPLACE_HERITRIX_JOBS/REPLACE_JOB_NAME/action/" />
 	</bean>
+	-->
+	<!--
 	<bean id="viralContent" class="uk.bl.wap.crawler.processor.ViralContentProcessor">
 		<property name="clamdHost" value="localhost" />
    		<property name="clamdPort" value="REPLACE_CLAMD_PORT" />
    		<property name="clamdTimeout" value="0" />
 		<property name="streamMaxLength" value="94371840"/>
 	</bean>
+	-->
 	<!-- Configure persistent URI history storage -->
 	<bean id="persistStoreProcessor" class="org.archive.modules.recrawl.PersistStoreProcessor">
 	</bean>
@@ -314,22 +320,32 @@
 				<!-- ...suppress likely crawler traps... -->
 				<!--ref bean="trapSuppressExtractor" /-->
 				<!-- ...extract oulinks via Asynchronous Messaging Queue... -->
+				<!--
 				<ref bean="extractorMq"/>
+				-->
 				<!-- ...extract outlinks from JSON... -->
+				<!--
 				<ref bean="extractorJson" />
+				-->
 				<!-- ...extract oulinks from HTML content... -->
 				<ref bean="extractorHtml"/>
 				<!-- ...extract oulinks from CSS content... -->
 				<ref bean="extractorCss"/>
 				<!-- ...extract oulinks from JS content... -->
+				<!--
 				<ref bean="extractorJs"/>
+				-->
 				<!-- ...extract oulinks from Flash content... -->
 				<ref bean="extractorSwf"/>
 				<!-- ...add IPs to crawl.log... -->
+				<!--
 				<bean class="uk.bl.wap.crawler.processor.IpAnnotator">
 				</bean>
+				-->
 				<!-- ...scan for viruses... -->
+				<!--
 				<ref bean="viralContent" />
+				-->
 			</list>
 		</property>
 	</bean>
@@ -354,14 +370,15 @@
 			</list>
 		</property>
 	</bean>
+	<!--
 	<bean id="warcWriterViral" class="uk.bl.wap.modules.writer.WARCViralWriterProcessor">
 		<property name="shouldProcessRule">
 			<bean class="org.archive.modules.deciderules.DecideRuleSequence">
 				<property name="rules">
 					<list>
-						<!-- Begin by REJECTing all... -->
+						<!- - Begin by REJECTing all... - ->
 						<bean class="org.archive.modules.deciderules.RejectDecideRule"/>
-						<!-- ...then ACCEPT those with viral annotations... -->
+						<!- - ...then ACCEPT those with viral annotations... - ->
 						<bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
 							<property name="decision" value="ACCEPT"/>
 							<property name="regexList">
@@ -391,6 +408,7 @@
 		<property name="writeRevisitForIdenticalDigests" value="false" />
 		<property name="writeRevisitForNotModified" value="false" />
 	</bean>
+	-->
 	<bean id="warcWriterDefault" class="org.archive.modules.writer.WARCWriterProcessor">
 		<property name="shouldProcessRule">
 			<bean class="org.archive.modules.deciderules.DecideRuleSequence">
@@ -399,6 +417,7 @@
 						<!-- Begin by ACCEPTing all... -->
 						<bean class="org.archive.modules.deciderules.AcceptDecideRule"/>
 						<!-- ...then ACCEPT those with viral annotations... -->
+						<!--
 						<bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
 							<property name="decision" value="REJECT"/>
 							<property name="regexList">
@@ -407,6 +426,7 @@
 								</list>
 							</property>
 						</bean>
+						-->
 					</list>
 				</property>
 			</bean>
@@ -444,7 +464,9 @@
 		<property name="processors">
 			<list>
 				<!-- write viral content to aggregate archival files... -->
+				<!--
 				<ref bean="warcWriterViral"/>
+				-->
 				<!-- write to aggregate archival files... -->
 				<ref bean="warcWriterDefault"/>
 				<ref bean="persistStoreProcessor" />
@@ -563,26 +585,23 @@
 		It will be very rare to replace or reconfigure the following beans.
 		-->
 	<!-- STATISTICSTRACKER: standard stats/reporting collector -->
-	<bean id="statisticsTracker" class="org.archive.crawler.reporting.StatisticsTracker" autowire="byName">
-		<property name="reports">
-			<list>
-				<bean id="crawlSummaryReport" class="org.archive.crawler.reporting.CrawlSummaryReport" />
-				<bean id="seedsReport" class="org.archive.crawler.reporting.SeedsReport" />
-				<bean id="hostsReport" class="org.archive.crawler.reporting.HostsReport" />
-				<bean id="sourceTagsReport" class="org.archive.crawler.reporting.SourceTagsReport" />
-				<bean id="mimetypesReport" class="org.archive.crawler.reporting.MimetypesReport" />
-				<bean id="responseCodeReport" class="org.archive.crawler.reporting.ResponseCodeReport" />
-				<bean id="processorsReport" class="org.archive.crawler.reporting.ProcessorsReport" />
-				<bean id="frontierSummaryReport" class="org.archive.crawler.reporting.FrontierSummaryReport" />
-				<bean id="frontierNonemptyReport" class="org.archive.crawler.reporting.FrontierNonemptyReport" />
-				<bean id="toeThreadsReport" class="org.archive.crawler.reporting.ToeThreadsReport" />
-			</list>
-		</property>
-		<property name="reportsDir" value="${launchId}/reports" />
-		<property name="liveHostReportSize" value="20" />
-		<property name="intervalSeconds" value="20" />
-		<property name="keepSnapshotsCount" value="5" />
-	</bean>
+ <bean id="statisticsTracker"
+   class="org.archive.crawler.reporting.StatisticsTracker" autowire="byName">
+  <!-- disables end-of-job reporting altogether -->
+  <property name="reports">
+    <list>
+      <bean class="org.archive.crawler.reporting.ProcessorsReport"/>
+      <bean class="org.archive.crawler.reporting.FrontierSummaryReport"/>
+      <bean class="org.archive.crawler.reporting.ToeThreadsReport"/>
+    </list>
+  </property>
+  <!-- <property name="reportsDir" value="reports" /> -->
+  <!-- <property name="liveHostReportSize" value="20" /> -->
+  <!-- <property name="intervalSeconds" value="3600" /> -->
+  <!-- 1 is sufficient for computing docs/s and KiB/s -->
+  <property name="keepSnapshotsCount" value="1" />
+  <!-- <property name="liveHostReportSize" value="20" /> -->
+ </bean>
 	
 	<!-- CRAWLERLOGGERMODULE: shared logging facility -->
 	<bean id="loggerModule" class="org.archive.crawler.reporting.CrawlerLoggerModule">
@@ -609,7 +628,7 @@
 	</bean>
 	
 	<!-- BDBCOOKIESTORAGE: disk-based cookie storage for FetchHTTP -->
-	<bean id="cookieStorage" class="org.archive.modules.fetcher.BdbCookieStorage">
+	<bean id="cookieStorage" class="org.archive.modules.fetcher.BdbCookieStore">
 		<property name="cookiesLoadFile"><null/></property>
 		<property name="cookiesSaveFile"><null/></property>
 		<!-- property name="bdb">

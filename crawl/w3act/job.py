@@ -8,14 +8,16 @@ import os
 import json
 import time
 import shutil
-import hapy
 import requests
+from glob import glob
 from lxml import etree
 from lib.agents.w3act import w3act
 from urlparse import urlparse
+from crawl.h3 import hapyx
 from crawl.w3act.util import unique_list
 from crawl.w3act import credentials
 from xml.etree.ElementTree import ParseError
+from crawl.celery import HERITRIX_JOBS
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
@@ -25,9 +27,9 @@ mandatory_fields = ["field_url", "field_depth", "field_scope", "url"]
 depth_sheets = {"capped_large": "higherLimit", "deep": "noLimit"}
 scope_sheets = {"resource": "resourceScope", "plus1": "plus1Scope", "subdomains": "subdomainsScope"}
 
-W3ACT_FIELDS=["id", "title", "crawlStartDateText", "crawlEndDateText", "field_depth", "field_scope", "field_ignore_robots_txt"]
+W3ACT_FIELDS=["id", "title", "schedules", "depth", "scope", "ignoreRobotsTxt"]
 
-HERITRIX_CONFIG_ROOT=os.path.join(os.path.realpath(os.path.dirname(__file__)),"../profiles")
+HERITRIX_CONFIG_ROOT=os.path.realpath(os.path.join(os.path.dirname(__file__),"../profiles"))
 HERITRIX_PROFILE="%s/profile-frequent.cxml" % HERITRIX_CONFIG_ROOT
 HERITRIX_EXCLUDE="%s/exclude.txt" % HERITRIX_CONFIG_ROOT
 HERITRIX_SHORTENERS="%s/url.shorteners.txt" % HERITRIX_CONFIG_ROOT
@@ -69,45 +71,59 @@ def get_scope_scripts(seeds, scope):
             logger.info("Setting scope for %s to %s" % (surt, sheet))
     return script
 
-
-
 def get_relevant_fields(nodes):
     """Retrieves subset of a Target's fields."""
     targets = []
     for node in nodes:
         target_info = { key: node[key] for key in W3ACT_FIELDS }
-        target_info["seeds"] = [u["url"] for u in node["fieldUrls"]]
+        target_info["seeds"] = [u for u in node["seeds"]]
         if "watched" in node.keys():
             target_info["watched"] = node["watched"]
-            target_info["watchedTarget"] = node["watchedTarget"]
         targets.append(target_info)
     return targets
+
+def remove_action_files(jobname):
+    """Removes old 'action' files and symlinks."""
+    actions_done = "%s/%s/latest/actions-done" % (HERITRIX_JOBS, jobname)
+    done = "%s/%s/action/done" % (HERITRIX_JOBS, jobname)
+    for root in [actions_done, done]:
+        if os.path.exists(root):
+            to_remove = glob("%s/*" % root)
+            logger.info("Removing %s action files." % len(to_remove))
+            for action in to_remove:
+                os.remove(action)
+
+def check_watched_targets(jobname, heritrix):
+    """If there are any Watched Targets, send a message."""
+    timestamp = heritrix.launchid(jobname)
+    if not os.path.exists("%s/%s/%s/w3act-info.json" % (HERITRIX_JOBS, jobname, timestamp)):
+        return
+    with open("%s/%s/%s/w3act-info.json" % (HERITRIX_JOBS, jobname, timestamp), "rb") as i:
+        info = i.read()
+    for job in json.loads(info):
+        if job["watched"]:
+            logger.info("Found a Watched Target in %s/%s." % (jobname, timestamp))
+#            send_message(
+#                settings.QUEUE_HOST,
+#                settings.WATCHED_QUEUE_NAME,
+#                settings.WATCHED_QUEUE_KEY,
+#                "%s/%s" % (jobname, timestamp)
+#            )
 
 
 class W3actJob(object):
     """Represents a Heritrix job for w3act."""
 
-    def get_name(self, url_field):
-        """Inconsistent 'url' values."""
-        if "/" in url_field:
-            fields = url_field.split("/")
-            return "%s-%s" % (fields[-2], fields[-1])
-        else:
-            return url_field
-
-    def __init__(self, w3act, w3act_targets, name=None, seeds=None, directory=None, heritrix=None, setup=True, use_credentials=False):
+    def __init__(self, w3act, w3act_targets, name, seeds=None, directory=None, heritrix=None, setup=True, use_credentials=False):
         self.w3act = w3act
         self.use_credentials = use_credentials
-        if name is None:
-            self.name = self.get_name(w3act_targets[0]['url'])
-        else:
-            self.name = name
+        self.name = name
         if seeds is None:
-            self.seeds = [u["url"] for t in w3act_targets for u in t["fieldUrls"]]
+            self.seeds = [s for t in w3act_targets for s in t["seeds"]]
         else:
             self.seeds = seeds
         if setup:
-            logger.debug("Configuring directory for job '%s'." % self.name)
+            logger.info("Configuring directory for job '%s'." % self.name)
             self.info = get_relevant_fields(w3act_targets)
             self.setup_job_directory()
         else:
@@ -115,17 +131,17 @@ class W3actJob(object):
             self.job_dir = directory
         if heritrix is not None:
             self.heritrix = heritrix
-            self.heritrix.add(self.job_dir)
+            self.heritrix.add_job_directory(self.job_dir)
 
     def get_blocking_scripts(self):
         """Blocks access to w3act's 'nevercrawl' targets."""
-        j = w3act.get_ld_export("nevercrawl")
-        blocked_urls = unique_list([to_surt(u["url"]) for t in j for u in t["fieldUrls"]])
+        j = self.w3act.get_ld_export("nevercrawl")
+        blocked_urls = unique_list([to_surt(u) for t in j for u in t["seeds"]])
         script = [get_surt_association_script(surt, "blockAll") for surt in blocked_urls]
         return script
 
     @staticmethod
-    def from_directory(path, heritrix=None):
+    def from_directory(w, path, heritrix=None):
         """Build a job from an existing directory."""
         logger.debug("Building job from directory: %s" % path)
         name = os.path.basename(path)
@@ -134,9 +150,12 @@ class W3actJob(object):
                 info = json.loads(i.read())
         else:
             info = []
-        with open("%s/latest/seeds.txt" % path, "rb") as i:
-            seeds = [l.strip() for l in i if not l.startswith("#") and len(l.strip()) > 0]
-        job = W3actJob(info, name=name, seeds=seeds, directory=path, heritrix=heritrix, setup=False)
+        if os.path.exists("%s/latest/seeds.txt" % path):
+            with open("%s/latest/seeds.txt" % path, "rb") as i:
+                seeds = [l.strip() for l in i if not l.startswith("#") and len(l.strip()) > 0]
+        else:
+            seeds = None
+        job = W3actJob(w, info, name=name, seeds=seeds, directory=path, heritrix=heritrix, setup=False)
         return job
 
 
@@ -144,13 +163,14 @@ class W3actJob(object):
         if api is not None:
             self.heritrix = api
         else:
-            self.heritrix = hapy.Hapy(host="https://%s:%s/engine" % (host, port), user=user, passwd=passwd, verbose=False, verify=False)
+            self.heritrix = hapyx.HapyX(host="https://%s:%s/engine" % (host, port), user=user, passwd=passwd, verbose=False, verify=False)
         self.heritrix.add_job_directory(self.job_dir)
 
 
     def create_profile(self):
         """Creates the CXML content for a H3 job."""
         profile = etree.parse(HERITRIX_PROFILE)
+        logger.info("RUNNING X INCLUDE... "+HERITRIX_PROFILE)
         profile.xinclude()
         cxml = etree.tostring(profile, pretty_print=True, xml_declaration=True, encoding="UTF-8")
         cxml = cxml.replace("REPLACE_JOB_NAME", self.name)
@@ -185,8 +205,8 @@ class W3actJob(object):
         # Write Sheet-associations to disk:
         commands = []
         for target in self.info:
-            commands += get_depth_scripts(target["seeds"], target["field_depth"])
-            commands += get_scope_scripts(target["seeds"], target["field_scope"])
+            commands += get_depth_scripts(target["seeds"], target["depth"])
+            commands += get_scope_scripts(target["seeds"], target["scope"])
         commands += self.get_blocking_scripts()
         with open("%s/script.beanshell" % self.job_dir, "wb") as o:
             o.write("\n".join(commands))
@@ -195,7 +215,7 @@ class W3actJob(object):
     def run_job_script(self):
         """Runs the 'script.beanshell' located in the job directory."""
         with open("%s/script.beanshell" % self.job_dir, "rb") as i:
-            self.heritrix.execute(job=self.name, script=i.read(), engine="beanshell")
+            raw, html = self.heritrix.execute_script(self.name, " beanshell", i.read())
 
 
     def write_act_info(self):
@@ -216,16 +236,16 @@ class W3actJob(object):
     def start(self):
         """Starts the job."""
         logger.info("Building %s" % self.name)
-        self.heritrix.build(self.name)
+        self.heritrix.build_job(self.name)
         self.waitfor("NASCENT")
         logger.info("Launching %s" % self.name)
-        self.heritrix.launch(self.name)
+        self.heritrix.launch_job(self.name)
         self.waitfor("PAUSED")
         self.write_act_info()
         logger.info("Running scripts for %s" % self.name)
         self.run_job_script()
-        #TODO: The below line is a kludge to avoid an issue in the AsynchronousMQExtractor...
-        self.heritrix.execute(engine="groovy", script="appCtx.getBean(\"extractorMq\").setupChannel();", job=self.name)
+        # NOTE: The below line is a kludge to avoid an issue in the AsynchronousMQExtractor... TODO Remove?
+        #self.heritrix.execute_script(self.name, "groovy", "appCtx.getBean(\"extractorMq\").setupChannel();")
         if self.use_credentials:
             for i, target in enumerate(self.info):
                 if "secretId" in target["watchedTarget"].keys() and target["watchedTarget"]["secretId"]:
@@ -233,19 +253,21 @@ class W3actJob(object):
                     new_info = credentials.handle_credentials(target, self.name, self.heritrix)
                     self.info[i] = new_info
         logger.info("Unpausing %s" % self.name)
-        self.heritrix.unpause(self.name)
+        self.heritrix.unpause_job(self.name)
         self.waitfor("RUNNING")
 
 
     def stop(self):
         """Stops the job if already running, then starts."""
-        if self.heritrix.status(self.name) != "":
-            logger.info("Killing alread-running job: %s" % self.name)
-            self.heritrix.pause(self.name)
-            self.waitfor("PAUSED")
-            self.heritrix.terminate(self.name)
+        status = self.heritrix.status(self.name)
+        if status != "":
+            logger.info("Killing alread-running job: %s (STATUS: %s)" % (self.name, status))
+            if status is "RUNNING":
+                self.heritrix.pause_job(self.name)
+                self.waitfor("PAUSED")
+            self.heritrix.terminate_job(self.name)
             self.waitfor("FINISHED")
-            self.heritrix.teardown(self.name)
+            self.heritrix.teardown_job(self.name)
             self.waitfor("")
 
 

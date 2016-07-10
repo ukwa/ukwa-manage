@@ -19,7 +19,6 @@ pyasn1==0.1.9
 pycparser==2.14
 pyOpenSSL==16.0.0
 python-dateutil==2.5.3
--e git+https://github.com/ukwa/python-warcwriterpool.git@61263187fc66eacf10b30b22517052747c9d2fd5#egg=python_warcwriterpool
 pytz==2016.4
 pywebhdfs==0.4.1
 requests==2.10.0

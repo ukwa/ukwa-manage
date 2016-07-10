@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="UTF-8"?> 	
+<includes>
+	<excludes>
+		<list>
+			<value>^.+ProductCats\.asp\?Keywords=.+xargs=.+$</value>
+			<value>^.+index\.php\?Keywords=.+xargs=.+$</value>
+			<value>^.+\.uk/.*\bcheckout\b.*$</value>
+			<value>^.+GetSearchResults\.php\?Query=.*%5C.*$</value>
+			<value>^.+index\.php.+index\.php.*$</value>
+			<value>^.{512,}$</value>
+			<value>^.+camcycle\.org.+camcycle\.org.*$</value>
+			<value>^.+/cart/add/.+$</value>
+			<value>^.+jobs\.staffs\.ac\.uk/[A-Za-z0-9+/]{20,}.+$</value>
+			<value>^.+%20%20%20.+$</value>
+			<value>^.+/cms/events/calendar/.+/2014/.+$</value>
+			<value>^.+/cms/events/calendar/.+/2012/.+$</value>
+			<value>^.+ncl\.ac\.uk.+https%3.+$</value>
+			<value>^https?://[^/]+/catalog/product_compare/(add|remove)/.+$</value>
+			<value>^.+index\.php\?qs=06oENya.+$</value>
+			<value>^https?://[^/]+\.bbc\.co\.uk/iplayer/.*$</value>
+			<value>^.+action=buy_now.*$</value>
+			<value>^.+?mobile_switch=mobile</value>
+			<value>^https?://twitter\.com/.+\?lang=.+$</value>
+		</list>
+	</excludes>
+	<sheets>
+		<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,org,carlisle-conference,</value>
+					<value>http://(uk,org,camcycle,</value>
+					<value>http://(uk,co,thelivelist,</value>
+					<value>http://(uk,org,emergenceplus,</value>
+					<value>http://(uk,co,hillsong,</value>
+					<value>http://(uk,co,ghostservices,</value>
+					<value>http://(uk,co,somodfurniture,</value>
+					<value>http://(uk,ac,ncl,</value>
+					<value>http://(uk,org,clicsargent,</value>
+					<value>http://(uk,co,youhome,</value>
+					<value>http://(uk,co,libacura,</value>
+					<value>http://(uk,co,antix,</value>
+					<value>http://(uk,co,the-hug,</value>
+					<value>http://(uk,co,fists,</value>
+					<value>http://(uk,org,coventgardenmemories,</value>
+					<value>http://(uk,co,googlelawsuit,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>noForms</value>
+				</list>
+			</property>
+		</bean>
+		<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,co,carbonmenswear,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>extraPolite</value>
+				</list>
+			</property>
+		</bean>
+		<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,org,geograph,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>crawlLimited</value>
+				</list>
+			</property>
+		</bean>
+		<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,co,bbc,</value>
+					<value>http://(uk,co,bbci,</value>
+					<value>http://(uk,co,bbcimg,news,</value>
+					<value>http://(uk,gov,www,</value>
+					<value>http://(uk,gov,dh,</value>
+					<value>http://(uk,gov,cabinet-office,digital,assets,</value>
+					<value>http://(uk,nhs,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>noLimit</value>
+				</list>
+			</property>
+		</bean>
+		<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,org,haroldstreet,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>noCookies</value>
+				</list>
+			</property>
+		</bean>
+		<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,gov,nationalarchives,webarchive,</value>
+					<value>http://(uk,bl,intranet,</value>
+					<value>http://(com,bsigroup,bsol,</value>
+					<value>http://(uk,ac,canterbury,libportal,</value>
+					<value>http://(com,galegroup,infotrac,)/itweb/blibrary</value>
+					<value>http://(com,oxforddnb,</value>
+					<value>http://(com,oup,global,</value>
+					<value>http://(uk,org,brereton,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>blockAll</value>
+				</list>
+			</property>
+		</bean>
+		<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,gov,nationalarchives,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>ignoreRobots</value>
+				</list>
+			</property>
+		</bean>
+		<!-- Park Domains IP addresses -->
+		<bean id="parkedDomains" class="org.archive.crawler.spring.DecideRuledSheetAssociation">
+			<property name="rules">
+				<bean class="org.archive.modules.deciderules.IpAddressSetDecideRule">
+					<property name="ipAddresses">
+						<set>
+							<value>81.21.76.62</value>
+						</set>
+					</property>
+					<property name="decision" value="ACCEPT" />
+				</bean>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>extraPolite</value>
+					<value>crawlLimited</value>
+				</list>
+			</property>
+		</bean>
+		<!-- Heavily populated IP addresses -->
+		<bean id="ipPolite" class="org.archive.crawler.spring.DecideRuledSheetAssociation">
+			<property name="rules">
+				<bean class="org.archive.modules.deciderules.IpAddressSetDecideRule">
+					<property name="ipAddresses">
+						<set>
+							<value>81.21.76.62</value>
+							<value>213.171.195.105</value>
+							<value>94.126.40.154</value>
+							<value>85.233.160.22</value>
+							<value>93.184.220.60</value>
+							<value>72.52.4.91</value>
+							<value>79.170.40.4</value>
+							<value>94.136.40.103</value>
+							<value>94.136.40.82</value>
+							<value>72.52.4.119</value>
+							<value>69.172.201.208</value>
+							<value>216.8.179.23</value>
+							<value>204.11.56.26</value>
+							<value>85.233.160.70</value>
+						</set>
+					</property>
+					<property name="decision" value="ACCEPT" />
+				</bean>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>extraPolite</value>
+				</list>
+			</property>
+		</bean>
+		<bean class="org.archive.crawler.spring.DecideRuledSheetAssociation">
+			<property name="rules">
+				<bean class="org.archive.modules.deciderules.DecideRuleSequence">
+					<property name="rules">
+						<list>
+							<bean class="org.archive.modules.deciderules.RejectDecideRule"></bean>
+							<bean class="org.archive.modules.deciderules.HopsPathMatchesRegexDecideRule">
+								<property name="decision" value="ACCEPT" />
+								<property name="regex" value="^E*$" />
+							</bean>
+						</list>
+					</property>
+				</bean>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>ignoreRobots</value>
+				</list>
+			</property>
+		</bean>
+		<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,gov,www,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>noMaxHops</value>
+				</list>
+			</property>
+		</bean>
+		<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
+			<property name="surtPrefixes">
+				<list>
+					<value>http://(uk,co,googlelawsuit,</value>
+				</list>
+			</property>
+			<property name="targetSheetNames">
+				<list>
+					<value>noJavascriptExtraction</value>
+				</list>
+			</property>
+		</bean>
+		
+		<bean id="noMaxHops" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="hopsCountReject.enabled" value="false" />
+				</map>
+			</property>
+		</bean>
+		<bean id="ignoreRobots" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="preconditions.calculateRobotsOnly" value="true" />
+				</map>
+			</property>
+		</bean>
+		<bean id="noLimit" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="fetchHttp.maxLengthBytes" value="0" />
+					<entry key="quotaEnforcer.serverMaxSuccessKb" value="-1" />
+					<entry key="metadata.robotsPolicyName" value="ignore" />
+				</map>
+			</property>
+		</bean>
+		<bean id="higherLimit" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="quotaEnforcer.serverMaxSuccessKb" value="2097152" />
+					<entry key="metadata.robotsPolicyName" value="ignore" />
+				</map>
+			</property>
+		</bean>
+	 	<bean id="noForms" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="extractorHtml.ignoreFormActionUrls" value="true" />
+					<entry key="extractorHtml.extractValueAttributes" value="false" />
+				</map>
+			</property>
+		</bean>
+	 	<bean id="extraPolite" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="disposition.delayFactor" value="8.0" />
+					<entry key="disposition.minDelayMs" value="10000" />
+					<entry key="disposition.maxDelayMs" value="60000" />
+					<entry key="disposition.respectCrawlDelayUpToSeconds" value="60" />
+				</map>
+			</property>
+		</bean>
+	 	<bean id="crawlLimited" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="frontier.queueTotalBudget" value="25" />
+					<entry key="quotaEnforcer.serverMaxFetchResponses" value="25" />
+				</map>
+			</property>
+		</bean>
+	 	<bean id="noCookies" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="fetchHttp.ignoreCookies" value="true" />
+				</map>
+			</property>
+		</bean>
+	 	<bean id="blockAll" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="preselector.blockAll" value="true" />
+				</map>
+			</property>
+		</bean>
+        <bean id="noJavascriptExtraction" class="org.archive.spring.Sheet">
+            <property name="map">
+                <map>
+                    <entry key="extractorJs.enabled" value="false"/>
+                    <entry key="extractorHtml.extractJavascript" value="false"/>
+                </map>
+            </property>
+        </bean>
+
+		<!-- Sheets implementing various Scoping rules -->
+	 	<bean id="resourceScope" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="hopsCountReject.maxHops" value="1" />
+				</map>
+			</property>
+		</bean>
+	 	<bean id="plus1Scope" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="hopsCountReject.maxHops" value="1" />
+					<entry key="redirectAccept.enabled" value="true" />
+				</map>
+			</property>
+		</bean>
+	 	<bean id="subdomainsScope" class="org.archive.spring.Sheet">
+			<property name="map">
+				<map>
+					<entry key="onDomainAccept.enabled" value="true" />
+				</map>
+			</property>
+		</bean>
+	</sheets>
+</includes>

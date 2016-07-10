@@ -14,8 +14,10 @@ if "SHEPHERD_CONFIG" in os.environ:
 
 print(dict(cfg.items("h3")))
 
-HERITRIX_ROOT="/opt/heritrix"
-HERITRIX_JOBS="%s/jobs" % HERITRIX_ROOT
+#HERITRIX_ROOT="/opt/heritrix"
+#HERITRIX_JOBS="%s/jobs" % HERITRIX_ROOT
+HERITRIX_ROOT="/Users/andy/Documents/workspace/wren/compose-pulse-crawler"
+HERITRIX_JOBS="/Users/andy/Documents/workspace/wren/compose-pulse-crawler/jobs"
 
 # Basic configuration:
 app = Celery('crawl',
@@ -37,12 +39,7 @@ app.conf.update(
         'block_for_ack': True
     },
 
-    # Keep trying when sending messages (unnecessary?):
-    CELERY_TASK_PUBLISH_RETRY_POLICY = {
-        'max_retries': None,
-    },
-
-    # Custom queue configuration:
+    # Custom queue configuration (so queues can be inspected manually):
     CELERY_QUEUES = {
         "default": {
             "exchange": "default",
@@ -56,10 +53,6 @@ app.conf.update(
             "binding_key": "crawl.task.mul",
         }
     },
-    CELERY_DEFAULT_QUEUE = "default",
-    CELERY_DEFAULT_EXCHANGE_TYPE = "direct",
-    CELERY_DEFAULT_ROUTING_KEY = "default",
-
     # Mapping from tasks to queues:
     CELERY_ROUTES = {
         'crawl.task.add': {
@@ -69,8 +62,14 @@ app.conf.update(
             'queue': 'crawl.task.mul',
         },
     },
+    # Default routing:
+    CELERY_DEFAULT_QUEUE="default",
+    CELERY_DEFAULT_EXCHANGE_TYPE="direct",
+    CELERY_DEFAULT_ROUTING_KEY="default",
+
 )
 
 if __name__ == '__main__':
     app.start()
+
 

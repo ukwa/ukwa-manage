@@ -11,7 +11,8 @@ import dateutil.parser
 
 from lib.h3cc.utils import url_to_surt
 
-logger = logging.getLogger( __name__)
+from celery.utils.log import get_task_logger
+logger = get_task_logger(__name__)
 
 
 class CachedItem(object):
@@ -44,7 +45,7 @@ class w3act():
 		logger.info("Logging into %s as %s "% ( loginUrl, email ))
 		response = requests.post(loginUrl, data={"email": email, "password": password})
 		if not response.history:
-			logger.error("Login failed!")
+			logger.error("W3ACT Login failed!")
 			sys.exit()
 		self.cookie = response.history[0].headers["set-cookie"]
 		self.get_headers = {
