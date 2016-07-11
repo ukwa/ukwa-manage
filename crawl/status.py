@@ -5,10 +5,9 @@ from __future__ import absolute_import
 import pysolr
 from datetime import datetime
 
-from crawl.celery import cfg
-
 # import the Celery app context
 from crawl.celery import app
+from crawl.celery import cfg
 
 # import the Celery log getter and use it
 from celery.utils.log import get_task_logger
