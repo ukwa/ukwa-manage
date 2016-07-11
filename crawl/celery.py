@@ -28,6 +28,10 @@ app = Celery('crawl',
 
 # Optional configuration, see the application user guide.
 app.conf.update(
+    # Ignore results and errors so no backend is needed:
+    CELERY_IGNORE_RESULT=True,
+    CELERY_STORE_ERRORS_EVEN_IF_IGNORED=False,
+
     # Expiry date for results (but we're not keeping them at all right now):
     CELERY_TASK_RESULT_EXPIRES=3600,
 
@@ -44,29 +48,31 @@ app.conf.update(
         "default": {
             "exchange": "default",
             "binding_key": "default"},
-        "crawl.task.add": {
-            "exchange": "default",
-            "binding_key": "crawl.task.add",
-        },
-        "crawl.task.mul": {
-            "exchange": "default",
-            "binding_key": "crawl.task.mul",
-        }
+        # "crawl.task.add": {
+        #     "exchange": "default",
+        #     "binding_key": "crawl.task.add",
+        # },
+        # "crawl.task.mul": {
+        #     "exchange": "default",
+        #     "binding_key": "crawl.task.mul",
+        # }
     },
     # Mapping from tasks to queues:
     CELERY_ROUTES = {
-        'crawl.task.add': {
-            'queue' : 'crawl.task.add',
-        },
-        'crawl.task.mul': {
-            'queue': 'crawl.task.mul',
-        },
+        # 'crawl.task.add': {
+        #     'queue' : 'crawl.task.add',
+        # },
+        # 'crawl.task.mul': {
+        #     'queue': 'crawl.task.mul',
+        # },
     },
     # Default routing:
     CELERY_DEFAULT_QUEUE="default",
     CELERY_DEFAULT_EXCHANGE_TYPE="direct",
     CELERY_DEFAULT_ROUTING_KEY="default",
 
+    # Use JSON so we can inspect queue contents manually
+    CELERY_TASK_SERIALIZER = "json"
 )
 
 if __name__ == '__main__':

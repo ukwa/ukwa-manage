@@ -1,11 +1,16 @@
 amqp==1.4.9
 anyjson==0.3.3
+Babel==2.3.4
+backports.ssl-match-hostname==3.5.0.1
 bagit==1.5.4
 billiard==3.3.0.23
 celery==3.1.23
+certifi==2016.2.28
 cffi==1.7.0
 cryptography==1.4
 enum34==1.1.6
+flower==0.9.1
+futures==3.0.5
 gunicorn==19.6.0
 hapy-heritrix==0.1.1
 idna==2.1
@@ -18,10 +23,13 @@ pika==0.10.0
 pyasn1==0.1.9
 pycparser==2.14
 pyOpenSSL==16.0.0
+pysolr==3.5.0
 python-dateutil==2.5.3
+-e git+https://github.com/ukwa/python-warcwriterpool.git@61263187fc66eacf10b30b22517052747c9d2fd5#egg=python_warcwriterpool
 pytz==2016.4
 pywebhdfs==0.4.1
 requests==2.10.0
 six==1.10.0
 supervisor-stdout==0.1.1
+tornado==4.2
 warctools==4.9.0

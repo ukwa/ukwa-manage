@@ -33,6 +33,8 @@ class HapyX(Hapy):
 
     def get_launch_id(self, job=""):
         raw, html = self.execute_script(job,"groovy","rawOut.println( appCtx.getCurrentLaunchId() );")
+        if raw:
+            raw = raw.strip()
         return raw
 
     def get_seeds( self, job ):
