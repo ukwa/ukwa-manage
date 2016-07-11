@@ -22,7 +22,6 @@ import hashlib
 logger = ()
 args = ()
 patternRegex = ''
-hdfsClient = InsecureClient('http://hdfs.gtw.wa.bl.uk:14000', user='hdfs')
 
 
 # functions ---------
@@ -51,6 +50,10 @@ def setup_logging():
 
 def get_args():
     parser = argparse.ArgumentParser('Copy discovered files to HDFS')
+    parser.add_argument('--webhdfs-prefix', dest='webhdfs_prefix', default='http://hdfs.gtw.wa.bl.uk:14000',
+                        help="WebHDFS prefix to use [default: %(default)s")
+    parser.add_argument('--webhdfs-user', dest='webhdfs_user', default='root',
+                        help="WebHDFS user to use [default: %(default)s")
     parser.add_argument('--dir', dest='dir', type=str, default='/heritrix/output/warcs/',
                         help="Directory path to recursively traverse for files [default: %(default)s]")
     parser.add_argument('--pattern', dest='pattern', type=str, help="File pattern to move [no default]")
@@ -70,7 +73,7 @@ def get_args():
     if not args.pattern:
         script_die("Pattern argument must be supplied")
 
-    if not args.hdfsDir:
+    if args.hdfsDir is None:
         script_die("HDFS directory prefix must be supplied")
 
     if args.startDate:
@@ -106,7 +109,7 @@ def get_args():
     logger.info("patternRegex: %s" % patternRegex)
 
 
-def get_checksum(fpFile, on_hdfs=False):
+def get_checksum(fpFile, on_hdfs=False, hdfsClient=None):
     # get hash for local or hdfs file
     if on_hdfs:
         with hdfsClient.read(hdfs_path=fpFile) as reader:
@@ -135,14 +138,17 @@ if __name__ == "__main__":
     setup_logging()
     get_args()
 
+    # Set up client:
+    hdfsClient = InsecureClient('http://hadoop:50070/', user='root')
+
     # traverse directory argument
     for dirName, subdirList, fileList in os.walk(args.dir):
 
         # for each file in scope to be copied
         for localFn in fileList:
+            logger.debug("Looking at [%s]/[%s]" % (dirName, localFn))
             localFile = "%s/%s" % (dirName, localFn)
             hdfsFile = args.hdfsDir + localFile
-            hdfsDir = args.hdfsDir + dirName
             if not re.search(patternRegex, localFile):
                 logger.debug("Not pattern match, skipping localFile: %s" % localFile)
                 continue
@@ -163,7 +169,7 @@ if __name__ == "__main__":
                 logger.info('---- ----')
                 logger.info("Copying %s to HDFS %s" % (localFile, hdfsFile))
                 logger.info("localFile size %i hash %s date %s" % (localSize, localHash, localModtime))
-                hdfsClient.upload(local_path=localFile, hdfs_path=hdfsDir, overwrite=True)
+                hdfsClient.upload(local_path=localFile, hdfs_path=hdfsFile, overwrite=False)
                 time.sleep(1)
                 hdfsFileStatus = hdfsClient.status(hdfsFile, strict=False)
 
@@ -173,7 +179,7 @@ if __name__ == "__main__":
                 hdfsFile, hdfsFileStatus['length'], localFile, localSize))
 
             else:
-                hdfsHash = get_checksum(hdfsFile, on_hdfs=True)
+                hdfsHash = get_checksum(hdfsFile, on_hdfs=True, hdfsClient=hdfsClient)
                 if localHash != hdfsHash:
                     logger.debug("hdfsFile %s hash differs %s, %s hash %s" % (hdfsFile, hdfsHash, localFile, localHash))
 
