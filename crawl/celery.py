@@ -12,8 +12,6 @@ cfg.readfp(open(default_cfg))
 if "SHEPHERD_CONFIG" in os.environ:
     cfg.read([os.environ["SHEPHERD_CONFIG"]])
 
-print(dict(cfg.items("h3")))
-
 #HERITRIX_ROOT="/opt/heritrix"
 #HERITRIX_JOBS="%s/jobs" % HERITRIX_ROOT
 HERITRIX_ROOT="/Users/andy/Documents/workspace/wren/compose-pulse-crawler"
@@ -21,7 +19,7 @@ HERITRIX_JOBS="/Users/andy/Documents/workspace/wren/compose-pulse-crawler/jobs"
 
 # Basic configuration:
 app = Celery('crawl',
-             broker='amqp://',
+             broker='amqp://%s' % cfg.get('amqp', 'host'),
 # This is only needed if we consume the results of the calls
 #             backend='rpc://',
              include=['crawl.tasks'])

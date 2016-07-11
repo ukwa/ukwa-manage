@@ -9,7 +9,6 @@ from __future__ import absolute_import
 
 from crawl.celery import cfg
 
-
 import os
 import traceback
 from datetime import datetime
@@ -22,7 +21,7 @@ from crawl.w3act.job import W3actJob
 from crawl.w3act.job import remove_action_files
 from crawl.celery import HERITRIX_ROOT
 from crawl.celery import HERITRIX_JOBS
-from crawl.status import update_job_state
+import crawl.status
 
 # import the Celery app context
 from crawl.celery import app
@@ -50,17 +49,17 @@ def restart_job(frequency, start=datetime.utcnow()):
             job = W3actJob.from_directory(w, "%s/%s" % (HERITRIX_JOBS, frequency), heritrix=h)
             job.stop()
             remove_action_files(frequency)
-            update_job_state(job.name, "%s/%s" % (job.name, launch_id), "STOPPED")
+            crawl.status.update_job_status.delay(job.name, "%s/%s" % (job.name, launch_id), "STOPPED")
 
             # Pass on to the next step in the chain:
             logger.info("Requesting indexing for QA for: %s/%s" % (frequency, launch_id))
-            index_for_qa.delay(frequency,launch_id)
+            validate_job.delay(frequency,launch_id)
 
         job = W3actJob(w, targets, frequency, heritrix=h)
-        logger.info("Starting job %s...")
+        logger.info("Starting job %s..." % job.name)
         job.start()
         launch_id = h.get_launch_id(frequency)
-        update_job_state(job.name, "%s/%s" % (job.name, launch_id), "LAUNCHED" )
+        crawl.status.update_job_status.delay(job.name, "%s/%s" % (job.name, launch_id), "LAUNCHED" )
         logger.info("Launched job %s/%s with %s seeds." % (job.name, launch_id, len(job.seeds)))
         return "Launched job %s/%s with %s seeds." % (job.name, launch_id, len(job.seeds))
 
@@ -128,8 +127,8 @@ def validate_job(job_id, launch_id):
 def build_sip(job_id,launch_id):
     try:
         logger.info("Got SIP build for: %s/%s" % (job_id, launch_id))
-        logger.info("Requesting SIP-build for: %s/%s" % (job_id, launch_id))
-        build_sip.delay(job_id, launch_id)
+        logger.info("Requesting SIP submission for: %s/%s" % (job_id, launch_id))
+        submit_sip.delay(job_id, launch_id)
     except Exception as e:
         logger.exception(e)
         build_sip.retry(exc=e)
@@ -165,3 +164,4 @@ def index_sip(job_id,launch_id):
     except Exception as e:
         logger.exception(e)
         index_sip.retry(exc=e)
+

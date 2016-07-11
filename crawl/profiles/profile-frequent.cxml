@@ -267,10 +267,8 @@
 	</bean> 
 	<bean id="extractorSwf" class="org.archive.modules.extractor.ExtractorSWF">
 	</bean>
-	<!--
 	<bean id="extractorJson" class="uk.bl.wap.modules.extractor.ExtractorJson">
 	</bean>
-	-->
 	<bean id="extractorJs" class="org.archive.modules.extractor.ExtractorJS">
 	</bean>
 	<!--
@@ -282,14 +280,12 @@
 		<property name="outputPath" value="REPLACE_HERITRIX_JOBS/REPLACE_JOB_NAME/action/" />
 	</bean>
 	-->
-	<!--
 	<bean id="viralContent" class="uk.bl.wap.crawler.processor.ViralContentProcessor">
-		<property name="clamdHost" value="localhost" />
+		<property name="clamdHost" value="REPLACE_CLAMD_HOST" />
    		<property name="clamdPort" value="REPLACE_CLAMD_PORT" />
    		<property name="clamdTimeout" value="0" />
 		<property name="streamMaxLength" value="94371840"/>
 	</bean>
-	-->
 	<!-- Configure persistent URI history storage -->
 	<bean id="persistStoreProcessor" class="org.archive.modules.recrawl.PersistStoreProcessor">
 	</bean>
@@ -332,9 +328,7 @@
 				<!-- ...extract oulinks from CSS content... -->
 				<ref bean="extractorCss"/>
 				<!-- ...extract oulinks from JS content... -->
-				<!--
 				<ref bean="extractorJs"/>
-				-->
 				<!-- ...extract oulinks from Flash content... -->
 				<ref bean="extractorSwf"/>
 				<!-- ...add IPs to crawl.log... -->
@@ -343,9 +337,7 @@
 				</bean>
 				-->
 				<!-- ...scan for viruses... -->
-				<!--
 				<ref bean="viralContent" />
-				-->
 			</list>
 		</property>
 	</bean>
@@ -370,15 +362,14 @@
 			</list>
 		</property>
 	</bean>
-	<!--
 	<bean id="warcWriterViral" class="uk.bl.wap.modules.writer.WARCViralWriterProcessor">
 		<property name="shouldProcessRule">
 			<bean class="org.archive.modules.deciderules.DecideRuleSequence">
 				<property name="rules">
 					<list>
-						<!- - Begin by REJECTing all... - ->
+						<!-- Begin by REJECTing all... -->
 						<bean class="org.archive.modules.deciderules.RejectDecideRule"/>
-						<!- - ...then ACCEPT those with viral annotations... - ->
+						<!-- ...then ACCEPT those with viral annotations... -->
 						<bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
 							<property name="decision" value="ACCEPT"/>
 							<property name="regexList">
@@ -408,7 +399,6 @@
 		<property name="writeRevisitForIdenticalDigests" value="false" />
 		<property name="writeRevisitForNotModified" value="false" />
 	</bean>
-	-->
 	<bean id="warcWriterDefault" class="org.archive.modules.writer.WARCWriterProcessor">
 		<property name="shouldProcessRule">
 			<bean class="org.archive.modules.deciderules.DecideRuleSequence">
@@ -417,7 +407,6 @@
 						<!-- Begin by ACCEPTing all... -->
 						<bean class="org.archive.modules.deciderules.AcceptDecideRule"/>
 						<!-- ...then ACCEPT those with viral annotations... -->
-						<!--
 						<bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
 							<property name="decision" value="REJECT"/>
 							<property name="regexList">
@@ -426,7 +415,6 @@
 								</list>
 							</property>
 						</bean>
-						-->
 					</list>
 				</property>
 			</bean>

@@ -1,10 +1,18 @@
 # If on Python 2.X
 from __future__ import print_function
+from __future__ import absolute_import
+
 import pysolr
 from datetime import datetime
 
-# Setup a Solr instance. The timeout is optional.
-solr = pysolr.Solr('http://localhost:8983/solr/crawl_state', timeout=10)
+from crawl.celery import cfg
+
+# import the Celery app context
+from crawl.celery import app
+
+# import the Celery log getter and use it
+from celery.utils.log import get_task_logger
+logger = get_task_logger(__name__)
 
 
 def update_job_state(crawl_stream, job_id, state):
@@ -25,6 +33,9 @@ def update_job_state(crawl_stream, job_id, state):
     #     },
     # ])
 
+    # Setup a Solr instance. The timeout is optional.
+    solr = pysolr.Solr('http://localhost:8983/solr/crawl_state', timeout=10)
+
     timestamp = datetime.utcnow()
 
     doc = {
@@ -44,16 +55,27 @@ def update_job_state(crawl_stream, job_id, state):
     })
 
 
-def check_state():
-    # Later, searching is easy. In the simple case, just a plain Lucene-style
-    # query is fine.
-    results = solr.search('bananas')
+# def check_state():
+#     # Later, searching is easy. In the simple case, just a plain Lucene-style
+#     # query is fine.
+#     results = solr.search('bananas')
+#
+#     # The ``Results`` object stores total results found, by default the top
+#     # ten most relevant results and any additional data like
+#     # facets/highlighting/spelling/etc.
+#     print("Saw {0} result(s).".format(len(results)))
+#
+#     # Just loop over it to access the results.
+#     for result in results:
+#         print("The title is '{0}'.".format(result['title']))
+#
 
-    # The ``Results`` object stores total results found, by default the top
-    # ten most relevant results and any additional data like
-    # facets/highlighting/spelling/etc.
-    print("Saw {0} result(s).".format(len(results)))
+@app.task(acks_late=True, max_retries=None, default_retry_delay=10)
+def update_job_status(stream, job_id, status):
+    try:
+        update_job_state(stream, job_id, status)
+        logger.info("Updated job status for job %s in stream %s to %s" % (job_id, stream, status))
+    except Exception as e:
+        logger.exception(e)
+        update_job_status.retry(exc=e)
 
-    # Just loop over it to access the results.
-    for result in results:
-        print("The title is '{0}'.".format(result['title']))
