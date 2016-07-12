@@ -75,14 +75,15 @@ def validate_job(job_id, launch_id):
 
     Specifically, it:
 
-    - parses the crawl log, verifying that content was crawled and which WARC files were created.
+    - checks the crawl log is there, and that there is no crawl.log.lck file, and no other crawl.log files.
+    - parses the crawl log, generating stats on what content was crawled and recording which WARC files were created.
     - checks for WARC files on HDFS in the correct location.
-        - if they are not there yet, it retries later on.
+    - if they are any problems, like missing files, it retries later on.
 
-    Note that a separate daemon process is busy copying up to HDFS as the data comes in.
+    Note that a separate daemon process (movetohdfs.py) is busy copying up to HDFS as the data comes in.
 
     Currently passes straight on to SIP generation, as that is our current workflow. However, we
-    should review this at some point and consider automated QA before attempting ingest.
+    should review this at some point and consider indexing for automated QA before attempting ingest.
 
     :param job_id:
     :param launch_id:
@@ -90,9 +91,16 @@ def validate_job(job_id, launch_id):
     """
     try:
         logger.info("Got validate job for: %s/%s" % (job_id, launch_id))
-        # Now initiate QA processing:
-        #logger.info("Requesting index-for-QA for: %s/%s" % (job_id, launch_id))
-        #index_for_qa.delay(job_id, launch_id)
+        # Check all is well
+
+        # Parse the logs
+
+        # Check for the WARCs
+
+        # Copy necessary logs (and any other files for the SIP) up to HDFS
+
+        # Update the job status:
+        crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "VALIDATED" )
         # Now initiate SIP build:
         logger.info("Requesting SIP-build for: %s/%s" % (job_id, launch_id))
         build_sip.delay(job_id, launch_id)
@@ -127,6 +135,12 @@ def validate_job(job_id, launch_id):
 def build_sip(job_id,launch_id):
     try:
         logger.info("Got SIP build for: %s/%s" % (job_id, launch_id))
+        # Build and package the SIP:
+
+        # Move it up to HDFS:
+
+        # Update the job status:
+        crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "SIP_BUILT" )
         logger.info("Requesting SIP submission for: %s/%s" % (job_id, launch_id))
         submit_sip.delay(job_id, launch_id)
     except Exception as e:
@@ -138,6 +152,12 @@ def build_sip(job_id,launch_id):
 def submit_sip(job_id,launch_id):
     try:
         logger.info("Got SIP submission for: %s/%s" % (job_id, launch_id))
+        # Download the SIP to a temporary location:
+
+        # Move it into the submission folder:
+
+        # Update the job status:
+        crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "SIP_SUBMITTED" )
         logger.info("Sending SIP verify for: %s/%s" % (job_id, launch_id))
         verify_sip.delay(job_id, launch_id)
     except Exception as e:
@@ -149,6 +169,11 @@ def submit_sip(job_id,launch_id):
 def verify_sip(job_id,launch_id):
     try:
         logger.info("Got SIP verify for: %s/%s" % (job_id, launch_id))
+        # Check DLS for each WARC:
+        if True:
+            raise Exception("Verification not implemented yet")
+        # Update the job status:
+        crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "SIP_VALIDATED" )
         logger.info("Sending SIP index for: %s/%s" % (job_id, launch_id))
         index_sip.delay(job_id, launch_id)
     except Exception as e:
@@ -161,6 +186,8 @@ def index_sip(job_id,launch_id):
     try:
         logger.info("Got SIP index for: %s/%s" % (job_id, launch_id))
         # TODO Pass on to Solr?
+        # Update the job status:
+        crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "SIP_INDEXED" )
     except Exception as e:
         logger.exception(e)
         index_sip.retry(exc=e)

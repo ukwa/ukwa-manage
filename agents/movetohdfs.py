@@ -169,7 +169,7 @@ if __name__ == "__main__":
                 logger.info('---- ----')
                 logger.info("Copying %s to HDFS %s" % (localFile, hdfsFile))
                 logger.info("localFile size %i hash %s date %s" % (localSize, localHash, localModtime))
-                hdfsClient.upload(local_path=localFile, hdfs_path=hdfsFile, overwrite=False)
+                hdfsClient.upload(local_path=localFile, hdfs_path=hdfsFile, overwrite=False, cleanup=False)
                 time.sleep(1)
                 hdfsFileStatus = hdfsClient.status(hdfsFile, strict=False)
 

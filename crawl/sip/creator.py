@@ -27,6 +27,7 @@ from crawl.celery import cfg
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
+
 class SipCreator:
     def __init__( self, jobs, jobname, warcs=None, viral=None, logs=None, start_date=None, dummy_run=False ):
         """Sets up APIs."""
