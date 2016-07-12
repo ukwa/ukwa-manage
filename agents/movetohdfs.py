@@ -82,7 +82,7 @@ def get_args():
         except ValueError:
             script_die("Start date string not in correct YYYY-MM-DD:HH.MM.SS format [%s]" % args.startDate)
     else:
-        args.startDate = datetime.now() - timedelta(hours=1)
+        args.startDate = datetime.now() - timedelta(hours=24)
 
     if args.endDate:
         try:
@@ -90,7 +90,7 @@ def get_args():
         except ValueError:
             script_die("End date string not in correct YYYY-MM-DD:HH.MM.SS format [%s]" % args.endDate)
     else:
-        args.endDate = datetime.now()
+        args.endDate = datetime.now() - timedelta(minutes=10)
 
     if args.startDate >= args.endDate:
         script_die("Start date must be earlier than end date [start: %s, end: %s]" % (args.startDate, args.endDate))
@@ -105,7 +105,7 @@ def get_args():
 
     # dump arguments
     logger.info("==== Start ==== ==== ====")
-    logger.info("%s" % args)
+    logger.info("args: %s" % args)
     logger.info("patternRegex: %s" % patternRegex)
 
 
@@ -188,5 +188,6 @@ if __name__ == "__main__":
                     logger.info("hdfsFile size %i hash %s" % (hdfsFileStatus['length'], hdfsHash))
                     logger.info("Deleting %s" % localFile)
                     os.remove(localFile)
+            time.sleep(1)
 
     logger.info("==== Stop  ==== ==== ====")

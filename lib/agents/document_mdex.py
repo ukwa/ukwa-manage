@@ -119,6 +119,10 @@ class DocumentMDEx(object):
     
         
     def mdex_ifs_reports(self):
+        # Do not try to extract metadata if we got there from the feed:
+        if '/publications/feed/' in self.doc["landing_page_url"]:
+                self.mdex_default()
+                return
         # Grab the landing page URL as HTML
         r = requests.get(self.doc["landing_page_url"])
         h = html.fromstring(r.content)
