@@ -272,6 +272,15 @@ The format is the same as received, except now with an added ```sip``` field ind
 Post-Crawl QA Workflow
 ======================
 
+* Screen-shotter writes WARC, posts index message.
+* Index message is picked up and sent to dedicated collection on tinycdxserver
+* Add ID to suitable spot for rendering as a live-crawl screen.
+* Awaits for a while, then
+* Check seed is in main Wayback
+* Render same seed but from Wayback in proxy mode, and compare results.
+* Log results of comparison
+* Add any 404's unique to the archived version to the uris-to-crawl list.
+
 checkforuris.py
 ---------------
 

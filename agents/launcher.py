@@ -46,6 +46,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
 from lib.agents.w3act import w3act
 from lib.agents.launch import launcher
 
+i_launches = 0
+
 
 # Set up a logging handler:
 handler = logging.StreamHandler()
@@ -63,10 +65,10 @@ logging.root.setLevel( logging.WARNING )
 logger = logging.getLogger( __name__ )
 logger.setLevel( logging.INFO )
 
-def launch_by_hour(now,startDate,endDate,t,destination,source):
+def launch_by_hour(now,startDate,endDate,t,destination,source, freq):
 	# Is it the current hour?
 	if now.hour is startDate.hour:
-		logger.info("Target %s (tid: %s) start hour current (now: %s, start: %s, end: %s), sending to FC-3-uris-to-crawl" % (t['title'], t['id'], now, startDate, endDate))
+		logger.info("%s target %s (tid: %s) scheduled to crawl (now: %s, start: %s, end: %s), sending to FC-3-uris-to-crawl" % (freq, t['title'], t['id'], now, startDate, endDate))
 		counter = 0
 		for seed in t['seeds']:
 			# For now, only treat the first URL as a scope-defining seed that we force a re-crawl for:
@@ -78,6 +80,8 @@ def launch_by_hour(now,startDate,endDate,t,destination,source):
 			# And send launch message:
 			launcher.launch(destination, seed, source, isSeed, "FC-3-uris-to-crawl")
 			counter = counter + 1
+			global i_launches
+			i_launches = i_launches + 1
 				
 	else:
 		logger.debug("The hour (%s) is not current." % startDate.hour)
@@ -139,10 +143,12 @@ if __name__ == "__main__":
 	
 	# Update scope file, if enabled:
 	if args.surt_file:
+		logger.debug("Writing surt targets to %s" % args.surt_file)
 		write_surt_file(targets, args.surt_file)
 	
 	# Update watched target scope file, if enabled:
 	if args.watched_surt_file:
+		logger.debug("Writing watched targets to %s" % args.surt_file)
 		write_watched_surt_file(targets, args.watched_surt_file)
 		
 	# Set up launcher:
@@ -150,6 +156,7 @@ if __name__ == "__main__":
 
 	# Get current time	
 	now = dateutil.parser.parse(args.timestamp)
+	logger.debug("Now timestamp: %s" % str(now))
 
 	# Determine if any are due to start in the current hour
 	for t in targets:
@@ -157,6 +164,7 @@ if __name__ == "__main__":
 		if args.target_id and not int(t['id']) == args.target_id:
 			continue
 
+		logger.debug("----------")
 		logger.debug("Looking at %s (tid:%d)" % (t['title'], t['id']))
 
 		# Add a source tag if this is a watched target:
@@ -168,6 +176,7 @@ if __name__ == "__main__":
 		for schedule in t['schedules']:
 			# Skip if target schedule outside of start/end range
 			startDate = datetime.utcfromtimestamp(schedule['startDate']/1000)
+			logger.debug("Target schedule start date: %s" % str(startDate))
 			if( now < startDate ):
 				logger.debug("Start date %s not yet reached" % startDate)
 				continue
@@ -177,29 +186,47 @@ if __name__ == "__main__":
 				if now > endDate:
 					logger.debug("End date %s passed" % endDate)
 					continue
+			logger.debug("Target schedule end date:  %s" % str(endDate))
+			logger.debug("Target frequency: %s" % schedule['frequency'])
 
 			# Check if the frequency and date match up:
 			if schedule['frequency'] == "DAILY":
-				launch_by_hour(now,startDate,endDate,t,destination,source)
+				launch_by_hour(now,startDate,endDate,t,destination,source, 'DAILY')
 
 			elif schedule['frequency'] == "WEEKLY":
 				if now.isoweekday() == startDate.isoweekday():
-					launch_by_hour(now,startDate,endDate,t,destination,source)
+					launch_by_hour(now,startDate,endDate,t,destination,source, 'WEEKLY')
+				else:
+					logger.debug("WEEKLY: isoweekday %s differs from schedule %s" % (now.isoweekday(), startDate.isoweekday()))
 
 			elif schedule['frequency'] == "MONTHLY":
 				if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day:
-					launch_by_hour(now,startDate,endDate,t,destination,source)
+					launch_by_hour(now,startDate,endDate,t,destination,source, 'MONTHLY')
+				else:
+					logger.debug("MONTHLY: isoweekday %s differs from schedule %s" % (now.isoweekday(), startDate.isoweekday()))
+					logger.debug("MONTHLY: day %s differs from schedule %s" % (now.day, startDate.day))
 
 			elif schedule['frequency'] == "QUARTERLY":
 				if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day and now.month%3 == startDate.month%3:
-					launch_by_hour(now,startDate,endDate,t,destination,source)
+					launch_by_hour(now,startDate,endDate,t,destination,source, 'QUARTERLY')
+				else:
+					logger.debug("QUARTERLY: isoweekday %s differs from schedule %s" % (now.isoweekday(), startDate.isoweekday()))
+					logger.debug("QUARTERLY: month3 %s differs from schedule %s" % (now.month%3, startDate.month%3))
 
 			elif schedule['frequency'] == "SIXMONTHLY":
 				if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day and now.month%6 == startDate.month%6:
-					launch_by_hour(now,startDate,endDate,t,destination,source)
+					launch_by_hour(now,startDate,endDate,t,destination,source, 'SIXMONTHLY')
+				else:
+					logger.debug("SIXMONTHLY: isoweekday %s differs from schedule %s" % (now.isoweekday(), startDate.isoweekday()))
+					logger.debug("SIXMONTHLY: month6 %s differs from schedule %s" % (now.month%6, startDate.month%6))
 
 			elif schedule['frequency'] == "ANNUAL":
 				if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day and now.month == startDate.month:
-					launch_by_hour(now,startDate,endDate,t,destination,source)
+					launch_by_hour(now,startDate,endDate,t,destination,source, 'ANNUAL')
+				else:
+					logger.debug("ANNUAL: isoweekday %s differs from schedule %s" % (now.isoweekday(), startDate.isoweekday()))
+					logger.debug("ANNUAL: month %s differs from schedule %s" % (now.month, startDate.month))
 			else:
 				logger.error("Don't understand crawl frequency "+schedule['frequency'])
+
+	logger.info("Completed. Launches this hour: %s" % i_launches)

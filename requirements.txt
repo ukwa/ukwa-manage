@@ -1,0 +1,22 @@
+bagit==1.5.4
+cffi==1.7.0
+cryptography==1.4
+enum34==1.1.6
+gunicorn==19.6.0
+hapy-heritrix==0.1.1
+idna==2.1
+ipaddress==1.0.16
+lxml==3.6.0
+ndg-httpsclient==0.4.1
+nose==1.3.7
+pika==0.10.0
+pyasn1==0.1.9
+pycparser==2.14
+pyOpenSSL==16.0.0
+python-dateutil==2.5.3
+-e git+https://github.com/ukwa/python-warcwriterpool.git@61263187fc66eacf10b30b22517052747c9d2fd5#egg=python_warcwriterpool
+pywebhdfs==0.4.1
+requests==2.10.0
+six==1.10.0
+supervisor-stdout==0.1.1
+warctools==4.9.0
