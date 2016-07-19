@@ -16,13 +16,14 @@ if "SHEPHERD_CONFIG" in os.environ:
 #HERITRIX_JOBS="%s/jobs" % HERITRIX_ROOT
 HERITRIX_ROOT="/Users/andy/Documents/workspace/wren/compose-pulse-crawler"
 HERITRIX_JOBS="/Users/andy/Documents/workspace/wren/compose-pulse-crawler/jobs"
+HERITRIX_HDFS_ROOT="/heritrix"
 
 # Basic configuration:
 app = Celery('crawl',
              broker='amqp://%s' % cfg.get('amqp', 'host'),
 # This is only needed if we consume the results of the calls
 #             backend='rpc://',
-             include=['crawl.tasks'])
+             include=['crawl.tasks', 'crawl.status'])
 
 # Optional configuration, see the application user guide.
 app.conf.update(

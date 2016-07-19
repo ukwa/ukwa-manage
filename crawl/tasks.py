@@ -19,6 +19,8 @@ import crawl.h3.hapyx as hapyx
 from lib.agents.w3act import w3act
 from crawl.w3act.job import W3actJob
 from crawl.w3act.job import remove_action_files
+from crawl.job.output import CrawlJobOutput
+
 from crawl.celery import HERITRIX_ROOT
 from crawl.celery import HERITRIX_JOBS
 import crawl.status
@@ -92,12 +94,10 @@ def validate_job(job_id, launch_id):
     try:
         logger.info("Got validate job for: %s/%s" % (job_id, launch_id))
         # Check all is well
-
         # Parse the logs
-
         # Check for the WARCs
-
         # Copy necessary logs (and any other files for the SIP) up to HDFS
+        job_output = CrawlJobOutput.assemble("%s/%s" % (job_id, launch_id) )
 
         # Update the job status:
         crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "VALIDATED" )
@@ -131,10 +131,13 @@ def validate_job(job_id, launch_id):
 #     build_sip.delay(job_id, launch_id)
 #
 
-@app.task(acks_late=True, max_retries=None, default_retry_delay=10)
+@app.task(acks_late=True, max_retries=None, default_retry_delay=1000)
 def build_sip(job_id,launch_id):
     try:
         logger.info("Got SIP build for: %s/%s" % (job_id, launch_id))
+        if True:
+            raise Exception("Not Implemented Yet!")
+
         # Build and package the SIP:
 
         # Move it up to HDFS:
@@ -148,10 +151,13 @@ def build_sip(job_id,launch_id):
         build_sip.retry(exc=e)
 
 
-@app.task(acks_late=True, max_retries=None, default_retry_delay=10)
+@app.task(acks_late=True, max_retries=None, default_retry_delay=1000)
 def submit_sip(job_id,launch_id):
     try:
         logger.info("Got SIP submission for: %s/%s" % (job_id, launch_id))
+        if True:
+            raise Exception("Not Implemented Yet!")
+
         # Download the SIP to a temporary location:
 
         # Move it into the submission folder:
@@ -165,10 +171,13 @@ def submit_sip(job_id,launch_id):
         submit_sip.retry(exc=e)
 
 
-@app.task(acks_late=True, max_retries=None, default_retry_delay=10)
+@app.task(acks_late=True, max_retries=None, default_retry_delay=1000)
 def verify_sip(job_id,launch_id):
     try:
         logger.info("Got SIP verify for: %s/%s" % (job_id, launch_id))
+        if True:
+            raise Exception("Not Implemented Yet!")
+
         # Check DLS for each WARC:
         if True:
             raise Exception("Verification not implemented yet")
@@ -181,10 +190,13 @@ def verify_sip(job_id,launch_id):
         verify_sip.retry(exc=e)
 
 
-@app.task(acks_late=True, max_retries=None, default_retry_delay=10)
+@app.task(acks_late=True, max_retries=None, default_retry_delay=1000)
 def index_sip(job_id,launch_id):
     try:
         logger.info("Got SIP index for: %s/%s" % (job_id, launch_id))
+        if True:
+            raise Exception("Not Implemented Yet!")
+
         # TODO Pass on to Solr?
         # Update the job status:
         crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "SIP_INDEXED" )
