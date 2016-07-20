@@ -30,8 +30,7 @@ Verify that we have a complete crawl on HDFS ready for packaging.
 class CrawlJobOutput():
     def __init__(self, job_id):
         """Takes the checkpoint info and sets up data needed to build the SIP."""
-        hdfs_url = "http://%s:%s/" % (cfg.get('hdfs','host'), cfg.get('hdfs','port') )
-        self.hdfs =  hdfs.InsecureClient(hdfs_url, user=cfg.get('hdfs','user'))
+        self.hdfs =  hdfs.InsecureClient(cfg.get('hdfs','url'), user=cfg.get('hdfs','user'))
         # Set up paths:
         self.WARC_ROOT = "%s/output/warcs" % HERITRIX_HDFS_ROOT
         self.VIRAL_ROOT =  "%s/output/viral" % HERITRIX_HDFS_ROOT

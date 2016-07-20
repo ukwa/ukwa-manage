@@ -20,6 +20,8 @@ from lib.agents.w3act import w3act
 from crawl.w3act.job import W3actJob
 from crawl.w3act.job import remove_action_files
 from crawl.job.output import CrawlJobOutput
+from crawl.sip.creator import SipCreator
+from crawl.sip.submitter import SubmitSip
 
 from crawl.celery import HERITRIX_ROOT
 from crawl.celery import HERITRIX_JOBS
@@ -103,7 +105,7 @@ def validate_job(job_id, launch_id):
         crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "VALIDATED" )
         # Now initiate SIP build:
         logger.info("Requesting SIP-build for: %s/%s" % (job_id, launch_id))
-        build_sip.delay(job_id, launch_id)
+        build_sip.delay(job_output)
     except Exception as e:
         logger.exception(e)
         validate_job.retry(exc=e)
@@ -131,50 +133,55 @@ def validate_job(job_id, launch_id):
 #     build_sip.delay(job_id, launch_id)
 #
 
-@app.task(acks_late=True, max_retries=None, default_retry_delay=1000)
-def build_sip(job_id,launch_id):
+@app.task(acks_late=True, max_retries=None, default_retry_delay=10)
+def build_sip(job_output):
     try:
-        logger.info("Got SIP build for: %s/%s" % (job_id, launch_id))
-        if True:
-            raise Exception("Not Implemented Yet!")
-
+        job_id = job_output['job_id'].split('/')[0]
+        launch_id = job_output['job_id'].split('/')[1]
+        logger.info("Got SIP build for: %s" % (job_output['job_id']))
+        logger.info("Job Output: %s", job_output)
         # Build and package the SIP:
-
+        sip = SipCreator([job_output['job_id']], warcs=job_output['warcs'], viral=job_output['viral'], logs=job_output['logs'], dummy_run=True)
         # Move it up to HDFS:
+        sip_name = job_output['job_id'].replace('/','_')
+        sip_dir = os.path.abspath(sip_name)
+        sip.create_sip(sip_dir)
+        sip_on_hdfs = sip.copy_sip_to_hdfs(sip_dir, "/heritrix/sips/%s" % job_output['job_id'])
 
         # Update the job status:
         crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "SIP_BUILT" )
         logger.info("Requesting SIP submission for: %s/%s" % (job_id, launch_id))
-        submit_sip.delay(job_id, launch_id)
+        submit_sip.delay(job_id, launch_id, sip_on_hdfs)
     except Exception as e:
         logger.exception(e)
         build_sip.retry(exc=e)
 
 
-@app.task(acks_late=True, max_retries=None, default_retry_delay=1000)
-def submit_sip(job_id,launch_id):
+@app.task(acks_late=True, max_retries=None, default_retry_delay=10)
+def submit_sip(job_id,launch_id,sip_on_hdfs):
     try:
         logger.info("Got SIP submission for: %s/%s" % (job_id, launch_id))
+        logger.info("Got SIP HDFS Path: %s" % sip_on_hdfs)
+        # Download, check and submit the SIP:
+        sub = SubmitSip("%s/%s" % (job_id, launch_id), sip_on_hdfs)
+
         if True:
             raise Exception("Not Implemented Yet!")
-
-        # Download the SIP to a temporary location:
-
-        # Move it into the submission folder:
 
         # Update the job status:
         crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "SIP_SUBMITTED" )
         logger.info("Sending SIP verify for: %s/%s" % (job_id, launch_id))
-        verify_sip.delay(job_id, launch_id)
+        verify_sip.delay(job_id, launch_id,sip_on_hdfs)
     except Exception as e:
         logger.exception(e)
         submit_sip.retry(exc=e)
 
 
-@app.task(acks_late=True, max_retries=None, default_retry_delay=1000)
-def verify_sip(job_id,launch_id):
+@app.task(acks_late=True, max_retries=None, default_retry_delay=100)
+def verify_sip(job_id,launch_id,sip_on_hdfs):
     try:
         logger.info("Got SIP verify for: %s/%s" % (job_id, launch_id))
+        logger.info("Got SIP HDFS Path: %s" % sip_on_hdfs)
         if True:
             raise Exception("Not Implemented Yet!")
 
@@ -190,7 +197,7 @@ def verify_sip(job_id,launch_id):
         verify_sip.retry(exc=e)
 
 
-@app.task(acks_late=True, max_retries=None, default_retry_delay=1000)
+@app.task(acks_late=True, max_retries=None, default_retry_delay=100)
 def index_sip(job_id,launch_id):
     try:
         logger.info("Got SIP index for: %s/%s" % (job_id, launch_id))

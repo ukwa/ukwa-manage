@@ -15,6 +15,8 @@ import logging
 import argparse
 import requests
 import subprocess
+import shutil
+import hdfs
 from crawl.sip.mets import Mets
 from datetime import datetime
 from xml.dom.minidom import parseString
@@ -29,9 +31,11 @@ logger = get_task_logger(__name__)
 
 
 class SipCreator:
-    def __init__( self, jobs, jobname, warcs=None, viral=None, logs=None, start_date=None, dummy_run=False ):
-        """Sets up APIs."""
+    def __init__( self, jobs, jobname=datetime.now().strftime( "%Y%m%d%H%M%S" ), warcs=None, viral=None, logs=None, start_date=None, dummy_run=False ):
+        """Sets up fields."""
+        self.hdfs =  hdfs.InsecureClient(cfg.get('hdfs','url'), user=cfg.get('hdfs','user'))
         self.dummy = dummy_run
+        self.overwrite = False
         self.jobs = jobs
         self.jobname = jobname
         self.warcs = warcs
@@ -43,7 +47,11 @@ class SipCreator:
         self.BAGIT_DESCRIPTION="LD Crawl: "
         self.ARK_URL="http://pii.ad.bl.uk/pii/vdc?arks="
         self.ARK_PREFIX="ark:/81055/vdc_100022535899.0x"
-
+        # And create:
+        logger.info("Processing job files...")
+        self.processJobs()
+        logger.info("Generating METS...")
+        self.createMets()
 
     def processJobs( self ):
         """All WARCs and logs associated with jobs, optionally loaded from files."""
@@ -111,22 +119,42 @@ class SipCreator:
         if( len( self.identifiers ) != num ):
             raise Exception( "Problem parsing ARKs; %s, %s, %s" % ( self.jobs, self.identifiers, data ) )
 
-    def verifyFileLocations( self ):
-        """Checks that the configured file locations and job paths are sane."""
-        verified = os.path.exists( self.LOCAL_ROOT ) and \
-        os.path.exists( self.WARC_ROOT ) and  \
-        os.path.exists( self.LOG_ROOT ) and  \
-        os.path.exists( self.VIRAL_ROOT ) and  \
-        os.path.exists( self.JOBS_ROOT )
-        for job in self.jobs:
-            verified = verified and \
-            os.path.exists( "%s/%s" % ( self.JOBS_ROOT, job ) ) and  \
-            os.path.exists( "%s/%s" % ( self.WARC_ROOT, job ) ) and  \
-            os.path.exists( "%s/%s" % ( self.LOG_ROOT, job ) )
-        return verified
-       
     def verifySetup(self):
         return True
+
+
+    def create_sip(self, sip_dir):
+        """Creates a SIP and returns the path to the folder containing the METS."""
+        if self.verifySetup():
+            if not os.path.exists(sip_dir):
+                os.makedirs(sip_dir)
+            else:
+                raise Exception("SIP directory already exists: %s" % sip_dir)
+            with open("%s/%s.xml" % (sip_dir, self.jobname.replace('/','_')), "wb") as o:
+                self.writeMets(o)
+            self.bagit(sip_dir)
+        else:
+            raise Exception("Could not verify SIP for %s" % sip_dir)
+        return sip_dir
+
+
+    def copy_sip_to_hdfs(self, sip_dir, hdfs_sip_path):
+        """
+        Creates a tarball of a SIP and copies to HDFS.
+        """
+        # Check if it's already there:
+        hdfs_sip_tgz = "%s.tar.gz" % hdfs_sip_path
+        status = self.hdfs.status(hdfs_sip_tgz, strict=False)
+        if status and not self.overwrite:
+            raise Exception("SIP already exists in HDFS: %s" % hdfs_sip_tgz)
+        # Build the TGZ
+        gztar = shutil.make_archive(base_name=sip_dir, format="gztar", root_dir=os.path.dirname(sip_dir),
+                                    base_dir=os.path.basename(sip_dir))
+        logger.info("Copying %s to HDFS..." % gztar)
+        self.hdfs.upload(local_path=gztar, hdfs_path=hdfs_sip_tgz, overwrite=False, cleanup=False)
+        logger.info("Done.")
+        return hdfs_sip_tgz
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser( description="Create METS files." )
@@ -135,16 +163,12 @@ if __name__ == "__main__":
     parser.add_argument( "-w", dest="warcs", help="File containing list of WARC paths." )
     parser.add_argument( "-v", dest="viral", help="File containing list of viral WARC paths." )
     parser.add_argument( "-l", dest="logs", help="File containing list of log paths." )
+    parser.add_argument( "-o", dest="output_root", help="Where to put the resulting SIP" )
     args = parser.parse_args()
 
-    jobname = datetime.now().strftime( "%Y%m%d%H%M%S" )
-    sip = SipCreator( args.jobs, jobname=jobname, warcs=args.warcs, viral=args.viral, logs=args.logs, dummy_run=args.dummy )
-    if sip.verifySetup():
-        sip.processJobs()
-        sip.createMets()
-        if not os.path.isdir("%s/%s" % (args.output_root, jobname)):
-            os.makedirs("%s/%s/" % (args.output_root, jobname))
-        with open( "%s/%s/%s.xml" % ( args.output_root, jobname, jobname ), "wb" ) as o:
-            sip.writeMets( o )
-        sip.bagit( "%s/%s" % ( args.output_root, jobname ) )
+    sip = SipCreator( args.jobs, warcs=args.warcs, viral=args.viral, logs=args.logs, dummy_run=args.dummy )
+    sip_dir = "%s/%s" % ( args.output_root, sip.jobname )
+    sip.create_sip(sip_dir)
+    sip.copy_sip_to_hdfs(sip_dir, sip_dir)
+
 

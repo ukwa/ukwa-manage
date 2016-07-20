@@ -1,12 +1,21 @@
 #!/usr/bin/env python
 
-import os
 import hashlib
 import commands
 from lxml import etree
 from Queue import Queue
 from threading import Thread
 from datetime import datetime
+import hdfs
+
+# import the Celery app context
+from crawl.celery import app
+from crawl.celery import cfg
+
+# import the Celery log getter and use it
+from celery.utils.log import get_task_logger
+logger = get_task_logger(__name__)
+
 
 SOFTWARE_VERSION="python-shepherd=1.0.0"
 CLAMD_CONF = "/opt/heritrix/clamd/3310.conf"
@@ -29,15 +38,27 @@ WEBHDFS_SUFFIX="?user.name=hadoop&op=OPEN"
 schemaLocation = "http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-3.xsd info:lc/xmlns/premis-v2 http://www.loc.gov/standards/premis/premis.xsd http://www.w3.org/1999/xlink http://www.loc.gov/standards/xlink/xlink.xsd"
 
 def calculateHash( path ):
+    client = hdfs.InsecureClient(cfg.get('hdfs', 'url'), user=cfg.get('hdfs', 'user'))
     sha = hashlib.sha512()
-    file = open( path, "rb" )
-    while True:
-        data = file.read( 10485760 )
-        if not data:
-            file.close()
-            break
-        sha.update( data )
+    with client.read(path) as file:
+        while True:
+            data = file.read( 10485760 )
+            if not data:
+                file.close()
+                break
+            sha.update( data )
     return sha.hexdigest()
+
+def getLength( path ):
+    client = hdfs.InsecureClient(cfg.get('hdfs', 'url'), user=cfg.get('hdfs', 'user'))
+    status = client.status(path)
+    return status['length']
+
+def getModifiedDate( path ):
+    client = hdfs.InsecureClient(cfg.get('hdfs', 'url'), user=cfg.get('hdfs', 'user'))
+    status = client.status(path)
+    logger.info(status)
+    return status['modificationTime']/1000.0
 
 count = 1
 def getCount():
@@ -58,20 +79,24 @@ class Warc:
     def __init__( self, path ):
         self.path = path
         self.hash = calculateHash( path )
-        self.size = os.path.getsize( path )
+        self.size = getLength( path )
         self.admid = getCount()
+        logger.info("%s %s %s %s" % (self.path, self.hash, self.size, self.admid))
 
 
 class ZipContainer:
     def __init__( self, path ):
+        self.hdfs =  hdfs.InsecureClient(cfg.get('hdfs','url'), user=cfg.get('hdfs','user'))
         self.path = path
         self.admid = getCount()
         self.hash = calculateHash( self.path )
-        self.size = os.path.getsize( self.path )
+        self.size =  getLength( self.path )
+        logger.info("%s %s %s %s" % (self.path, self.hash, self.size, self.admid))
 
 
 class Mets:
     def __init__( self, date, warcs, viral, logs, identifiers ):
+        self.hdfs =  hdfs.InsecureClient(cfg.get('hdfs','url'), user=cfg.get('hdfs','user'))
         self.warcs = []
         self.viral = []
         self.date = date
@@ -235,7 +260,7 @@ class Mets:
         eventType = etree.SubElement( event, PREMIS + "eventType" )
         eventType.text = "virusCheck"
         eventDateTime = etree.SubElement( event, PREMIS + "eventDateTime" )
-        eventDateTime.text = datetime.fromtimestamp( os.path.getmtime( warc.path ) ).strftime( "%Y-%m-%dT%H:%M:%S" )
+        eventDateTime.text = datetime.fromtimestamp( getModifiedDate( warc.path ) ).strftime( "%Y-%m-%dT%H:%M:%S" )
         eventOutcomeInformation = etree.SubElement( event, PREMIS + "eventOutcomeInformation" )
         eventOutcome = etree.SubElement( eventOutcomeInformation, PREMIS + "eventOutcome" )
         if( virus ):
