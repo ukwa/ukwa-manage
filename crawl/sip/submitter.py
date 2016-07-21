@@ -63,5 +63,5 @@ class SubmitSip():
         else:
             raise Exception("Invalid Bag-It bag: %s" % dls_drop_bag)
 
-        # Clean up:
-        os.remove(dls_drop_tgz)
+        # Clean up the tar.gz file?:
+        #os.remove(dls_drop_tgz)

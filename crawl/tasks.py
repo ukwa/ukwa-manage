@@ -10,11 +10,8 @@ from __future__ import absolute_import
 from crawl.celery import cfg
 
 import os
-import traceback
+import shutil
 from datetime import datetime
-import dateutil.parser
-import json
-import pprint
 import crawl.h3.hapyx as hapyx
 from lib.agents.w3act import w3act
 from crawl.w3act.job import W3actJob
@@ -145,7 +142,7 @@ def build_sip(job_id, launch_id, job_output):
         sip_dir = os.path.abspath(sip_name)
         sip.create_sip(sip_dir)
         sip_on_hdfs = sip.copy_sip_to_hdfs(sip_dir, "/heritrix/sips/%s/%s" % (job_id,launch_id) )
-        os.remove(sip_dir)
+        shutil.rmtree(sip_dir)
 
         # Update the job status:
         crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "SIP_BUILT" )
