@@ -112,11 +112,13 @@ def find_identifiers(output_file):
                     for waid in get_all_identifiers(sip):
                         f.write("%s %s\n" % (sip, waid) )
 
+def main():
+    find_identifiers('identifiers.txt')
+
 # Test
 #for waid in get_all_identifiers("weekly-wed2300/20141210230151"):
 #    print(waid)
 #sys.exit(0)
 
 if __name__ == "__main__":
-    find_identifiers('identifiers.txt')
-            
+    main()

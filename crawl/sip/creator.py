@@ -156,8 +156,7 @@ class SipCreator:
         logger.info("Done.")
         return hdfs_sip_tgz
 
-
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser( description="Create METS files." )
     parser.add_argument( "jobs", metavar="J", type=str, nargs="+", help="Heritrix job name" )
     parser.add_argument( "-d", dest="dummy", action="store_true" )
@@ -172,4 +171,6 @@ if __name__ == "__main__":
     sip.create_sip(sip_dir)
     sip.copy_sip_to_hdfs(sip_dir, sip_dir)
 
+if __name__ == "__main__":
+    main()
 
