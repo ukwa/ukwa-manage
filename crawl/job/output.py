@@ -28,7 +28,7 @@ Verify that we have a complete crawl on HDFS ready for packaging.
 
 
 class CrawlJobOutput():
-    def __init__(self, job_id):
+    def __init__(self, job_id, launch_id):
         """Takes the checkpoint info and sets up data needed to build the SIP."""
         self.hdfs =  hdfs.InsecureClient(cfg.get('hdfs','url'), user=cfg.get('hdfs','user'))
         # Set up paths:
@@ -41,6 +41,9 @@ class CrawlJobOutput():
 
         #
         self.job_id = job_id
+        self.launch_id = launch_id
+        self.job_launch_id = "%s/%s" % (job_id, launch_id)
+        self.verify_job_launch_id()
         self.crawl_log = self.get_crawl_log()
         self.start_date = CrawlJobOutput.file_start_date([self.crawl_log])
         # Find the WARCFilename to AboluteFilepath mapping:
@@ -51,7 +54,7 @@ class CrawlJobOutput():
     def get_crawl_log(self):
         # First, parse the crawl log(s) and determine the WARC file names:
         logger.info("Looking for crawl logs...")
-        logfilepath = "%s/%s/crawl.log" % (self.LOCAL_LOG_ROOT, self.job_id)
+        logfilepath = "%s/%s/crawl.log" % (self.LOCAL_LOG_ROOT, self.job_launch_id)
         if os.path.exists(logfilepath):
             logger.info("Found %s..." % os.path.basename(logfilepath))
             return logfilepath
@@ -75,10 +78,10 @@ class CrawlJobOutput():
         return timestamps[0].strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def warc_file_path(self, warcfile):
-        return "%s/%s/%s" % (self.WARC_ROOT, self.job_id, warcfile)
+        return "%s/%s/%s" % (self.WARC_ROOT, self.job_launch_id, warcfile)
 
     def viral_file_path(self, warcfile):
-        return "%s/%s/%s" % (self.VIRAL_ROOT, self.job_id, warcfile)
+        return "%s/%s/%s" % (self.VIRAL_ROOT, self.job_launch_id, warcfile)
 
     def parse_crawl_log(self):
         # Get the WARC filenames
@@ -114,8 +117,8 @@ class CrawlJobOutput():
         """Zips up all log/config. files and copies said archive to HDFS; finds the
         earliest timestamp in the logs."""
         # Set up paths
-        zip_path = "%s/%s/%s.zip" % (self.LOCAL_LOG_ROOT, self.job_id, os.path.basename(self.job_id))
-        hdfs_zip_path = "%s/%s/%s.zip" % (self.LOG_ROOT, self.job_id, os.path.basename(self.job_id))
+        zip_path = "%s/%s/%s.zip" % (self.LOCAL_LOG_ROOT, self.job_launch_id, os.path.basename(self.job_launch_id))
+        hdfs_zip_path = "%s/%s/%s.zip" % (self.LOG_ROOT, self.job_launch_id, os.path.basename(self.job_launch_id))
         # Get the logs together:
         self.logs = []
         try:
@@ -128,21 +131,21 @@ class CrawlJobOutput():
                     raise Exception("Cannot delete %s..." % zip_path)
             logger.info("Zipping logs to %s" % zip_path)
             with zipfile.ZipFile(zip_path, 'w', allowZip64=True) as zipout:
-                for crawl_log in glob.glob("%s/%s/crawl.log" % (self.LOCAL_LOG_ROOT, self.job_id)):
+                for crawl_log in glob.glob("%s/%s/crawl.log" % (self.LOCAL_LOG_ROOT, self.job_launch_id)):
                     logger.info("Found %s..." % os.path.basename(crawl_log))
                     zipout.write(crawl_log)
 
-                for log in glob.glob("%s/%s/*-errors.log" % (self.LOCAL_LOG_ROOT, self.job_id)):
+                for log in glob.glob("%s/%s/*-errors.log" % (self.LOCAL_LOG_ROOT, self.job_launch_id)):
                     logger.info("Found %s..." % os.path.basename(log))
                     zipout.write(log)
 
-                for txt in glob.glob("%s/%s/*.txt" % (self.LOCAL_JOBS_ROOT, self.job_id)):
+                for txt in glob.glob("%s/%s/*.txt" % (self.LOCAL_JOBS_ROOT, self.job_launch_id)):
                     logger.info("Found %s..." % os.path.basename(txt))
                     zipout.write(txt)
 
-                if os.path.exists("%s/%s/crawler-beans.cxml" % (self.LOCAL_JOBS_ROOT, self.job_id)):
+                if os.path.exists("%s/%s/crawler-beans.cxml" % (self.LOCAL_JOBS_ROOT, self.job_launch_id)):
                     logger.info("Found config...")
-                    zipout.write("%s/%s/crawler-beans.cxml" % (self.LOCAL_JOBS_ROOT, self.job_id))
+                    zipout.write("%s/%s/crawler-beans.cxml" % (self.LOCAL_JOBS_ROOT, self.job_launch_id))
                 else:
                     logger.error("Cannot find config.")
                     raise Exception("Cannot find config.")
@@ -166,6 +169,8 @@ class CrawlJobOutput():
         """Return a description of this crawl job output."""
         desc = {
             'job_id': self.job_id,
+            'launch_id': self.launch_id,
+            'job_launch_id': self.job_launch_id,
             'start_date': self.start_date,
             'warcs': self.warcs,
             'viral': self.viral,
@@ -173,19 +178,16 @@ class CrawlJobOutput():
         }
         return desc
 
-    @staticmethod
-    def verify_message(path_id):
+    def verify_job_launch_id(self):
         """Verifies that a message is valid. i.e. it's similar to: 'frequent/20140207041736'"""
         r = re.compile("^[a-z]+/[0-9]+$")
-        return r.match(path_id)
+        if not r.match(self.job_launch_id):
+            raise Exception("Could not verify job_lanuch_id: %s" % self.job_launch_id)
 
     @staticmethod
-    def assemble(job_id):
+    def assemble(job_id, launch_id):
         """
         Passed a job_id, ensures we have a complete job result.
         """
-        if CrawlJobOutput.verify_message(job_id):
-            cjo = CrawlJobOutput(job_id)
-            return cjo.get_crawl_job_output()
-        else:
-            raise Exception("Could not verify job_id: %s" % job_id)
+        cjo = CrawlJobOutput(job_id,launch_id)
+        return cjo.get_crawl_job_output()

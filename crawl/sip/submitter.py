@@ -21,14 +21,14 @@ logger = get_task_logger(__name__)
 
 #
 class SubmitSip():
-    def __init__(self, job_id, sip_tgz):
+    def __init__(self, job_id, launch_id, sip_tgz):
         self.hdfs =  hdfs.InsecureClient(cfg.get('hdfs','url'), user=cfg.get('hdfs','user'))
-        self.submit_sip(job_id.replace('/','_'),sip_tgz)
+        self.submit_sip(launch_id,sip_tgz)
 
     def submit_sip(self, job_id, sip_tgz):
         """
         Download, unpack, check and submit the specified SIP tar.gz file (from HDFS)
-        
+
         :param sip_path_tgz:
         :return:
         """
@@ -41,6 +41,10 @@ class SubmitSip():
         # Download and unpack the BagIt bag into the DLS_DROP folder
         logger.debug("Downloading %s to %s." % (sip_tgz, DLS_DROP))
         client = self.hdfs.download(sip_tgz,dls_drop_tgz)
+        # Check if there's already an unpacked version there:
+        if os.path.exists(dls_drop_bag):
+            raise Exception("Target DLS Drop folder already exists! %s" % dls_drop_bag)
+        # Unpack:
         logger.debug("Unpacking %s..." % (dls_drop_tgz))
         tar = tarfile.open(dls_drop_tgz, "r:gz")
         tar.extractall(DLS_DROP)
@@ -50,6 +54,10 @@ class SubmitSip():
         logger.debug("Checking bag %s..." % (dls_drop_bag))
         bag = bagit.Bag(dls_drop_bag)
         if bag.validate():
+            # Check if there is already something in the target location:
+            if os.path.exists(dls_watch_bag):
+                raise Exception("Target DLS Watch folder already exists! %s" % dls_watch_bag)
+            # Move
             logger.info("Moving %s to %s." % (dls_drop_bag, dls_watch_bag))
             shutil.move(dls_drop_bag, dls_watch_bag)
         else:
