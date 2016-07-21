@@ -11,6 +11,10 @@ import subprocess
 from dateutil.parser import parse
 import hdfs
 import zipfile
+import logging
+
+# Quieted down the hdfs code:
+logging.getLogger('hdfs').setLevel(logging.WARNING)
 
 # import the Celery app context
 from crawl.celery import app

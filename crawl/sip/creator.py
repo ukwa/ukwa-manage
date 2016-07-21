@@ -152,6 +152,7 @@ class SipCreator:
                                     base_dir=os.path.basename(sip_dir))
         logger.info("Copying %s to HDFS..." % gztar)
         self.hdfs.upload(local_path=gztar, hdfs_path=hdfs_sip_tgz, overwrite=False, cleanup=False)
+        os.remove(gztar)
         logger.info("Done.")
         return hdfs_sip_tgz
 

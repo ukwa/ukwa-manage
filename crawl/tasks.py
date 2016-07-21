@@ -144,7 +144,8 @@ def build_sip(job_id, launch_id, job_output):
         sip_name = launch_id
         sip_dir = os.path.abspath(sip_name)
         sip.create_sip(sip_dir)
-        sip_on_hdfs = sip.copy_sip_to_hdfs(sip_dir, "/heritrix/sips/%s" % launch_id)
+        sip_on_hdfs = sip.copy_sip_to_hdfs(sip_dir, "/heritrix/sips/%s/%s" % (job_id,launch_id) )
+        os.remove(sip_dir)
 
         # Update the job status:
         crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "SIP_BUILT" )

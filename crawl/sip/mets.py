@@ -57,7 +57,7 @@ def getLength( path ):
 def getModifiedDate( path ):
     client = hdfs.InsecureClient(cfg.get('hdfs', 'url'), user=cfg.get('hdfs', 'user'))
     status = client.status(path)
-    logger.info(status)
+    logger.debug(status)
     return status['modificationTime']/1000.0
 
 count = 1
@@ -81,7 +81,7 @@ class Warc:
         self.hash = calculateHash( path )
         self.size = getLength( path )
         self.admid = getCount()
-        logger.info("%s %s %s %s" % (self.path, self.hash, self.size, self.admid))
+        logger.debug("%s %s %s %s" % (self.path, self.hash, self.size, self.admid))
 
 
 class ZipContainer:
@@ -91,7 +91,7 @@ class ZipContainer:
         self.admid = getCount()
         self.hash = calculateHash( self.path )
         self.size =  getLength( self.path )
-        logger.info("%s %s %s %s" % (self.path, self.hash, self.size, self.admid))
+        logger.debug("%s %s %s %s" % (self.path, self.hash, self.size, self.admid))
 
 
 class Mets:
