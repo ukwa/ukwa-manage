@@ -112,6 +112,14 @@ def check_watched_targets(jobname, heritrix):
 #                "%s/%s" % (jobname, timestamp)
 #            )
 
+def write_watched_surt_file(targets, filename):
+    with open(filename, 'w') as f:
+        for t in targets:
+            if t['watched']:
+                for seed in t['seeds']:
+                    # f.write("%s\n" % url_to_surt(seed))
+                    f.write("%s\n" % seed)
+
 
 class W3actJob(object):
     """Represents a Heritrix job for w3act."""
@@ -227,7 +235,6 @@ class W3actJob(object):
         """Writes w3act job information to disk."""
         with open("%s/latest/w3act-info.json" % self.job_dir, "wb") as o:
             o.write(json.dumps(self.info, indent=4))
-
 
     def waitfor(self, status):
         """Waits for the job to reach a particular status."""

@@ -5,6 +5,8 @@ Author:		Gil
 Date:		2016 April 26
 '''
 
+from __future__ import absolute_import
+
 from crawl.hdfs import movetohdfs
 
 # main --------------
