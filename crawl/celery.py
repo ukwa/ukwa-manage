@@ -46,23 +46,24 @@ app.conf.update(
     CELERY_QUEUES = {
         "default": {
             "exchange": "default",
-            "binding_key": "default"},
-        # "crawl.task.add": {
+            "binding_key": "default"
+        },
+        # "RC1-restart-job": {
         #     "exchange": "default",
-        #     "binding_key": "crawl.task.add",
+        #     "binding_key": "crawl.tasks.restart_job",
         # },
-        # "crawl.task.mul": {
+        # "RC2-validate-job": {
         #     "exchange": "default",
-        #     "binding_key": "crawl.task.mul",
+        #     "binding_key": "crawl.tasks.validate_job",
         # }
     },
     # Mapping from tasks to queues:
     CELERY_ROUTES = {
-        # 'crawl.task.add': {
-        #     'queue' : 'crawl.task.add',
+        # 'crawl.tasks.restart_job': {
+        #     'queue' : 'RC1-restart-job',
         # },
-        # 'crawl.task.mul': {
-        #     'queue': 'crawl.task.mul',
+        # 'crawl.tasks.validate_job': {
+        #     'queue': 'RC2-validate-job',
         # },
     },
     # Default routing:
