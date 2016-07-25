@@ -328,14 +328,14 @@
 				<!-- ...extract oulinks from CSS content... -->
 				<ref bean="extractorCss"/>
 				<!-- ...extract oulinks from JS content... -->
+				<!--
 				<ref bean="extractorJs"/>
+				-->
 				<!-- ...extract oulinks from Flash content... -->
 				<ref bean="extractorSwf"/>
 				<!-- ...add IPs to crawl.log... -->
-				<!--
 				<bean class="uk.bl.wap.crawler.processor.IpAnnotator">
 				</bean>
-				-->
 				<!-- ...scan for viruses... -->
 				<ref bean="viralContent" />
 			</list>
