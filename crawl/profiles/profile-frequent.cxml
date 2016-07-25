@@ -464,12 +464,11 @@
                     <!-- Begin by REJECTing all... -->
                     <bean class="org.archive.modules.deciderules.RejectDecideRule"/>
                     <!-- ...ACCEPT if on or via a WatchedTarget... -->
-                    <bean class="uk.bl.wap.modules.deciderules.WatchedFileSurtPrefixedDecideRule">
+                    <bean class="org.archive.modules.deciderules.surt.SurtPrefixedDecideRule">
                       <property name="seedsAsSurtPrefixes" value="false"/>
-                      <property name="alsoCheckVia" value="true"/>
+                      <property name="alsoCheckVia" value="false"/>
                       <property name="surtsSourceFile" value="watched-surts.txt"/>
                       <property name="surtsDumpFile" value="watched-surts.dump"/>
-                      <property name="sourceCheckInterval" value="30"/>
                     </bean>                    
                     <!-- ...REJECT if NOT PDFs... -->
                     <bean class="org.archive.modules.deciderules.ContentTypeNotMatchesRegexDecideRule">
