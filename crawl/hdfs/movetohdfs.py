@@ -90,7 +90,7 @@ def get_args():
         except ValueError:
             script_die("End date string not in correct YYYY-MM-DD:HH.MM.SS format [%s]" % args.endDate)
     else:
-        args.endDate = datetime.now() - timedelta(minutes=10)
+        args.endDate = datetime.now() - timedelta(minutes=1)
 
     if args.startDate >= args.endDate:
         script_die("Start date must be earlier than end date [start: %s, end: %s]" % (args.startDate, args.endDate))
@@ -114,9 +114,9 @@ def get_checksum(fpFile, on_hdfs=False, hdfsClient=None):
     if on_hdfs:
         with hdfsClient.read(hdfs_path=fpFile) as reader:
             hdfsStream = reader.read()
-        fileHash = hashlib.sha256(hdfsStream).hexdigest()
+        fileHash = hashlib.sha512(hdfsStream).hexdigest()
     else:
-        getHash = 'sha256sum -b "%s"' % fpFile
+        getHash = 'sha512sum -b "%s"' % fpFile
         runScript = subprocess.Popen(getHash, stdout=subprocess.PIPE, shell=True)
         out, err = runScript.communicate()
         if err:
@@ -125,12 +125,75 @@ def get_checksum(fpFile, on_hdfs=False, hdfsClient=None):
 
     # test hash
     logger.debug("file %s hash %s" % (fpFile, fileHash))
-    if len(fileHash) != 64:
-        script_die("%s hash not 64 character length [%s]" % (fpFile, len(fileHash)))
+    if len(fileHash) != 128:
+        script_die("%s hash not 128 character length [%s]" % (fpFile, len(fileHash)))
     if not all(c in string.hexdigits for c in fileHash):
         script_die("%s hash not all hex [%s]" % (fpFile, fileHash))
 
     return fileHash
+
+class Uploader():
+    """
+    Initialise and set-up the HDFS connection:
+    """
+    def __init__(self, hadoop_url, hadoop_user):
+        # Set up client:
+        self.hdfsClient = InsecureClient(hadoop_url, user=hadoop_user)
+
+    def write_hash_file(self, path, hash, on_hdfs=False):
+        if on_hdfs:
+            raise Exception("Writing hash to HDFS not supported yet.")
+        else:
+            hash_path = "%s.sha512" % path
+            if( os.path.exists(hash_path)):
+                logger.warning("Hash file %s already exists." % hash_path)
+            else:
+                with open(hash_path, 'w') as hash_file:
+                    hash_file.write("%s\n" % hash)
+
+    def safe_upload(self, localFile, hdfsFile, removeLocal=True):
+        """
+        This performs a safe upload - it will never overwrite a file on HDFS, and it uses checksums to verify the transfer.
+
+        :param localFile:
+        :param hdfsFile:
+        :return:
+        """
+
+        # get local file hash and size
+        localHash = get_checksum(localFile)
+        self.write_hash_file(localFile,localHash)
+        localSize = os.path.getsize(localFile)
+        localModtime = datetime.fromtimestamp(os.path.getmtime(localFile))
+
+        # store checksum as a local file:
+
+        # upload file to HDFS if not already existing
+        hdfsFileStatus = self.hdfsClient.status(hdfsFile, strict=False)
+        if hdfsFileStatus == None:
+            logger.info('---- ----')
+            logger.info("Copying %s to HDFS %s" % (localFile, hdfsFile))
+            logger.info("localFile size %i hash %s date %s" % (localSize, localHash, localModtime))
+            self.hdfsClient.upload(local_path=localFile, hdfs_path=hdfsFile, overwrite=False, cleanup=False)
+            time.sleep(1)
+            hdfsFileStatus = self.hdfsClient.status(hdfsFile, strict=False)
+
+        # test if local and HDFS same
+        if localSize != hdfsFileStatus['length']:
+            logger.error("hdfsFile %s size differs %i, %s size %i" % (
+                hdfsFile, hdfsFileStatus['length'], localFile, localSize))
+
+        else:
+            hdfsHash = get_checksum(hdfsFile, on_hdfs=True, hdfsClient=self.hdfsClient)
+            if localHash != hdfsHash:
+                logger.debug("hdfsFile %s hash differs %s, %s hash %s" % (hdfsFile, hdfsHash, localFile, localHash))
+
+            else:
+                # if uploaded HDFS file hash same as local file hash, delete local file
+                logger.info("hdfsFile size %i hash %s" % (hdfsFileStatus['length'], hdfsHash))
+                logger.info("Deleting %s" % localFile)
+                os.remove(localFile)
+        time.sleep(1)
 
 
 # main --------------
@@ -138,8 +201,7 @@ def main():
     setup_logging()
     get_args()
 
-    # Set up client:
-    hdfsClient = InsecureClient('http://hadoop:50070/', user='root')
+    upl = Uploader('http://hadoop:50070/', 'root')
 
     # traverse directory argument
     for dirName, subdirList, fileList in os.walk(args.dir):
@@ -159,35 +221,6 @@ def main():
                 logger.debug("Out of date range, skipping localFile: %s [%s]" % (localFile, localModtime))
                 continue
 
-            # get local file hash and size
-            localHash = get_checksum(localFile)
-            localSize = os.path.getsize(localFile)
-
-            # upload file to HDFS if not already existing
-            hdfsFileStatus = hdfsClient.status(hdfsFile, strict=False)
-            if hdfsFileStatus == None:
-                logger.info('---- ----')
-                logger.info("Copying %s to HDFS %s" % (localFile, hdfsFile))
-                logger.info("localFile size %i hash %s date %s" % (localSize, localHash, localModtime))
-                hdfsClient.upload(local_path=localFile, hdfs_path=hdfsFile, overwrite=False, cleanup=False)
-                time.sleep(1)
-                hdfsFileStatus = hdfsClient.status(hdfsFile, strict=False)
-
-            # test if local and HDFS same
-            if localSize != hdfsFileStatus['length']:
-                logger.error("hdfsFile %s size differs %i, %s size %i" % (
-                hdfsFile, hdfsFileStatus['length'], localFile, localSize))
-
-            else:
-                hdfsHash = get_checksum(hdfsFile, on_hdfs=True, hdfsClient=hdfsClient)
-                if localHash != hdfsHash:
-                    logger.debug("hdfsFile %s hash differs %s, %s hash %s" % (hdfsFile, hdfsHash, localFile, localHash))
-
-                else:
-                    # if uploaded HDFS file hash same as local file hash, delete local file
-                    logger.info("hdfsFile size %i hash %s" % (hdfsFileStatus['length'], hdfsHash))
-                    logger.info("Deleting %s" % localFile)
-                    os.remove(localFile)
-            time.sleep(1)
+            upl.safe_upload(localFile=localFile,hdfsFile=hdfsFile, removeLocal=True)
 
     logger.info("==== Stop  ==== ==== ====")
