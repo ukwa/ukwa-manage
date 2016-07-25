@@ -93,7 +93,11 @@ class CrawlJobOutput():
         with open(self.crawl_log, 'r') as f:
             for line in f:
                 parts = re.split(" +", line, maxsplit=13)
-                warcfiles.add(json.loads(parts[12])['warcFilename'])
+                jmd = json.loads(parts[12])
+                if 'warcFilename' in jmd:
+                    warcfiles.add(jmd['warcFilename'])
+                else:
+                    logger.error("No WARC file entry found for line: %s" % line)
         # Search for the actual files and return absolute paths:
         self.warc_lookup = {}
         self.warcs = []
