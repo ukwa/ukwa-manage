@@ -438,8 +438,10 @@
 	</bean>
   <!-- This provides a crawl log feed to a queue - note that you'll need to set up a binding that matches these parameters to a queue -->
   <bean id="crawlLogFeed" class="uk.bl.wap.crawler.processor.AMQPIndexableCrawlLogFeed">
-    <property name="routingKey" value="uris-to-index"/>
-    <property name="exchange" value="heritrix"/>
+    <property name="celeryMessageFormat" value="true"/>
+    <property name="targetCeleryTask" value="crawl.tasks.uri_to_index"/>
+    <property name="routingKey" value="crawl.tasks.uri_to_index"/>
+    <property name="exchange" value="default"/>
     <property name="amqpUri" value="amqp://guest:guest@amqp:5672/%2f"/>
     <property name="extraFields">
         <map>
@@ -449,8 +451,10 @@
   </bean>
   <!-- This spots documents (e.g. PDFs) in the crawl log feed and posts them to a dedicated queue. -->
   <bean id="crawlLogDocumentFeed" class="uk.bl.wap.crawler.processor.AMQPIndexableCrawlLogFeed">
-    <property name="routingKey" value="documents-to-catalogue"/>
-    <property name="exchange" value="heritrix"/>
+    <property name="celeryMessageFormat" value="true"/>
+    <property name="targetCeleryTask" value="crawl.tasks.uri_of_doc"/>
+    <property name="routingKey" value="crawl.tasks.uri_of_doc"/>
+    <property name="exchange" value="default"/>
     <property name="amqpUri" value="amqp://guest:guest@amqp:5672/%2f"/>
     <property name="extraFields">
         <map>

@@ -267,6 +267,9 @@ class W3actJob(object):
                     logger.info("Getting credentials for %s..." % target["title"])
                     new_info = credentials.handle_credentials(target, self.name, self.heritrix)
                     self.info[i] = new_info
+        # Wait for a moment (attempting to avoid some race-condition starting up with WARC writers):
+        time.sleep(10)
+        # And unpause:
         logger.info("Unpausing %s" % self.name)
         self.heritrix.unpause_job(self.name)
         self.waitfor("RUNNING")

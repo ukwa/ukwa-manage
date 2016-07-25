@@ -12,11 +12,10 @@ cfg.readfp(open(default_cfg))
 if "SHEPHERD_CONFIG" in os.environ:
     cfg.read([os.environ["SHEPHERD_CONFIG"]])
 
-#HERITRIX_ROOT="/opt/heritrix"
-#HERITRIX_JOBS="%s/jobs" % HERITRIX_ROOT
-HERITRIX_ROOT="/Users/andy/Documents/workspace/wren/compose-pulse-crawler"
-HERITRIX_JOBS="/Users/andy/Documents/workspace/wren/compose-pulse-crawler/jobs"
-HERITRIX_HDFS_ROOT="/heritrix"
+# Pick up folder locations from config:
+HERITRIX_ROOT=cfg.get('h3','local_root_folder')
+HERITRIX_JOBS=cfg.get('h3','local_job_folder')
+HERITRIX_HDFS_ROOT=cfg.get('h3','hdfs_root_folder')
 
 # Basic configuration:
 app = Celery('crawl',
@@ -56,6 +55,14 @@ app.conf.update(
         #     "exchange": "default",
         #     "binding_key": "crawl.tasks.validate_job",
         # }
+        "RC10-uri-to-index": {
+            "exchange": "default",
+            "binding_key": "crawl.tasks.uri_to_index",
+        },
+        "RC11-uri-to-doc": {
+            "exchange": "default",
+            "binding_key": "crawl.tasks.uri_of_doc",
+        }
     },
     # Mapping from tasks to queues:
     CELERY_ROUTES = {
@@ -65,6 +72,12 @@ app.conf.update(
         # 'crawl.tasks.validate_job': {
         #     'queue': 'RC2-validate-job',
         # },
+        'crawl.tasks.uri_to_index': {
+            'queue': 'RC10-uri-to-index',
+        },
+        'crawl.tasks.uri_of_doc': {
+            'queue': 'RC11-uri-to-doc',
+        },
     },
     # Default routing:
     CELERY_DEFAULT_QUEUE="default",

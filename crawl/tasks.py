@@ -19,6 +19,8 @@ from crawl.w3act.job import remove_action_files
 from crawl.job.output import CrawlJobOutput
 from crawl.sip.creator import SipCreator
 from crawl.sip.submitter import SubmitSip
+from crawl.cdx.tinycdxserver import send_uri_to_tinycdxserver
+from crawl.dex.to_w3act import send_document_to_w3act
 
 from crawl.celery import HERITRIX_ROOT
 from crawl.celery import HERITRIX_JOBS
@@ -210,4 +212,30 @@ def index_sip(job_id,launch_id):
     except Exception as e:
         logger.exception(e)
         index_sip.retry(exc=e)
+
+
+@app.task(acks_late=True, max_retries=None, default_retry_delay=100)
+def uri_to_index(**kwargs):
+    try:
+        logger.info("Got URI to index: %s" % kwargs)
+        send_uri_to_tinycdxserver(cfg.get('tinycdxserver','endpoint'), kwargs)
+
+    except Exception as e:
+        logger.exception(e)
+        uri_to_index.retry(exc=e)
+
+
+@app.task(acks_late=True, max_retries=None, default_retry_delay=100)
+def uri_of_doc(**kwargs):
+    try:
+        logger.info("Got doc to send to W3ACT for: %s" % kwargs)
+
+        # Set up connection to W3ACT:
+        w = w3act(cfg.get('act','url'),cfg.get('act','username'),cfg.get('act','password'))
+        # And post this document up:
+        send_document_to_w3act(kwargs,cfg.get('wayback','endpoint'),w)
+
+    except Exception as e:
+        logger.exception(e)
+        uri_of_doc.retry(exc=e)
 

@@ -38,6 +38,7 @@ WEBHDFS_SUFFIX="?user.name=hadoop&op=OPEN"
 schemaLocation = "http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-3.xsd info:lc/xmlns/premis-v2 http://www.loc.gov/standards/premis/premis.xsd http://www.w3.org/1999/xlink http://www.loc.gov/standards/xlink/xlink.xsd"
 
 def calculateHash( path ):
+    logger.info("Starting to generate hash for %s" % path)
     client = hdfs.InsecureClient(cfg.get('hdfs', 'url'), user=cfg.get('hdfs', 'user'))
     sha = hashlib.sha512()
     with client.read(path) as file:
@@ -47,6 +48,7 @@ def calculateHash( path ):
                 file.close()
                 break
             sha.update( data )
+    logger.info("Finished generating hash for %s" % path)
     return sha.hexdigest()
 
 def getLength( path ):
