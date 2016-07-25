@@ -217,7 +217,7 @@ def index_sip(job_id,launch_id):
 @app.task(acks_late=True, max_retries=None, default_retry_delay=100)
 def uri_to_index(**kwargs):
     try:
-        logger.info("Got URI to index: %s" % kwargs)
+        logger.debug("Got URI to index: %s" % kwargs)
         send_uri_to_tinycdxserver(cfg.get('tinycdxserver','endpoint'), kwargs)
 
     except Exception as e:
