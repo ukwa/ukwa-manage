@@ -31,19 +31,17 @@ from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
 @app.task(acks_late=True, max_retries=None, default_retry_delay=10)
-def restart_job(frequency, start=datetime.utcnow()):
+def stop_start_job(frequency, start=datetime.utcnow(), restart=True):
     """Restarts the job for a particular frequency."""
     try:
-        logger.info("RS")
-        logger.info("Restarting %s at %s" % (frequency, start))
+        logger.info("Stopping/starting %s at %s" % (frequency, start))
 
+        # Set up connection to W3ACT:
         w = w3act(cfg.get('act','url'),cfg.get('act','username'),cfg.get('act','password'))
-
-        targets = w.get_ld_export(frequency)
-        #logger.info("Found %s Targets in export." % len(export))
-        #    targets = [t for t in export if (t["startDate"] is None or t["startDate"] < start) and (t["endDateISO"] is None or t["crawlEndDateISO"] > start)]
-        logger.debug("Found %s Targets in date range." % len(targets))
+        # Set up connection to H3:
         h = hapyx.HapyX("https://%s:%s" % (cfg.get('h3','host'), cfg.get('h3','port')), username=cfg.get('h3','username'), password=cfg.get('h3','password'))
+
+        # Stop job if currently running:
         if frequency in h.list_jobs() and h.status(frequency) != "":
             """Stops a running job, notifies RabbitMQ and cleans up the directory."""
             launch_id = h.get_launch_id(frequency)
@@ -53,20 +51,29 @@ def restart_job(frequency, start=datetime.utcnow()):
             crawl.status.update_job_status.delay(job.name, "%s/%s" % (job.name, launch_id), "STOPPED")
 
             # Pass on to the next step in the chain:
-            logger.info("Requesting indexing for QA for: %s/%s" % (frequency, launch_id))
+            logger.info("Requesting validation for: %s/%s" % (frequency, launch_id))
             validate_job.delay(frequency,launch_id)
 
-        job = W3actJob(w, targets, frequency, heritrix=h)
-        logger.info("Starting job %s..." % job.name)
-        job.start()
-        launch_id = h.get_launch_id(frequency)
-        crawl.status.update_job_status.delay(job.name, "%s/%s" % (job.name, launch_id), "LAUNCHED" )
-        logger.info("Launched job %s/%s with %s seeds." % (job.name, launch_id, len(job.seeds)))
-        return "Launched job %s/%s with %s seeds." % (job.name, launch_id, len(job.seeds))
+        # Start job if requested:
+        if restart:
+            targets = w.get_ld_export(frequency)
+            # logger.info("Found %s Targets in export." % len(export))
+            #    targets = [t for t in export if (t["startDate"] is None or t["startDate"] < start) and (t["endDateISO"] is None or t["crawlEndDateISO"] > start)]
+            logger.debug("Found %s Targets in date range." % len(targets))
+            job = W3actJob(w, targets, frequency, heritrix=h)
+            logger.info("Starting job %s..." % job.name)
+            job.start()
+            launch_id = h.get_launch_id(frequency)
+            crawl.status.update_job_status.delay(job.name, "%s/%s" % (job.name, launch_id), "LAUNCHED" )
+            logger.info("Launched job %s/%s with %s seeds." % (job.name, launch_id, len(job.seeds)))
+            return "Launched job %s/%s with %s seeds." % (job.name, launch_id, len(job.seeds))
+        else:
+            logger.info("Stopped job %s/%s without restarting..." % (job.name, launch_id))
+            return "Stopped job %s/%s without restarting..." % (job.name, launch_id)
 
     except Exception as e:
         logger.exception(e)
-        restart_job.retry(exc=e)
+        stop_start_job.retry(exc=e)
 
 
 @app.task(acks_late=True, max_retries=None, default_retry_delay=10)
