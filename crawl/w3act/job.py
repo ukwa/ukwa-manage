@@ -210,6 +210,9 @@ class W3actJob(object):
         with open("%s/seeds.txt" % self.job_dir, "wb") as o:
             o.write("\n".join(self.seeds).encode("utf-8"))
 
+        # Write the watched-surts file:
+        write_watched_surt_file(self.info, "%s/watched-surts.txt" % self.job_dir)
+
         # Write profile to disk:
         self.create_profile()
         with open("%s/crawler-beans.cxml" % self.job_dir, "wb") as o:
