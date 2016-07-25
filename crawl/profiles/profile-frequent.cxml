@@ -436,6 +436,51 @@
 		<property name="writeRevisitForIdenticalDigests" value="true" />
 		<property name="writeRevisitForNotModified" value="false" />
 	</bean>
+  <!-- This provides a crawl log feed to a queue - note that you'll need to set up a binding that matches these parameters to a queue -->
+  <bean id="crawlLogFeed" class="uk.bl.wap.crawler.processor.AMQPIndexableCrawlLogFeed">
+    <property name="routingKey" value="uris-to-index"/>
+    <property name="exchange" value="heritrix"/>
+    <property name="amqpUri" value="amqp://guest:guest@amqp:5672/%2f"/>
+    <property name="extraFields">
+        <map>
+          <entry key="jobName" value="#{metadata.jobName}"/>
+        </map>
+    </property>
+  </bean>
+  <!-- This spots documents (e.g. PDFs) in the crawl log feed and posts them to a dedicated queue. -->
+  <bean id="crawlLogDocumentFeed" class="uk.bl.wap.crawler.processor.AMQPIndexableCrawlLogFeed">
+    <property name="routingKey" value="documents-to-catalogue"/>
+    <property name="exchange" value="heritrix"/>
+    <property name="amqpUri" value="amqp://guest:guest@amqp:5672/%2f"/>
+    <property name="extraFields">
+        <map>
+          <entry key="jobName" value="#{metadata.jobName}"/>
+        </map>
+    </property>
+    <property name="shouldProcessRule">
+        <bean class="org.archive.modules.deciderules.DecideRuleSequence">
+            <property name="rules">
+                <list>
+                    <!-- Begin by REJECTing all... -->
+                    <bean class="org.archive.modules.deciderules.RejectDecideRule"/>
+                    <!-- ...ACCEPT if on or via a WatchedTarget... -->
+                    <bean class="uk.bl.wap.modules.deciderules.WatchedFileSurtPrefixedDecideRule">
+                      <property name="seedsAsSurtPrefixes" value="false"/>
+                      <property name="alsoCheckVia" value="true"/>
+                      <property name="surtsSourceFile" value="watched-surts.txt"/>
+                      <property name="surtsDumpFile" value="watched-surts.dump"/>
+                      <property name="sourceCheckInterval" value="30"/>
+                    </bean>                    
+                    <!-- ...REJECT if NOT PDFs... -->
+                    <bean class="org.archive.modules.deciderules.ContentTypeNotMatchesRegexDecideRule">
+                        <property name="decision" value="REJECT" />
+                        <property name="regex" value="^application/pdf.*"/>
+                    </bean>
+                </list>
+            </property>
+        </bean>
+    </property>
+  </bean>	
 	<bean id="candidates" class="org.archive.crawler.postprocessor.CandidatesProcessor">
 		<property name="seedsRedirectNewSeeds" value="true" />
 	</bean>
@@ -458,6 +503,10 @@
 				<!-- write to aggregate archival files... -->
 				<ref bean="warcWriterDefault"/>
 				<ref bean="persistStoreProcessor" />
+				<!-- send the crawl log to a queue for downstream checks -->
+ 			    <ref bean="crawlLogFeed"/>
+				<!-- send any discovered documents to a separate feed -->
+        		<ref bean="crawlLogDocumentFeed"/>
 				<!-- ...send each outlink candidate URI to CandidatesChain, 
 					and enqueue those ACCEPTed to the frontier... -->
 				<ref bean="candidates"/>
