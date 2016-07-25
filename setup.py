@@ -14,7 +14,9 @@ setup(
         'console_scripts': [
             'get-ids-from-hdfs=crawl.sip.ids:main',
             'create-sip=crawl.sip.creator:main',
-            'movetohdfs=crawl.hdfs.movetohdfs:main'
+            'movetohdfs=crawl.hdfs.movetohdfs:main',
+            'h3cc=crawl.h3.h3cc.main',
+            'w3act=crawl.w3act.w3act_cli.main'
         ],
     }
 )

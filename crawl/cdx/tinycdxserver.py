@@ -52,7 +52,7 @@ def send_uri_to_tinycdxserver(cdxserver_url, cl):
             status_code = "-"
     # Catch edge case where line looks okay but no WARC set!
     if cl["warc_filename"] is None:
-        logger.critical("Dropping message because WARC filename is unset! Message: %s" % body)
+        logger.critical("Dropping message because WARC filename is unset! Message: %s" % cl)
         return
     # Build CDX line:
     cdx_11 = "- %s %s %s %s %s %s - - %s %s\n" % (

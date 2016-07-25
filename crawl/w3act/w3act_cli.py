@@ -22,8 +22,7 @@ import logging
 import argparse
 from urlparse import urlparse
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
-from lib.agents.w3act import w3act
+from crawl.w3act.w3act import w3act
 
 
 # Set up a logging handler:
@@ -43,7 +42,7 @@ logger = logging.getLogger( __name__ )
 logger.setLevel( logging.INFO )
 
 
-if __name__ == "__main__":
+def main():
 	parser = argparse.ArgumentParser('Interrogate the W3ACT API.')
 	parser.add_argument('-w', '--w3act-url', dest='w3act_url', 
 					type=str, default="http://localhost:9000/act/", 
@@ -97,4 +96,6 @@ if __name__ == "__main__":
 		r = act.post_document(doc)
 		print r.status_code
 		print r.text
-		
+
+if __name__ == "__main__":
+	main()

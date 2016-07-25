@@ -66,7 +66,7 @@ import requests
 from requests.utils import quote
 import xml.dom.minidom
 
-from lib.agents.document_mdex import DocumentMDEx
+from crawl.dex.document_mdex import DocumentMDEx
 
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)

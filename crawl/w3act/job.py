@@ -11,7 +11,7 @@ import shutil
 import requests
 from glob import glob
 from lxml import etree
-from lib.agents.w3act import w3act
+from crawl.w3act.w3act import w3act
 from urlparse import urlparse
 from crawl.h3 import hapyx
 from crawl.w3act.util import unique_list

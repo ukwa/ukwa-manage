@@ -111,8 +111,8 @@ def check_message(ch, method, properties, body):
 
 	# try to get url from wayback
 	try:
-                wburl = '%s/xmlquery.jsp?type=urlquery&url=%s' % (args.wb_url, quote(msg_url))
-                logger.debug("Checking %s" % wburl);
+		wburl = '%s/xmlquery.jsp?type=urlquery&url=%s' % (args.wb_url, quote(msg_url))
+		logger.debug("Checking %s" % wburl);
 		wbreq = requests.get(wburl)
 		if not isinstance(wbreq.status_code, int):
 			logger.error('url %s status code not integer' % wburl)

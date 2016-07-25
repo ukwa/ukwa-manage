@@ -13,7 +13,7 @@ import os
 import shutil
 from datetime import datetime
 import crawl.h3.hapyx as hapyx
-from lib.agents.w3act import w3act
+from crawl.w3act.w3act import w3act
 from crawl.w3act.job import W3actJob
 from crawl.w3act.job import remove_action_files
 from crawl.job.output import CrawlJobOutput

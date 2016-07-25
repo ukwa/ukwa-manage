@@ -9,7 +9,7 @@ import traceback
 import time
 import dateutil.parser
 
-from lib.h3cc.utils import url_to_surt
+from crawl.h3.utils import url_to_surt
 
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
