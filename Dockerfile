@@ -13,9 +13,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 RUN pip install -e git+https://github.com/ukwa/python-warcwriterpool.git@eceef73#egg=python_warcwriterpool
 
-COPY crawl /crawl
-COPY lib /lib
-COPY agents /agents
+COPY crawl /shepherd/crawl
+COPY lib /shepherd/lib
+COPY agents /shepherd/agents
+COPY setup.py /shepherd/setup.py
+COPY README.md /shepherd/README.md
+COPY requirements.txt /shepherd/requirements.txt
+
+RUN cd /shepherd/ && python setup.py install
 
 ENV C_FORCE_ROOT TRUE
 
