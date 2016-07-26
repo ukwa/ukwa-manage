@@ -224,3 +224,6 @@ def main():
             upl.safe_upload(localFile=localFile,hdfsFile=hdfsFile, removeLocal=True)
 
     logger.info("==== Stop  ==== ==== ====")
+
+if __name__ == "__main__":
+    main()
