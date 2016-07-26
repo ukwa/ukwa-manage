@@ -445,7 +445,7 @@
     <property name="amqpUri" value="amqp://guest:guest@amqp:5672/%2f"/>
     <property name="extraFields">
         <map>
-          <entry key="jobName" value="#{metadata.jobName}"/>
+          <entry key="job_name" value="#{metadata.jobName}"/>
         </map>
     </property>
   </bean>
@@ -458,7 +458,7 @@
     <property name="amqpUri" value="amqp://guest:guest@amqp:5672/%2f"/>
     <property name="extraFields">
         <map>
-          <entry key="jobName" value="#{metadata.jobName}"/>
+          <entry key="job_name" value="#{metadata.jobName}"/>
         </map>
     </property>
     <property name="shouldProcessRule">
