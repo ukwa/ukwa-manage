@@ -14,14 +14,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install -e git+https://github.com/ukwa/python-warcwriterpool.git@eceef73#egg=python_warcwriterpool
 
 COPY crawl /shepherd/crawl
-COPY lib /shepherd/lib
-COPY agents /shepherd/agents
 COPY setup.py /shepherd/setup.py
 COPY README.md /shepherd/README.md
 COPY requirements.txt /shepherd/requirements.txt
 
 RUN cd /shepherd/ && python setup.py install
 
+# This is needed to force SupervisorD to run as root.
+# TODO Avoid this in future, as it should not be necessary even under Docker.
 ENV C_FORCE_ROOT TRUE
 
 ADD supervisord.conf /etc/supervisor/conf.d/supervisord.conf
