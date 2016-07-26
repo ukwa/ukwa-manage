@@ -50,9 +50,10 @@ class CrawlJobOutput():
         self.verify_job_launch_id()
         self.crawl_log = self.get_crawl_log()
         self.start_date = CrawlJobOutput.file_start_date([self.crawl_log])
-        # Find the WARCFilename to AboluteFilepath mapping:
+        # Find the WARCs referenced from the crawl log:
         self.parse_crawl_log()
-        # This should bundle up the files into a ZIP and use that instead. i.e. as getLogs below but done right.
+        # TODO Get sha512 and ARK identifiers for WARCs now, and store in launch folder and thus the zip?
+        # Bundle logs and configuration data into a zip and upload it to HDFS
         self.upload_logs_as_zip()
 
     def get_crawl_log(self):

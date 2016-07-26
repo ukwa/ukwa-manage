@@ -45,12 +45,13 @@ def update_job_status(stream, job_launch_id, status):
     """
     try:
         # Setup a Solr instance. The timeout is optional.
-        solr = pysolr.Solr('http://localhost:8983/solr/crawl_state', timeout=10)
+        solr = pysolr.Solr(cfg.get('solr','crawl_state_solr'), timeout=10)
 
         timestamp = datetime.utcnow()
 
         # Add each event as distinct document:
         doc = {
+            'type_s' : "crawl-job-state",
             'crawl_stream_s': stream,
             'job_launch_id_s': job_launch_id,
             'status_s': status,
@@ -75,7 +76,7 @@ def update_job_status(stream, job_launch_id, status):
         #     'states_ss': 'add'
         # })
 
-        logger.info("Updated job status for job %s in stream %s to %s" % (job_launch_id, stream, status))
+        return "Updated job status for job %s in stream %s to %s" % (job_launch_id, stream, status)
     except Exception as e:
         logger.exception(e)
         update_job_status.retry(exc=e)

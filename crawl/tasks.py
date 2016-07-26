@@ -53,8 +53,10 @@ def stop_start_job(frequency, start=datetime.utcnow(), restart=True):
             crawl.status.update_job_status.delay(job.name, "%s/%s" % (job.name, launch_id), "STOPPED")
 
             # Pass on to the next step in the chain:
-            logger.info("Requesting validation for: %s/%s" % (frequency, launch_id))
-            validate_job.delay(frequency,launch_id)
+            logger.info("Requesting assembly of output for: %s/%s" % (frequency, launch_id))
+            assemble_job_output.delay(frequency,launch_id)
+        else:
+            job = None
 
         # Start job if requested:
         if restart:
@@ -70,8 +72,12 @@ def stop_start_job(frequency, start=datetime.utcnow(), restart=True):
             logger.info("Launched job %s/%s with %s seeds." % (job.name, launch_id, len(job.seeds)))
             return "Launched job %s/%s with %s seeds." % (job.name, launch_id, len(job.seeds))
         else:
-            logger.info("Stopped job %s/%s without restarting..." % (job.name, launch_id))
-            return "Stopped job %s/%s without restarting..." % (job.name, launch_id)
+            if job:
+                logger.info("Stopped job %s/%s without restarting..." % (job.name, launch_id))
+                return "Stopped job %s/%s without restarting..." % (job.name, launch_id)
+            else:
+                logger.warning("No running '%s' job to stop!" % frequency)
+                return "No running '%s' job to stop!" % frequency
 
     except Exception as e:
         logger.exception(e)
@@ -79,7 +85,7 @@ def stop_start_job(frequency, start=datetime.utcnow(), restart=True):
 
 
 @app.task(acks_late=True, max_retries=None, default_retry_delay=10)
-def validate_job(job_id, launch_id):
+def assemble_job_output(job_id, launch_id):
     """
     This takes the just-completed job and validates that it is complete and ready to process.
 
@@ -100,7 +106,7 @@ def validate_job(job_id, launch_id):
     :return:
     """
     try:
-        logger.info("Got validate job for: %s/%s" % (job_id, launch_id))
+        logger.info("Got assemble_job_output for: %s/%s" % (job_id, launch_id))
         # Check all is well
         # Parse the logs
         # Check for the WARCs
@@ -109,12 +115,13 @@ def validate_job(job_id, launch_id):
 
         # Update the job status:
         crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "VALIDATED" )
+        # TODO Request post-processing for indexing and to extract documents?
         # Now initiate SIP build:
         logger.info("Requesting SIP-build for: %s/%s" % (job_id, launch_id))
         build_sip.delay(job_id, launch_id, job_output)
     except Exception as e:
         logger.exception(e)
-        validate_job.retry(exc=e)
+        assemble_job_output.retry(exc=e)
 
 #
 # @app.task(acks_late=True, max_retries=None, default_retry_delay=10)
@@ -150,7 +157,7 @@ def build_sip(job_id, launch_id, job_output):
         sip_name = launch_id
         sip_dir = os.path.abspath(sip_name)
         sip.create_sip(sip_dir)
-        sip_on_hdfs = sip.copy_sip_to_hdfs(sip_dir, "/heritrix/sips/%s/%s" % (job_id,launch_id) )
+        sip_on_hdfs = sip.copy_sip_to_hdfs(sip_dir, "%s/sips/%s/%s" % (HERITRIX_ROOT, job_id, launch_id) )
         shutil.rmtree(sip_dir)
 
         # Update the job status:
@@ -184,7 +191,9 @@ def verify_sip(job_id,launch_id,sip_on_hdfs):
     try:
         logger.info("Got SIP verify for: %s/%s" % (job_id, launch_id))
         logger.info("Got SIP HDFS Path: %s" % sip_on_hdfs)
-        # Check DLS for each WARC:
+        # Download the SIP package, unpack it.
+        # Parse the METS to get the WARC metadata (ARKs, lengths, SHA512 hashes):
+        # Check DLS for each ARK:
 
         if True:
             raise Exception("VERIFICATION Not Implemented Yet!")
