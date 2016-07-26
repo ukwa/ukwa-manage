@@ -40,6 +40,11 @@ def main():
     vj.add_argument(**job_id_args)
     vj.add_argument(**launch_id_args)
 
+    # Build SIP
+    bs = subparsers.add_parser('build_sip', help="Build a SIP from the data and log files for a given job launch.")
+    bs.add_argument(**job_id_args)
+    bs.add_argument(**launch_id_args)
+
 
     # Print help if no arg specified:
     if len(sys.argv) < 2:
@@ -55,6 +60,12 @@ def main():
     elif parsed.command == "start":
         print("(Re)starting job %s" % parsed.job_id)
         crawl.tasks.stop_start_job.delay('daily', restart=True)
+
+    elif parsed.command == "build_sip":
+        print("Building SIP for %s/%s" % (parsed.job_id, parsed.launch_id))
+        crawl.tasks.build_sip.delay(parsed.job_id,parsed.launch_id)
+
+
 
 if __name__ == "__main__":
     main()
