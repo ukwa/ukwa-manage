@@ -218,7 +218,7 @@ def main():
             # check within start/end date
             localModtime = datetime.fromtimestamp(os.path.getmtime(localFile))
             if localModtime < args.startDate or localModtime > args.endDate:
-                logger.debug("Out of date range, skipping localFile: %s [%s]" % (localFile, localModtime))
+                logger.info("Out of date range, skipping localFile: %s [%s]" % (localFile, localModtime))
                 continue
 
             upl.safe_upload(localFile=localFile,hdfsFile=hdfsFile, removeLocal=True)
