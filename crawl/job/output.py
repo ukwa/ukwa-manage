@@ -151,6 +151,10 @@ class CrawlJobOutput():
                     logger.info("Found %s..." % os.path.basename(txt))
                     zipout.write(txt)
 
+                for txt in glob.glob("%s/%s/*.json" % (self.LOCAL_JOBS_ROOT, self.job_launch_id)):
+                    logger.info("Found %s..." % os.path.basename(txt))
+                    zipout.write(txt)
+
                 if os.path.exists("%s/%s/crawler-beans.cxml" % (self.LOCAL_JOBS_ROOT, self.job_launch_id)):
                     logger.info("Found config...")
                     zipout.write("%s/%s/crawler-beans.cxml" % (self.LOCAL_JOBS_ROOT, self.job_launch_id))
