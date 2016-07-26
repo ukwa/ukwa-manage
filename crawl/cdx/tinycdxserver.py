@@ -2,6 +2,8 @@
 import json
 import requests
 
+from crawl.celery import HERITRIX_HDFS_ROOT
+
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
@@ -54,6 +56,8 @@ def send_uri_to_tinycdxserver(cdxserver_url, cl):
     if cl["warc_filename"] is None:
         logger.critical("Dropping message because WARC filename is unset! Message: %s" % cl)
         return
+    # Make up the full path:
+    warc_path = "%s/%s/%s/%s" % (HERITRIX_HDFS_ROOT, cl['job_name'], cl['launch_id'], cl['warc_filename'])
     # Build CDX line:
     cdx_11 = "- %s %s %s %s %s %s - - %s %s\n" % (
         cl["start_time_plus_duration"][:14],
@@ -63,7 +67,7 @@ def send_uri_to_tinycdxserver(cdxserver_url, cl):
         cl["content_digest"],
         redirect,
         cl["warc_offset"],
-        cl["warc_filename"]
+        warc_path
     )
     logger.debug("CDX: %s" % cdx_11)
     r = session.post(cdxserver_url, data=cdx_11.encode('utf-8'))
