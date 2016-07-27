@@ -201,7 +201,7 @@ def main():
     setup_logging()
     get_args()
 
-    upl = Uploader('http://hadoop:50070/', 'root')
+    upl = Uploader(args.webhdfs_prefix, args.webhdfs_user)
 
     # traverse directory argument
     for dirName, subdirList, fileList in os.walk(args.dir):
