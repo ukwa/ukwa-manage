@@ -10,6 +10,10 @@ setup(
     install_requires=requirements,
     license='Apache 2.0',
     long_description=open('README.md').read(),
+    package_data={
+        # If any package contains *.txt or *.rst files, include them:
+        '': ['*.txt', '*.xml', '*.cfg'],
+    },
     entry_points={
         'console_scripts': [
             'get-ids-from-hdfs=crawl.sip.ids:main',
