@@ -22,7 +22,7 @@ from crawl.sip.submitter import SubmitSip
 from crawl.cdx.tinycdxserver import send_uri_to_tinycdxserver
 from crawl.dex.to_w3act import send_document_to_w3act
 
-from crawl.celery import HERITRIX_ROOT
+from crawl.celery import HERITRIX_HDFS_ROOT
 from crawl.celery import HERITRIX_JOBS
 import crawl.status
 
@@ -157,7 +157,7 @@ def build_sip(job_id, launch_id, job_output):
         sip_name = launch_id
         sip_dir = os.path.abspath(sip_name)
         sip.create_sip(sip_dir)
-        sip_on_hdfs = sip.copy_sip_to_hdfs(sip_dir, "%s/sips/%s/%s" % (HERITRIX_ROOT, job_id, launch_id) )
+        sip_on_hdfs = sip.copy_sip_to_hdfs(sip_dir, "%s/sips/%s/%s" % (HERITRIX_HDFS_ROOT, job_id, launch_id) )
         shutil.rmtree(sip_dir)
 
         # Update the job status:
