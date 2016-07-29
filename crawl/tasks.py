@@ -22,6 +22,7 @@ from crawl.sip.submitter import SubmitSip
 from crawl.cdx.tinycdxserver import send_uri_to_tinycdxserver
 from crawl.dex.to_w3act import send_document_to_w3act
 
+from crawl.celery import HERITRIX_ROOT
 from crawl.celery import HERITRIX_HDFS_ROOT
 from crawl.celery import HERITRIX_JOBS
 import crawl.status
