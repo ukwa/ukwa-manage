@@ -442,7 +442,7 @@
     <property name="targetCeleryTask" value="crawl.tasks.uri_to_index"/>
     <property name="routingKey" value="crawl.tasks.uri_to_index"/>
     <property name="exchange" value="default"/>
-    <property name="amqpUri" value="amqp://guest:guest@amqp:5672/%2f"/>
+    <property name="amqpUri" value="amqp://guest:guest@act2-amqp:5672/%2f"/>
     <property name="extraFields">
         <map>
           <entry key="job_name" value="#{metadata.jobName}"/>
@@ -455,7 +455,7 @@
     <property name="targetCeleryTask" value="crawl.tasks.uri_of_doc"/>
     <property name="routingKey" value="crawl.tasks.uri_of_doc"/>
     <property name="exchange" value="default"/>
-    <property name="amqpUri" value="amqp://guest:guest@amqp:5672/%2f"/>
+    <property name="amqpUri" value="amqp://guest:guest@act2-amqp:5672/%2f"/>
     <property name="extraFields">
         <map>
           <entry key="job_name" value="#{metadata.jobName}"/>

@@ -79,5 +79,5 @@ def update_job_status(stream, job_launch_id, status):
         return "Updated job status for job %s in stream %s to %s" % (job_launch_id, stream, status)
     except Exception as e:
         logger.exception(e)
-        update_job_status.retry(exc=e)
+        #update_job_status.retry(exc=e)
 

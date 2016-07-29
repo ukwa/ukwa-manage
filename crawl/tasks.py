@@ -155,7 +155,7 @@ def build_sip(job_id, launch_id, job_output):
         sip = SipCreator([job_output['job_id']], warcs=job_output['warcs'], viral=job_output['viral'], logs=job_output['logs'], dummy_run=True)
         # Move it up to HDFS:
         sip_name = launch_id
-        sip_dir = os.path.abspath(sip_name)
+        sip_dir = os.path.abspath("%s/sips/%s/%s" % (HERITRIX_ROOT, job_id,sip_name))
         sip.create_sip(sip_dir)
         sip_on_hdfs = sip.copy_sip_to_hdfs(sip_dir, "%s/sips/%s/%s" % (HERITRIX_HDFS_ROOT, job_id, launch_id) )
         shutil.rmtree(sip_dir)

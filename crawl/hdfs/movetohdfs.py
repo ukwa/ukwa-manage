@@ -42,8 +42,8 @@ def setup_logging():
 
     # set logging levels
     global logger
-    logging.basicConfig(level=logging.WARNING)
-    logging.root.setLevel(logging.WARNING)
+    logging.basicConfig(level=logging.DEBUG)
+    logging.root.setLevel(logging.DEBUG)
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
 
@@ -174,7 +174,8 @@ class Uploader():
             logger.info('---- ----')
             logger.info("Copying %s to HDFS %s" % (localFile, hdfsFile))
             logger.info("localFile size %i hash %s date %s" % (localSize, localHash, localModtime))
-            self.hdfsClient.upload(local_path=localFile, hdfs_path=hdfsFile, overwrite=False, cleanup=False)
+            with open(localFile,'r') as f:
+                self.hdfsClient.write(data=f, hdfs_path=hdfsFile, overwrite=False)
             time.sleep(1)
             hdfsFileStatus = self.hdfsClient.status(hdfsFile, strict=False)
 
