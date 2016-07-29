@@ -38,7 +38,7 @@ HERITRIX_SURTS="%s/surts.txt" % HERITRIX_CONFIG_ROOT
 CLAMD_PORTS = { "daily": "3310", "weekly": "3310", "monthly": "3310", "quarterly": "3310", "sixmonthly": "3310", "annual": "3310" }
 CLAMD_DEFAULT_PORT = "3310"
 CLAMD_HOSTS = { }
-CLAMD_DEFAULT_HOST = "clamd"
+CLAMD_DEFAULT_HOST = "act2-clamd"
 
 
 def to_surt(url):

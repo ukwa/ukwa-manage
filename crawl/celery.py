@@ -113,7 +113,8 @@ app.conf.update(
     CELERY_DEFAULT_ROUTING_KEY="default",
 
     # Use JSON so we can inspect queue contents manually
-    CELERY_TASK_SERIALIZER = "json"
+    CELERY_TASK_SERIALIZER = "json",
+    CELERY_ACCEPT_CONTENT = ['json', 'msgpack', 'yaml']
 )
 
 if __name__ == '__main__':

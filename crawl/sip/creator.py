@@ -151,7 +151,8 @@ class SipCreator:
         gztar = shutil.make_archive(base_name=sip_dir, format="gztar", root_dir=os.path.dirname(sip_dir),
                                     base_dir=os.path.basename(sip_dir))
         logger.info("Copying %s to HDFS..." % gztar)
-        self.hdfs.upload(local_path=gztar, hdfs_path=hdfs_sip_tgz, overwrite=False, cleanup=False)
+        with open(gztar,'r') as f:
+            self.hdfs.write(data=f, hdfs_path=hdfs_sip_tgz, overwrite=False)
         os.remove(gztar)
         logger.info("Done.")
         return hdfs_sip_tgz

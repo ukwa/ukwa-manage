@@ -171,7 +171,8 @@ class Uploader():
             logger.info('---- ----')
             logger.info("Copying %s to HDFS %s" % (localFile, hdfsFile))
             logger.info("localFile size %i hash %s date %s" % (localSize, localHash, localModtime))
-            self.hdfsClient.upload(local_path=localFile, hdfs_path=hdfsFile, overwrite=False, cleanup=False)
+            with open(localFile,'r') as f:
+                self.hdfsClient.write(data=f, hdfs_path=hdfsFile, overwrite=False)
             time.sleep(1)
             hdfsFileStatus = self.hdfsClient.status(hdfsFile, strict=False)
 

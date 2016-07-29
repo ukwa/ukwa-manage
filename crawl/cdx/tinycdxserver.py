@@ -57,7 +57,7 @@ def send_uri_to_tinycdxserver(cdxserver_url, cl):
         logger.critical("Dropping message because WARC filename is unset! Message: %s" % cl)
         return
     # Make up the full path:
-    warc_path = "%s/%s/%s/%s" % (HERITRIX_HDFS_ROOT, cl['job_name'], cl['launch_id'], cl['warc_filename'])
+    warc_path = "%s/output/warcs/%s/%s/%s" % (HERITRIX_HDFS_ROOT, cl['job_name'], cl['launch_id'], cl['warc_filename'])
     # Build CDX line:
     cdx_11 = "- %s %s %s %s %s %s - - %s %s\n" % (
         cl["start_time_plus_duration"][:14],

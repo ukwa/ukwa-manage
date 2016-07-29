@@ -80,6 +80,8 @@ class CrawlJobOutput():
                     if len(fields) > 0:
                         timestamps.append(parse(fields[0]))
         timestamps.sort()
+        if len(timestamps) == 0:
+            return None
         return timestamps[0].strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def warc_file_path(self, warcfile):
@@ -170,7 +172,8 @@ class CrawlJobOutput():
         if self._file_exists(hdfs_zip_path):
             raise Exception('Log path %s already exists on HDFS' % hdfs_zip_path)
         logger.info("Copying %s to HDFS." % hdfs_zip_path)
-        self.hdfs.upload(hdfs_zip_path, zip_path, overwrite=False, cleanup=False)
+        with open(zip_path,'r') as f:
+            self.hdfs.write(data=f,hdfs_path=hdfs_zip_path,overwrite=False)
         logger.info("Copied %s to HDFS." % hdfs_zip_path)
         time.sleep(1)
         logger.info("Checking %s on HDFS." % hdfs_zip_path)
