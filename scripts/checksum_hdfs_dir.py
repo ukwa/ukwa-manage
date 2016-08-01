@@ -1,9 +1,10 @@
+from __future__ import absolute_import
+
 import hdfs
 import posixpath
 import hashlib
 import logging
 import time
-from crawl.hdfs.movetohdfs import get_checksum
 
 # set handler
 handler = logging.StreamHandler()
@@ -61,7 +62,7 @@ def checksum_dir(src):
             if len(srchash['bytes']) != 64 or srchash['bytes'] == bytearray(64):
                 raise Exception("Got nonsense hash %s" % srchash)
             srcsha = calculateHash(srcpath,client=client)
-            print("%s *%s" %(srcsha,srcpath))
+            logger.info("%s *%s" %(srcsha,srcpath))
 
 
 if __name__ == "__main__":
