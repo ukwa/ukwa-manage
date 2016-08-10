@@ -61,20 +61,34 @@ files = supervisord.d/*.ini
 
 ;; This watches queues and executes the tasks
 ;[program:celeryworker]
-;command=sh -c "sleep 30; celery -A crawl worker --autoreload  --loglevel=info -X PULSE-05-verify-sip"
-;directory=/shepherd/
-;autorestart = true
-;startsecs = 0
-;environment=PYTHONUNBUFFERED="TRUE"
-;stdout_events_enabled = true
-;stderr_events_enabled = true
+command=sh -c "sleep 30; celery -A crawl worker --autoreload  --loglevel=info -X PULSE-05-verify-sip"
+directory=/shepherd/
+autorestart = true
+startsecs = 0
+redirect_stderr=true
+environment=PYTHONUNBUFFERED="TRUE",SHEPHERD_CONFIG="/shepherd/crawl/docker.cfg"
+stdout_events_enabled = true
+stderr_events_enabled = true
 
 ; This moves WARCs to HDFS as they come in:
 [program:movetohdfs]
 command=sh -c "sleep 30; movetohdfs --dir /heritrix/output/ --pattern '.*\.warc\.gz' --hdfsdir '/pulse/' --startdate 2016-07-10:00.00.00 --webhdfs-prefix http://hadoop:50070/ --webhdfs-user root"
 autorestart = true
 startsecs = 0
+redirect_stderr=true
 environment=PYTHONUNBUFFERED="TRUE"
+stdout_events_enabled = true
+stderr_events_enabled = true
+
+; This program runs a basic crawler dashboard
+[program:crawldash]
+command=gunicorn crawl.ui.status:app -c crawl/ui/gunicorn.conf.py
+directory=/shepherd/
+user=nobody
+autostart=true
+autorestart=true
+redirect_stderr=true
+environment=PYTHONUNBUFFERED="TRUE",SHEPHERD_CONFIG="/shepherd/crawl/docker.cfg"
 stdout_events_enabled = true
 stderr_events_enabled = true
 

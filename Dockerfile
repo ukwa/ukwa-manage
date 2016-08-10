@@ -24,7 +24,7 @@ RUN cd /shepherd/ && python setup.py install
 # TODO Avoid this in future, as it should not be necessary even under Docker.
 ENV C_FORCE_ROOT TRUE
 
-ADD supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+ADD supervisord.conf.docker /etc/supervisor/conf.d/supervisord.conf
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
 

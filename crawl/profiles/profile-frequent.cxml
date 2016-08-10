@@ -288,12 +288,14 @@
 	</bean>
 	<!-- Configure persistent URI history storage -->
 	<bean id="persistStoreProcessor" class="org.archive.modules.recrawl.PersistStoreProcessor">
+      <property name="bdbModule" ref="bdbPersistBdb"/>
 	</bean>
 	<bean id="fetchHistoryProcessor" class="org.archive.modules.recrawl.FetchHistoryProcessor">
 		<property name="historyLength" value="2" />
 	</bean>
 	<!-- Configure persistent URI history loading for subsequent crawls -->
 	<bean id="persistLoadProcessor" class="org.archive.modules.recrawl.PersistLoadProcessor">
+      <property name="bdbModule" ref="bdbPersistBdb"/>
 	</bean>
 	<!-- assembled into ordered FetchChain bean -->
 	<bean id="fetchProcessors" class="org.archive.modules.FetchChain">
@@ -532,6 +534,7 @@
 	
 	<!-- FRONTIER: Record of all URIs discovered and queued-for-collection -->
 	<bean id="frontier" class="org.archive.crawler.frontier.BdbFrontier">
+        <property name="bdbModule" ref="bdbFrontierBdb"/>
         <property name="extract404s" value="false" />
 		<property name="queueTotalBudget" value="-1" />
 		<property name="balanceReplenishAmount" value="3000" />
@@ -660,12 +663,46 @@
 	<bean id="sheetOverlaysManager" autowire="byType" class="org.archive.crawler.spring.SheetOverlaysManager">
 	</bean>
 	<!-- BDBMODULE: shared BDB-JE disk persistence manager -->
-	<bean id="bdb" class="org.archive.bdb.BdbModule">
-		<property name="dir" value="/heritrix/state/REPLACE_JOB_ROOT/" />
-		<property name="cachePercent" value="30" />
-		<property name="useSharedCache" value="true" />
-		<property name="expectedConcurrency" value="25" />
-	</bean>
+<!--
+  <bean id="bdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/state/default"/>
+-->
+<!-- if neither cachePercent or cacheSize are specified (the default), bdb
+       uses its own default of 60% -->
+<!--      
+    <property name="cachePercent" value="30"/>
+-->
+<!-- <property name="cacheSize" value="0" /> -->
+<!-- <property name="useSharedCache" value="true" /> -->
+<!-- <property name="expectedConcurrency" value="25" /> -->
+<!--
+  </bean>
+-->
+  <bean id="bdbFrontierBdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/heritrix/state/#{metadata.jobName}/frontier"/>
+    <property name="cachePercent" value="30"/>
+    <property name="expectedConcurrency" value="100"/>
+  </bean>
+  <bean id="bdbPersistBdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/heritrix/state/#{metadata.jobName}/persist"/>
+    <property name="cachePercent" value="30"/>
+    <property name="expectedConcurrency" value="100"/>
+  </bean>
+  <bean id="bdbStatisticsBdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/heritrix/state/#{metadata.jobName}/statistics"/>
+    <property name="cachePercent" value="30"/>
+    <property name="expectedConcurrency" value="100"/>
+  </bean>
+  <bean id="bdbCookieStoreBdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/heritrix/state/#{metadata.jobName}/cookies"/>
+    <property name="cachePercent" value="30"/>
+    <property name="expectedConcurrency" value="100"/>
+  </bean>
+  <bean id="bdbServerCacheBdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/heritrix/state/#{metadata.jobName}/serverCache"/>
+    <property name="cachePercent" value="30"/>
+    <property name="expectedConcurrency" value="100"/>
+  </bean>
 	
 	<!-- BDBCOOKIESTORAGE: disk-based cookie storage for FetchHTTP -->
 	<bean id="cookieStorage" class="org.archive.modules.fetcher.BdbCookieStore">
@@ -678,6 +715,7 @@
 	
 	<!-- SERVERCACHE: shared cache of server/host info -->
 	<bean id="serverCache" class="org.archive.modules.net.BdbServerCache">
+        <property name="bdbModule" ref="bdbServerCacheBdb"/>
 		<!-- property name="bdb">
 			<ref bean="bdb"/>
 		</property -->
