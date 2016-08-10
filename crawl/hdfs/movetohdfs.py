@@ -18,11 +18,8 @@ from datetime import datetime, timedelta
 from hdfs import InsecureClient
 import hashlib
 
-# variables ---------
-logger = ()
-args = ()
-patternRegex = ''
-
+# Set up logger to be configured:
+logger = logging.getLogger(__name__)
 
 # functions ---------
 def script_die(msg):
@@ -42,9 +39,8 @@ def setup_logging():
 
     # set logging levels
     global logger
-    logging.basicConfig(level=logging.DEBUG)
-    logging.root.setLevel(logging.DEBUG)
-    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.WARNING)
+    logging.root.setLevel(logging.WARNING)
     logger.setLevel(logging.INFO)
 
 
@@ -110,6 +106,7 @@ def get_args():
 
 
 def get_checksum(fpFile, on_hdfs=False, hdfsClient=None):
+    logger.debug("file %s to hash" % (fpFile))
     # get hash for local or hdfs file
     if on_hdfs:
         with hdfsClient.read(hdfs_path=fpFile) as reader:
