@@ -664,6 +664,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
   <!-- STATISTICSTRACKER: standard stats/reporting collector -->
  <bean id="statisticsTracker"
    class="org.archive.crawler.reporting.StatisticsTracker" autowire="byName">
+  <property name="bdbModule" ref="bdbStatisticsBdb"/>
   <!-- disables end-of-job reporting altogether, aiming to make stopping simpler for large jobs -->
   <property name="reports">
     <list>

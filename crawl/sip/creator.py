@@ -183,7 +183,7 @@ class SipCreator:
 def main():
     parser = argparse.ArgumentParser( description="Create METS files." )
     parser.add_argument( "jobs", metavar="J", type=str, nargs="+", help="Heritrix job name" )
-    parser.add_argument( "-d", dest="dummy", action="store_true" )
+    parser.add_argument( "-d", dest="dummy", action="store_true", help="Do a dummy run, e.g. don't mint real ARKs.")
     parser.add_argument( "-w", dest="warcs", help="File containing list of WARC paths." )
     parser.add_argument( "-v", dest="viral", help="File containing list of viral WARC paths." )
     parser.add_argument( "-l", dest="logs", help="File containing list of log paths." )

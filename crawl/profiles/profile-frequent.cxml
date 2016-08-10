@@ -630,6 +630,7 @@
 	<!-- STATISTICSTRACKER: standard stats/reporting collector -->
  <bean id="statisticsTracker"
    class="org.archive.crawler.reporting.StatisticsTracker" autowire="byName">
+  <property name="bdbModule" ref="bdbStatisticsBdb"/>
   <!-- disables end-of-job reporting altogether -->
   <property name="reports">
     <list>
