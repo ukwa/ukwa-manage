@@ -99,7 +99,13 @@ class CrawlJobOutput():
                 # Skip failed downloads:
                 if parts[1] == '-' or int(parts[1]) <= 0:
                     continue
-                jmd = json.loads(parts[12])
+                try:
+                    jmd = json.loads(parts[12])
+                except Exception as e:
+                    logger.info(line)
+                    logger.info(parts[12])
+                    logger.exception(e)
+                    raise e
                 if 'warcFilename' in jmd:
                     warcfiles.add(jmd['warcFilename'])
                 else:
