@@ -333,19 +333,19 @@ class Mets:
         i = 0
         for warc in self.warcs:
             i += 1
-            print("Running building PREMIS for WARC %i/%i: %s" % ( i, len(self.warcs), warc))
+            print("Running building PREMIS for WARC %i/%i: %s" % ( i, len(self.warcs), warc.path))
             self.buildPremis( warc, self.identifiers.pop() )
 
         i = 0
         for warc in self.viral:
             i += 1
-            print("Running building PREMIS for viral WARC %i/%i: %s" % ( i, len(self.viral), warc))
+            print("Running building PREMIS for viral WARC %i/%i: %s" % ( i, len(self.viral), warc.path))
             self.buildPremis( warc, self.identifiers.pop(), virus=True )
         
         i = 0
         for zip in self.logs:
             i += 1
-            print("Running building PREMIS for ZIP %i/%i: %s" % ( i, len(self.logs), zip))
+            print("Running building PREMIS for ZIP %i/%i: %s" % ( i, len(self.logs), zip.path))
             self.buildZipPremis( zip, self.identifiers.pop() )
 
         fileSec = etree.SubElement( self.mets, METS + "fileSec" )
