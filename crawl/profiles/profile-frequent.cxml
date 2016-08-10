@@ -630,6 +630,7 @@
 	<!-- STATISTICSTRACKER: standard stats/reporting collector -->
  <bean id="statisticsTracker"
    class="org.archive.crawler.reporting.StatisticsTracker" autowire="byName">
+  <property name="bdbModule" ref="bdbStatisticsBdb"/>
   <!-- disables end-of-job reporting altogether -->
   <property name="reports">
     <list>
@@ -706,6 +707,7 @@
 	
 	<!-- BDBCOOKIESTORAGE: disk-based cookie storage for FetchHTTP -->
 	<bean id="cookieStorage" class="org.archive.modules.fetcher.BdbCookieStore">
+        <property name="bdbModule" ref="bdbCookieStoreBdb"/>
 		<property name="cookiesLoadFile"><null/></property>
 		<property name="cookiesSaveFile"><null/></property>
 		<!-- property name="bdb">
