@@ -96,6 +96,9 @@ class CrawlJobOutput():
         with open(self.crawl_log, 'r') as f:
             for line in f:
                 parts = re.split(" +", line, maxsplit=13)
+                # Skip failed downloads:
+                if parts[1] == '-' or int(parts[1]) <= 0:
+                    continue
                 jmd = json.loads(parts[12])
                 if 'warcFilename' in jmd:
                     warcfiles.add(jmd['warcFilename'])
