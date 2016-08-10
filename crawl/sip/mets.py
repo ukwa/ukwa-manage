@@ -56,8 +56,9 @@ def getLength( path ):
     status = client.status(path)
     return status['length']
 
-def getModifiedDate( path ):
-    client = hdfs.InsecureClient(cfg.get('hdfs', 'url'), user=cfg.get('hdfs', 'user'))
+def getModifiedDate( path, client ):
+    logger.info("Looking at %s" % path)
+    print(client)
     status = client.status(path)
     logger.debug(status)
     return status['modificationTime']/1000.0
@@ -70,19 +71,19 @@ def getCount():
     return val
 
 
-def create_warcs(q, warcs, hash_cache):
+def create_warcs(q, warcs, parent):
         while True:
-            w = Warc(q.get(), hash_cache)
+            w = Warc(q.get(), parent)
             warcs.append(w)
             q.task_done()
 
 
 class Warc:
-    def __init__( self, path, hash_cache):
+    def __init__( self, path, parent):
         self.path = path
         self.admid = getCount()
-        if path in hash_cache:
-            (sha, len) = hash_cache.get(path).split(" ")
+        if path in parent.hash_cache:
+            (sha, len) = parent.hash_cache.get(path).split(" ")
             self.hash = sha
             self.size = len
         else:
@@ -92,12 +93,11 @@ class Warc:
 
 
 class ZipContainer:
-    def __init__( self, path, hash_cache ):
-        self.hdfs =  hdfs.InsecureClient(cfg.get('hdfs','url'), user=cfg.get('hdfs','user'))
+    def __init__( self, path, parent ):
         self.path = path
         self.admid = getCount()
-        if path in hash_cache:
-            (sha, len) = hash_cache.get(path).split(" ")
+        if path in parent.hash_cache:
+            (sha, len) = parent.hash_cache.get(path).split(" ")
             self.hash = sha
             self.size = len
         else:
@@ -107,8 +107,11 @@ class ZipContainer:
 
 
 class Mets:
-    def __init__( self, date, warcs, viral, logs, identifiers, hash_cache=None ):
-        self.hdfs =  hdfs.InsecureClient(cfg.get('hdfs','url'), user=cfg.get('hdfs','user'))
+    def __init__( self, date, warcs, viral, logs, identifiers, hash_cache=None, client=None ):
+        if client is None:
+            self.client=  hdfs.InsecureClient(cfg.get('hdfs','url'), user=cfg.get('hdfs','user'))
+        else:
+            self.client = client
         self.warcs = []
         self.viral = []
         self.date = date
@@ -117,7 +120,7 @@ class Mets:
         self.hash_cache = hash_cache
 
         for i in range(NUM_THREADS):
-            worker = Thread(target=create_warcs, args=(self.wq, self.warcs, self.hash_cache))
+            worker = Thread(target=create_warcs, args=(self.wq, self.warcs, self))
             worker.setDaemon(True)
             worker.start()
 
@@ -126,7 +129,7 @@ class Mets:
         self.wq.join()
 
         for i in range(NUM_THREADS):
-            worker = Thread(target=create_warcs, args=(self.vq, self.viral, self.hash_cache))
+            worker = Thread(target=create_warcs, args=(self.vq, self.viral, self))
             worker.setDaemon(True)
             worker.start()
 
@@ -136,7 +139,7 @@ class Mets:
 
         self.logs = []
         for log in logs:
-            self.logs.append( ZipContainer( path=log, hash_cache=self.hash_cache ) )
+            self.logs.append( ZipContainer( path=log, parent=self ))
         self.identifiers = identifiers
         self.createDomainMets()
         self.createCrawlerMets()
@@ -273,7 +276,7 @@ class Mets:
         eventType = etree.SubElement( event, PREMIS + "eventType" )
         eventType.text = "virusCheck"
         eventDateTime = etree.SubElement( event, PREMIS + "eventDateTime" )
-        eventDateTime.text = datetime.fromtimestamp( getModifiedDate( warc.path ) ).strftime( "%Y-%m-%dT%H:%M:%S" )
+        eventDateTime.text = datetime.fromtimestamp( getModifiedDate( warc.path, self.client ) ).strftime( "%Y-%m-%dT%H:%M:%S" )
         eventOutcomeInformation = etree.SubElement( event, PREMIS + "eventOutcomeInformation" )
         eventOutcome = etree.SubElement( eventOutcomeInformation, PREMIS + "eventOutcome" )
         if( virus ):

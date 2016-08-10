@@ -31,9 +31,12 @@ logger = get_task_logger(__name__)
 
 
 class SipCreator:
-    def __init__( self, jobs, jobname=datetime.now().strftime( "%Y%m%d%H%M%S" ), warcs=None, viral=None, logs=None, start_date=None, dummy_run=False, hash_cache_file=None ):
+    def __init__( self, jobs, jobname=datetime.now().strftime( "%Y%m%d%H%M%S" ), warcs=None, viral=None, logs=None, start_date=None, dummy_run=False, hash_cache_file=None, client=None ):
         """Sets up fields."""
-        self.hdfs =  hdfs.InsecureClient(cfg.get('hdfs','url'), user=cfg.get('hdfs','user'))
+        if client is None:
+            self.client = hdfs.InsecureClient(cfg.get('hdfs','url'), user=cfg.get('hdfs','user'))
+        else:
+            self.client = client
         self.dummy = dummy_run
         self.overwrite = False
         self.jobs = jobs
@@ -68,6 +71,9 @@ class SipCreator:
             for line in f:
                 (dir, details) = line.split('\t')
                 (hash, length, path) = details.split(' ')
+                path = path.strip()
+                length = long(length)
+                logger.debug("GOT %s %s %s" % (path, hash, length))
                 self.hash_cache[path] = "%s %i" % ( hash, length )
                 if "/viral/" in path:
                     self.viral.append(path)
@@ -103,7 +109,7 @@ class SipCreator:
     def createMets( self ):
         """Creates the Mets object."""
         logger.info( "Building METS..." )
-        self.mets = Mets( self.startdate, self.warcs, self.viral, self.logs, self.identifiers, hash_cache=self.hash_cache )
+        self.mets = Mets( self.startdate, self.warcs, self.viral, self.logs, self.identifiers, hash_cache=self.hash_cache, client=self.client )
 
     def writeMets( self, output=sys.stdout ):
         """Writes the METS XML to a file handle."""
@@ -180,7 +186,24 @@ class SipCreator:
         logger.info("Done.")
         return hdfs_sip_tgz
 
+def setup_logging():
+    # set handler
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("[%(asctime)s] %(levelname)s %(filename)s.%(funcName)s: %(message)s")
+    handler.setFormatter(formatter)
+
+    # attach to root logger
+    logging.root.addHandler(handler)
+
+    # set logging levels
+    global logger
+    logging.basicConfig(level=logging.WARNING)
+    logging.root.setLevel(logging.WARNING)
+    logger.setLevel(logging.INFO)
+
 def main():
+    setup_logging()
+
     parser = argparse.ArgumentParser( description="Create METS files." )
     parser.add_argument( "jobs", metavar="J", type=str, nargs="+", help="Heritrix job name" )
     parser.add_argument( "-d", dest="dummy", action="store_true" )
@@ -188,10 +211,12 @@ def main():
     parser.add_argument( "-v", dest="viral", help="File containing list of viral WARC paths." )
     parser.add_argument( "-l", dest="logs", help="File containing list of log paths." )
     parser.add_argument( "-o", dest="output_root", help="Where to put the resulting SIP" )
-    parser.add_argument( "-H", dest="hash_cache", help="File containing a hash look-up table.")
+    parser.add_argument( "-I", dest="hash_cache", help="File containing a hash look-up table.")
     args = parser.parse_args()
 
-    sip = SipCreator( args.jobs, warcs=args.warcs, viral=args.viral, logs=args.logs, dummy_run=args.dummy, hash_cache_file=args.hash_cache )
+    client = hdfs.InsecureClient("http://hdfs.gtw.wa.bl.uk:14000/", user="hdfs")
+
+    sip = SipCreator( args.jobs, warcs=args.warcs, viral=args.viral, logs=args.logs, dummy_run=args.dummy, hash_cache_file=args.hash_cache, client=client )
     sip_dir = "%s/%s" % ( args.output_root, sip.jobname )
     sip.create_sip(sip_dir)
     sip.copy_sip_to_hdfs(sip_dir, sip_dir)
