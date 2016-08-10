@@ -57,8 +57,7 @@ def getLength( path ):
     return status['length']
 
 def getModifiedDate( path, client ):
-    logger.info("Looking at %s" % path)
-    print(client)
+    logger.info("Running getModifiedDate on %s" % path)
     status = client.status(path)
     logger.debug(status)
     return status['modificationTime']/1000.0
@@ -331,13 +330,22 @@ class Mets:
         
 
     def createCrawlerMets( self ):
+        i = 0
         for warc in self.warcs:
+            i += 1
+            print("Running building PREMIS for WARC %i/%i: %s" % ( i, len(self.warcs), warc))
             self.buildPremis( warc, self.identifiers.pop() )
 
+        i = 0
         for warc in self.viral:
+            i += 1
+            print("Running building PREMIS for viral WARC %i/%i: %s" % ( i, len(self.viral), warc))
             self.buildPremis( warc, self.identifiers.pop(), virus=True )
         
+        i = 0
         for zip in self.logs:
+            i += 1
+            print("Running building PREMIS for ZIP %i/%i: %s" % ( i, len(self.logs), zip))
             self.buildZipPremis( zip, self.identifiers.pop() )
 
         fileSec = etree.SubElement( self.mets, METS + "fileSec" )
