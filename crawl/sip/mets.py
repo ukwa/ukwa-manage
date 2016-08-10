@@ -70,43 +70,54 @@ def getCount():
     return val
 
 
-def create_warcs(q, warcs):
+def create_warcs(q, warcs, hash_cache):
         while True:
-            w = Warc(q.get())
+            w = Warc(q.get(), hash_cache)
             warcs.append(w)
             q.task_done()
 
 
 class Warc:
-    def __init__( self, path ):
+    def __init__( self, path, hash_cache):
         self.path = path
-        self.hash = calculateHash( path )
-        self.size = getLength( path )
         self.admid = getCount()
+        if path in hash_cache:
+            (sha, len) = hash_cache.get(path).split(" ")
+            self.hash = sha
+            self.size = len
+        else:
+            self.hash = calculateHash( path )
+            self.size = getLength( path )
         logger.debug("%s %s %s %s" % (self.path, self.hash, self.size, self.admid))
 
 
 class ZipContainer:
-    def __init__( self, path ):
+    def __init__( self, path, hash_cache ):
         self.hdfs =  hdfs.InsecureClient(cfg.get('hdfs','url'), user=cfg.get('hdfs','user'))
         self.path = path
         self.admid = getCount()
-        self.hash = calculateHash( self.path )
-        self.size =  getLength( self.path )
+        if path in hash_cache:
+            (sha, len) = hash_cache.get(path).split(" ")
+            self.hash = sha
+            self.size = len
+        else:
+            self.hash = calculateHash( path )
+            self.size = getLength( path )
         logger.debug("%s %s %s %s" % (self.path, self.hash, self.size, self.admid))
 
 
 class Mets:
-    def __init__( self, date, warcs, viral, logs, identifiers ):
+    def __init__( self, date, warcs, viral, logs, identifiers, hash_cache=None ):
         self.hdfs =  hdfs.InsecureClient(cfg.get('hdfs','url'), user=cfg.get('hdfs','user'))
         self.warcs = []
         self.viral = []
         self.date = date
         self.wq = Queue()
         self.vq = Queue()
+        self.hash_cache = hash_cache
 
         for i in range(NUM_THREADS):
-            worker = Thread(target=create_warcs, args=(self.wq, self.warcs))
+            worker = Thread(target=create_warcs, args=(self.wq, self.warcs, self.hash_cache))
             worker.setDaemon(True)
             worker.start()
 
@@ -115,7 +126,7 @@ class Mets:
         self.wq.join()
 
         for i in range(NUM_THREADS):
-            worker = Thread(target=create_warcs, args=(self.vq, self.viral))
+            worker = Thread(target=create_warcs, args=(self.vq, self.viral, self.hash_cache))
             worker.setDaemon(True)
             worker.start()
 
@@ -125,7 +136,7 @@ class Mets:
 
         self.logs = []
         for log in logs:
-            self.logs.append( ZipContainer( path=log ) )
+            self.logs.append( ZipContainer( path=log, hash_cache=self.hash_cache ) )
         self.identifiers = identifiers
         self.createDomainMets()
         self.createCrawlerMets()
