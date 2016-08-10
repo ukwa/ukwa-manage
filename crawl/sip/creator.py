@@ -38,6 +38,8 @@ class SipCreator:
         else:
             self.client = client
         self.dummy = dummy_run
+        if self.dummy:
+            logger.info("This is a dummy-run - no real ARKs will be minted.")
         self.overwrite = False
         self.jobs = jobs
         self.jobname = jobname
@@ -173,16 +175,19 @@ class SipCreator:
         """
         # Check if it's already there:
         hdfs_sip_tgz = "%s.tar.gz" % hdfs_sip_path
-        status = self.hdfs.status(hdfs_sip_tgz, strict=False)
+        status = self.client.status(hdfs_sip_tgz, strict=False)
         if status and not self.overwrite:
             raise Exception("SIP already exists in HDFS: %s" % hdfs_sip_tgz)
         # Build the TGZ
         gztar = shutil.make_archive(base_name=sip_dir, format="gztar", root_dir=os.path.dirname(sip_dir),
                                     base_dir=os.path.basename(sip_dir))
-        logger.info("Copying %s to HDFS..." % gztar)
-        with open(gztar,'r') as f:
-            self.hdfs.write(data=f, hdfs_path=hdfs_sip_tgz, overwrite=False)
-        os.remove(gztar)
+        if self.dummy:
+            logger.warning("Not copying to HDFS as this is a dummy-run! Leaving %s in place." % gztar)
+        else:
+            logger.info("Copying %s to HDFS..." % gztar)
+            with open(gztar,'r') as f:
+                self.client.write(data=f, hdfs_path=hdfs_sip_tgz, overwrite=False)
+            os.remove(gztar)
         logger.info("Done.")
         return hdfs_sip_tgz
 
