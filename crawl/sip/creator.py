@@ -77,12 +77,12 @@ class SipCreator:
                 length = long(length)
                 logger.debug("GOT %s %s %s" % (path, hash, length))
                 self.hash_cache[path] = "%s %i" % ( hash, length )
-                if "/viral/" in path:
+                if "/output/viral/" in path:
                     self.viral.append(path)
-                elif "/warcs/" in path:
+                elif "/output/warcs/" in path:
                     self.warcs.append(path)
                 else:
-                    self.warc.append(path)
+                    self.logs.append(path)
 
     def processJobs( self ):
         """All WARCs and logs associated with jobs, optionally loaded from files."""
