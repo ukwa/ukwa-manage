@@ -38,3 +38,7 @@ class ACT():
     def get_by_export(self, frequency):
         return self._get_json("%s/by/%s" % (settings.W3ACT_EXPORT_BASE, frequency))
 
+
+    def get_oa_export(self, frequency):
+        return self._get_json("%s/oa/%s" % (settings.W3ACT_EXPORT_BASE, frequency))
+
