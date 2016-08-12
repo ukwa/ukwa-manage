@@ -17,11 +17,10 @@ class HapyX(Hapy):
 
     def status(self, job=""):
         info = self.get_job_info(job)
-        status = info['job'].get("crawlControllerState", None)
-        if status == None:
-            return ""
+        if info.has_key('job'):
+            status = info['job'].get("crawlControllerState", "")
         else:
-            return status
+            status = ""
 
     def list_jobs(self, status=None):
         r = self._http_get(self.base_url)

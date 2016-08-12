@@ -1,14 +1,69 @@
 <!doctype html>
 <head>
-<title>Status</title>
+<title>{{ title }}</title>
+    <style type="text/css">
+        .hblock {
+        width: 100%
+        }
+        .error {
+        background-color: red;
+        color: white;
+        }
+        a.error {
+        color: white;
+        }
+        .errorInfo {
+        display: none;
+        }
+    </style>
 </head>
 <body>
-{{ error }}
-{% for frequency in statuses %}
-{{ frequency }}
-bob
-{{ statuses.frequency }}
-{{ statuses[frequency] }}
+{% for group in mon %}
+<h1>{{ group['name'] }}</h1>
+
+{% if "crawlers" in group %}
+<h2>Crawlers</h2>
+
+<ul class="hblock">
+{% for crawler in group["crawlers"] %}
+    {% for job in crawler["jobs"] %}
+  <li>
+      <a{% if job in crawler["errors"] %} class="error"{% endif %} href="{{ crawler['url'] }}/job/{{ job }}">{{ job }}</a>
+    {% if job in crawler["errors"] %}
+      <span class="errorInfo">{{ crawler["errors"][job] }}</span>
+    {% endif %}
+  </li>
+    {% endfor %}
+{% endfor %}
+{% endif %}
+</ul>
+
+{% if "queues" in group %}
+<h2>Queues</h2>
+
+{% for queue in group["queues"] %}
+<h3>{{ queue['name'] }}</h3>
+<ul class="hblock">
+{% for q in queue["queues"] %}
+  <li>
+      {{ q }}
+  </li>
+{% endfor %}
+</ul>
+{% endfor %}
+{% endif %}
+
+{% if "services" in group %}
+<h2>Services</h2>
+<ul class="hblock">
+{% for service in group["services"] %}
+  <li>
+      {{ service["name"] }}
+  </li>
+{% endfor %}
+{% endif %}
+</ul>
+
 {% endfor %}
 </body>
 
