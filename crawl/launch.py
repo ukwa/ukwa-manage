@@ -55,7 +55,7 @@ class launcher(object):
 		connection = pika.BlockingConnection( parameters )
 		channel = connection.channel()
 		channel.exchange_declare(exchange=self.args.exchange, durable=True)
-		channel.queue_declare( queue=queue, durable=True )
+		channel.queue_declare( queue=queue, durable=True, auto_delete=False )
 		channel.queue_bind(queue=queue, exchange=self.args.exchange)#, routing_key="uris-to-render")
 		channel.tx_select()
 		channel.basic_publish( exchange=self.args.exchange,
@@ -68,7 +68,7 @@ class launcher(object):
 		connection.close()
 
 
-	def launch(self, destination, uri, source, isSeed=False, clientId="FC-3-uris-to-crawl", forceFetch=False):
+	def launch(self, destination, uri, source, isSeed=False, clientId="FC-3-uris-to-crawl", forceFetch=False, sendCheckMessage=True):
 		curim = {}
 		if destination == "h3":
 			curim['headers'] = {}
@@ -103,8 +103,9 @@ class launcher(object):
 		# Push a 'seed' message onto the rendering queue:
 		self.send_message(message)
 		# Also push the same message to the FC-1-uris-to-check
-		check_message = {}
-		check_message['launch_timestamp'] = datetime.utcnow().isoformat()
-		check_message['launch_message'] = curim
-		check_message['launch_queue'] = self.args.queue
-		self.send_message(json.dumps(check_message),'FC-1-uris-to-check')
+		if sendCheckMessage:
+			check_message = {}
+			check_message['launch_timestamp'] = datetime.utcnow().isoformat()
+			check_message['launch_message'] = curim
+			check_message['launch_queue'] = self.args.queue
+			self.send_message(json.dumps(check_message),'FC-1-uris-to-check')

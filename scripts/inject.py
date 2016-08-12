@@ -21,7 +21,7 @@ import requests
 from lxml import html
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
-from lib.agents.launch import launcher
+from crawl.launch import launcher
 
 
 # Set up a logging handler:
@@ -64,7 +64,7 @@ if __name__ == "__main__":
 	launcher = launcher(args)
 	
 	# Add the main URL
-	launcher.launch(args.destination, args.uri, args.source, isSeed=args.seed, clientId="FC-3-uris-to-crawl", forceFetch=args.forceFetch)
+	launcher.launch(args.destination, args.uri, args.source, isSeed=args.seed, clientId="FC-3-uris-to-crawl", forceFetch=args.forceFetch, sendCheckMessage=False)
 	
 	# Also, for some hosts, attempt to extract all pages from a oaged list:
 	if args.pager:

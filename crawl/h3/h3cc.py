@@ -36,7 +36,7 @@ from argparse import RawDescriptionHelpFormatter
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
 
 from jinja2 import Environment, PackageLoader
-env = Environment(loader=PackageLoader('lib.h3cc', 'scripts'))
+env = Environment(loader=PackageLoader('crawl.h3.h3cc', 'scripts'))
 
 __all__ = []
 __version__ = 0.1
@@ -61,7 +61,11 @@ logger.setLevel( logging.INFO )
 
 #
 def main(argv=None):
-	'''Command line options.'''
+	"""
+        h3cc
+
+        Command crawler control.
+        """
 
 	if argv is None:
 		argv = sys.argv
@@ -72,7 +76,8 @@ def main(argv=None):
 	program_version = "v%s" % __version__
 	program_build_date = str(__updated__)
 	program_version_message = '%%(prog)s %s (%s)' % (program_version, program_build_date)
-	program_shortdesc = __import__('__main__').__doc__.split("\n")[1]
+	#program_shortdesc = __import__('__main__').__doc__.split("\n")[1]
+	program_shortdesc = __import__('__main__').__doc__
 	program_license = '''%s
 
   Created by Andrew Jackson on %s.
