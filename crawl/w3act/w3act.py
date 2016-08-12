@@ -88,8 +88,11 @@ class w3act():
 		return self.ld_cache.get(frequency, self._get_ld_export, 60*60)
 
 	def get_by_export(self, frequency):
-		return self._get_json( "%s/api/crawl/feed/by/%s" % (self.url, frequency))
-	
+		return self._get_json("%s/api/crawl/feed/by/%s" % (self.url, frequency))
+
+	def get_oa_export(self, frequency):
+		return self._get_json("%s/api/crawl/feed/oa/%s" % (self.url, frequency))
+
 	def find_watched_target_for(self, url, source, publishers):
 		'''
 		Given a URL and an array of publisher strings, determine which Watched Target to associate them with.
