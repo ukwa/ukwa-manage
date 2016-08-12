@@ -217,11 +217,12 @@ def main():
     parser.add_argument( "-l", dest="logs", help="File containing list of log paths." )
     parser.add_argument( "-o", dest="output_root", help="Where to put the resulting SIP" )
     parser.add_argument( "-I", dest="hash_cache", help="File containing a hash look-up table.")
+    parser.add_argument( "-D", dest="start_date", help="Start date, in '2015-08-27T14:39:19.000000' format (can be truncated).")
     args = parser.parse_args()
 
     client = hdfs.InsecureClient("http://hdfs.gtw.wa.bl.uk:14000/", user="hdfs")
 
-    sip = SipCreator( args.jobs, warcs=args.warcs, viral=args.viral, logs=args.logs, dummy_run=args.dummy, hash_cache_file=args.hash_cache, client=client )
+    sip = SipCreator( args.jobs, start_date=args.start_date, warcs=args.warcs, viral=args.viral, logs=args.logs, dummy_run=args.dummy, hash_cache_file=args.hash_cache, client=client )
     sip_dir = "%s/%s" % ( args.output_root, sip.jobname )
     sip.create_sip(sip_dir)
     sip.copy_sip_to_hdfs(sip_dir, sip_dir)
