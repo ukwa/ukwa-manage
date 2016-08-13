@@ -1,0 +1,76 @@
+{
+  "queues": {
+    "PULSE01": {
+      "server": "AMQP-FC",
+      "name": "PULSE-01-stop-start-job",
+      "short": "(re)start"
+    },
+    "PULSE02": {
+      "server": "AMQP-FC",
+      "name": "PULSE-02-assemble-job-output"
+    },
+    "PULSE03": {
+      "server": "AMQP-FC",
+      "name": "PULSE-03-build-sip"
+    },
+    "PULSE04": {
+      "server": "AMQP-FC",
+      "name": "PULSE-04-submit-sip"
+    },
+    "PULSE05": {
+      "server": "AMQP-FC",
+      "name": "PULSE-05-verify-sip"
+    },
+    "PULSE10": {
+      "server": "AMQP-FC",
+      "name": "PULSE-10-uri-to-index"
+    },
+    "PULSE11": {
+      "server": "AMQP-FC",
+      "name": "PULSE-11-uri-to-doc"
+    }
+  },
+  "jobs": {
+    "daily": {
+      "server": "H3-FC"
+    },
+    "weekly": {
+      "server": "H3-FC"
+    },
+    "monthly": {
+      "server": "H3-FC"
+    },
+    "quarterly": {
+      "server": "H3-FC"
+    },
+    "six-monthly": {
+      "server": "H3-FC"
+    },
+    "annual": {
+      "server": "H3-FC"
+    },
+    "dc0-201608010": {
+      "server": "H3-DC"
+    },
+    "dc1-201608010": {
+      "server": "H3-DC"
+    },
+    "dc2-201608010": {
+      "server": "H3-DC"
+    },
+    "dc3-201608010": {
+      "server": "H3-DC"
+    }
+  },
+  "services": {
+    "W3ACT": {
+      "url": "http://localhost:9000/act"
+    },
+    "CDX Server": {
+      "url": "http://localhost:9090/fc"
+    },
+    "WebHDFS": {
+      "url": "http://hadoop:5700"
+    }
+  }
+}
