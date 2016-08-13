@@ -18,7 +18,7 @@
         "url":"https://localhost:8443/",
         "user": "heritrix",
         "pass": "heritrix",
-        "jobs": ["daily", "weekly", "monthly"]
+        "jobs": ["daily", "weekly", "monthly", "quarterly", "six-monthly", "annual"]
       }
     ],
     "services": [
@@ -34,6 +34,7 @@
   },
   {
     "name": "Domain Crawl",
+    "queues": [],
     "crawlers": [
       {
         "url":"https://localhost:8443/",
@@ -46,6 +47,18 @@
         "user": "heritrix",
         "pass": "heritrix",
         "jobs": ["dc1-201608010"]
+      },
+      {
+        "url":"https://localhost:8443/",
+        "user": "heritrix",
+        "pass": "heritrix",
+        "jobs": ["dc2-201608010"]
+      },
+      {
+        "url":"https://localhost:8443/",
+        "user": "heritrix",
+        "pass": "heritrix",
+        "jobs": ["dc3-201608010"]
       }
     ]
   },

@@ -1,10 +1,16 @@
 <!doctype html>
 <head>
 <title>{{ title }}</title>
+    <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
+    <link rel="stylesheet" href="http://weloveiconfonts.com/api/?family=fontawesome">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+<!--[if lte IE 8]>
+    <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/grids-responsive-old-ie-min.css">
+<![endif]-->
+<!--[if gt IE 8]><!-->
+    <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/grids-responsive-min.css">
+<!--<![endif]-->
     <style type="text/css">
-        .hblock {
-        width: 100%
-        }
         .error {
         background-color: red;
         color: white;
@@ -12,58 +18,191 @@
         a.error {
         color: white;
         }
-        .errorInfo {
+        .errorInfo, .details {
         display: none;
         }
+[class*="fontawesome-"]:before {
+  font-family: 'FontAwesome', sans-serif;
+}
+.dashboard-piece {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    color: #fff;
+    text-align: center;
+    position: relative;
+    padding-bottom: 0px;
+    min-height: 120px;
+}
+.dashboard-title {
+    min-height: 80px;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    color: #fff;
+    text-align: center;
+    position: relative;
+    padding-bottom: 0px;
+}
+.dashboard-piece-redbg, .status-alert {
+    background-color: #E73F3F;
+}
+.dashboard-piece-orangebg, .status-warning {
+    background-color: #F76C27;
+}
+.dashboard-piece-yellowbg, .status-okay {
+    background-color: #E7E737;
+}
+.dashboard-piece-bluebg, .status-in-flux {
+    background-color: #6D9DD1;
+}
+.dashboard-piece-greenbg, .status-good {
+    background-color: rgb(28, 184, 65);
+}
+.dashboard-piece-purplebg {
+    background-color: #7E45D3;
+}
+.dashboard-piece-graybg, .gray, .status-unknown {
+    background-color: #798388;
+}
+.dashboard-title h1 {
+    line-height: 80px;
+    font-size: 3.6em;
+    margin: 0.5em;
+    opacity: 0.8;
+    font-weight: lighter;
+}
+.dashboard-content {
+    position: relative;
+    z-index: 999;
+}
+.dashboard-content p {
+    font-weight: lighter;
+}
+.dashboard-content .light {
+    opacity: 0.5;
+    display: block;
+}
+.dashboard-content h2 {
+    font-weight: lighter;
+    font-size: 2em;
+    opacity: 0.85;
+    margin: 0.5em;
+}
+.dashboard-content h3 {
+    font-weight: lighter;
+    font-size: 1em;
+    opacity: 0.5;
+    margin: 0.5em;
+}
+.button-light {
+            color: white;
+            border-radius: 4px;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+            background: none;
+            opacity: 0.8;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.button-light:hover {
+    background-image: linear-gradient(transparent,rgba(255,255,255,.05) 40%,rgba(255,255,255,.1));
+}
     </style>
+<script language="javascript">
+(function(){
+var to;
+
+	function pieceHeights(){
+		to = setTimeout(function(){
+			$(".pure-g-r").each(function(i,el){
+				var contentPieces = $(el).find(".dashboard-piece");
+				var max = 0;
+				contentPieces.css("min-height","");
+				$.grep(contentPieces, function(el,i){
+					max = Math.max($(el).outerHeight(),max);
+				});
+				contentPieces.css("min-height", max);
+			});
+		}, 400);
+	}
+
+	$(window).on("resize", function(){
+		clearTimeout(to);
+		pieceHeights();
+	}).trigger("resize");
+
+}());
+</script>
 </head>
-<body>
+<body class="gray">
+
+<section class="dashboard pure-g-r clearfix">
 {% for group in mon %}
-<h1>{{ group['name'] }}</h1>
+<div class="pure-g">
+    <div class="pure-u-1 dashboard-title dashboard-piece-bluebg">
+    <h1>{{ group['name'] }}</h1>
+    </div>
+</div>
+
+<div class="pure-g">
+<div class="pure-u-1-3">
 
 {% if "crawlers" in group %}
-<h2>Crawlers</h2>
-
-<ul class="hblock">
+<div class="pure-g">
 {% for crawler in group["crawlers"] %}
     {% for job in crawler["jobs"] %}
-  <li>
-      <a{% if job in crawler["errors"] %} class="error"{% endif %} href="{{ crawler['url'] }}/job/{{ job }}">{{ job }}</a>
+    <div class="pure-u-1-2 dashboard-piece dashboard-content{% if 'status' in crawler %} {{ crawler['status'] }}{% else %} status-unknown{% endif %}">
+        <h2>{{ crawler['states'][job] }}</h2>
+        <p>
+      <a class="button-light pure-button" href="{{ crawler['url'] }}engine/job/{{ job }}">{{ job }}</a>
     {% if job in crawler["errors"] %}
       <span class="errorInfo">{{ crawler["errors"][job] }}</span>
     {% endif %}
-  </li>
+      <span class="details">{{ crawler["details"][job] }}</span>
+        </p>
+    </div>
     {% endfor %}
 {% endfor %}
+</div>
 {% endif %}
-</ul>
+
+</div><div class="pure-u-1-3">
+
 
 {% if "queues" in group %}
-<h2>Queues</h2>
-
+<div class="pure-g dashboard-piece-graybg">
 {% for queue in group["queues"] %}
-<h3>{{ queue['name'] }}</h3>
-<ul class="hblock">
+<h2 class="hidden">{{ queue['name'] }}</h2>
 {% for q in queue["queues"] %}
-  <li>
-      {{ q }}
-  </li>
+    <div class="pure-u-1-2 dashboard-piece dashboard-content {% if q in queue['status'] %} {{ queue['status'][q] }}{% else %} status-unknown{% endif %}">
+      <h2>{{ queue['states'][q]['messages'] }}</h2>
+        <p>
+      <a class="button-light pure-button" href="">{{ q }}</a>
+        </p>
+    </div>
 {% endfor %}
-</ul>
 {% endfor %}
+</div>
 {% endif %}
+
+</div><div class="pure-u-1-3">
 
 {% if "services" in group %}
-<h2>Services</h2>
-<ul class="hblock">
+<div class="pure-g">
 {% for service in group["services"] %}
-  <li>
-      {{ service["name"] }}
-  </li>
+    <div class="pure-u-1-{{ group['services'] | length }} dashboard-piece dashboard-content{% if 'status' in service %} {{ service[q]['status'] }}{% else %} status-unknown{% endif %}">
+        <h2>{{ service['status'] }}</h2>
+        <p>
+        <a class="button-light pure-button" href="{{ service['url'] }}">{{ service["name"] }}</a>
+        </p>
+    </div>
 {% endfor %}
 {% endif %}
-</ul>
+</div>
 
+</div>
+    </div>
 {% endfor %}
+</section>
+
 </body>
 
