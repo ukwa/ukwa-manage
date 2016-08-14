@@ -32,7 +32,7 @@ def get_h3_status(job, server):
         # Replacing RUNNING with docs/second rate
         rate = state['details']['job']['rateReport']['currentDocsPerSecond']
         state['status'] = "%i URI/s" % rate
-        if rate == "0":
+        if rate < 1.0:
             state['status-class'] = "status-warning"
         else:
             state['status-class'] = "status-good"
@@ -51,6 +51,10 @@ def get_queue_status(queue, server):
         state['details'] = r.json()
         if 'error' in state['details']:
             state['status-class'] = "status-alert"
+            state['error'] = state['details']['reason']
+        elif state['details']['consumers'] == 0:
+            state['status-class'] = "status-alert"
+            state['error'] = 'No consumers!'
         else:
             state['status-class'] = "status-warning"
     except Exception as e:
@@ -76,6 +80,8 @@ def status():
         server = servers[services['jobs'][job]['server']]
         app.logger.info(json.dumps(server, indent=4))
         services['jobs'][job]['state'] = get_h3_status(job, server)
+        services['jobs'][job]['url'] = server['url']
+
 
     for queue in services.get('queues', []):
         services['queues'][queue]['state'] = get_queue_status(services['queues'][queue]['name'], servers[services['queues'][queue]['server']])

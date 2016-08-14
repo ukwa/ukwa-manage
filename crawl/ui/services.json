@@ -7,27 +7,33 @@
     },
     "PULSE02": {
       "server": "AMQP-FC",
-      "name": "PULSE-02-assemble-job-output"
+      "name": "PULSE-02-assemble-job-output",
+      "short": "assemble"
     },
     "PULSE03": {
       "server": "AMQP-FC",
-      "name": "PULSE-03-build-sip"
+      "name": "PULSE-03-build-sip",
+      "short": "build"
     },
     "PULSE04": {
       "server": "AMQP-FC",
-      "name": "PULSE-04-submit-sip"
+      "name": "PULSE-04-submit-sip",
+      "short": "submit"
     },
     "PULSE05": {
       "server": "AMQP-FC",
-      "name": "PULSE-05-verify-sip"
+      "name": "PULSE-05-verify-sip",
+      "short": "verify"
     },
     "PULSE10": {
       "server": "AMQP-FC",
-      "name": "PULSE-10-uri-to-index"
+      "name": "PULSE-10-uri-to-index",
+      "short": "index"
     },
     "PULSE11": {
       "server": "AMQP-FC",
-      "name": "PULSE-11-uri-to-doc"
+      "name": "PULSE-11-uri-to-doc",
+      "short": "doc"
     }
   },
   "jobs": {
