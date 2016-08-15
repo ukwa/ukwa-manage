@@ -124,7 +124,7 @@ def assemble_job_output(job_id, launch_id):
         build_sip.delay(job_id, launch_id, job_output)
     except Exception as e:
         logger.exception(e)
-        assemble_job_output.retry(exc=e)
+        raise Reject(e, requeue=True)
 
 #
 # @app.task(acks_late=True, max_retries=None, default_retry_delay=10)
@@ -169,7 +169,7 @@ def build_sip(job_id, launch_id, job_output):
         submit_sip.delay(job_id, launch_id, sip_on_hdfs)
     except Exception as e:
         logger.exception(e)
-        build_sip.retry(exc=e)
+        raise Reject(e, requeue=True)
 
 
 @app.task(acks_late=True, max_retries=None, default_retry_delay=10)
@@ -186,7 +186,7 @@ def submit_sip(job_id,launch_id,sip_on_hdfs):
         verify_sip.delay(job_id, launch_id,sip_on_hdfs)
     except Exception as e:
         logger.exception(e)
-        submit_sip.retry(exc=e)
+        raise Reject(e, requeue=True)
 
 
 @app.task(acks_late=True, max_retries=None, default_retry_delay=100)
@@ -207,7 +207,7 @@ def verify_sip(job_id,launch_id,sip_on_hdfs):
         index_sip.delay(job_id, launch_id)
     except Exception as e:
         logger.exception(e)
-        verify_sip.retry(exc=e)
+        raise Reject(e, requeue=True)
 
 
 @app.task(acks_late=True, max_retries=None, default_retry_delay=100)
@@ -223,7 +223,7 @@ def index_sip(job_id,launch_id):
         crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "SIP_INDEXED" )
     except Exception as e:
         logger.exception(e)
-        index_sip.retry(exc=e)
+        raise Reject(e, requeue=True)
 
 
 @app.task(acks_late=True, max_retries=None, default_retry_delay=100)
@@ -234,7 +234,7 @@ def uri_to_index(**kwargs):
 
     except Exception as e:
         logger.exception(e)
-        uri_to_index.retry(exc=e)
+        raise Reject(e, requeue=True)
 
 
 @app.task(acks_late=True, max_retries=None, default_retry_delay=100)
@@ -249,5 +249,5 @@ def uri_of_doc(**kwargs):
 
     except Exception as e:
         logger.exception(e)
-        uri_of_doc.retry(exc=e)
+        raise Reject(e, requeue=True)
 
