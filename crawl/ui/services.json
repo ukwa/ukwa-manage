@@ -1,37 +1,37 @@
 {
   "queues": {
     "PULSE01": {
-      "server": "AMQP-FC",
+      "server": "AMQP-PC",
       "name": "PULSE-01-stop-start-job",
       "short": "(re)start"
     },
     "PULSE02": {
-      "server": "AMQP-FC",
+      "server": "AMQP-PC",
       "name": "PULSE-02-assemble-job-output",
       "short": "assemble"
     },
     "PULSE03": {
-      "server": "AMQP-FC",
+      "server": "AMQP-PC",
       "name": "PULSE-03-build-sip",
       "short": "build"
     },
     "PULSE04": {
-      "server": "AMQP-FC",
+      "server": "AMQP-PC",
       "name": "PULSE-04-submit-sip",
       "short": "submit"
     },
     "PULSE05": {
-      "server": "AMQP-FC",
+      "server": "AMQP-PC",
       "name": "PULSE-05-verify-sip",
       "short": "verify"
     },
     "PULSE10": {
-      "server": "AMQP-FC",
+      "server": "AMQP-PC",
       "name": "PULSE-10-uri-to-index",
       "short": "index"
     },
     "PULSE11": {
-      "server": "AMQP-FC",
+      "server": "AMQP-PC",
       "name": "PULSE-11-uri-to-doc",
       "short": "doc"
     }
@@ -39,39 +39,67 @@
   "jobs": {
     "daily": {
       "name" : "daily",
-      "server": "H3-PC0"
+      "server": "H3-FC1"
     },
     "weekly": {
       "name": "weekly",
-      "server": "H3-PC0"
+      "server": "H3-FC2"
     },
     "monthly": {
       "name": "monthly",
-      "server": "H3-PC0"
+      "server": "H3-FC3"
     },
     "quarterly": {
       "name": "quarterly",
-      "server": "H3-PC0"
+      "server": "H3-FC3"
     },
     "six-monthly": {
-      "name": "six-monthly",
-      "server": "H3-PC0"
+      "name": "sixmonthly",
+      "server": "H3-FC3"
     },
     "annual": {
-      "name": "annually",
-      "server": "H3-PC0"
+      "name": "annual",
+      "server": "H3-FC3"
     },
-    "dc0-20160810": {
+    "dc0-2016": {
+      "name": "dc0-20160810",
       "server": "H3-DC0"
     },
-    "dc1-20160810": {
+    "dc1-2016": {
+      "name": "dc1-20160810",
       "server": "H3-DC1"
     },
-    "dc2-20160810": {
+    "dc2-2016": {
+      "name": "dc2-20160810",
       "server": "H3-DC2"
     },
-    "dc3-20160810": {
+    "dc3-2016": {
+      "name": "dc3-20160810",
       "server": "H3-DC3"
+    },
+    "daily-2": {
+      "name" : "daily",
+      "server": "H3-PC0"
+    },
+    "weekly-2": {
+      "name": "weekly",
+      "server": "H3-PC0"
+    },
+    "monthly-2": {
+      "name": "monthly",
+      "server": "H3-PC0"
+    },
+    "quarterly-2": {
+      "name": "quarterly",
+      "server": "H3-PC0"
+    },
+    "six-monthly-2": {
+      "name": "sixmonthly",
+      "server": "H3-PC0"
+    },
+    "annual-2": {
+      "name": "annual",
+      "server": "H3-PC0"
     }
   },
   "services": {

@@ -24,7 +24,7 @@ def get_h3_status(job, server):
     except Exception as e:
         state['status'] = "DOWN"
         state['error'] = "Could not reach Heritrix! %s" % e
-        app.logger.exception(e)
+        #app.logger.exception(e)
     # Classify
     if state['status'] == "DOWN":
         state['status-class'] = "status-alert"
@@ -46,18 +46,22 @@ def get_queue_status(queue, server):
     state = {}
     try:
         qurl = '%s%s' %( server['prefix'], queue)
-        app.logger.info("GET: %s" % qurl)
+        #app.logger.info("GET: %s" % qurl)
         r = requests.get(qurl)
         state['details'] = r.json()
         if 'error' in state['details']:
+            state['status'] = "!"
             state['status-class'] = "status-alert"
             state['error'] = state['details']['reason']
         elif state['details']['consumers'] == 0:
+            state['status'] = "!"
             state['status-class'] = "status-alert"
             state['error'] = 'No consumers!'
         else:
+            state['status'] = state['details']['messages']
             state['status-class'] = "status-warning"
     except Exception as e:
+        state['status'] = "?"
         state['status-class'] = "status-alert"
         app.logger.exception(e)
 
@@ -72,14 +76,14 @@ def load_as_json(filename):
 @app.route('/')
 def status():
     servers = load_as_json('servers.json')
-    app.logger.info(json.dumps(servers, indent=4))
+    #app.logger.info(json.dumps(servers, indent=4))
 
     services = load_as_json('services.json')
 
     for job in services.get('jobs', []):
         server = servers[services['jobs'][job]['server']]
-        app.logger.info(json.dumps(server, indent=4))
-        services['jobs'][job]['state'] = get_h3_status(job, server)
+        #app.logger.info(json.dumps(server, indent=4))
+        services['jobs'][job]['state'] = get_h3_status(services['jobs'][job]['name'], server)
         services['jobs'][job]['url'] = server['url']
 
 
@@ -87,7 +91,7 @@ def status():
         services['queues'][queue]['state'] = get_queue_status(services['queues'][queue]['name'], servers[services['queues'][queue]['server']])
 
     # Log collected data:
-    app.logger.info(json.dumps(services, indent=4))
+    #app.logger.info(json.dumps(services, indent=4))
 
     # And render
     return render_template('dashboard.html', title="Status", services=services)
@@ -96,3 +100,7 @@ def status():
 def stop(frequency=None):
     if frequency:
         crawl.tasks.stop_start_job(frequency,restart=False)
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
