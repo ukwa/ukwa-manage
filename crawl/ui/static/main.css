@@ -1,0 +1,121 @@
+      .error {
+        background-color: red;
+        color: white;
+        }
+        a.error {
+        color: white;
+        }
+        .errorInfo, .details {
+        display: none;
+        }
+.dashboard-piece {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    color: #fff;
+    text-align: center;
+    position: relative;
+    padding-bottom: 0px;
+    min-height: 120px;
+    height: 120px;
+    overflow: hidden;
+}
+.dashboard-title {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    color: #fff;
+    text-align: center;
+    position: relative;
+    padding-bottom: 0px;
+    padding: 0;
+    margin:0;
+}
+.dashboard-title h1 {
+    text-align: center;
+    font-size: 40px;
+    letter-spacing: 0.4em;
+    height: 50px;
+    line-height: 50px;
+    vertical-align: middle;
+    margin: 0;
+    opacity: 0.8;
+    font-weight: lighter;
+    overflow: hidden;
+}
+.dashboard-title-small {
+    text-align: center;
+}
+.dashboard-title-small h1 {
+    font-size: 24px;
+    height: 25px;
+    line-height: 25px;
+    vertical-align: middle;
+    margin: 0;
+    opacity: 0.8;
+    font-weight: lighter;
+    overflow: hidden;
+    color: #fff;
+    letter-spacing: 0.3em;
+}
+.dashboard-content h2 {
+    font-weight: lighter;
+    font-size: 2em;
+    opacity: 0.85;
+    margin: 0.5em 0;
+}
+.dashboard-content h3 {
+    font-weight: lighter;
+    font-size: 1em;
+    opacity: 0.5;
+    margin: 0.5em 0;
+}
+.dashboard-piece-redbg, .status-alert {
+    background-color: #E73F3F;
+}
+.dashboard-piece-orangebg, .status-warning {
+    background-color: #F76C27;
+}
+.dashboard-piece-yellowbg, .status-okay {
+    background-color: #E7E737;
+}
+.dashboard-piece-bluebg, .status-in-flux {
+    background-color: #6D9DD1;
+}
+.dashboard-piece-greenbg, .status-good {
+    background-color: rgb(28, 184, 65);
+}
+.dashboard-piece-purplebg {
+    background-color: #7E45D3;
+}
+.dashboard-piece-graybg, .gray, .status-unknown {
+    background-color: #798388;
+}
+.dashboard-content {
+    position: relative;
+    z-index: 999;
+}
+.dashboard-content p {
+    font-weight: lighter;
+}
+.dashboard-content .light {
+    opacity: 0.5;
+    display: block;
+}
+.button-light {
+            color: white;
+            border-radius: 4px;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+            background: none;
+            opacity: 0.8;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.button-light:hover {
+    background-image: linear-gradient(transparent,rgba(255,255,255,.05) 40%,rgba(255,255,255,.1));
+}
+.rotate-outer {
+    position: absolute;
+}
+.rotate {
+    transform: rotate(-90deg);
+}

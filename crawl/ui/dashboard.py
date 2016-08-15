@@ -50,18 +50,18 @@ def get_queue_status(queue, server):
         r = requests.get(qurl)
         state['details'] = r.json()
         if 'error' in state['details']:
-            state['status'] = "!"
+            state['status'] = "ERROR"
             state['status-class'] = "status-alert"
             state['error'] = state['details']['reason']
         elif state['details']['consumers'] == 0:
-            state['status'] = "!"
+            state['status'] = "BECALMED"
             state['status-class'] = "status-alert"
             state['error'] = 'No consumers!'
         else:
             state['status'] = state['details']['messages']
-            state['status-class'] = "status-warning"
+            state['status-class'] = "status-good"
     except Exception as e:
-        state['status'] = "?"
+        state['status'] = "DOWN"
         state['status-class'] = "status-alert"
         app.logger.exception(e)
 
