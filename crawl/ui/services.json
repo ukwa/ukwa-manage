@@ -38,34 +38,34 @@
   },
   "jobs": {
     "daily": {
-      "server": "H3-FC"
+      "server": "H3-FC1"
     },
     "weekly": {
-      "server": "H3-FC"
+      "server": "H3-FC2"
     },
     "monthly": {
-      "server": "H3-FC"
+      "server": "H3-FC3"
     },
     "quarterly": {
-      "server": "H3-FC"
+      "server": "H3-FC3"
     },
     "six-monthly": {
-      "server": "H3-FC"
+      "server": "H3-FC3"
     },
     "annual": {
-      "server": "H3-FC"
+      "server": "H3-FC3"
     },
     "dc0-20160810": {
-      "server": "H3-DC"
+      "server": "H3-DC0"
     },
     "dc1-20160810": {
-      "server": "H3-DC"
+      "server": "H3-DC1"
     },
     "dc2-20160810": {
-      "server": "H3-DC"
+      "server": "H3-DC2"
     },
     "dc3-20160810": {
-      "server": "H3-DC"
+      "server": "H3-DC3"
     }
   },
   "services": {

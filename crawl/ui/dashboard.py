@@ -31,7 +31,7 @@ def get_h3_status(job, server):
     elif state['status'] == "RUNNING":
         # Replacing RUNNING with docs/second rate
         rate = state['details']['job']['rateReport']['currentDocsPerSecond']
-        state['status'] = "%i URI/s" % rate
+        state['status'] = "%.2f URI/s" % float(rate)
         if rate < 1.0:
             state['status-class'] = "status-warning"
         else:
