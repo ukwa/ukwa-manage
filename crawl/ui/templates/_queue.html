@@ -1,11 +1,8 @@
-<div class="pure-u-1-5 dashboard-piece dashboard-content {% if 'status-class' in queue['state'] %} {{ queue['state']['status-class'] }}{% else %} status-unknown{% endif %}">
+<div class="pure-u-1-5 dashboard-piece-hh dashboard-content {% if 'status-class' in queue['state'] %} {{ queue['state']['status-class'] }}{% else %} status-unknown{% endif %}">
+    <h3 title="{{ queue['name'] }}">{{ queue['short'] }}</h3>
     {% if queue['state']['status'] == "BECALMED" %}
-    <h2><i class="fa fa-chain-broken" aria-hidden="true" title="{{ queue['state']['error'] }}"></i></h2>
+    <p><i class="fa fa-chain-broken" aria-hidden="true" title="{{ queue['name'] }}: {{ queue['state']['error'] }}"></i></p>
     {% else %}
-    <h2>{{ queue['state']['status'] }}</h2>
+    <p>{{ queue['state']['status'] }}</p>
     {% endif %}
-    <p>
-        <a class="button-light pure-button" href="" title="{{ queue['name'] }}">{{
-            queue['short'] }}</a>
-    </p>
 </div>
