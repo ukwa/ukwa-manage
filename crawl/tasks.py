@@ -12,6 +12,8 @@ from crawl.celery import cfg
 import os
 import shutil
 from datetime import datetime
+from celery.exceptions import Reject
+
 import crawl.h3.hapyx as hapyx
 from crawl.w3act.w3act import w3act
 from crawl.w3act.job import W3actJob
@@ -82,7 +84,7 @@ def stop_start_job(frequency, start=datetime.utcnow(), restart=True):
 
     except Exception as e:
         logger.exception(e)
-        stop_start_job.retry(exc=e)
+        raise Reject(e, requeue=True)
 
 
 @app.task(acks_late=True, max_retries=None, default_retry_delay=10)
