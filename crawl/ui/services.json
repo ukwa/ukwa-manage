@@ -38,22 +38,28 @@
   },
   "jobs": {
     "daily": {
-      "server": "H3-FC1"
+      "name" : "daily",
+      "server": "H3-PC0"
     },
     "weekly": {
-      "server": "H3-FC2"
+      "name": "weekly",
+      "server": "H3-PC0"
     },
     "monthly": {
-      "server": "H3-FC3"
+      "name": "monthly",
+      "server": "H3-PC0"
     },
     "quarterly": {
-      "server": "H3-FC3"
+      "name": "quarterly",
+      "server": "H3-PC0"
     },
     "six-monthly": {
-      "server": "H3-FC3"
+      "name": "six-monthly",
+      "server": "H3-PC0"
     },
     "annual": {
-      "server": "H3-FC3"
+      "name": "annually",
+      "server": "H3-PC0"
     },
     "dc0-20160810": {
       "server": "H3-DC0"
