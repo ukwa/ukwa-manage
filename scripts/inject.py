@@ -40,6 +40,10 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 def sender(launcher, args, uri):
+    # Ensure a http:// or https:// at the front:
+    if not (uri.startswith("http://") or uri.startswith("https://")):
+        uri = "http://%s" % uri
+
     # Add the main URL
     launcher.launch(args.destination, uri, args.source, isSeed=args.seed, clientId="FC-3-uris-to-crawl",
                     forceFetch=args.forceFetch, sendCheckMessage=False)
@@ -77,7 +81,7 @@ if __name__ == "__main__":
     parser.add_argument("-P", "--pager", dest="pager", action="store_true", default=False, required=False,
                         help="Attempt to extract URLs for all pages, and submit those too.")
     parser.add_argument('queue', metavar='queue', help="Name of queue to send seeds to.")
-    parser.add_argument('uri-or-filename', metavar='uri_or_filename', help="URI to enqueue, or filename containing URIs to enqueue.")
+    parser.add_argument('uri_or_filename', metavar='uri_or_filename', help="URI to enqueue, or filename containing URIs to enqueue.")
 
     args = parser.parse_args()
 
