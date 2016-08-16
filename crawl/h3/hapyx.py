@@ -21,6 +21,7 @@ class HapyX(Hapy):
             status = info['job'].get("crawlControllerState", "")
         else:
             status = ""
+        return status
 
     def list_jobs(self, status=None):
         r = self._http_get(self.base_url)
