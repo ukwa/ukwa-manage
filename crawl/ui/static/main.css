@@ -72,7 +72,7 @@
 }
 .dashboard-content h2 {
     font-weight: lighter;
-    font-size: 2em;
+    font-size: 1.8em;
     opacity: 0.85;
     margin: 0.5em 0;
 }
@@ -114,7 +114,7 @@
 .dashboard-piece-yellowbg, .status-okay {
     background-color: #E7E737;
 }
-.dashboard-piece-bluebg, .status-in-flux {
+.dashboard-piece-bluebg, .status-in-flux, .status-oos {
     background-color: #6D9DD1;
 }
 .dashboard-piece-greenbg, .status-good {
@@ -131,4 +131,15 @@
 }
 .rotate {
     transform: rotate(-90deg);
+}
+.dashboard-piece .tile-icon, .dashboard-piece-hh .tile-icon {
+    float: left;
+    margin: 0.5em;
+    position: absolute;
+    opacity: 0.0;
+    bottom: 0;
+    right: 0.5em;
+}
+.dashboard-piece:hover .tile-icon, .dashboard-piece-hh:hover .tile-icon {
+    opacity: 0.6;
 }

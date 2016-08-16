@@ -46,6 +46,7 @@
                     <div class="pure-g">
                         {% for q in ['PULSE01','PULSE02', 'PULSE03', 'PULSE04', 'PULSE05'] %}
                         {% set queue = services['queues'][q] %}
+                        {% set tile_class = "pure-u-1-5" %}
                         {% include '_queue.html' %}
                         {% endfor %}
                     </div>
@@ -74,8 +75,17 @@
                     <div class="pure-g">
                         {% for job in ['dc0-2016', 'dc1-2016', 'dc2-2016','dc3-2016'] %}
                         {% set crawler = services['jobs'][job] %}
-                        {% set tile_class = "pure-u-1-2" %}
+                        {% set tile_class = "pure-u-1-4" %}
                         {% include '_crawl_job.html' %}
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="pure-u-1-1">
+                    <div class="pure-g">
+                        {% for q in ['DC0','DC1','DC2','DC3'] %}
+                        {% set tile_class = "pure-u-1-4" %}
+                        {% set queue = services['queues'][q] %}
+                        {% include '_queue.html' %}
                         {% endfor %}
                     </div>
                 </div>
@@ -98,6 +108,7 @@
                     <div class="pure-g">
                         {% for q in ['PULSE01','PULSE02', 'PULSE03', 'PULSE04', 'PULSE05'] %}
                         {% set queue = services['queues'][q] %}
+                        {% set tile_class = "pure-u-1-5" %}
                         {% include '_queue.html' %}
                         {% endfor %}
                     </div>

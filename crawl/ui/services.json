@@ -34,6 +34,26 @@
       "server": "AMQP-PC",
       "name": "PULSE-11-uri-to-doc",
       "short": "doc"
+    },
+    "DC0": {
+      "server":"AMQP-FC",
+      "name": "dc0-20160810",
+      "short": "DC0"
+    },
+    "DC1": {
+      "server":"AMQP-FC",
+      "name": "dc1-20160810",
+      "short": "DC1"
+    },
+    "DC2": {
+      "server":"AMQP-FC",
+      "name": "dc2-20160810",
+      "short": "DC2"
+    },
+    "DC3": {
+      "server":"AMQP-FC",
+      "name": "dc3-20160810",
+      "short": "DC3"
     }
   },
   "jobs": {

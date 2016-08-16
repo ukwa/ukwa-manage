@@ -55,7 +55,7 @@ def get_queue_status(queue, server):
             state['error'] = state['details']['reason']
         elif state['details']['consumers'] == 0:
             state['status'] = "BECALMED"
-            state['status-class'] = "status-alert"
+            state['status-class'] = "status-oos"
             state['error'] = 'No consumers!'
         else:
             state['status'] = state['details']['messages']

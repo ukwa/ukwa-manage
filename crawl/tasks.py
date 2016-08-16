@@ -35,9 +35,12 @@ from crawl.celery import app
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
+
 @app.task(acks_late=True, max_retries=None, default_retry_delay=10)
 def stop_start_job(frequency, start=datetime.utcnow(), restart=True):
-    """Restarts the job for a particular frequency."""
+    """
+    Restarts the job for a particular frequency.
+    """
     try:
         logger.info("Stopping/starting %s at %s" % (frequency, start))
 
@@ -81,7 +84,6 @@ def stop_start_job(frequency, start=datetime.utcnow(), restart=True):
             else:
                 logger.warning("No running '%s' job to stop!" % frequency)
                 return "No running '%s' job to stop!" % frequency
-
     except Exception as e:
         logger.exception(e)
         raise Reject(e, requeue=True)

@@ -1,8 +1,9 @@
-<div class="pure-u-1-5 dashboard-piece-hh dashboard-content {% if 'status-class' in queue['state'] %} {{ queue['state']['status-class'] }}{% else %} status-unknown{% endif %}">
-    <h3 title="{{ queue['name'] }}">{{ queue['short'] }}</h3>
+<div class="{{ tile_class }} dashboard-piece-hh dashboard-content {% if 'status-class' in queue['state'] %} {{ queue['state']['status-class'] }}{% else %} status-unknown{% endif %}">
     {% if queue['state']['status'] == "BECALMED" %}
-    <p><i class="fa fa-chain-broken" aria-hidden="true" title="{{ queue['name'] }}: {{ queue['state']['error'] }}"></i></p>
+    <h3><i class="fa fa-chain-broken" aria-hidden="true" title="{{ queue['name'] }}: {{ queue['state']['error'] }}"></i></h3>
     {% else %}
-    <p>{{ queue['state']['status'] }}</p>
+    <h3>{{ queue['state']['status'] }}</h3>
     {% endif %}
+    <p title="{{ queue['name'] }}">{{ queue['short'] }}</p>
+    <p class="tile-icon"><i class="fa fa-ellipsis-h" aria-hidden="true"></i></p>
 </div>
