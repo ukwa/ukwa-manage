@@ -55,6 +55,9 @@
     font-weight: lighter;
     overflow: hidden;
 }
+.dashboard-title h1 a, .dashboard-title-small h1 a {
+ color: white;
+}
 .dashboard-title-small {
     text-align: center;
 }
@@ -142,4 +145,7 @@
 }
 .dashboard-piece:hover .tile-icon, .dashboard-piece-hh:hover .tile-icon {
     opacity: 0.6;
+}
+.tile-icon a {
+    color: white;
 }

@@ -69,7 +69,10 @@
                 </div>
                 -->
                 <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
-                    <h1>DOMAIN CRAWL</h1>
+                    <h1>DOMAIN CRAWL&nbsp;
+                        <a href="{{ url_for('pause_dc')}}" title="PAUSE ALL DOMAIN CRAWL JOBS!"><i class="fa fa-pause-circle" aria-hidden="true"></i></a>
+                        <a href="{{ url_for('unpause_dc')}}" title="UNPAUSE ALL DOMAIN CRAWL JOBS!"><i class="fa fa-play-circle" aria-hidden="true"></i></a>
+                    </h1>
                 </div>
                 <div class="pure-u-1-1">
                     <div class="pure-g">

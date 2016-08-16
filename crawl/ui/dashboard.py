@@ -6,8 +6,9 @@ import requests
 import crawl.tasks
 from crawl.h3 import hapyx
 from flask import Flask
-from flask import render_template
+from flask import render_template, redirect, url_for
 app = Flask(__name__)
+
 
 def get_h3_status(job, server):
     # Set up connection to H3:
@@ -49,6 +50,7 @@ def get_queue_status(queue, server):
         #app.logger.info("GET: %s" % qurl)
         r = requests.get(qurl)
         state['details'] = r.json()
+        state['count'] = state['details']['messages']
         if 'error' in state['details']:
             state['status'] = "ERROR"
             state['status-class'] = "status-alert"
@@ -67,17 +69,17 @@ def get_queue_status(queue, server):
 
     return state
 
+
 def load_as_json(filename):
     script_dir = os.path.dirname(__file__)
     file_path = os.path.join(script_dir,filename)
     with open(file_path, 'r') as fi:
         return json.load(fi)
 
+
 @app.route('/')
 def status():
     servers = load_as_json('servers.json')
-    #app.logger.info(json.dumps(servers, indent=4))
-
     services = load_as_json('services.json')
 
     for job in services.get('jobs', []):
@@ -88,7 +90,9 @@ def status():
 
 
     for queue in services.get('queues', []):
-        services['queues'][queue]['state'] = get_queue_status(services['queues'][queue]['name'], servers[services['queues'][queue]['server']])
+        server = servers[services['queues'][queue]['server']]
+        services['queues'][queue]['prefix'] = server['user_prefix']
+        services['queues'][queue]['state'] = get_queue_status(services['queues'][queue]['name'], server)
 
     # Log collected data:
     #app.logger.info(json.dumps(services, indent=4))
@@ -96,10 +100,34 @@ def status():
     # And render
     return render_template('dashboard.html', title="Status", services=services)
 
+
+@app.route('/control/dc/pause')
+def pause_dc():
+    servers = load_as_json('servers.json')
+    services = load_as_json('services.json')
+    for job in ['dc0-2016', 'dc1-2016', 'dc2-2016', 'dc3-2016']:
+        server = servers[services['jobs'][job]['server']]
+        h = hapyx.HapyX(server['url'], username=server['user'], password=server['pass'])
+        h.pause_job(services['jobs'][job]['name'])
+    return redirect(url_for('status'))
+
+
+@app.route('/control/dc/unpause')
+def unpause_dc():
+    servers = load_as_json('servers.json')
+    services = load_as_json('services.json')
+    for job in ['dc0-2016', 'dc1-2016', 'dc2-2016', 'dc3-2016']:
+        server = servers[services['jobs'][job]['server']]
+        h = hapyx.HapyX(server['url'], username=server['user'], password=server['pass'])
+        h.unpause_job(services['jobs'][job]['name'])
+    return redirect(url_for('status'))
+
+
 @app.route('/stop/<frequency>')
 def stop(frequency=None):
     if frequency:
         crawl.tasks.stop_start_job(frequency,restart=False)
+    return redirect(url_for('status'))
 
 
 if __name__ == "__main__":
