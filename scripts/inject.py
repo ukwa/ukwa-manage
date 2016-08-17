@@ -14,13 +14,13 @@ agents.launch -- Feeds URIs into queues
 '''
 
 import os
-import sys
+import time
 import logging
 import argparse
 import requests
 from lxml import html
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+#sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from crawl.launch import launcher
 
 # Set up a logging handler:
@@ -92,7 +92,16 @@ if __name__ == "__main__":
     if os.path.isfile(args.uri_or_filename):
         with open(args.uri_or_filename,'r') as f:
             for line in f:
-                sender(launcher, args, line)
+                sent = False
+                while not sent:
+                    try:
+                        sender(launcher, args, line)
+                        sent = True
+                    except Exception as e:
+                        logger.error("Exception while submitting: %s" % line)
+                        logger.exception(e)
+                        logger.info("Sleeping for ten seconds...")
+                        time.sleep(10)
     else:
         # Or send one URI
         sender(launcher, args, args.uri_or_filename)
