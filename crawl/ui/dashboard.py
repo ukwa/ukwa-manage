@@ -95,7 +95,7 @@ def get_hdfs_status(hdfs):
         if r.status_code / 100 == 2:
             state['status-class'] = "status-good"
             tree = etree.fromstring(r.text, etree.HTMLParser())
-            percent = tree.xpath("//tr[9]/td[3]")[0].text
+            percent = tree.xpath("//div[@id='dfstable']//tr[5]/td[3]")[0].text
             percent = percent.replace(" ","")
             state['percent'] = percent
         else:
