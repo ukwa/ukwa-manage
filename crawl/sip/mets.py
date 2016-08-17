@@ -4,7 +4,7 @@ import hashlib
 import commands
 from lxml import etree
 from Queue import Queue
-from threading import Thread
+from threading import Thread, Lock
 from datetime import datetime
 import hdfs
 
@@ -65,11 +65,16 @@ def getModifiedDate( path, client ):
     return status['modificationTime']/1000.0
 
 count = 1
+counter_lock = Lock()
 def getCount():
-    global count
-    val = "%04d" % count
-    count += 1
-    return val
+    counter_lock.acquire()
+    try:
+        global count
+        val = "%04d" % count
+        count += 1
+        return val
+    finally:
+        counter_lock.release()
 
 
 def create_warcs(q, warcs, parent):
