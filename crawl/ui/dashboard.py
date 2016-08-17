@@ -29,7 +29,7 @@ def get_h3_status(job, server):
         #app.logger.exception(e)
     # Classify
     if state['status'] == "DOWN":
-        state['status-class'] = "status-alert"
+        state['status-class'] = "status-oos"
     elif state['status'] == "RUNNING":
         # Replacing RUNNING with docs/second rate
         rate = state['details']['job']['rateReport']['currentDocsPerSecond']

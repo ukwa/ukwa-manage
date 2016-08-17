@@ -1,7 +1,7 @@
 <!doctype html>
 <head>
     <title>{{ title }}</title>
-    <meta http-equiv="refresh" content="10">
+    <meta http-equiv="refresh" content="30">
     <link rel="stylesheet" href="/static/pure-min.css">
     <link rel="stylesheet" href="/static/font-awesome-4.6.3/css/font-awesome.min.css">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -128,7 +128,7 @@
                 </div>
 
                 <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
-                    <h1>PRODUCTION</h1>
+                    <h1>STORAGE</h1>
                 </div>
 
                 <div class="pure-u-1-1">
@@ -164,20 +164,53 @@
                 <div class="pure-u-1-1">
 
                     <div class="pure-g">
-                        {% for h in ['ukwa', 'ukwa-at', 'ukwa-wb', 'ukwa-sh'] %}
-                        {% set http = services['http'][h] %}
-<div class="pure-u-1-4 dashboard-piece-hh dashboard-content {% if 'status-class' in http['state'] %} {{ http['state']['status-class'] }}{% else %} status-unknown{% endif %}">
-    <h3 title="{{ http['name'] }}: {{ http['status'] }}">
-        {{ http['name'] }}
-    </h3>
-    <p>{{ http['state']['status'] }}</p>
-    <p class="tile-icon"><a href="{{ http['name'] }}: {{ http['status'] }}"><i class="fa fa-chain" aria-hidden="true"></i></a></p>
-</div>
-
-                        {% endfor %}
+                        {% set http_set = ['ukwa', 'ukwa-at', 'ukwa-as'] %}
+                        {% include '_http.html' %}
+                        {% set http_set = ['ukwa-wb', 'ukwa-sh', 'ukwa-mt'] %}
+                        {% include '_http.html' %}
                     </div>
 
                 </div>
+
+                <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
+                    <h1>CURATION (ACT)</h1>
+                </div>
+
+                <div class="pure-u-1-1">
+
+                    <div class="pure-g">
+                        {% set http_set = ['act-prod', 'wayback-prod'] %}
+                        {% include '_http.html' %}
+                    </div>
+
+                </div>
+
+                <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
+                    <h1>CURATION (WCT)</h1>
+                </div>
+
+                <div class="pure-u-1-1">
+
+                    <div class="pure-g">
+                        {% set http_set = ['spt', 'wct', 'wct-wayback'] %}
+                        {% include '_http.html' %}
+                    </div>
+
+                </div>
+
+                <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
+                    <h1>CURATION (ACT BETA/DDHAPT)</h1>
+                </div>
+
+                <div class="pure-u-1-1">
+
+                    <div class="pure-g">
+                        {% set http_set = ['act-ddb','wb-ddb','cdx-ddb'] %}
+                        {% include '_http.html' %}
+                    </div>
+
+                </div>
+
             </div>
 
         </div>

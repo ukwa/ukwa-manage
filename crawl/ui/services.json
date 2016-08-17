@@ -123,13 +123,37 @@
     }
   },
   "http": {
+    "spt": {
+      "name": "SPT",
+      "url": "https://wct.bl.uk/selection/service/"
+    },
+    "wct": {
+      "name": "WCT",
+      "url": "https://wct.bl.uk/wct/"
+    },
+    "wct-wayback": {
+      "name": "WCT Wayback",
+      "url": "https://wct.bl.uk/wayback/"
+    },
+    "act-prod": {
+      "name": "ACT",
+      "url": "https://www.webarchive.org.uk/act"
+    },
+    "wayback-prod": {
+      "name": "Wayback",
+      "url": "http://crawler03.bl.uk:8080/wayback/"
+    },
     "act-ddb": {
       "name": "ACT DDB",
-      "url": "http://w3act.ddb.wa.bl.uk:9000/act"
+      "url": "https://www.webarchive.org.uk/act-ddb"
+    },
+    "wb-ddb": {
+      "name": "Wayback DDB",
+      "url": "http://192.168.45.42:8080/"
     },
     "cdx-ddb": {
       "name": "CDX DDB",
-      "url": "http://cdxserver.ddb.wa.bl.uk:9090/fc"
+      "url": "http://192.168.45.38:8080/fc"
     },
     "ukwa": {
       "name": "HTTPD",
@@ -139,9 +163,17 @@
       "name": "Access Tool",
       "url": "http://www.webarchive.org.uk/ukwa/"
     },
+    "ukwa-as": {
+      "name": "Access Tool Search",
+      "url": "http://www.webarchive.org.uk/ukwa/search?fieldCollapseGroup=wct_domain&text=test+search&option_search=text&submit_quick=search"
+    },
     "ukwa-wb": {
       "name": "Wayback",
-      "url": "http://www.webarchive.org.uk/ukwa/wayback/"
+      "url": "http://www.webarchive.org.uk/wayback/archive/*/http://www.bl.uk/"
+    },
+    "ukwa-mt": {
+      "name": "Mementos",
+      "url": "http://www.webarchive.org.uk/mementos/search"
     },
     "ukwa-sh": {
       "name": "Shine",
