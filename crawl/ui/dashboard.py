@@ -98,6 +98,11 @@ def get_hdfs_status(hdfs):
             percent = tree.xpath("//div[@id='dfstable']//tr[5]/td[3]")[0].text
             percent = percent.replace(" ","")
             state['percent'] = percent
+            state['remaining'] = tree.xpath("//div[@id='dfstable']//tr[4]/td[3]")[0].text.replace(" ","")
+            underr = int(tree.xpath("//div[@id='dfstable']//tr[10]/td[3]")[0].text)
+            if underr != 0:
+                state['status'] = "HDFS has %i under-replicated blocks!" % underr
+                state['status-class'] = "status-warning"
         else:
             state['status-class'] = "status-warning"
     except Exception as e:

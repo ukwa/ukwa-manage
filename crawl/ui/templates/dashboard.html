@@ -139,7 +139,8 @@
     <h2 title="{{ hdfs['name'] }}: {{ hdfs['status'] }}">
         {{ hdfs['name'] }}
     </h2>
-    <h3>{{ hdfs['state']['percent'] }} full</h3>
+    <div class="percentage-status-indicator" style="height: {{ hdfs['state']['percent'] }}"></div>
+    <p>{{ hdfs['state']['percent'] }} full<br/>{{ hdfs['state']['remaining'] }} remaining</p>
     <p class="tile-icon"><a href="{{ hdfs['name'] }}: {{ hdfs['status'] }}"><i class="fa fa-chain" aria-hidden="true"></i></a></p>
 </div>
                     </div>
