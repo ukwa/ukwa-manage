@@ -122,15 +122,44 @@
       "server": "H3-PC0"
     }
   },
-  "services": {
-    "W3ACT": {
-      "url": "http://localhost:9000/act"
+  "http": {
+    "act-ddb": {
+      "name": "ACT DDB",
+      "url": "http://w3act.ddb.wa.bl.uk:9000/act"
     },
-    "CDX Server": {
-      "url": "http://localhost:9090/fc"
+    "cdx-ddb": {
+      "name": "CDX DDB",
+      "url": "http://cdxserver.ddb.wa.bl.uk:9090/fc"
     },
-    "WebHDFS": {
-      "url": "http://hadoop:5700"
+    "ukwa": {
+      "name": "HTTPD",
+      "url": "http://www.webarchive.org.uk/"
+    },
+    "ukwa-at": {
+      "name": "Access Tool",
+      "url": "http://www.webarchive.org.uk/ukwa/"
+    },
+    "ukwa-wb": {
+      "name": "Wayback",
+      "url": "http://www.webarchive.org.uk/ukwa/wayback/"
+    },
+    "ukwa-sh": {
+      "name": "Shine",
+      "url": "https://www.webarchive.org.uk/shine"
+    }
+  },
+  "hdfs": {
+    "hdfs-prod": {
+      "name": "HDFS",
+      "host": "nellie.bl.uk",
+      "url": "http://nellie.bl.uk:50070/dfshealth.jsp"
+    }
+  },
+  "hdfs-2": {
+    "hdfs-ddb": {
+      "name": "HDFS DDB",
+      "host": "hadoop.ddb.wa.bl.uk",
+      "url": "http://hadoop.ddb.wa.bl.uk:50070"
     }
   }
 }

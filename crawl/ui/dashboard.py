@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import os
 import json
 import requests
+from lxml import etree
 import crawl.tasks
 from crawl.h3 import hapyx
 from flask import Flask
@@ -50,7 +51,7 @@ def get_queue_status(queue, server):
         #app.logger.info("GET: %s" % qurl)
         r = requests.get(qurl)
         state['details'] = r.json()
-        state['count'] = state['details']['messages']
+        state['count'] = "{:0,}".format(state['details']['messages'])
         if 'error' in state['details']:
             state['status'] = "ERROR"
             state['status-class'] = "status-alert"
@@ -66,6 +67,43 @@ def get_queue_status(queue, server):
         state['status'] = "DOWN"
         state['status-class'] = "status-alert"
         app.logger.exception(e)
+
+    return state
+
+
+def get_http_status(url):
+    state = {}
+    try:
+        r = requests.get(url)
+        state['status'] = "%s" % r.status_code
+        if r.status_code/100 == 2 or r.status_code/100 == 3:
+            state['status-class'] = "status-good"
+        else:
+            state['status-class'] = "status-warning"
+    except:
+        state['status'] = "DOWN"
+        state['status-class'] = "status-alert"
+
+    return state
+
+
+def get_hdfs_status(hdfs):
+    state = {}
+    try:
+        r = requests.get(hdfs['url'])
+        state['status'] = "%s" % r.status_code
+        if r.status_code / 100 == 2:
+            state['status-class'] = "status-good"
+            tree = etree.fromstring(r.text, etree.HTMLParser())
+            percent = tree.xpath("//tr[9]/td[3]")[0].text
+            percent = percent.replace(" ","")
+            state['percent'] = percent
+        else:
+            state['status-class'] = "status-warning"
+    except Exception as e:
+        app.logger.exception(e)
+        state['status'] = "DOWN"
+        state['status-class'] = "status-alert"
 
     return state
 
@@ -93,6 +131,12 @@ def status():
         server = servers[services['queues'][queue]['server']]
         services['queues'][queue]['prefix'] = server['user_prefix']
         services['queues'][queue]['state'] = get_queue_status(services['queues'][queue]['name'], server)
+
+    for http in services.get('http', []):
+        services['http'][http]['state'] = get_http_status(services['http'][http]['url'])
+
+    for hdfs in services.get('hdfs', []):
+        services['hdfs'][hdfs]['state'] = get_hdfs_status(services['hdfs'][hdfs])
 
     # Log collected data:
     #app.logger.info(json.dumps(services, indent=4))

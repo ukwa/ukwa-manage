@@ -126,6 +126,26 @@
                 <div class="pure-u-1 dashboard-title dashboard-piece-bluebg">
                     <h1>PRESERVE</h1>
                 </div>
+
+                <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
+                    <h1>PRODUCTION</h1>
+                </div>
+
+                <div class="pure-u-1-1">
+
+                    <div class="pure-g">
+                        {% set hdfs = services['hdfs']['hdfs-prod'] %}
+<div class="pure-u-1-1 dashboard-piece dashboard-content {% if 'status-class' in hdfs['state'] %} {{ hdfs['state']['status-class'] }}{% else %} status-unknown{% endif %}">
+    <h2 title="{{ hdfs['name'] }}: {{ hdfs['status'] }}">
+        {{ hdfs['name'] }}
+    </h2>
+    <h3>{{ hdfs['state']['percent'] }} full</h3>
+    <p class="tile-icon"><a href="{{ hdfs['name'] }}: {{ hdfs['status'] }}"><i class="fa fa-chain" aria-hidden="true"></i></a></p>
+</div>
+                    </div>
+
+                </div>
+
             </div>
 
         </div>
@@ -134,6 +154,28 @@
             <div class="pure-g">
                 <div class="pure-u-1 dashboard-title dashboard-piece-bluebg">
                     <h1>ACCESS</h1>
+                </div>
+
+                <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
+                    <h1>UKWA</h1>
+                </div>
+
+                <div class="pure-u-1-1">
+
+                    <div class="pure-g">
+                        {% for h in ['ukwa', 'ukwa-at', 'ukwa-wb', 'ukwa-sh'] %}
+                        {% set http = services['http'][h] %}
+<div class="pure-u-1-4 dashboard-piece-hh dashboard-content {% if 'status-class' in http['state'] %} {{ http['state']['status-class'] }}{% else %} status-unknown{% endif %}">
+    <h3 title="{{ http['name'] }}: {{ http['status'] }}">
+        {{ http['name'] }}
+    </h3>
+    <p>{{ http['state']['status'] }}</p>
+    <p class="tile-icon"><a href="{{ http['name'] }}: {{ http['status'] }}"><i class="fa fa-chain" aria-hidden="true"></i></a></p>
+</div>
+
+                        {% endfor %}
+                    </div>
+
                 </div>
             </div>
 
