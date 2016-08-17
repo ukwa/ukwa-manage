@@ -98,7 +98,7 @@ class launcher(object):
 		else:
 			logger.error("Can't handle destination type '%s'" % destination )
 		message = json.dumps(curim)
-		logger.info("Sending message: "+message)
+		logger.debug("Sending message: "+message)
 
 		# Push a 'seed' message onto the rendering queue:
 		self.send_message(message)
