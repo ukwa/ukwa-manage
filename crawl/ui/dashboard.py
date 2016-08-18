@@ -77,6 +77,7 @@ def get_http_status(url):
         r = requests.get(url)
         state['status'] = "%s" % r.status_code
         if r.status_code/100 == 2 or r.status_code/100 == 3:
+            state['status'] = "%.3fs" % r.elapsed.total_seconds()
             state['status-class'] = "status-good"
         else:
             state['status-class'] = "status-warning"

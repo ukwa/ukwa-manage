@@ -1,5 +1,25 @@
 {
   "queues": {
+    "FC-SIPS": {
+      "server": "AMQP-FC",
+      "name": "sips",
+      "short": "to submit"
+    },
+    "FC-SUB": {
+      "server": "AMQP-FC",
+      "name": "sip-submitted",
+      "short": "submitted"
+    },
+    "FC-ERR": {
+      "server": "AMQP-FC",
+      "name": "sip-error",
+      "short": "to resubmit"
+    },
+    "FC-ALL": {
+      "server": "AMQP-FC",
+      "name": "qa",
+      "short": "all"
+    },
     "PULSE01": {
       "server": "AMQP-PC",
       "name": "PULSE-01-stop-start-job",
