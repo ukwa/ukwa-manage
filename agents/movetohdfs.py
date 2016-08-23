@@ -139,7 +139,7 @@ if __name__ == "__main__":
     get_args()
 
     # Set up client:
-    hdfsClient = InsecureClient('http://hadoop:50070/', user='root')
+    hdfsClient = InsecureClient('http://hadoop:50070/', user='hdfs')
 
     # traverse directory argument
     for dirName, subdirList, fileList in os.walk(args.dir):
