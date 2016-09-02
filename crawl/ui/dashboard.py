@@ -74,7 +74,7 @@ def get_queue_status(queue, server):
 def get_http_status(url):
     state = {}
     try:
-        r = requests.get(url)
+        r = requests.get(url, allow_redirects=False)
         state['status'] = "%s" % r.status_code
         if r.status_code/100 == 2 or r.status_code/100 == 3:
             state['status'] = "%.3fs" % r.elapsed.total_seconds()
