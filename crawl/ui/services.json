@@ -91,15 +91,15 @@
     },
     "quarterly": {
       "name": "quarterly",
-      "server": "H3-FC3"
+      "server": "H3-FC0"
     },
     "six-monthly": {
       "name": "sixmonthly",
-      "server": "H3-FC3"
+      "server": "H3-FC0"
     },
     "annual": {
       "name": "annual",
-      "server": "H3-FC3"
+      "server": "H3-FC0"
     },
     "dc0-2016": {
       "name": "dc0-20160810",
