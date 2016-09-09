@@ -1,7 +1,7 @@
 <!doctype html>
 <head>
     <title>{{ title }}</title>
-    <meta http-equiv="refresh" content="30">
+    <meta http-equiv="refresh" content="60">
     <link rel="stylesheet" href="/static/pure-min.css">
     <link rel="stylesheet" href="/static/font-awesome-4.6.3/css/font-awesome.min.css">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -33,7 +33,7 @@
                 <div class="pure-u-1-1">
 
                     <div class="pure-g">
-                        {% for job in ['daily','weekly', 'monthly'] %} <!--, 'quarterly', 'six-monthly', 'annual'] %} -->
+                        {% for job in ['daily','weekly', 'monthly', 'quarterly', 'six-monthly', 'annual'] %}
                         {% set crawler = services['jobs'][job] %}
                         {% set tile_class = "pure-u-1-3" %}
                         {% include '_crawl_job.html' %}
@@ -98,7 +98,7 @@
                 <div class="pure-u-1-1">
 
                     <div class="pure-g">
-                        {% for job in ['daily-2','weekly-2', 'monthly-2', 'quarterly-2', 'six-monthly-2', 'annual-2'] %}
+                        {% for job in ['daily-2','weekly-2', 'monthly-2'] %} <!--, 'quarterly-2', 'six-monthly-2', 'annual-2'] %}-->
                         {% set crawler = services['jobs'][job] %}
                         {% set tile_class = "pure-u-1-3" %}
                         {% include '_crawl_job.html' %}
@@ -140,7 +140,7 @@
         {{ hdfs['name'] }}
     </h2>
     <div class="percentage-status-indicator" style="height: {{ hdfs['state']['percent'] }}"></div>
-    <p>{{ hdfs['state']['percent'] }} full<br/>{{ hdfs['state']['remaining'] }} remaining</p>
+    <p>{{ hdfs['state']['percent'] }} full<br/>{{ hdfs['state']['remaining'] }} remaining (raw)</p>
     <p class="tile-icon"><a href="{{ hdfs['name'] }}: {{ hdfs['status'] }}"><i class="fa fa-chain" aria-hidden="true"></i></a></p>
 </div>
                     </div>
