@@ -502,11 +502,10 @@
 		<property name="processors">
 			<list>
 				<!-- write viral content to aggregate archival files... -->
-				<!--
 				<ref bean="warcWriterViral"/>
-				-->
 				<!-- write to aggregate archival files... -->
 				<ref bean="warcWriterDefault"/>
+				<!-- update the persist store -->
 				<ref bean="persistStoreProcessor" />
 				<!-- send the crawl log to a queue for downstream checks -->
  			    <ref bean="crawlLogFeed"/>
