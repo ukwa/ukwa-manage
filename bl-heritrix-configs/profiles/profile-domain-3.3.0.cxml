@@ -342,12 +342,14 @@ metadata.description=UK Legal Deposit Domain Crawl.
   </bean>
   <!-- Configure persistent URI history storage -->
   <bean id="persistStoreProcessor" class="org.archive.modules.recrawl.PersistStoreProcessor">
+    <property name="bdbModule" ref="bdbPersistBdb"/>
   </bean>
   <bean id="fetchHistoryProcessor" class="org.archive.modules.recrawl.FetchHistoryProcessor">
     <property name="historyLength" value="2"/>
   </bean>
   <!-- Configure persistent URI history loading for subsequent crawls -->
   <bean id="persistLoadProcessor" class="org.archive.modules.recrawl.PersistLoadProcessor">
+    <property name="bdbModule" ref="bdbPersistBdb"/>
   </bean>
 <!-- now, processors are assembled into ordered FetchChain bean -->
   <bean id="fetchProcessors" class="org.archive.modules.FetchChain">
@@ -520,6 +522,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
   </bean>
 <!-- FRONTIER: Record of all URIs discovered and queued-for-collection -->
   <bean id="frontier" class="org.archive.crawler.frontier.BdbFrontier">
+    <property name="bdbModule" ref="bdbFrontierBdb"/>
     <property name="extract404s" value="false" />
 <!-- <property name="queueTotalBudget" value="-1" /> -->
 <!-- <property name="balanceReplenishAmount" value="3000" /> -->
@@ -658,28 +661,25 @@ metadata.description=UK Legal Deposit Domain Crawl.
    REQUIRED STANDARD BEANS
     It will be very rare to replace or reconfigure the following beans.
   -->
-<!-- STATISTICSTRACKER: standard stats/reporting collector -->
-  <bean id="statisticsTracker" class="org.archive.crawler.reporting.StatisticsTracker" autowire="byName">
-<!-- <property name="reports">
-        <list>
-         <bean id="crawlSummaryReport" class="org.archive.crawler.reporting.CrawlSummaryReport" />
-         <bean id="seedsReport" class="org.archive.crawler.reporting.SeedsReport" />
-         <bean id="hostsReport" class="org.archive.crawler.reporting.HostsReport" />
-         <bean id="sourceTagsReport" class="org.archive.crawler.reporting.SourceTagsReport" />
-         <bean id="mimetypesReport" class="org.archive.crawler.reporting.MimetypesReport" />
-         <bean id="responseCodeReport" class="org.archive.crawler.reporting.ResponseCodeReport" />
-         <bean id="processorsReport" class="org.archive.crawler.reporting.ProcessorsReport" />
-         <bean id="frontierSummaryReport" class="org.archive.crawler.reporting.FrontierSummaryReport" />
-         <bean id="frontierNonemptyReport" class="org.archive.crawler.reporting.FrontierNonemptyReport" />
-         <bean id="toeThreadsReport" class="org.archive.crawler.reporting.ToeThreadsReport" />
-        </list>
-       </property> -->
-<!-- <property name="reportsDir" value="${launchId}/reports" /> -->
-<!-- <property name="liveHostReportSize" value="20" /> -->
-<!-- <property name="intervalSeconds" value="20" /> -->
-<!-- <property name="keepSnapshotsCount" value="5" /> -->
-<!-- <property name="liveHostReportSize" value="20" /> -->
-  </bean>
+  <!-- STATISTICSTRACKER: standard stats/reporting collector -->
+ <bean id="statisticsTracker"
+   class="org.archive.crawler.reporting.StatisticsTracker" autowire="byName">
+  <property name="bdbModule" ref="bdbStatisticsBdb"/>
+  <!-- disables end-of-job reporting altogether, aiming to make stopping simpler for large jobs -->
+  <property name="reports">
+    <list>
+      <bean class="org.archive.crawler.reporting.ProcessorsReport"/>
+      <bean class="org.archive.crawler.reporting.FrontierSummaryReport"/>
+      <bean class="org.archive.crawler.reporting.ToeThreadsReport"/>
+    </list>
+  </property>
+  <!-- <property name="reportsDir" value="reports" /> -->
+  <!-- <property name="liveHostReportSize" value="20" /> -->
+  <!-- <property name="intervalSeconds" value="3600" /> -->
+  <!-- 1 is sufficient for computing docs/s and KiB/s -->
+  <property name="keepSnapshotsCount" value="1" />
+  <!-- <property name="liveHostReportSize" value="20" /> -->
+ </bean>
 <!-- CRAWLERLOGGERMODULE: shared logging facility -->
   <bean id="loggerModule" class="org.archive.crawler.reporting.CrawlerLoggerModule">
     <property name="path" value="/heritrix/output/logs/REPLACE_JOB_NAME/"/>
@@ -697,17 +697,50 @@ metadata.description=UK Legal Deposit Domain Crawl.
   <bean id="sheetOverlaysManager" autowire="byType" class="org.archive.crawler.spring.SheetOverlaysManager">
  </bean>
 <!-- BDBMODULE: shared BDB-JE disk persistence manager -->
+<!--
   <bean id="bdb" class="org.archive.bdb.BdbModule">
-    <property name="dir" value="/heritrix/state/REPLACE_JOB_NAME/"/>
+    <property name="dir" value="/state/default"/>
+-->
 <!-- if neither cachePercent or cacheSize are specified (the default), bdb
        uses its own default of 60% -->
+<!--      
     <property name="cachePercent" value="30"/>
+-->
 <!-- <property name="cacheSize" value="0" /> -->
 <!-- <property name="useSharedCache" value="true" /> -->
 <!-- <property name="expectedConcurrency" value="25" /> -->
+<!--
   </bean>
+-->
+  <bean id="bdbFrontierBdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/heritrix/state/#{metadata.jobName}/frontier"/>
+    <property name="cachePercent" value="30"/>
+    <property name="expectedConcurrency" value="100"/>
+  </bean>
+  <bean id="bdbPersistBdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/heritrix/state/#{metadata.jobName}/persist"/>
+    <property name="cachePercent" value="30"/>
+    <property name="expectedConcurrency" value="100"/>
+  </bean>
+  <bean id="bdbStatisticsBdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/heritrix/state/#{metadata.jobName}/statistics"/>
+    <property name="cachePercent" value="30"/>
+    <property name="expectedConcurrency" value="100"/>
+  </bean>
+  <bean id="bdbCookieStoreBdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/heritrix/state/#{metadata.jobName}/cookies"/>
+    <property name="cachePercent" value="30"/>
+    <property name="expectedConcurrency" value="100"/>
+  </bean>
+  <bean id="bdbServerCacheBdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/heritrix/state/#{metadata.jobName}/serverCache"/>
+    <property name="cachePercent" value="30"/>
+    <property name="expectedConcurrency" value="100"/>
+  </bean>
+
 <!-- BDBCOOKIESTORAGE: disk-based cookie storage for FetchHTTP -->
   <bean id="cookieStorage" class="org.archive.modules.fetcher.BdbCookieStore">
+    <property name="bdbModule" ref="bdbCookieStoreBdb"/>
 <!-- <property name="cookiesLoadFile"><null/></property> -->
 <!-- <property name="cookiesSaveFile"><null/></property> -->
 <!-- <property name="bdb">
@@ -716,6 +749,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
   </bean>
 <!-- SERVERCACHE: shared cache of server/host info -->
   <bean id="serverCache" class="org.archive.modules.net.BdbServerCache">
+    <property name="bdbModule" ref="bdbServerCacheBdb"/>
 <!-- <property name="bdb">
         <ref bean="bdb"/>
        </property> -->

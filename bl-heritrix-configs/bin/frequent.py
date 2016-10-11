@@ -1,34 +1,26 @@
 #!/usr/bin/env python
 
-import os
-import act
-import sys
 import glob
 import json
-import pika
-import time
-import shutil
-import httplib
-import rfc3987
-import urllib2
-import logging
-import argparse
-import heritrix
 import operator
-import requests
-import StringIO
-import subprocess32
-import dateutil.parser
-import timeout_decorator
-from lxml import etree
-from settings import *
-from warcindexer import *
-from retry_decorator import *
-from datetime import datetime
 from collections import Counter, OrderedDict
-from hanzo.warctools import WarcRecord
+from datetime import datetime
 from xml.etree.ElementTree import ParseError
+
+import act
+import heritrix
+import rfc3987
+import subprocess32
+import timeout_decorator
+from retry_decorator import *
+
+import dateutil.parser
+import pika
+import requests
+from crawl.settings import *
+from lxml import etree
 from requests.exceptions import ConnectionError
+from warcindexer import *
 
 requests.packages.urllib3.disable_warnings()
 

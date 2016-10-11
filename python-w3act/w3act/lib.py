@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- 
 
-import sys
 import json
 import logging
-import requests
-import settings
+import sys
 import traceback
+
+import requests
+from crawl import settings
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"
 logging.basicConfig(format=LOGGING_FORMAT, level=logging.DEBUG)
@@ -36,4 +37,8 @@ class ACT():
 
     def get_by_export(self, frequency):
         return self._get_json("%s/by/%s" % (settings.W3ACT_EXPORT_BASE, frequency))
+
+
+    def get_oa_export(self, frequency):
+        return self._get_json("%s/oa/%s" % (settings.W3ACT_EXPORT_BASE, frequency))
 

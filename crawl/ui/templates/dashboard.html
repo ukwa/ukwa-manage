@@ -1,0 +1,222 @@
+<!doctype html>
+<head>
+    <title>{{ title }}</title>
+    <meta http-equiv="refresh" content="60">
+    <link rel="stylesheet" href="/static/pure-min.css">
+    <link rel="stylesheet" href="/static/font-awesome-4.6.3/css/font-awesome.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!--[if lte IE 8]>
+    <link rel="stylesheet" href="/static/grids-responsive-old-ie-min.css">
+    <![endif]-->
+    <!--[if gt IE 8]><!-->
+    <link rel="stylesheet" href="/static/grids-responsive-min.css">
+    <!--<![endif]-->
+    <link rel="stylesheet" href="/static/main.css">
+</head>
+<body class="gray">
+
+<section class="dashboard pure-g-r clearfix">
+
+    <div class="pure-g">
+        <div class="pure-u-1 pure-u-lg-1-3">
+
+            <div class="pure-g">
+                <div class="pure-u-1 dashboard-title dashboard-piece-bluebg">
+                    <h1>INGEST</h1>
+                </div>
+            </div>
+
+            <div class="pure-g">
+                <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
+                    <h1>FREQUENT CRAWLS</h1>
+                </div>
+                <div class="pure-u-1-1">
+
+                    <div class="pure-g">
+                        {% for job in ['daily','weekly', 'monthly', 'quarterly', 'six-monthly', 'annual'] %}
+                        {% set crawler = services['jobs'][job] %}
+                        {% set tile_class = "pure-u-1-3" %}
+                        {% include '_crawl_job.html' %}
+                        {% endfor %}
+                    </div>
+
+                </div>
+                <div class="pure-u-1-1">
+
+                    <div class="pure-g">
+                        {% for q in ['FC-ALL', 'FC-SIPS', 'FC-SUB', 'FC-ERR'] %}
+                        {% set queue = services['queues'][q] %}
+                        {% set tile_class = "pure-u-1-4" %}
+                        {% include '_queue.html' %}
+                        {% endfor %}
+                    </div>
+
+                </div>
+                <!--
+                <div class="pure-u-1-1">
+
+                    <div class="pure-g">
+                        {% for service in services['web'] %}
+                        <div class="pure-u-1-{{ services['web'] | length }} dashboard-piece dashboard-content{% if 'status' in service %} {{ service[q]['status'] }}{% else %} status-unknown{% endif %}">
+                            <h2>{{ service['status'] }}</h2>
+                            <p>
+                                <a class="button-light pure-button" href="{{ service['url'] }}">{{ service["name"] }}</a>
+                            </p>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                </div>
+                -->
+                <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
+                    <h1>DOMAIN CRAWL&nbsp;
+                        <a href="{{ url_for('pause_dc')}}" title="PAUSE ALL DOMAIN CRAWL JOBS!"><i class="fa fa-pause-circle" aria-hidden="true"></i></a>
+                        <a href="{{ url_for('unpause_dc')}}" title="UNPAUSE ALL DOMAIN CRAWL JOBS!"><i class="fa fa-play-circle" aria-hidden="true"></i></a>
+                    </h1>
+                </div>
+                <div class="pure-u-1-1">
+                    <div class="pure-g">
+                        {% for job in ['dc0-2016', 'dc1-2016', 'dc2-2016','dc3-2016'] %}
+                        {% set crawler = services['jobs'][job] %}
+                        {% set tile_class = "pure-u-1-4" %}
+                        {% include '_crawl_job.html' %}
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="pure-u-1-1">
+                    <div class="pure-g">
+                        {% for q in ['DC0','DC1','DC2','DC3'] %}
+                        {% set tile_class = "pure-u-1-4" %}
+                        {% set queue = services['queues'][q] %}
+                        {% include '_queue.html' %}
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
+                    <h1>FREQUENT CRAWLS (BETA)</h1>
+                </div>
+                <div class="pure-u-1-1">
+
+                    <div class="pure-g">
+                        {% for job in ['daily-2','weekly-2', 'monthly-2'] %} <!--, 'quarterly-2', 'six-monthly-2', 'annual-2'] %}-->
+                        {% set crawler = services['jobs'][job] %}
+                        {% set tile_class = "pure-u-1-3" %}
+                        {% include '_crawl_job.html' %}
+                        {% endfor %}
+                    </div>
+
+                </div>
+                <div class="pure-u-1-1">
+
+                    <div class="pure-g">
+                        {% for q in ['PULSE01','PULSE02', 'PULSE03', 'PULSE04', 'PULSE05'] %}
+                        {% set queue = services['queues'][q] %}
+                        {% set tile_class = "pure-u-1-5" %}
+                        {% include '_queue.html' %}
+                        {% endfor %}
+                    </div>
+
+                </div>
+             </div>
+        </div>
+
+        <div class="pure-u-1 pure-u-lg-1-3">
+
+            <div class="pure-g">
+                <div class="pure-u-1 dashboard-title dashboard-piece-bluebg">
+                    <h1>PRESERVE</h1>
+                </div>
+
+                <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
+                    <h1>STORAGE</h1>
+                </div>
+
+                <div class="pure-u-1-1">
+
+                    <div class="pure-g">
+                        {% set hdfs = services['hdfs']['hdfs-prod'] %}
+<div class="pure-u-1-1 dashboard-piece dashboard-content {% if 'status-class' in hdfs['state'] %} {{ hdfs['state']['status-class'] }}{% else %} status-unknown{% endif %}">
+    <h2 title="{{ hdfs['name'] }}: {{ hdfs['status'] }}">
+        {{ hdfs['name'] }}
+    </h2>
+    <div class="percentage-status-indicator" style="height: {{ hdfs['state']['percent'] }}"></div>
+    <p>{{ hdfs['state']['percent'] }} full<br/>{{ hdfs['state']['remaining'] }} remaining (raw)</p>
+    <p class="tile-icon"><a href="{{ hdfs['name'] }}: {{ hdfs['status'] }}"><i class="fa fa-chain" aria-hidden="true"></i></a></p>
+</div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+        <div class="pure-u-1 pure-u-lg-1-3">
+
+            <div class="pure-g">
+                <div class="pure-u-1 dashboard-title dashboard-piece-bluebg">
+                    <h1>ACCESS</h1>
+                </div>
+
+                <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
+                    <h1>UKWA</h1>
+                </div>
+
+                <div class="pure-u-1-1">
+
+                    <div class="pure-g">
+                        {% set http_set = ['ukwa', 'ukwa-at', 'ukwa-as'] %}
+                        {% include '_http.html' %}
+                        {% set http_set = ['ukwa-wb', 'ukwa-sh', 'ukwa-mt'] %}
+                        {% include '_http.html' %}
+                    </div>
+
+                </div>
+
+                <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
+                    <h1>CURATION (ACT)</h1>
+                </div>
+
+                <div class="pure-u-1-1">
+
+                    <div class="pure-g">
+                        {% set http_set = ['act-prod', 'wayback-prod'] %}
+                        {% include '_http.html' %}
+                    </div>
+
+                </div>
+
+                <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
+                    <h1>CURATION (WCT)</h1>
+                </div>
+
+                <div class="pure-u-1-1">
+
+                    <div class="pure-g">
+                        {% set http_set = ['spt', 'wct', 'wct-wayback'] %}
+                        {% include '_http.html' %}
+                    </div>
+
+                </div>
+
+                <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
+                    <h1>CURATION (ACT BETA/DDHAPT)</h1>
+                </div>
+
+                <div class="pure-u-1-1">
+
+                    <div class="pure-g">
+                        {% set http_set = ['act-ddb','wb-ddb','cdx-ddb'] %}
+                        {% include '_http.html' %}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</section>
+
+</body>
+

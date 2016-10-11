@@ -1,0 +1,10 @@
+{% for h in http_set %}
+{% set http = services['http'][h] %}
+<div class="pure-u-1-{{ http_set | length }} dashboard-piece-hh dashboard-content {% if 'status-class' in http['state'] %} {{ http['state']['status-class'] }}{% else %} status-unknown{% endif %}">
+    <h3 title="{{ http['name'] }}: {{ http['status'] }}">
+        {{ http['name'] }}
+    </h3>
+    <p>{{ http['state']['status'] }}</p>
+    <p class="tile-icon"><a href="{{ http['url'] }}"><i class="fa fa-link" aria-hidden="true"></i></a></p>
+</div>
+{% endfor %}

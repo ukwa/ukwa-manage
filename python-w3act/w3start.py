@@ -3,24 +3,26 @@
 Restarts Heritrix jobs depending on the current time and the frequency of the job.
 """
 
-import os
-import sys
-import json
-import w3act
-import logging
 import argparse
-import heritrix
-import requests
+import json
+import logging
+import sys
 import tempfile
 import traceback
-from glob import glob
-import dateutil.parser
-from w3act import settings
-from slacker import Slacker
 from datetime import datetime
+from glob import glob
+
+import heritrix
+from slacker import Slacker
+
+import dateutil.parser
+import os
+import requests
+import w3act
+from crawl import settings
 from w3act.job import W3actJob
-from w3act.w3actd import send_message
 from w3act.util import generate_log_stats, stats_to_csv
+from w3act.w3actd import send_message
 
 requests.packages.urllib3.disable_warnings()
 

@@ -1,0 +1,8 @@
+<div class="{{ tile_class }} dashboard-piece-hh dashboard-content {% if 'status-class' in queue['state'] %} {{ queue['state']['status-class'] }}{% else %} status-unknown{% endif %}">
+    <h3>{{ queue['state']['count'] }}</h3>
+    <p title="{{ queue['name'] }}: {{ queue['state']['error'] }}">
+        {{ queue['short'] }}
+        {% if queue['state']['status'] == "BECALMED" %}<i class="fa fa-chain-broken" aria-hidden="true"></i>{% endif %}
+    </p>
+    <p class="tile-icon"><a href="{{ queue['prefix'] }}{{ queue['name'] }}"><i class="fa fa-ellipsis-h" aria-hidden="true"></i></a></p>
+</div>

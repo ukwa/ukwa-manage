@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 """Script to retrieve recently-added URLs from ACT and add them to a crawl."""
 
-import sys
-import json
-import shutil
-import logging
 import argparse
-import requests
-from settings import *
-from retry_decorator import *
+import json
+import logging
+import shutil
+import sys
 from datetime import datetime
+
+from retry_decorator import *
+
+import requests
 from requests.exceptions import ConnectionError
 
 LOGGING_FORMAT="[%(asctime)s] %(levelname)s: %(message)s"

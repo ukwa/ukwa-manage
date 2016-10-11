@@ -8,31 +8,20 @@ import os
 import json
 import time
 import shutil
-import logging
-import heritrix
+import hapy
 import requests
 from lxml import etree
-from w3act.lib import ACT
+from lib.agents.w3act import w3act
 from urlparse import urlparse
-from w3act.util import unique_list
-from w3act import settings, credentials
+from crawl.w3act.util import unique_list
+from crawl.w3act import credentials
 from xml.etree.ElementTree import ParseError
+from celery.utils.log import get_task_logger
+logger = get_task_logger(__name__)
 
 requests.packages.urllib3.disable_warnings()
 
-logger = logging.getLogger("w3act.%s" % __name__)
-handler = logging.FileHandler("%s/%s.log" % (settings.LOG_ROOT, __name__))
-formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
-
-#Try to set logging output for all modules.
-logging.root.setLevel(logging.WARNING)
-logging.getLogger("").addHandler(handler)
-
-
-mandatory_fields = ["field_url", "field_depth", "field_scope", settings.W3ACT_JOB_FIELD]
+mandatory_fields = ["field_url", "field_depth", "field_scope", "url"]
 depth_sheets = {"capped_large": "higherLimit", "deep": "noLimit"}
 scope_sheets = {"resource": "resourceScope", "plus1": "plus1Scope", "subdomains": "subdomainsScope"}
 
@@ -54,9 +43,7 @@ def get_depth_scripts(seeds, depth):
     if depth is None or depth.lower() not in depth_sheets.keys():
         return []
     sheet = depth_sheets[depth.lower()]
-    surt = to_surt(seed)
-    script = [get_surt_association_script(surt, sheet) for seed in seeds]
-    logger.info("Setting depth for %s to %s" % (surt, sheet))
+    script = [get_surt_association_script(to_surt(seed), sheet) for seed in seeds]
     return script
 
 
@@ -71,14 +58,6 @@ def get_scope_scripts(seeds, scope):
             logger.info("Setting scope for %s to %s" % (surt, sheet))
     return script
 
-
-def get_blocking_scripts():
-    """Blocks access to w3act's 'nevercrawl' targets."""
-    w = ACT()
-    j = w.get_ld_export("nevercrawl")
-    blocked_urls = unique_list([to_surt(u["url"]) for t in j for u in t["fieldUrls"]])
-    script = [get_surt_association_script(surt, "blockAll") for surt in blocked_urls]
-    return script
 
 
 def get_relevant_fields(nodes):
@@ -105,7 +84,8 @@ class W3actJob(object):
         else:
             return url_field
 
-    def __init__(self, w3act_targets, name=None, seeds=None, directory=None, heritrix=None, setup=True, use_credentials=False):
+    def __init__(self, w3act, w3act_targets, name=None, seeds=None, directory=None, heritrix=None, setup=True, use_credentials=False):
+        self.w3act = w3act
         self.use_credentials = use_credentials
         if name is None:
             self.name = self.get_name(w3act_targets[0][settings.W3ACT_JOB_FIELD])
@@ -125,6 +105,13 @@ class W3actJob(object):
         if heritrix is not None:
             self.heritrix = heritrix
             self.heritrix.add(self.job_dir)
+
+    def get_blocking_scripts(self):
+        """Blocks access to w3act's 'nevercrawl' targets."""
+        j = w3act.get_ld_export("nevercrawl")
+        blocked_urls = unique_list([to_surt(u["url"]) for t in j for u in t["fieldUrls"]])
+        script = [get_surt_association_script(surt, "blockAll") for surt in blocked_urls]
+        return script
 
     @staticmethod
     def from_directory(path, heritrix=None):
@@ -146,7 +133,7 @@ class W3actJob(object):
         if api is not None:
             self.heritrix = api
         else:
-            self.heritrix = heritrix.API(host="https://%s:%s/engine" % (host, port), user=user, passwd=passwd, verbose=False, verify=False)
+            self.heritrix = hapy.hapy(host="https://%s:%s/engine" % (host, port), user=user, passwd=passwd, verbose=False, verify=False)
         self.heritrix.add(self.job_dir)
 
 
@@ -189,7 +176,7 @@ class W3actJob(object):
         for target in self.info:
             commands += get_depth_scripts(target["seeds"], target["field_depth"])
             commands += get_scope_scripts(target["seeds"], target["field_scope"])
-        commands += get_blocking_scripts()
+        commands += self.get_blocking_scripts()
         with open("%s/script.beanshell" % self.job_dir, "wb") as o:
             o.write("\n".join(commands))
 
