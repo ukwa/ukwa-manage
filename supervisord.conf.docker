@@ -82,7 +82,7 @@ stderr_events_enabled = true
 
 ; This program runs a basic crawler dashboard
 [program:crawldash]
-command=gunicorn crawl.ui.status:app -c crawl/ui/gunicorn.conf.py
+command=gunicorn crawl.ui.dashboard:app -c crawl/ui/gunicorn.conf.py
 directory=/shepherd/
 user=nobody
 autostart=true
