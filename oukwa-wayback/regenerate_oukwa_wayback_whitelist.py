@@ -35,6 +35,7 @@ def setup_logging():
         logging.root.setLevel(logging.WARNING)
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
+	logger.info('Log level: %s' % logger.getEffectiveLevel())
 
 
 def get_args():
