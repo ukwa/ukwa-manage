@@ -39,8 +39,8 @@ def setup_logging():
 
 def get_args():
 	parser = argparse.ArgumentParser('Convert URLs to SURTs')
-	parser.add_argument('-u, --urlsfile', dest='urlsFile', default='/root/bin/urls_to_surts/txt.urls', help='File containing URLs to convert')
-	parser.add_argument('-s, --surtsfile', dest='surtsFile', default='/root/bin/urls_to_surts/txt.surts', help='Output file of SURTs')
+	parser.add_argument('-u, --urlsfile', dest='urlsFile', default='/home/tomcat/oukwa-wayback/txt.urls', help='File containing URLs to convert')
+	parser.add_argument('-s, --surtsfile', dest='surtsFile', default='/home/tomcat/oukwa-wayback/txt.surts', help='Output file of SURTs')
 
 	global args
 	args = parser.parse_args()
