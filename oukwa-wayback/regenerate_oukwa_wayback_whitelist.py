@@ -14,12 +14,6 @@ import argparse
 # globals --------------
 
 # functions ------------
-def script_die(msg):
-        logger.error(msg)
-        logger.error("Script died")
-        sys.exit(1)
-
-
 def setup_logging():
         # set handler
         handler = logging.StreamHandler()
@@ -35,13 +29,17 @@ def setup_logging():
         logging.root.setLevel(logging.WARNING)
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
-	logger.info('Log level: %s' % logger.getEffectiveLevel())
+
+def script_die(msg):
+        logger.error(msg)
+        logger.error("Script died")
+        sys.exit(1)
 
 
 def get_args():
 	parser = argparse.ArgumentParser('Convert URLs to SURTs')
-	parser.add_argument('-u, --urlsfile', dest='urlsFile', default='/home/tomcat/oukwa-wayback/txt.urls', help='File containing URLs to convert')
-	parser.add_argument('-s, --surtsfile', dest='surtsFile', default='/home/tomcat/oukwa-wayback/txt.surts', help='Output file of SURTs')
+	parser.add_argument('-u, --urlsfile', dest='urlsFile', default='~/oukwa-wayback/txt.urls', help='File containing URLs to convert')
+	parser.add_argument('-s, --surtsfile', dest='surtsFile', default='~/oukwa-wayback/txt.surts', help='Output file of SURTs')
 
 	global args
 	args = parser.parse_args()
