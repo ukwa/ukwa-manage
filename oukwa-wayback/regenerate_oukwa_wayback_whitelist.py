@@ -10,8 +10,11 @@ import os
 import sys
 import logging
 import argparse
+from crawl.w3act.w3act import w3act
+from crawl.h3.utils import url_to_surt
 
 # globals --------------
+f_surts = '~/oukwa-wayback-whitelist/surts'
 
 # functions ------------
 def setup_logging():
@@ -37,18 +40,16 @@ def script_die(msg):
 
 
 def get_args():
-	parser = argparse.ArgumentParser('Convert URLs to SURTs')
-	parser.add_argument('-u, --urlsfile', dest='urlsFile', default='~/oukwa-wayback/txt.urls', help='File containing URLs to convert')
-	parser.add_argument('-s, --surtsfile', dest='surtsFile', default='~/oukwa-wayback/txt.surts', help='Output file of SURTs')
+	parser = argparse.ArgumentParser('Grab Open Access targets and output to a file in SURT form.')
+	parser.add_argument('-w, --wcturlsfile', dest='f_wcturls', default='~/oukwa-wayback-whitelist/wct.urls', 
+		help='File containing URLs from WCT to convert')
 
 	global args
 	args = parser.parse_args()
 
 	# test
-	if not os.path.isfile(args.urlsFile):
-		script_die("Argument of input file of URLs [%s] doesn't exist" % args.urlsFile)
-	if os.path.isfile(args.surtsFile):
-		script_die("Argument of output file of SURTs [%s] already exists" % args.surtsFile)
+	if not os.path.isfile(args.f_wcturls):
+		script_die("Argument of input file of URLs [%s] doesn't exist" % args.f_wcturls)
 
 
 # main -----------------
@@ -58,3 +59,16 @@ def main():
 
 if __name__ == "__main__":
 	main()
+
+
+
+
+
+
+'''
+    w = w3act(args.act_url, args.act_username, args.act_password)
+    items = w.get_oa_export("all")
+    surts = ["http://(%s" % url_to_surt(u) for t in items for u in t["seeds"]]
+    with open(args.output_file, "wb") as o:
+        o.write("\n".join(surts))
+'''
