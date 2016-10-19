@@ -1,2 +1,3 @@
 include README.md
+include crawl/*.cfg
 recursive-include crawl *

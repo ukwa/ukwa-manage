@@ -20,6 +20,9 @@ COPY requirements.txt /shepherd/requirements.txt
 
 RUN cd /shepherd/ && python setup.py install
 
+# This should not be needed!
+RUN cp /shepherd/crawl/default.cfg /usr/lib/python2.7/site-packages/shepherd-1.0.0-py2.7.egg/crawl/default.cfg
+
 # This is needed to force SupervisorD to run as root.
 # TODO Avoid this in future, as it should not be necessary even under Docker.
 ENV C_FORCE_ROOT TRUE

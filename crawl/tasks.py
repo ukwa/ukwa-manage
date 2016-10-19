@@ -10,6 +10,7 @@ from __future__ import absolute_import
 from crawl.celery import cfg
 
 import os
+import time
 import shutil
 from datetime import datetime
 from celery.exceptions import Reject
@@ -36,8 +37,8 @@ from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
 
-@app.task(acks_late=True, max_retries=None, default_retry_delay=10)
-def stop_start_job(frequency, start=datetime.utcnow(), restart=True):
+@app.task(bind=True, acks_late=True, max_retries=None, default_retry_delay=10)
+def stop_start_job(self, frequency, start=datetime.utcnow(), restart=True):
     """
     Restarts the job for a particular frequency.
     """
@@ -84,13 +85,13 @@ def stop_start_job(frequency, start=datetime.utcnow(), restart=True):
             else:
                 logger.warning("No running '%s' job to stop!" % frequency)
                 return "No running '%s' job to stop!" % frequency
-    except Exception as e:
+    except BaseException as e:
         logger.exception(e)
-        raise Reject(e, requeue=True)
+        raise self.retry(countdown=10, exe=e)
 
 
-@app.task(acks_late=True, max_retries=None, default_retry_delay=10)
-def assemble_job_output(job_id, launch_id):
+@app.task(bind=True,acks_late=True, max_retries=None, default_retry_delay=10)
+def assemble_job_output(self, job_id, launch_id):
     """
     This takes the just-completed job and validates that it is complete and ready to process.
 
@@ -106,6 +107,7 @@ def assemble_job_output(job_id, launch_id):
     Currently passes straight on to SIP generation, as that is our current workflow. However, we
     should review this at some point and consider indexing for automated QA before attempting ingest.
 
+    :param self:
     :param job_id:
     :param launch_id:
     :return:
@@ -124,9 +126,9 @@ def assemble_job_output(job_id, launch_id):
         # Now initiate SIP build:
         logger.info("Requesting SIP-build for: %s/%s" % (job_id, launch_id))
         build_sip.delay(job_id, launch_id, job_output)
-    except Exception as e:
+    except BaseException as e:
         logger.exception(e)
-        raise Reject(e, requeue=True)
+        raise self.retry(countdown=10, exe=e)
 
 #
 # @app.task(acks_late=True, max_retries=None, default_retry_delay=10)
@@ -151,8 +153,8 @@ def assemble_job_output(job_id, launch_id):
 #     build_sip.delay(job_id, launch_id)
 #
 
-@app.task(acks_late=True, max_retries=None, default_retry_delay=10)
-def build_sip(job_id, launch_id, job_output):
+@app.task(bind=True,acks_late=True, max_retries=None, default_retry_delay=10)
+def build_sip(self, job_id, launch_id, job_output):
     try:
         logger.info("Got SIP build for: %s/%s" % (job_id, launch_id))
         logger.info("Job Output: %s", job_output)
@@ -169,13 +171,13 @@ def build_sip(job_id, launch_id, job_output):
         crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "SIP_BUILT" )
         logger.info("Requesting SIP submission for: %s/%s" % (job_id, launch_id))
         submit_sip.delay(job_id, launch_id, sip_on_hdfs)
-    except Exception as e:
+    except BaseException as e:
         logger.exception(e)
-        raise Reject(e, requeue=True)
+        raise self.retry(countdown=10, exe=e)
 
 
-@app.task(acks_late=True, max_retries=None, default_retry_delay=10)
-def submit_sip(job_id,launch_id,sip_on_hdfs):
+@app.task(bind=True, acks_late=True, max_retries=None, default_retry_delay=10)
+def submit_sip(self, job_id,launch_id,sip_on_hdfs):
     try:
         logger.info("Got SIP submission for: %s/%s" % (job_id, launch_id))
         logger.info("Got SIP HDFS Path: %s" % sip_on_hdfs)
@@ -186,13 +188,13 @@ def submit_sip(job_id,launch_id,sip_on_hdfs):
         crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "SIP_SUBMITTED" )
         logger.info("Sending SIP verify for: %s/%s" % (job_id, launch_id))
         verify_sip.delay(job_id, launch_id,sip_on_hdfs)
-    except Exception as e:
+    except BaseException as e:
         logger.exception(e)
-        raise Reject(e, requeue=True)
+        raise self.retry(countdown=10, exe=e)
 
 
-@app.task(acks_late=True, max_retries=None, default_retry_delay=100)
-def verify_sip(job_id,launch_id,sip_on_hdfs):
+@app.task(bind=True, acks_late=True, max_retries=None, default_retry_delay=100)
+def verify_sip(self, job_id,launch_id,sip_on_hdfs):
     try:
         logger.info("Got SIP verify for: %s/%s" % (job_id, launch_id))
         logger.info("Got SIP HDFS Path: %s" % sip_on_hdfs)
@@ -207,13 +209,13 @@ def verify_sip(job_id,launch_id,sip_on_hdfs):
         crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "SIP_VALIDATED" )
         logger.info("Sending SIP index for: %s/%s" % (job_id, launch_id))
         index_sip.delay(job_id, launch_id)
-    except Exception as e:
+    except BaseException as e:
         logger.exception(e)
-        raise Reject(e, requeue=True)
+        raise self.retry(countdown=10, exe=e)
 
 
-@app.task(acks_late=True, max_retries=None, default_retry_delay=100)
-def index_sip(job_id,launch_id):
+@app.task(bind=True, acks_late=True, max_retries=None, default_retry_delay=100)
+def index_sip(self, job_id, launch_id):
     try:
         logger.info("Got SIP index for: %s/%s" % (job_id, launch_id))
 
@@ -223,24 +225,24 @@ def index_sip(job_id,launch_id):
         # TODO Pass on to Solr?
         # Update the job status:
         crawl.status.update_job_status.delay(job_id, "%s/%s" % (job_id, launch_id), "SIP_INDEXED" )
-    except Exception as e:
+    except BaseException as e:
         logger.exception(e)
-        raise Reject(e, requeue=True)
+        raise self.retry(countdown=10, exe=e)
 
 
-@app.task(acks_late=True, max_retries=None, default_retry_delay=100)
-def uri_to_index(**kwargs):
+@app.task(bind=True, acks_late=True, max_retries=None, default_retry_delay=100)
+def uri_to_index(self, **kwargs):
     try:
         logger.debug("Got URI to index: %s" % kwargs)
         send_uri_to_tinycdxserver(cfg.get('tinycdxserver','endpoint'), kwargs)
 
-    except Exception as e:
+    except BaseException as e:
         logger.exception(e)
-        raise Reject(e, requeue=True)
+        raise self.retry(countdown=10, exe=e)
 
 
-@app.task(acks_late=True, max_retries=None, default_retry_delay=100)
-def uri_of_doc(**kwargs):
+@app.task(bind=True, acks_late=True, max_retries=None, default_retry_delay=100)
+def uri_of_doc(self, **kwargs):
     try:
         logger.info("Got doc to send to W3ACT for: %s" % kwargs)
 
@@ -249,7 +251,7 @@ def uri_of_doc(**kwargs):
         # And post this document up:
         send_document_to_w3act(kwargs,cfg.get('wayback','endpoint'),w)
 
-    except Exception as e:
+    except BaseException as e:
         logger.exception(e)
-        raise Reject(e, requeue=True)
+        raise self.retry(countdown=10, exe=e)
 

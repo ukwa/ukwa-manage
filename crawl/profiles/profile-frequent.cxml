@@ -220,6 +220,30 @@
 		<property name="digestContent" value="true" />
 		<property name="digestAlgorithm" value="sha1" />
 	</bean>
+	<bean id="wrenderHttp" class="uk.bl.wap.crawler.processor.WrenderProcessor">
+		<property name="WrenderEndpoint" value="http://webrender:8010/render" />
+        <property name="shouldProcessRule">
+            <bean class="org.archive.modules.deciderules.DecideRuleSequence">
+                <property name="rules">
+                    <list>
+                        <!-- Begin by REJECTing all... -->
+                        <bean class="org.archive.modules.deciderules.RejectDecideRule"/>
+                        <!-- ...then ACCEPT seeds... -->
+                        <bean class="org.archive.modules.deciderules.SeedAcceptDecideRule"/>
+  					  <!-- ...then ACCEPT those with an annotation that requests rendering... -->
+  					  <bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
+  						<property name="decision" value="ACCEPT"/>
+  						<property name="regexList">
+  							<list>
+  								<value>^WrenderThis$</value>
+  							</list>
+  						</property>
+  					  </bean>
+                    </list>
+                </property>
+            </bean>
+        </property>
+	</bean>
 	<bean id="fetchHttp" class="org.archive.modules.fetcher.FetchHTTP">
 		<property name="maxLengthBytes" value="0" />
 		<property name="timeoutSeconds" value="1200" />
@@ -275,14 +299,14 @@
       <property name="clientId" value="REPLACE_JOB_NAME" />
       <property name="routingKey" value="wrender-frequent" />
       <property name="exchange" value="heritrix" />
-      <property name="amqpUri" value="amqp://guest:guest@amqp.wa.bl.uk:5672/%2f" />
+      <property name="amqpUri" value="amqp://guest:guest@amqp:5672/%2f" />
       <property name="shouldProcessRule">
           <bean class="org.archive.modules.deciderules.DecideRuleSequence">
               <property name="rules">
                   <list>
                       <!-- Begin by REJECTing all... -->
                       <bean class="org.archive.modules.deciderules.RejectDecideRule"/>
-                      <!-- ...then ACCEPT those with viral annotations... -->
+                      <!-- ...then ACCEPT http(s) URLs with an acceptable HTTP status... -->
                       <bean class="org.archive.modules.deciderules.SeedAcceptDecideRule"/>
                       <bean class="org.archive.modules.deciderules.MatchesRegexDecideRule">
                           <property name="regex" value="^https?://[^/]+/$"/>
@@ -299,7 +323,7 @@
     </bean>
     <!-- a 'top-level' bean that listens for URLs from AMQP -->
     <bean class="org.archive.crawler.frontier.AMQPUrlReceiver">
-      <property name="amqpUri" value="amqp://guest:guest@amqp.wa.bl.uk:5672/%2f" />
+      <property name="amqpUri" value="amqp://guest:guest@amqp:5672/%2f" />
       <property name="exchange" value="heritrix" />
       <property name="queueName" value="REPLACE_JOB_NAME" />
     </bean>
@@ -334,6 +358,8 @@
 				<ref bean="persistLoadProcessor"/>
 				<!-- ...fetch if DNS URI... -->
 				<ref bean="fetchDns"/>
+				<!-- ...use web browser rendering service for some URIs -->
+				<ref bean="wrenderHttp"/>
 				<!-- ...fetch if HTTP URI... -->
 				<ref bean="fetchHttp"/>
 				<ref bean="fetchHistoryProcessor" />
@@ -370,7 +396,8 @@
 	<!-- DISPOSITION CHAIN -->
 	<!-- processors declared as named beans -->
 	<bean id="diskSpaceMonitor" class="org.archive.crawler.monitor.DiskSpaceMonitor">
-		<property name="pauseThresholdMiB" value="1048576" />
+		<!-- property name="pauseThresholdMiB" value="1048576" / --> <!-- 1TiB -->
+		<property name="pauseThresholdMiB" value="1024" /> <!-- 1GiB -->
 		<property name="monitorConfigPaths" value="false" />
 		<property name="monitorPaths">
 			<list>
@@ -468,7 +495,7 @@
     <property name="targetCeleryTask" value="crawl.tasks.uri_to_index"/>
     <property name="routingKey" value="crawl.tasks.uri_to_index"/>
     <property name="exchange" value="default"/>
-    <property name="amqpUri" value="amqp://guest:guest@act2-amqp:5672/%2f"/>
+    <property name="amqpUri" value="amqp://guest:guest@amqp:5672/%2f"/>
     <property name="extraFields">
         <map>
           <entry key="job_name" value="#{metadata.jobName}"/>
@@ -481,7 +508,7 @@
     <property name="targetCeleryTask" value="crawl.tasks.uri_of_doc"/>
     <property name="routingKey" value="crawl.tasks.uri_of_doc"/>
     <property name="exchange" value="default"/>
-    <property name="amqpUri" value="amqp://guest:guest@act2-amqp:5672/%2f"/>
+    <property name="amqpUri" value="amqp://guest:guest@amqp:5672/%2f"/>
     <property name="extraFields">
         <map>
           <entry key="job_name" value="#{metadata.jobName}"/>
