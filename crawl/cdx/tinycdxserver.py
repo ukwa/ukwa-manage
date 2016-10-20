@@ -27,7 +27,7 @@ session = requests.Session()
 # java.lang.NumberFormatException: For input string: "None"
 # At line: - 20151202223545 dns:447119634 text/dns 1001 None - - - None None
 
-def send_uri_to_tinycdxserver(cdxserver_url, cl):
+def  send_uri_to_tinycdxserver(cdxserver_url, cl):
     """Passed a crawl log entry, it turns it into a CDX line and posts it to the index."""
     logger.debug("Message received: %s." % cl)
     url = cl["url"]
