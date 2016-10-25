@@ -216,7 +216,7 @@
 		<property name="calculateRobotsOnly" value="false" />
 	</bean>
 	<bean id="fetchDns" class="org.archive.modules.fetcher.FetchDNS">
-		<property name="acceptNonDnsResolves" value="false" />
+		<property name="acceptNonDnsResolves" value="true" />
 		<property name="digestContent" value="true" />
 		<property name="digestAlgorithm" value="sha1" />
 	</bean>
@@ -293,6 +293,8 @@
 	</bean>
 	<bean id="extractorJson" class="uk.bl.wap.modules.extractor.ExtractorJson">
 	</bean>
+	<bean id="extractorSitemap" class="uk.bl.wap.modules.extractor.RobotsTxtSitemapExtractor">
+	</bean>
 	<bean id="extractorJs" class="org.archive.modules.extractor.ExtractorJS">
 	</bean>
     <bean id="extractorMq" class="org.archive.modules.AMQPPublishProcessor">
@@ -358,7 +360,7 @@
 				<ref bean="persistLoadProcessor"/>
 				<!-- ...fetch if DNS URI... -->
 				<ref bean="fetchDns"/>
-				<!-- ...use web browser rendering service for some URIs -->
+				<!-- ...use web browser rendering service for some URIs - skips the rest of the chain if it works -->
 				<ref bean="wrenderHttp"/>
 				<!-- ...fetch if HTTP URI... -->
 				<ref bean="fetchHttp"/>
@@ -375,6 +377,8 @@
 				<!--
 				<ref bean="extractorJson" />
 				-->
+				<!-- ...extract sitemaps from robots.txt... -->
+				<ref bean="extractorSitemap"/>
 				<!-- ...extract oulinks from HTML content... -->
 				<ref bean="extractorHtml"/>
 				<!-- ...extract oulinks from CSS content... -->
@@ -386,7 +390,7 @@
 				<!-- ...extract oulinks from Flash content... -->
 				<ref bean="extractorSwf"/>
 				<!-- ...add IPs to crawl.log... -->
-				<bean class="uk.bl.wap.crawler.processor.IpAnnotator">
+				<bean id="ipAnnotator" class="uk.bl.wap.crawler.processor.IpAnnotator">
 				</bean>
 				<!-- ...scan for viruses... -->
 				<ref bean="viralContent" />
@@ -436,7 +440,7 @@
 			</bean>
 		</property>
 		<property name="compress" value="true" />
-		<property name="prefix" value="BL" />
+		<property name="prefix" value="BL-VIRAL" />
 		<property name="maxFileSizeBytes" value="1006632959" />
 		<property name="poolMaxActive" value="5" />
 		<property name="skipIdenticalDigests" value="false" />

@@ -8,16 +8,15 @@ import os
 import json
 import time
 import shutil
+import logging
 import requests
 from glob import glob
 from lxml import etree
-from crawl.w3act.w3act import w3act
 from urlparse import urlparse
 from crawl.h3 import hapyx
 from crawl.w3act.util import unique_list
 from crawl.w3act import credentials
 from xml.etree.ElementTree import ParseError
-from crawl.celery import HERITRIX_JOBS
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
@@ -38,7 +37,7 @@ HERITRIX_SURTS="%s/surts.txt" % HERITRIX_CONFIG_ROOT
 CLAMD_PORTS = { "daily": "3310", "weekly": "3310", "monthly": "3310", "quarterly": "3310", "sixmonthly": "3310", "annual": "3310" }
 CLAMD_DEFAULT_PORT = "3310"
 CLAMD_HOSTS = { }
-CLAMD_DEFAULT_HOST = "act2-clamd"
+CLAMD_DEFAULT_HOST = "clamd"
 
 
 def to_surt(url):
@@ -84,7 +83,7 @@ def get_relevant_fields(nodes):
         targets.append(target_info)
     return targets
 
-def remove_action_files(jobname):
+def remove_action_files(jobname, HERITRIX_JOBS):
     """Removes old 'action' files and symlinks."""
     actions_done = "%s/%s/latest/actions-done" % (HERITRIX_JOBS, jobname)
     done = "%s/%s/action/done" % (HERITRIX_JOBS, jobname)
@@ -95,7 +94,7 @@ def remove_action_files(jobname):
             for action in to_remove:
                 os.remove(action)
 
-def check_watched_targets(jobname, heritrix):
+def check_watched_targets(jobname, heritrix, HERITRIX_JOBS):
     """If there are any Watched Targets, send a message."""
     timestamp = heritrix.launchid(jobname)
     if not os.path.exists("%s/%s/%s/w3act-info.json" % (HERITRIX_JOBS, jobname, timestamp)):
@@ -124,7 +123,7 @@ def write_watched_surt_file(targets, filename):
 class W3actJob(object):
     """Represents a Heritrix job for w3act."""
 
-    def __init__(self, w3act, w3act_targets, name, seeds=None, directory=None, heritrix=None, setup=True, use_credentials=False):
+    def __init__(self, w3act, w3act_targets, name, seeds=None, directory=None, heritrix=None, setup=True, use_credentials=False, heritrix_job_dir=None):
         self.w3act = w3act
         self.use_credentials = use_credentials
         self.name = name
@@ -135,7 +134,7 @@ class W3actJob(object):
         if setup:
             logger.info("Configuring directory for job '%s'." % self.name)
             self.info = get_relevant_fields(w3act_targets)
-            self.setup_job_directory()
+            self.setup_job_directory(heritrix_job_dir)
         else:
             self.info = w3act_targets
             self.job_dir = directory
@@ -177,11 +176,13 @@ class W3actJob(object):
         self.heritrix.add_job_directory(self.job_dir)
 
 
-    def create_profile(self):
+    def create_profile(self, HERITRIX_JOBS):
         """Creates the CXML content for a H3 job."""
         profile = etree.parse(HERITRIX_PROFILE)
         profile.xinclude()
         cxml = etree.tostring(profile, pretty_print=True, xml_declaration=True, encoding="UTF-8")
+        logging.getLogger('luigi-interface').error("HERITRIX_PROFILE %s" % HERITRIX_PROFILE)
+        logging.getLogger('luigi-interface').error("self.name %s" % self.name)
         cxml = cxml.replace("REPLACE_JOB_NAME", self.name)
         if self.name in CLAMD_HOSTS.keys():
             cxml = cxml.replace("REPLACE_CLAMD_HOST", CLAMD_HOSTS[self.name])
@@ -196,9 +197,9 @@ class W3actJob(object):
         self.cxml = cxml
 
 
-    def setup_job_directory(self):
+    def setup_job_directory(self, HERITRIX_JOBS):
         """Creates the Heritrix job directory."""
-        self.job_dir = "%s/%s/" % (HERITRIX_JOBS, self.name)
+        self.job_dir = "%s/%s" % (HERITRIX_JOBS, self.name)
         if not os.path.isdir(self.job_dir):
             os.makedirs(self.job_dir)
 
@@ -214,7 +215,7 @@ class W3actJob(object):
         write_watched_surt_file(self.info, "%s/watched-surts.txt" % self.job_dir)
 
         # Write profile to disk:
-        self.create_profile()
+        self.create_profile(HERITRIX_JOBS=HERITRIX_JOBS)
         with open("%s/crawler-beans.cxml" % self.job_dir, "wb") as o:
             o.write(self.cxml)
 

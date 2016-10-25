@@ -1,0 +1,217 @@
+{
+  "queues": {
+    "FC-SIPS": {
+      "server": "AMQP-FC",
+      "name": "sips",
+      "short": "to submit"
+    },
+    "FC-SUB": {
+      "server": "AMQP-FC",
+      "name": "sip-submitted",
+      "short": "submitted"
+    },
+    "FC-ERR": {
+      "server": "AMQP-FC",
+      "name": "sip-error",
+      "short": "to resubmit"
+    },
+    "FC-ALL": {
+      "server": "AMQP-FC",
+      "name": "qa",
+      "short": "all"
+    },
+    "PULSE01": {
+      "server": "AMQP-PC",
+      "name": "PULSE-01-stop-start-job",
+      "short": "(re)start"
+    },
+    "PULSE02": {
+      "server": "AMQP-PC",
+      "name": "PULSE-02-assemble-job-output",
+      "short": "assemble"
+    },
+    "PULSE03": {
+      "server": "AMQP-PC",
+      "name": "PULSE-03-build-sip",
+      "short": "build"
+    },
+    "PULSE04": {
+      "server": "AMQP-PC",
+      "name": "PULSE-04-submit-sip",
+      "short": "submit"
+    },
+    "PULSE05": {
+      "server": "AMQP-PC",
+      "name": "PULSE-05-verify-sip",
+      "short": "verify"
+    },
+    "PULSE10": {
+      "server": "AMQP-PC",
+      "name": "PULSE-10-uri-to-index",
+      "short": "index"
+    },
+    "PULSE11": {
+      "server": "AMQP-PC",
+      "name": "PULSE-11-uri-to-doc",
+      "short": "doc"
+    },
+    "DC0": {
+      "server":"AMQP-FC",
+      "name": "dc0-20160810",
+      "short": "DC0"
+    },
+    "DC1": {
+      "server":"AMQP-FC",
+      "name": "dc1-20160810",
+      "short": "DC1"
+    },
+    "DC2": {
+      "server":"AMQP-FC",
+      "name": "dc2-20160810",
+      "short": "DC2"
+    },
+    "DC3": {
+      "server":"AMQP-FC",
+      "name": "dc3-20160810",
+      "short": "DC3"
+    }
+  },
+  "jobs": {
+    "daily": {
+      "name" : "daily",
+      "server": "H3-FC1"
+    },
+    "weekly": {
+      "name": "weekly",
+      "server": "H3-FC2"
+    },
+    "monthly": {
+      "name": "monthly",
+      "server": "H3-FC3"
+    },
+    "quarterly": {
+      "name": "quarterly",
+      "server": "H3-FC0"
+    },
+    "six-monthly": {
+      "name": "sixmonthly",
+      "server": "H3-FC0"
+    },
+    "annual": {
+      "name": "annual",
+      "server": "H3-FC0"
+    },
+    "dc0-2016": {
+      "name": "dc0-20160810",
+      "server": "H3-DC0"
+    },
+    "dc1-2016": {
+      "name": "dc1-20160810",
+      "server": "H3-DC1"
+    },
+    "dc2-2016": {
+      "name": "dc2-20160810",
+      "server": "H3-DC2"
+    },
+    "dc3-2016": {
+      "name": "dc3-20160810",
+      "server": "H3-DC3"
+    },
+    "daily-2": {
+      "name" : "daily",
+      "server": "H3-PC0"
+    },
+    "weekly-2": {
+      "name": "weekly",
+      "server": "H3-PC0"
+    },
+    "monthly-2": {
+      "name": "monthly",
+      "server": "H3-PC0"
+    },
+    "quarterly-2": {
+      "name": "quarterly",
+      "server": "H3-PC0"
+    },
+    "six-monthly-2": {
+      "name": "sixmonthly",
+      "server": "H3-PC0"
+    },
+    "annual-2": {
+      "name": "annual",
+      "server": "H3-PC0"
+    }
+  },
+  "http": {
+    "spt": {
+      "name": "SPT",
+      "url": "https://wct.bl.uk/selection/service/"
+    },
+    "wct": {
+      "name": "WCT",
+      "url": "https://wct.bl.uk/wct/"
+    },
+    "wct-wayback": {
+      "name": "WCT Wayback",
+      "url": "https://wct.bl.uk/wayback/"
+    },
+    "act-prod": {
+      "name": "ACT",
+      "url": "https://www.webarchive.org.uk/act"
+    },
+    "wayback-prod": {
+      "name": "Wayback",
+      "url": "http://crawler03.bl.uk:8080/wayback/"
+    },
+    "act-ddb": {
+      "name": "ACT DDB",
+      "url": "https://www.webarchive.org.uk/act-ddb/about"
+    },
+    "wb-ddb": {
+      "name": "Wayback DDB",
+      "url": "http://192.168.45.42:8080/"
+    },
+    "cdx-ddb": {
+      "name": "CDX DDB",
+      "url": "http://192.168.45.38:8080/fc"
+    },
+    "ukwa": {
+      "name": "HTTPD",
+      "url": "http://www.webarchive.org.uk/"
+    },
+    "ukwa-at": {
+      "name": "Access Tool",
+      "url": "http://www.webarchive.org.uk/ukwa/"
+    },
+    "ukwa-as": {
+      "name": "Access Tool Search",
+      "url": "http://www.webarchive.org.uk/ukwa/search?text=test+search&option_search=text&submit_quick=search"
+    },
+    "ukwa-wb": {
+      "name": "Wayback",
+      "url": "http://www.webarchive.org.uk/wayback/archive/*/http://www.bl.uk/"
+    },
+    "ukwa-mt": {
+      "name": "Mementos",
+      "url": "http://www.webarchive.org.uk/mementos/search"
+    },
+    "ukwa-sh": {
+      "name": "Shine",
+      "url": "https://www.webarchive.org.uk/shine"
+    }
+  },
+  "hdfs": {
+    "hdfs-prod": {
+      "name": "HDFS",
+      "host": "nellie.bl.uk",
+      "url": "http://nellie.bl.uk:50070/dfshealth.jsp"
+    }
+  },
+  "hdfs-2": {
+    "hdfs-ddb": {
+      "name": "HDFS DDB",
+      "host": "hadoop.ddb.wa.bl.uk",
+      "url": "http://hadoop.ddb.wa.bl.uk:50070"
+    }
+  }
+}
