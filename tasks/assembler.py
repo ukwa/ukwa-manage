@@ -111,7 +111,7 @@ class AssembleOutput(luigi.Task):
             self.set_status_message("Progress: Hashed WARC %d of %s" % (i, len(warcs)))
 
         # Bundle logs and configuration data into a zip and upload it to HDFS
-        zips = self.input().path
+        zips = [ self.input().path ]
 
         # FIXME Need to mint and add in ARKs at this point:
 

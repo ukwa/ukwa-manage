@@ -68,10 +68,6 @@ def atarget(job, launch_id, state):
     return luigi.LocalTarget('{}/{}'.format(State().state_folder, target_name('04.assembled', job, launch_id, state)))
 
 
-def ltarget(job, launch_id, state):
-    return luigi.LocalTarget('{}/{}.zip'.format(State().state_folder, target_name('03.logs', job, launch_id, state)))
-
-
 def otarget(job, launch_id, state):
     """
     Generate standardized state filename for job outputs:
@@ -80,7 +76,11 @@ def otarget(job, launch_id, state):
     :param state:
     :return:
     """
-    return luigi.LocalTarget('{}/{}'.format(State().state_folder, target_name('02.outputs', job, launch_id, state)))
+    return luigi.LocalTarget('{}/{}'.format(State().state_folder, target_name('03.outputs', job, launch_id, state)))
+
+
+def ltarget(job, launch_id, state):
+    return luigi.LocalTarget('{}/{}.zip'.format(State().state_folder, target_name('02.logs', job, launch_id, state)))
 
 
 def jtarget(job, launch_id, state):

@@ -6,3 +6,6 @@
 
 crawl/ui/servers.json
 
+state/*
+venv-*
+
