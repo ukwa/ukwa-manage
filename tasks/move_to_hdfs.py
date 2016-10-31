@@ -12,7 +12,8 @@ from crawl_job_tasks import CheckJobStopped
 
 
 def get_hdfs_path(path):
-    return "%s%s" % (h3().hdfs_root_folder, path)
+    # Prefix the original path with the HDFS root folder, stripping any leading '/' so the path is considered relative
+    return os.path.join(h3().hdfs_root_folder, os.path.sep, path.lstrip(os.path.sep))
 
 
 class UploadFileToHDFS(luigi.Task):
