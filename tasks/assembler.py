@@ -19,8 +19,12 @@ from common import *
 from crawl_job_tasks import CheckJobStopped
 
 
-def get_state_suffix(stage):
-    # Which suffix to use (i.e. are we packaging a checkpoint?):
+def get_stage_suffix(stage):
+    """
+    Which suffix to use (i.e. are we packaging a checkpoint?) - maps a stage to a suffix.
+    :param stage:
+    :return:
+    """
     if stage == 'final':
         return ''
     else:
@@ -28,6 +32,9 @@ def get_state_suffix(stage):
 
 
 class PackageLogs(luigi.Task):
+    """
+    For a given job launch and stage, package up the logs and config in a ZIP to go inside the main crawl SIP.
+    """
     task_namespace = 'output'
     job = luigi.EnumParameter(enum=Jobs)
     launch_id = luigi.Parameter()
@@ -51,12 +58,12 @@ class PackageLogs(luigi.Task):
         chop = len(str(LOCAL_ROOT))
         with zipfile.ZipFile(self.output().path, 'w', allowZip64=True) as zipout:
             for crawl_log in glob.glob("%s/%s/%s/crawl.log%s" % (
-            LOCAL_LOG_ROOT, self.job.name, self.launch_id, get_state_suffix(self.stage))):
+            LOCAL_LOG_ROOT, self.job.name, self.launch_id, get_stage_suffix(self.stage))):
                 logger.info("Found %s..." % os.path.basename(crawl_log))
                 zipout.write(crawl_log, arcname=crawl_log[chop:])
 
             for log in glob.glob("%s/%s/%s/*-errors.log%s" % (
-            LOCAL_LOG_ROOT, self.job.name, self.launch_id, get_state_suffix(self.stage))):
+            LOCAL_LOG_ROOT, self.job.name, self.launch_id, get_stage_suffix(self.stage))):
                 logger.info("Found %s..." % os.path.basename(log))
                 zipout.write(log, arcname=log[chop:])
 
@@ -78,6 +85,10 @@ class PackageLogs(luigi.Task):
 
 
 class AssembleOutput(luigi.Task):
+    """
+    Takes in the packaged logs and then parses the crawl log to look for WARC files, building up the whole package
+    description for each crawl stage.
+    """
     task_namespace = 'output'
     job = luigi.EnumParameter(enum=Jobs)
     launch_id = luigi.Parameter()
@@ -132,7 +143,8 @@ class AssembleOutput(luigi.Task):
     def get_crawl_log(self):
         # First, parse the crawl log(s) and determine the WARC file names:
         logfilepath = "%s/%s/%s/crawl.log%s" % (
-        LOCAL_LOG_ROOT, self.job.name, self.launch_id, get_state_suffix(self.stage))
+        LOCAL_LOG_ROOT, self.job.name, self.launch_id, get_stage_suffix(self.stage))
+        logger.info("Looking for crawl logs stage: %s" % self.stage)
         logger.info("Looking for crawl logs: %s" % logfilepath)
         if os.path.exists(logfilepath):
             logger.info("Found %s..." % os.path.basename(logfilepath))
@@ -235,38 +247,102 @@ class AssembleOutput(luigi.Task):
             return False
 
 
+class AggregateOutputs(luigi.Task):
+    """
+    Takes the results of the ordered series of checkpoints/crawl stages and builds versioned aggregated packages
+    from them.
+    """
+    task_namespace = 'output'
+    job = luigi.EnumParameter(enum=Jobs)
+    launch_id = luigi.Parameter()
+    state = luigi.Parameter()
+    outputs = luigi.ListParameter()
+
+    def requires(self):
+        for item in self.outputs:
+            if item == 'crawl.log':
+                stage = 'final'
+            else:
+                stage = item[-22:]
+            return AssembleOutput(self.job, self.launch_id, stage)
+
+    def output(self):
+        return atarget(self.job, self.launch_id, "%s.%s" %(len(self.outputs), self.state))
+
+    def run(self):
+        # Sort inputs by checkpoint timestamp and merge into versioned lists:
+        aggregate = {}
+        if isinstance(self.input(), list):
+            inputs = self.input()
+        else:
+            inputs = [ self.input() ]
+        # Build up the aggregate:
+        for input in inputs:
+            logger.info("Reading %s" % input.path)
+            item = json.load(input.open())
+            for key in item.keys():
+                current = aggregate.get(key,[])
+                if isinstance(item[key],list):
+                    current.extend(item[key])
+                elif item[key]:
+                    current = item[key]
+                aggregate[key] = current
+
+        logger.info("Aggregate: %s" % aggregate)
+
+        with self.output().open('w') as f:
+            f.write('{}'.format(json.dumps(aggregate, indent=4)))
+
+
 class ProcessOutputs(luigi.Task):
     """
+    This looks at the checkpoints and final crawl chunk and sorts them by date, so an aggregate package for
+    each new chunk can be composed. i.e. if there are two checkpoints and a final chunk, we should get three
+    incremental packages containing (cp1), (cp1 cp2), (cp1 cp2 final).
+
     """
     task_namespace = 'output'
     job = luigi.EnumParameter(enum=Jobs)
     launch_id = luigi.Parameter()
 
     def requires(self):
-        # Look for checkpoints to package:
-        for item in glob.glob("%s/%s/%s/crawl.log.cp*" % (LOG_ROOT, self.job.name, self.launch_id)):
+        # FIXME Need to make sure this copes with crawl.log.TIMESTAMP etc. from failures.
+        # Look for checkpoints to package, and package them in the correct order:
+        outputs = {}
+        is_final = False
+        for item_path in glob.glob("%s/%s/%s/crawl.log*" % (LOG_ROOT, self.job.name, self.launch_id)):
+            item = os.path.basename(item_path)
             logger.info("ITEM %s" % item)
-            yield AssembleOutput(self.job, self.launch_id, item[-22:])
+            if item == "crawl.log":
+                is_final = True
+                outputs["final"] = item
+            elif item.endswith(".lck"):
+                pass
+            else:
+                outputs[item[-14:]] = item
 
-        # Also look to package the final chunk
-        yield AssembleOutput(self.job, self.launch_id, 'final')
+        output_list = sorted(outputs.keys())
+        logger.info("Ordered by date: %s" % output_list)
+
+        aggregate = list()
+        for key in output_list:
+            aggregate.append(outputs[key])
+            yield AggregateOutputs(self.job, self.launch_id, key, aggregate)
 
     def output(self):
-        return atarget(self.job, self.launch_id, "complete")
+        return atarget(self.job, self.launch_id, "list")
 
     def run(self):
         logger.info(self.launch_id)
-        logger.info("OUTPUT: %s" % self.output().path)
         is_final = False
         outputs = []
         for input in self.input():
             if input.path.endswith(".final"):
-                key = "final"
                 is_final = True
             outputs.append(input.path)
 
+        # only report complete success if...
         if is_final:
-            # only report success if...
             with self.output().open('w') as f:
                 f.write('{}'.format(json.dumps(outputs, indent=4)))
         else:
@@ -278,7 +354,8 @@ class ScanForOutputs(luigi.WrapperTask):
     This task scans the output folder for jobs and instances of those jobs, looking for crawled content to process.
     """
     task_namespace = 'output'
-    date_interval = luigi.DateIntervalParameter(default=[datetime.date.today(), datetime.date.today()])
+    date_interval = luigi.DateIntervalParameter(
+        default=[datetime.date.today() - datetime.timedelta(days=1), datetime.date.today()])
 
     def requires(self):
         # Look for jobs that need to be processed:
