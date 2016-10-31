@@ -53,27 +53,27 @@ def format_crawl_task(task):
                                                 task.launch_id[4:6],task.launch_id[6:8],
                                                 task.launch_id[8:10],task.launch_id[10:12])
 
-def target_name(state_class, job, launch_id, state):
-    return '{}-{}/{}/{}/{}.{}.{}.{}'.format(launch_id[:4],launch_id[4:6], job.name, launch_id, state_class, job.name, launch_id, state)
+def target_name(state_class, job, launch_id, status):
+    return '{}-{}/{}/{}/{}.{}.{}.{}'.format(launch_id[:4],launch_id[4:6], job.name, launch_id, state_class, job.name, launch_id, status)
 
 
-def vtarget(job, launch_id, state):
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('07.verified', job, launch_id, state)))
+def vtarget(job, launch_id, status):
+    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('07.verified', job, launch_id, status)))
 
 
-def starget(job, launch_id, state):
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('06.submitted', job, launch_id, state)))
+def starget(job, launch_id, status):
+    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('06.submitted', job, launch_id, status)))
 
 
-def ptarget(job, launch_id, state):
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('05.packaged', job, launch_id, state)))
+def ptarget(job, launch_id, status):
+    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('05.packaged', job, launch_id, status)))
 
 
-def atarget(job, launch_id, state):
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('04.assembled', job, launch_id, state)))
+def atarget(job, launch_id, status):
+    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('04.assembled', job, launch_id, status)))
 
 
-def otarget(job, launch_id, state):
+def otarget(job, launch_id, status):
     """
     Generate standardized state filename for job outputs:
     :param job:
@@ -81,15 +81,15 @@ def otarget(job, launch_id, state):
     :param state:
     :return:
     """
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('03.outputs', job, launch_id, state)))
+    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('03.outputs', job, launch_id, status)))
 
 
-def ltarget(job, launch_id, state):
-    return luigi.LocalTarget('{}/{}.zip'.format(state().state_folder, target_name('02.logs', job, launch_id, state)))
+def ltarget(job, launch_id, status):
+    return luigi.LocalTarget('{}/{}.zip'.format(state().state_folder, target_name('02.logs', job, launch_id, status)))
 
 
-def jtarget(job, launch_id, state):
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('01.jobs', job, launch_id, state)))
+def jtarget(job, launch_id, status):
+    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('01.jobs', job, launch_id, status)))
 
 
 @luigi.Task.event_handler(luigi.Event.FAILURE)

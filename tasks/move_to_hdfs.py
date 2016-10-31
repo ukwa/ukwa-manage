@@ -20,7 +20,9 @@ def get_hdfs_path(path):
 
 class UploadFileToHDFS(luigi.Task):
     task_namespace = 'file'
-    path = luigi.Parameter()
+    path = luigi.Parameter(batch_method=max)
+    max_batch_size = 100
+    resources = { 'hdfs': 1 }
 
     def output(self):
         return luigi.contrib.hdfs.HdfsTarget(get_hdfs_path(self.path))
@@ -61,7 +63,9 @@ class ForceUploadFileToHDFS(luigi.Task):
 
 class CalculateLocalHash(luigi.Task):
     task_namespace = 'file'
-    path = luigi.Parameter()
+    path = luigi.Parameter(batch_method=max)
+    max_batch_size = 10
+    
 
     def output(self):
         return luigi.LocalTarget('{}/file/{}.local.sha512'.format(state().state_folder, self.path))
@@ -90,7 +94,9 @@ class CalculateLocalHash(luigi.Task):
 
 class CalculateHdfsHash(luigi.Task):
     task_namespace = 'file'
-    path = luigi.Parameter()
+    path = luigi.Parameter(batch_method=max)
+    max_batch_size = 10
+    resources = { 'hdfs': 1 }
 
     def requires(self):
         return UploadFileToHDFS(self.path)
@@ -118,7 +124,7 @@ class CalculateHdfsHash(luigi.Task):
 
 class MoveToHdfs(luigi.Task):
     task_namespace = 'file'
-    path = luigi.Parameter()
+    path = luigi.Parameter(batch_method=max)
     delete_local = luigi.BoolParameter(default=False)
     if_stopped = luigi.BoolParameter(default=False)
 
@@ -154,7 +160,7 @@ class MoveToHdfs(luigi.Task):
 class MoveToHdfsIfStopped(luigi.Task):
     task_namespace = 'file'
     job = luigi.EnumParameter(enum=Jobs)
-    launch_id = luigi.Parameter()
+    launch_id = luigi.Parameter(batch_method=max)
     path = luigi.Parameter()
     delete_local = luigi.BoolParameter(default=False)
 
