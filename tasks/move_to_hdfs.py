@@ -28,7 +28,8 @@ class UploadFileToHDFS(luigi.Task):
     def run(self):
         # Copy up to HDFS
         client = luigi.contrib.hdfs.get_autoconfig_client(threading.local())
-        client.upload(self.output().path, self.path)
+        with open(self.path, 'r') as f:
+            client.client.write(data=f, hdfs_path=self.output().path, overwrite=False)
 
 
 class ForceUploadFileToHDFS(luigi.Task):
@@ -36,6 +37,8 @@ class ForceUploadFileToHDFS(luigi.Task):
     Variant of UploadFileToHDFS that allows overwriting the HDFS file.
 
     Implemented as a separate task to minimise likelihood of overwrite being enabled accidentally.
+
+    Not part of the main task chain - intended to be launched manually only.
     """
     task_namespace = 'file'
     path = luigi.Parameter()
@@ -51,7 +54,8 @@ class ForceUploadFileToHDFS(luigi.Task):
         # Copy up to HDFS
         client = luigi.contrib.hdfs.get_autoconfig_client(threading.local())
         logger.info("HDFS hash, pre:  %s" % client.client.checksum(self.output().path))
-        client.upload(self.output().path, self.path, overwrite=True)
+        with open(self.path, 'r') as f:
+            client.client.write(data=f, hdfs_path=self.output().path, overwrite=True)
         logger.info("HDFS hash, post:  %s" % client.client.checksum(self.output().path))
 
 
