@@ -1,5 +1,6 @@
 import os
 import glob
+import time
 import luigi
 import string
 import datetime
@@ -43,6 +44,10 @@ class UploadFileToHDFS(luigi.Task):
             client.client.write(data=f, hdfs_path=tmp_path, overwrite=False)
         # Move the uploaded file into the right place:
         client.client.rename(tmp_path, self.output().path)
+        # Give the namenode a moment to catch-up with itself and then check it's there:
+        # FIXME I suspect this is only needed for our ancient HDFS
+        time.sleep(1)
+        status = client.client.status(self.output().path)
         logger.info("Upload completed for %s" % self.output().path)
 
 
