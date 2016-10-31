@@ -18,7 +18,7 @@ class CheckStatus(luigi.Task):
     date = luigi.DateParameter(default=datetime.datetime.today())
 
     def output(self):
-        return luigi.LocalTarget('status.summary.%s' % self.date.strftime(luigi.DateMinuteParameter.date_format))
+        return luigi.LocalTarget('%s/monitor/checkstatus.%s' % (state().state_folder, self.date.strftime(luigi.DateMinuteParameter.date_format)))
 
     def run(self):
         servers = self.load_as_json(systems().servers)
