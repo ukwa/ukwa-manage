@@ -61,7 +61,7 @@ class CalculateLocalHash(luigi.Task):
     path = luigi.Parameter()
 
     def output(self):
-        return luigi.LocalTarget('{}/file/{}.local.sha512'.format(State().state_folder, self.path))
+        return luigi.LocalTarget('{}/file/{}.local.sha512'.format(state().state_folder, self.path))
 
     def run(self):
         logger.debug("file %s to hash" % (self.path))
@@ -93,7 +93,7 @@ class CalculateHdfsHash(luigi.Task):
         return UploadFileToHDFS(self.path)
 
     def output(self):
-        return luigi.LocalTarget('{}/file/{}.hdfs.sha512'.format(State().state_folder, self.path))
+        return luigi.LocalTarget('{}/file/{}.hdfs.sha512'.format(state().state_folder, self.path))
 
     def run(self):
         logger.debug("file %s to hash" % (self.path))
@@ -125,7 +125,7 @@ class MoveToHdfs(luigi.Task):
         return [ CalculateLocalHash(self.path),  CalculateHdfsHash(self.path) ]
 
     def output(self):
-        return luigi.LocalTarget('{}/file/{}.transferred'.format(State().state_folder, self.path))
+        return luigi.LocalTarget('{}/file/{}.transferred'.format(state().state_folder, self.path))
 
     def run(self):
         # Read in sha512
@@ -177,13 +177,13 @@ class ScanJobLaunchFiles(luigi.WrapperTask):
     def requires(self):
         # Look in warcs and viral for WARCs
         for out_type in ['warcs', 'viral']:
-            for item in glob.glob("%s/output/%s/%s/%s/*.warc.gz" % (H3().local_root_folder, out_type, self.job.name, self.launch_id)):
+            for item in glob.glob("%s/output/%s/%s/%s/*.warc.gz" % (h3().local_root_folder, out_type, self.job.name, self.launch_id)):
                 yield MoveToHdfs(item, self.delete_local)
         # Look in wren too:
-        for wren_item in glob.glob("%s/output/wren/*-%s-%s-*.warc.gz" % (H3().local_root_folder, self.job.name, self.launch_id)):
+        for wren_item in glob.glob("%s/output/wren/*-%s-%s-*.warc.gz" % (h3().local_root_folder, self.job.name, self.launch_id)):
             yield MoveToHdfs(wren_item, self.delete_local)
         # And look for logs:
-        for log_item in glob.glob("%s/output/logs/%s/%s/*.log*" % (H3().local_root_folder, self.job.name, self.launch_id)):
+        for log_item in glob.glob("%s/output/logs/%s/%s/*.log*" % (h3().local_root_folder, self.job.name, self.launch_id)):
             if os.path.splitext(log_item)[1] == '.lck':
                 continue
             elif os.path.splitext(log_item)[1] == '.log':
@@ -204,7 +204,7 @@ class ScanForFiles(luigi.WrapperTask):
     def requires(self):
         # Look for jobs that need to be processed:
         for date in self.date_interval:
-            for job_item in glob.glob("%s/*" % H3().local_job_folder):
+            for job_item in glob.glob("%s/*" % h3().local_job_folder):
                 job = Jobs[os.path.basename(job_item)]
                 if os.path.isdir(job_item):
                     launch_glob = "%s/%s*" % (job_item, date.strftime('%Y%m%d'))

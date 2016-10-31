@@ -14,7 +14,6 @@ docopt==0.6.2
 docutils==0.12
 enum34==1.1.6
 Flask==0.11.1
-flower==0.9.1
 futures==3.0.5
 gunicorn==19.6.0
 hapy-heritrix==0.1.1

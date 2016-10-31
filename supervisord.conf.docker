@@ -59,24 +59,43 @@ files = supervisord.d/*.ini
 
 ; ---------------- ---------------- ---------------- ---------------- ----------------
 
-; This watches queues and executes the tasks
-[program:celeryworker]
-command=sh -c "sleep 25; celery -A crawl worker --autoreload  --loglevel=info -X PULSE-05-verify-sip"
-directory=/shepherd/
-autorestart = true
-startsecs = 0
-redirect_stderr=true
-environment=PYTHONUNBUFFERED="TRUE",SHEPHERD_CONFIG="/shepherd/crawl/docker.cfg"
-stdout_events_enabled = true
-stderr_events_enabled = true
+;; This watches queues and executes the tasks
+;[program:celeryworker]
+;command=sh -c "sleep 25; celery -A crawl worker --autoreload  --loglevel=info -X PULSE-05-verify-sip"
+;directory=/shepherd/
+;autorestart = true
+;startsecs = 0
+;redirect_stderr=true
+;environment=PYTHONUNBUFFERED="TRUE",SHEPHERD_CONFIG="/shepherd/crawl/docker.cfg"
+;stdout_events_enabled = true
+;stderr_events_enabled = true
 
-; This moves WARCs to HDFS as they come in:
-[program:movetohdfs]
-command=sh -c "sleep 60; movetohdfs --dir /heritrix/output/ --pattern '.*\.warc\.gz' --hdfsdir '/pulse/' --startdate 2016-07-10:00.00.00 --webhdfs-prefix http://hadoop:50070/ --webhdfs-user root"
+;; This moves WARCs to HDFS as they come in:
+;[program:movetohdfs]
+;command=sh -c "sleep 60; movetohdfs --dir /heritrix/output/ --pattern '.*\.warc\.gz' --hdfsdir '/pulse/' --startdate 2016-07-10:00.00.00 --webhdfs-prefix http://hadoop:50070/ --webhdfs-user root"
+;autorestart = true
+;startsecs = 0
+;redirect_stderr=true
+;environment=PYTHONUNBUFFERED="TRUE"
+;stdout_events_enabled = true
+;stderr_events_enabled = true
+
+; This provides an instance of the Luigi server to run and monitor crawling tasks
+[program:luigid]
+command=luigid
 autorestart = true
 startsecs = 0
 redirect_stderr=true
 environment=PYTHONUNBUFFERED="TRUE"
+stdout_events_enabled = true
+stderr_events_enabled = true
+
+; This runs cron so that the regular Luigi tasks will be launched
+[program:cron]
+command		= /usr/sbin/cron -f
+stdout_logfile	= /var/log/supervisor/%(program_name)s.log
+stderr_logfile	= /var/log/supervisor/%(program_name)s.log
+autorestart = true
 stdout_events_enabled = true
 stderr_events_enabled = true
 

@@ -33,7 +33,7 @@ class ScanForPackages(luigi.WrapperTask):
     def requires(self):
         # Look for jobs that need to be processed:
         for date in self.date_interval:
-            for job_item in glob.glob("%s/*/*" % State().state_folder):
+            for job_item in glob.glob("%s/*/*" % state().state_folder):
                 job = Jobs[os.path.basename(job_item)]
                 if os.path.isdir(job_item):
                     launch_glob = "%s/%s*" % (job_item, date.strftime('%Y%m%d'))

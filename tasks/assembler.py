@@ -360,7 +360,7 @@ class ScanForOutputs(luigi.WrapperTask):
     def requires(self):
         # Look for jobs that need to be processed:
         for date in self.date_interval:
-            for job_item in glob.glob("%s/*" % H3().local_job_folder):
+            for job_item in glob.glob("%s/*" % h3().local_job_folder):
                 job = Jobs[os.path.basename(job_item)]
                 if os.path.isdir(job_item):
                     launch_glob = "%s/%s*" % (job_item, date.strftime('%Y%m%d'))
@@ -377,8 +377,8 @@ def notify_success(task):
     """Will be called directly after a failed execution
        of `run` on any JobTask subclass
     """
-    if Slack().token and task.stage == 'final':
-        sc = SlackClient(Slack().token)
+    if slack().token and task.stage == 'final':
+        sc = SlackClient(slack().token)
         print(sc.api_call(
             "chat.postMessage", channel="#crawls",
             text="Job %s finished and packaged successfully! :tada:"

@@ -48,7 +48,7 @@ class CheckJobStopped(luigi.Task):
 
     def run(self):
         # Set up connection to H3:
-        h = hapyx.HapyX("https://%s:%s" % (H3().host, H3().port), username=H3().username, password=H3().password)
+        h = hapyx.HapyX("https://%s:%s" % (h3().host, h3().port), username=h3().username, password=h3().password)
 
         # Is that job running?
         status = h.status(self.job.name)
@@ -71,7 +71,7 @@ class StopJob(luigi.Task):
 
     def complete(self):
         # Set up connection to H3:
-        h = hapyx.HapyX("https://%s:%s" % (H3().host, H3().port), username=H3().username, password=H3().password)
+        h = hapyx.HapyX("https://%s:%s" % (h3().host, h3().port), username=h3().username, password=h3().password)
 
         status = h.status(self.job.name)
         if status == "":
@@ -81,9 +81,9 @@ class StopJob(luigi.Task):
 
     def run(self):
         # Set up connection to W3ACT:
-        w = w3act(Act().url, Act().username, Act().password)
+        w = w3act(act().url, act().username, act().password)
         # Set up connection to H3:
-        h = hapyx.HapyX("https://%s:%s" % (H3().host, H3().port), username=H3().username, password=H3().password)
+        h = hapyx.HapyX("https://%s:%s" % (h3().host, h3().port), username=h3().username, password=h3().password)
 
         logger.info("I'm stopping %s" % (self.job.name))
 
@@ -91,9 +91,9 @@ class StopJob(luigi.Task):
         if self.job.name in h.list_jobs() and h.status(self.job.name) != "":
             """Stops a running job, cleans up the directory, initiates job assembly."""
             launch_id = h.get_launch_id(self.job.name)
-            job = W3actJob.from_directory(w, "%s/%s" % (H3().local_job_folder, self.job.name), heritrix=h)
+            job = W3actJob.from_directory(w, "%s/%s" % (h3().local_job_folder, self.job.name), heritrix=h)
             job.stop()
-            remove_action_files(self.job.name, HERITRIX_JOBS=H3().local_job_folder)
+            remove_action_files(self.job.name, HERITRIX_JOBS=h3().local_job_folder)
 
             # Record an output file that can be use as a Target by a different task:
             mark_job_as(job, launch_id, 'stopped')
@@ -119,14 +119,14 @@ class StartJob(luigi.Task):
 
     def run(self):
         # Set up connection to W3ACT:
-        w = w3act(Act().url, Act().username, Act().password)
+        w = w3act(act().url, act().username, act().password)
         # Set up connection to H3:
-        h = hapyx.HapyX("https://%s:%s" % (H3().host, H3().port), username=H3().username, password=H3().password)
+        h = hapyx.HapyX("https://%s:%s" % (h3().host, h3().port), username=h3().username, password=h3().password)
 
         logger.info("Starting %s" % (self.job.name))
         targets = w.get_ld_export(self.job.name)
         logger.debug("Found %s Targets in date range." % len(targets))
-        job = W3actJob(w, targets, self.job.name, heritrix=h, heritrix_job_dir=H3().local_job_folder)
+        job = W3actJob(w, targets, self.job.name, heritrix=h, heritrix_job_dir=h3().local_job_folder)
         status = h.status(self.job.name)
         logger.info("Got current job status: %s" % status)
 
