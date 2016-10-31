@@ -11,11 +11,8 @@ from common import *
 from crawl_job_tasks import CheckJobStopped
 
 
-HDFS_PREFIX = "/1_data"
-
-
 def get_hdfs_path(path):
-    return "%s%s" % (HDFS_PREFIX, path)
+    return "%s%s" % (h3().hdfs_root_folder, path)
 
 
 class UploadFileToHDFS(luigi.Task):
@@ -178,24 +175,28 @@ class MoveToHdfsIfStopped(luigi.Task):
 
 
 class ScanJobLaunchFiles(luigi.WrapperTask):
+    """
+    This scans for files associated with a particular launch of a given job.
+    """
     task_namespace = 'file'
     job = luigi.EnumParameter(enum=Jobs)
     launch_id = luigi.Parameter()
     delete_local = luigi.BoolParameter(default=False)
 
     def requires(self):
-        # Look in warcs and viral for WARCs
+        # Look in warcs and viral for WARCs e.g in /heritrix/output/{warcs|viral}/{job.name}/{launch_id}
         for out_type in ['warcs', 'viral']:
             for item in glob.glob("%s/output/%s/%s/%s/*.warc.gz" % (h3().local_root_folder, out_type, self.job.name, self.launch_id)):
                 yield MoveToHdfs(item, self.delete_local)
-        # Look in wren too:
+        # Look in /heritrix/output/wren too:
         for wren_item in glob.glob("%s/output/wren/*-%s-%s-*.warc.gz" % (h3().local_root_folder, self.job.name, self.launch_id)):
             yield MoveToHdfs(wren_item, self.delete_local)
-        # And look for logs:
+        # And look for /heritrix/output/logs:
         for log_item in glob.glob("%s/output/logs/%s/%s/*.log*" % (h3().local_root_folder, self.job.name, self.launch_id)):
             if os.path.splitext(log_item)[1] == '.lck':
                 continue
             elif os.path.splitext(log_item)[1] == '.log':
+                # Only move files with the '.log' suffix if this job is no-longer running:
                 yield MoveToHdfsIfStopped(self.job, self.launch_id, log_item, self.delete_local)
             else:
                 yield MoveToHdfs(log_item, self.delete_local)
