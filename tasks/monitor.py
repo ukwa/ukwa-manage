@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 import json
 import luigi
@@ -8,6 +6,7 @@ import requests
 import datetime
 from lxml import etree
 from crawl.h3 import hapyx
+from common import *
 
 logger = logging.getLogger('luigi-interface')
 
@@ -22,8 +21,8 @@ class CheckStatus(luigi.Task):
         return luigi.LocalTarget('status.summary.%s' % self.date.strftime(luigi.DateMinuteParameter.date_format))
 
     def run(self):
-        servers = self.load_as_json('servers.json')
-        services = self.load_as_json('services.json')
+        servers = self.load_as_json(systems().servers)
+        services = self.load_as_json(systems().services)
 
         for job in services.get('jobs', []):
             server = servers[services['jobs'][job]['server']]

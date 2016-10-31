@@ -30,6 +30,11 @@ class h3(luigi.Config):
     hdfs_root_folder = luigi.Parameter()
 
 
+class systems(luigi.Config):
+    servers = luigi.Parameter()
+    services = luigi.Parameter()
+
+
 class slack(luigi.Config):
     token = luigi.Parameter()
 
