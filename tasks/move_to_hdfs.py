@@ -17,6 +17,13 @@ def get_hdfs_path(path):
 
 
 class UploadFileToHDFS(luigi.Task):
+    """
+    This copies up to HDFS but uses a temporary filename (via a suffix) to avoid downstream tasks
+    thinking the work is already done.
+
+    TODO Consider removing the temp file if something goes wrong (although I think I prefer to handle such
+    exceptions manually)
+    """
     task_namespace = 'file'
     path = luigi.Parameter(batch_method=max)
     max_batch_size = 100
@@ -28,11 +35,14 @@ class UploadFileToHDFS(luigi.Task):
         return t
 
     def run(self):
-        # Copy up to HDFS
-        logger.info("Uploading as %s" % self.output().path)
+        # Copy up to HDFS, making it suitably atomic by using a temporary filename during upload:
+        tmp_path = "%s.temp" % self.output().path
+        logger.info("Uploading as %s" % tmp_path)
         client = luigi.contrib.hdfs.get_autoconfig_client(threading.local())
         with open(self.path, 'r') as f:
-            client.client.write(data=f, hdfs_path=self.output().path, overwrite=False)
+            client.client.write(data=f, hdfs_path=tmp_path, overwrite=False)
+        # Move the uploaded file into the right place:
+        client.client.rename(tmp_path, self.output().path)
         logger.info("Upload completed for %s" % self.output().path)
 
 
@@ -112,7 +122,6 @@ class CalculateHdfsHash(luigi.Task):
         # get hash for local or hdfs file
         t = self.input()
         client = luigi.contrib.hdfs.get_autoconfig_client(threading.local())
-        logger.info("t2 %s " % t.fs)
         # Having to side-step the first client as it seems to be buggy/use an old API - note also confused put()
         with client.client.read(str(t.path)) as reader:
             file_hash = hashlib.sha512(reader.read()).hexdigest()
