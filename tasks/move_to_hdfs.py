@@ -13,7 +13,7 @@ from crawl_job_tasks import CheckJobStopped
 
 def get_hdfs_path(path):
     # Prefix the original path with the HDFS root folder, stripping any leading '/' so the path is considered relative
-    return os.path.join(h3().hdfs_root_folder, os.path.relpath('/', path))
+    return os.path.join(h3().hdfs_root_folder, path.lstrip(os.path.sep))
 
 
 class UploadFileToHDFS(luigi.Task):
@@ -23,13 +23,17 @@ class UploadFileToHDFS(luigi.Task):
     resources = { 'hdfs': 1 }
 
     def output(self):
-        return luigi.contrib.hdfs.HdfsTarget(get_hdfs_path(self.path))
+        t = luigi.contrib.hdfs.HdfsTarget(get_hdfs_path(self.path))
+        logger.info("Output is %s" % t.path)
+        return t
 
     def run(self):
         # Copy up to HDFS
+        logger.info("Uploading as %s" % self.output().path)
         client = luigi.contrib.hdfs.get_autoconfig_client(threading.local())
         with open(self.path, 'r') as f:
             client.client.write(data=f, hdfs_path=self.output().path, overwrite=False)
+        logger.info("Upload completed for %s" % self.output().path)
 
 
 class ForceUploadFileToHDFS(luigi.Task):
