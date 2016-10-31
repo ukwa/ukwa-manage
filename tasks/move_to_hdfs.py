@@ -28,7 +28,6 @@ class UploadFileToHDFS(luigi.Task):
     def run(self):
         # Copy up to HDFS
         client = luigi.contrib.hdfs.get_autoconfig_client(threading.local())
-        logger.info("Client:  %s" % client)
         client.upload(self.output().path, self.path)
 
 

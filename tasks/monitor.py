@@ -15,7 +15,7 @@ class CheckStatus(luigi.Task):
     """
     """
     task_namespace = 'monitor'
-    date = luigi.DateParameter(default=datetime.datetime.today())
+    date = luigi.DateMinuteParameter(default=datetime.datetime.today())
 
     def output(self):
         return luigi.LocalTarget('%s/monitor/checkstatus.%s' % (state().state_folder, self.date.strftime(luigi.DateMinuteParameter.date_format)))

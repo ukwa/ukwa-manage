@@ -17,7 +17,8 @@ def status():
 
     json_file = CheckStatus(date=datetime.datetime.today() - datetime.timedelta(minutes=1)).output().path
     app.logger.info("Attempting to load %s" % json_file)
-    services = json.load(json_file)
+    with open(json_file,'r') as reader:
+        services = json.load(reader)
 
     # Log collected data:
     #app.logger.info(json.dumps(services, indent=4))

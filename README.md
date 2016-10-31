@@ -3,6 +3,8 @@ Shepherd
 
 Coordinates the services that make up the UK Web Archive.
 
+* * * * * /usr/local/bin/luigi --module tasks.monitor monitor.CheckStatus >> /var/log/luigi-monitor.log 2>&1
+
 h3cc - Heritrix3 Crawl Controller
 =================================
 

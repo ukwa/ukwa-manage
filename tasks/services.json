@@ -56,22 +56,22 @@
       "short": "doc"
     },
     "DC0": {
-      "server":"AMQP-FC",
+      "server":"AMQP-DC",
       "name": "dc0-20160810",
       "short": "DC0"
     },
     "DC1": {
-      "server":"AMQP-FC",
+      "server":"AMQP-DC",
       "name": "dc1-20160810",
       "short": "DC1"
     },
     "DC2": {
-      "server":"AMQP-FC",
+      "server":"AMQP-DC",
       "name": "dc2-20160810",
       "short": "DC2"
     },
     "DC3": {
-      "server":"AMQP-FC",
+      "server":"AMQP-DC",
       "name": "dc3-20160810",
       "short": "DC3"
     }
