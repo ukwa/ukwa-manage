@@ -26,8 +26,7 @@ class UploadFileToHDFS(luigi.Task):
     exceptions manually)
     """
     task_namespace = 'file'
-    path = luigi.Parameter(batch_method=max)
-    max_batch_size = 100
+    path = luigi.Parameter()
     resources = { 'hdfs': 1 }
 
     def output(self):
@@ -46,7 +45,7 @@ class UploadFileToHDFS(luigi.Task):
         client.client.rename(tmp_path, self.output().path)
         # Give the namenode a moment to catch-up with itself and then check it's there:
         # FIXME I suspect this is only needed for our ancient HDFS
-        time.sleep(1)
+        time.sleep(2)
         status = client.client.status(self.output().path)
         logger.info("Upload completed for %s" % self.output().path)
 
@@ -80,8 +79,7 @@ class ForceUploadFileToHDFS(luigi.Task):
 
 class CalculateLocalHash(luigi.Task):
     task_namespace = 'file'
-    path = luigi.Parameter(batch_method=max)
-    max_batch_size = 10
+    path = luigi.Parameter()
     
 
     def output(self):
@@ -111,8 +109,7 @@ class CalculateLocalHash(luigi.Task):
 
 class CalculateHdfsHash(luigi.Task):
     task_namespace = 'file'
-    path = luigi.Parameter(batch_method=max)
-    max_batch_size = 10
+    path = luigi.Parameter()
     resources = { 'hdfs': 1 }
 
     def requires(self):
@@ -140,7 +137,7 @@ class CalculateHdfsHash(luigi.Task):
 
 class MoveToHdfs(luigi.Task):
     task_namespace = 'file'
-    path = luigi.Parameter(batch_method=max)
+    path = luigi.Parameter()
     delete_local = luigi.BoolParameter(default=False)
     if_stopped = luigi.BoolParameter(default=False)
 
@@ -176,7 +173,7 @@ class MoveToHdfs(luigi.Task):
 class MoveToHdfsIfStopped(luigi.Task):
     task_namespace = 'file'
     job = luigi.EnumParameter(enum=Jobs)
-    launch_id = luigi.Parameter(batch_method=max)
+    launch_id = luigi.Parameter()
     path = luigi.Parameter()
     delete_local = luigi.BoolParameter(default=False)
 
