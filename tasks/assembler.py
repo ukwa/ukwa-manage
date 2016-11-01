@@ -17,6 +17,7 @@ from crawl.w3act.job import W3actJob
 from crawl.w3act.job import remove_action_files
 from common import *
 from crawl_job_tasks import CheckJobStopped
+from move_to_hdfs import CalculateLocalHash, get_hdfs_target
 
 
 def get_stage_suffix(stage):
@@ -107,19 +108,33 @@ class AssembleOutput(luigi.Task):
         start_date = self.file_start_date(logs)
         # Find the WARCs referenced from the crawl log:
         (warcs, viral) = self.parse_crawl_log(logs)
+        # TODO Look for WARCs not spotted via the logs and add them in (ALSO allow this in the log parser)
+        for item in glob.glob(self.warc_file_path("*.warc.gz")):
+            if item not in warcs:
+                logger.info("Found additional WARC: %s" % item)
+                warcs.append(item)
+        #
+        for item in glob.glob(self.viral_file_path("*.warc.gz")):
+            if item not in warcs:
+                logger.info("Found additional Viral WARC: %s" % item)
+                warcs.append(item)
 
         # TODO Get sha512 and ARK identifiers for WARCs now, and store in launch folder and thus the zip?
         # Loop over all the WARCs involved
         i = 0
-        # self.hashes = {}
+        hashes = {}
         for warc in warcs:
             # do some hard work here
             i += 1
-            self.set_status_message("Progress: Hashing WARC %d of %s" % (i, len(warcs)))
+            self.set_status_message = "Progress: Hashing WARC %d of %s" % (i, len(warcs))
+            hash_output = yield CalculateLocalHash(warc)
             # hash_file = yield HashLocalFile(warc)
             # with hash_file.open('r') as f
+            with hash_output.open('r') as reader:
+                sha = reader.read().rstrip('\n')
+            hashes[warc] = sha
             # Report on progress...
-            self.set_status_message("Progress: Hashed WARC %d of %s" % (i, len(warcs)))
+            self.set_status_message = "Progress: Hashed WARC %d of %s" % (i, len(warcs))
 
         # Bundle logs and configuration data into a zip and upload it to HDFS
         zips = [ self.input().path ]
@@ -135,6 +150,7 @@ class AssembleOutput(luigi.Task):
             'viral': viral,
             'logs': logs,
             'zips': zips,
+            'hashes': hashes
         }
 
         with self.output().open('w') as f:
@@ -212,7 +228,7 @@ class AssembleOutput(luigi.Task):
                             wren = wren[:-5]
                         warcfiles.add(os.path.basename(wren))
                 else:
-                    raise Exception("No WARC file entry found for line: %s" % line)
+                    logger.warning("No WARC file entry found for line: %s" % line)
 
         warcs = []
         viral = []
@@ -236,12 +252,16 @@ class AssembleOutput(luigi.Task):
         """
         Checks whether the given file exists and has content - allowed to be '.open' at this point.
 
+        Also checks on HDFS if there is no local file.
+
         :type path: str
         """
         if os.path.exists(path) and os.path.isfile(path) and os.path.getsize(path) > 0:
             return True
         elif os.path.exists("%s.open" % path) and os.path.isfile("%s.open" % path) and os.path.getsize(
                         "%s.open" % path) > 0:
+            return True
+        elif get_hdfs_target(path).exists():
             return True
         else:
             return False
@@ -281,9 +301,12 @@ class AggregateOutputs(luigi.Task):
             logger.info("Reading %s" % input.path)
             item = json.load(input.open())
             for key in item.keys():
-                current = aggregate.get(key,[])
                 if isinstance(item[key],list):
+                    current = aggregate.get(key, [])
                     current.extend(item[key])
+                elif isinstance(item[key], dict):
+                    current = aggregate.get(key, {})
+                    current.update(item[key])
                 elif item[key]:
                     current = item[key]
                 aggregate[key] = current

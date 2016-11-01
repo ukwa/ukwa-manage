@@ -17,6 +17,10 @@ def get_hdfs_path(path):
     return os.path.join(h3().hdfs_root_folder, path.lstrip(os.path.sep))
 
 
+def get_hdfs_target(path):
+    return luigi.contrib.hdfs.HdfsTarget(get_hdfs_path(path))
+
+
 class UploadFileToHDFS(luigi.Task):
     """
     This copies up to HDFS but uses a temporary filename (via a suffix) to avoid downstream tasks
@@ -30,7 +34,7 @@ class UploadFileToHDFS(luigi.Task):
     resources = { 'hdfs': 1 }
 
     def output(self):
-        t = luigi.contrib.hdfs.HdfsTarget(get_hdfs_path(self.path))
+        t = get_hdfs_target(self.path)
         logger.info("Output is %s" % t.path)
         return t
 
@@ -80,7 +84,6 @@ class ForceUploadFileToHDFS(luigi.Task):
 class CalculateLocalHash(luigi.Task):
     task_namespace = 'file'
     path = luigi.Parameter()
-    
 
     def output(self):
         return luigi.LocalTarget('{}/file/{}.local.sha512'.format(state().state_folder, self.path))
@@ -139,11 +142,8 @@ class MoveToHdfs(luigi.Task):
     task_namespace = 'file'
     path = luigi.Parameter()
     delete_local = luigi.BoolParameter(default=False)
-    if_stopped = luigi.BoolParameter(default=False)
 
     def requires(self):
-        if self.if_stopped:
-            return
         return [ CalculateLocalHash(self.path),  CalculateHdfsHash(self.path) ]
 
     def output(self):
@@ -192,7 +192,7 @@ class MoveToHdfsIfStopped(luigi.Task):
 
 class ScanJobLaunchFiles(luigi.WrapperTask):
     """
-    This scans for files associated with a particular launch of a given job.
+    This scans for files associated with a particular launch of a given job and starts MoveToHdfs for each,
     """
     task_namespace = 'file'
     job = luigi.EnumParameter(enum=Jobs)
@@ -239,11 +239,111 @@ class ScanForFiles(luigi.WrapperTask):
                         if os.path.isdir(launch_item):
                             launch = os.path.basename(launch_item)
                             # TODO Limit total number of processes?
-                            yield ScanJobLaunchFiles(job, launch)
+                            yield self.scan_job_launch(job, launch)
 
+    def scan_job_launch(self, job, launch):
+        logger.info("Yielding OLD...")
+        yield ScanJobLaunchFiles(job, launch)
+
+
+# ---
+
+
+from pywb.warc.archiveiterator import DefaultRecordParser
+import StringIO
+import requests
+import json
+
+def cdx_line(entry, filename):
+    out = StringIO.StringIO()
+    out.write(entry['urlkey'])
+    out.write(' ')
+    out.write(entry['timestamp'])
+    out.write(' ')
+    out.write(entry['url'])
+    out.write(' ')
+    out.write(entry['mime'])
+    out.write(' ')
+    out.write(entry['status'])
+    out.write(' ')
+    out.write(entry['digest'])
+    out.write(' - - ')
+    out.write(entry['length'])
+    out.write(' ')
+    out.write(entry['offset'])
+    out.write(' ')
+    out.write(filename)
+    out.write('\n')
+    line = out.getvalue()
+    out.close()
+    return line
+
+
+class WARCToOutbackCDX(luigi.Task):
+    path = luigi.Parameter()
+
+    session = requests.Session()
+
+    def output(self):
+        return luigi.LocalTarget('{}/file/{}.cdx'.format(state().state_folder, self.path))
+
+    def run(self):
+        stats = { 'record_count' : 0}
+
+        entry_iter = DefaultRecordParser(sort=False,
+                                         surt_ordered=True,
+                                         include_all=False,
+                                         verify_http=False,
+                                         cdx09=False,
+                                         cdxj=False,
+                                         minimal=False)(open(self.path, 'rb'))
+
+        for entry in entry_iter:
+            #logger.info("Entry: %s" % entry)
+            cdx_11 = cdx_line(entry, self.path)
+            stats['record_count'] += 1
+            r = self.session.post(cdx().endpoint, data=cdx_11.encode('utf-8'))
+            #  headers={'Content-type': 'text/plain; charset=utf-8'})
+            if r.status_code == 200:
+                pass
+                #logger.info("POSTed to cdxserver: %s" % cdx_11)
+            else:
+                logger.error("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
+                logger.error("Failed submission was: %s" % cdx_11.encode('utf-8'))
+                raise Exception("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
+
+        with self.output().open('w') as f:
+            f.write('{}'.format(json.dumps(stats, indent=4)))
+
+
+class IndexJobLaunchWARCs(luigi.WrapperTask):
+    """
+    This scans for WARCs associated with a particular launch of a given job and CDX indexes them.
+    """
+    task_namespace = 'cdx'
+    job = luigi.EnumParameter(enum=Jobs)
+    launch_id = luigi.Parameter()
+    delete_local = luigi.BoolParameter(default=False)
+
+    def requires(self):
+        # Look in warcs and viral for WARCs e.g in /heritrix/output/{warcs|viral}/{job.name}/{launch_id}
+        for item in glob.glob("%s/output/warcs/%s/%s/*.warc.gz" % (h3().local_root_folder, self.job.name, self.launch_id)):
+            yield WARCToOutbackCDX(item)
+        # Look in /heritrix/output/wren too:
+        for item in glob.glob("%s/output/wren/*-%s-%s-*.warc.gz" % (h3().local_root_folder, self.job.name, self.launch_id)):
+            yield WARCToOutbackCDX(item)
+
+
+class ScanForIndexing(ScanForFiles):
+    task_namespace = 'cdx'
+
+    def scan_job_launch(self, job, launch):
+        logger.info("Yielding...")
+        yield IndexJobLaunchWARCs(job, launch)
 
 if __name__ == '__main__':
-    luigi.run(['file.ScanForFiles'])
+    luigi.run(['cdx.ScanForIndexing', '--date-interval', '2016-10-26-2016-10-30'])
+    #luigi.run(['file.ScanForFiles'])
     #luigi.run(['file.ForceUploadFileToHDFS', '--path', '/Users/andy/Documents/workspace/pulse/testing/output/logs/daily/20161029192642/progress-statistics.log'])
 #    luigi.run(['file.ScanForFiles', '--date-interval', '2016-10-26-2016-10-30'])  # , '--local-scheduler'])
 #    luigi.run(['file.MoveToHdfs', '--path', '/Users/andy/Documents/workspace/pulse/python-shepherd/MANIFEST.in'])  # , '--local-scheduler'])
