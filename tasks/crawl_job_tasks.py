@@ -17,6 +17,25 @@ from crawl.w3act.job import remove_action_files
 from common import *
 
 
+class CrawlFeed(luigi.Task):
+    frequency = luigi.Parameter()
+    date = luigi.DateHourParameter(default=datetime.datetime.today())
+
+    def output(self):
+        return luigi.LocalTarget('%s/w3act/crawlfeed.%s.%s' % (
+        state().state_folder, self.frequency, self.date.strftime(luigi.DateMinuteParameter.date_format)))
+
+    def run(self):
+        # Set up connection to W3ACT:
+        w = w3act(act().url, act().username, act().password)
+        # Grab those targets:
+        targets = w.get_ld_export(self.frequency)
+        # Persist to disk:
+        with self.output().open('w') as f:
+            f.write('{}'.format(json.dumps(targets, indent=4)))
+
+
+
 def mark_job_as(job, launch_id, mark):
     record = jtarget(job, launch_id, mark)
     with record.open('w') as f:
@@ -80,8 +99,6 @@ class StopJob(luigi.Task):
         return False
 
     def run(self):
-        # Set up connection to W3ACT:
-        w = w3act(act().url, act().username, act().password)
         # Set up connection to H3:
         h = hapyx.HapyX("https://%s:%s" % (h3().host, h3().port), username=h3().username, password=h3().password)
 
@@ -91,7 +108,7 @@ class StopJob(luigi.Task):
         if self.job.name in h.list_jobs() and h.status(self.job.name) != "":
             """Stops a running job, cleans up the directory, initiates job assembly."""
             launch_id = h.get_launch_id(self.job.name)
-            job = W3actJob.from_directory(w, "%s/%s" % (h3().local_job_folder, self.job.name), heritrix=h)
+            job = W3actJob.from_directory("%s/%s" % (h3().local_job_folder, self.job.name), heritrix=h)
             job.stop()
             remove_action_files(self.job.name, HERITRIX_JOBS=h3().local_job_folder)
 
@@ -107,7 +124,7 @@ class StartJob(luigi.Task):
     date = luigi.DateParameter(default=datetime.date.today())
 
     def requires(self):
-        return StopJob(self.job)
+        return [ StopJob(self.job), CrawlFeed(frequency=self.job.name), CrawlFeed(frequency='nevercrawl') ]
 
     # Do no output anything, as we don't want anything to prevent restarts, or initiate downstream actions.
     #def output(self):
@@ -118,15 +135,14 @@ class StartJob(luigi.Task):
         return False
 
     def run(self):
-        # Set up connection to W3ACT:
-        w = w3act(act().url, act().username, act().password)
         # Set up connection to H3:
         h = hapyx.HapyX("https://%s:%s" % (h3().host, h3().port), username=h3().username, password=h3().password)
 
         logger.info("Starting %s" % (self.job.name))
-        targets = w.get_ld_export(self.job.name)
+        targets = json.load(self.input()[1].open('r'))
+        nevercrawl = json.load(self.input()[2].open('r'))
         logger.debug("Found %s Targets in date range." % len(targets))
-        job = W3actJob(w, targets, self.job.name, heritrix=h, heritrix_job_dir=h3().local_job_folder)
+        job = W3actJob(targets, self.job.name, heritrix=h, heritrix_job_dir=h3().local_job_folder, nevercrawl=nevercrawl)
         status = h.status(self.job.name)
         logger.info("Got current job status: %s" % status)
 

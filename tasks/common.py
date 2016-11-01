@@ -30,6 +30,10 @@ class h3(luigi.Config):
     hdfs_root_folder = luigi.Parameter()
 
 
+class cdx(luigi.Config):
+    endpoint = luigi.Parameter()
+
+
 class systems(luigi.Config):
     servers = luigi.Parameter()
     services = luigi.Parameter()
@@ -55,6 +59,10 @@ def format_crawl_task(task):
 
 def target_name(state_class, job, launch_id, status):
     return '{}-{}/{}/{}/{}.{}.{}.{}'.format(launch_id[:4],launch_id[4:6], job.name, launch_id, state_class, job.name, launch_id, status)
+
+
+def cdx_target(job, launch_id, status):
+    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('10.cdx', job, launch_id, status)))
 
 
 def vtarget(job, launch_id, status):
@@ -103,5 +111,7 @@ def notify_failure(task, exception):
             "chat.postMessage", channel="#crawls", text="Job %s failed: :scream:\n_%s_" % (task, exception),
             username='crawljobbot'))  # , icon_emoji=':robot_face:'))
     else:
-        logger.warning("No Slack auth token set, no message sent.")
+        logger.error("No Slack auth token set, no message sent.")
+        logger.error(task)
+        logger.exception(exception)
 
