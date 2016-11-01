@@ -93,8 +93,8 @@ stderr_events_enabled = true
 ; This runs cron so that the regular Luigi tasks will be launched
 [program:cron]
 command		= /usr/sbin/crond -n
-stdout_logfile	= /var/log/supervisor/%(program_name)s.log
-stderr_logfile	= /var/log/supervisor/%(program_name)s.log
+;stdout_logfile	= /var/log/supervisor/%(program_name)s.log
+;stderr_logfile	= /var/log/supervisor/%(program_name)s.log
 autorestart = true
 stdout_events_enabled = true
 stderr_events_enabled = true
