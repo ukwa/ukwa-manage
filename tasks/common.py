@@ -1,3 +1,4 @@
+import os
 import enum
 import luigi
 import logging
@@ -57,12 +58,23 @@ def format_crawl_task(task):
                                                 task.launch_id[4:6],task.launch_id[6:8],
                                                 task.launch_id[8:10],task.launch_id[10:12])
 
+
 def target_name(state_class, job, launch_id, status):
     return '{}-{}/{}/{}/{}.{}.{}.{}'.format(launch_id[:4],launch_id[4:6], job.name, launch_id, state_class, job.name, launch_id, status)
 
 
-def cdx_target(job, launch_id, status):
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('10.cdx', job, launch_id, status)))
+def short_target_name(state_class, job, launch_id, tail):
+    return '{}-{}/{}/{}/{}.{}'.format(launch_id[:4],launch_id[4:6], job.name, launch_id, state_class, tail)
+
+
+def hash_target(job, launch_id, file):
+    return luigi.LocalTarget('{}/{}'.format(state().state_folder, short_target_name('files/hash', job, launch_id,
+                                                                              os.path.basename(file))))
+
+
+def stats_target(job, launch_id, warc):
+    return luigi.LocalTarget('{}/{}'.format(state().state_folder, short_target_name('warc/stats', job, launch_id,
+                                                                              os.path.basename(warc))))
 
 
 def vtarget(job, launch_id, status):

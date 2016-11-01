@@ -1,1 +1,3 @@
+0 0 * * * luigi output.ScanForOutputs
 0 0 * * * luigi file.ScanForFiles
+0 0 * * * luigi cdx.ScanForIndexing

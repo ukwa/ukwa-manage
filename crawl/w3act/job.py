@@ -149,7 +149,7 @@ class W3actJob(object):
         return script
 
     @staticmethod
-    def from_directory(w, path, heritrix=None):
+    def from_directory(path, heritrix=None):
         """Build a job from an existing directory."""
         logger.debug("Building job from directory: %s" % path)
         name = os.path.basename(path)
@@ -163,7 +163,7 @@ class W3actJob(object):
                 seeds = [l.strip() for l in i if not l.startswith("#") and len(l.strip()) > 0]
         else:
             seeds = None
-        job = W3actJob(w, info, name=name, seeds=seeds, directory=path, heritrix=heritrix, setup=False)
+        job = W3actJob(info, name=name, seeds=seeds, directory=path, heritrix=heritrix, setup=False)
         return job
 
 

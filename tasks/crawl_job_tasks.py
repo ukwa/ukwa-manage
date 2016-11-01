@@ -18,12 +18,14 @@ from common import *
 
 
 class CrawlFeed(luigi.Task):
+    task_namespace = 'pulse'
     frequency = luigi.Parameter()
     date = luigi.DateHourParameter(default=datetime.datetime.today())
 
     def output(self):
-        return luigi.LocalTarget('%s/w3act/crawlfeed.%s.%s' % (
-        state().state_folder, self.frequency, self.date.strftime(luigi.DateMinuteParameter.date_format)))
+        datetime_string = self.date.strftime(luigi.DateMinuteParameter.date_format)
+        return luigi.LocalTarget('%s/%s/w3act/crawl-feed.%s.%s' % (
+        state().state_folder, datetime_string[0:7], datetime_string, self.frequency))
 
     def run(self):
         # Set up connection to W3ACT:
@@ -161,6 +163,6 @@ class StartJob(luigi.Task):
 
 
 if __name__ == '__main__':
-#    luigi.run(['pulse.StopJob', '--job', 'daily'])#, '--local-scheduler'])
+    #luigi.run(['pulse.StopJob', '--job', 'daily'])#, '--local-scheduler'])
     luigi.run(['pulse.StartJob', '--job', 'daily'])  # , '--local-scheduler'])
 

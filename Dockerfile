@@ -5,6 +5,8 @@ RUN \
   yum install -y epel-release && \
   yum install -y git python-pip python-devel libpng-devel libjpeg-devel gcc gcc-c++ make libffi-devel openssl-devel supervisor libxml2 libxml2-devel libxslt libxslt-devel
 
+RUN yum install -y cronie
+
 # Install the Shepherd package:
 COPY . /shepherd
 RUN cd /shepherd/ && pip install --no-cache-dir -r requirements.txt

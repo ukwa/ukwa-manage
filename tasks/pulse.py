@@ -56,15 +56,15 @@ def main():
     # Got a command:
     if parsed.command == "stop":
         print("Stopping job %s" % parsed.job_id)
-        luigi.run(['crawl.StopJob', '--job', parsed.job_id])
+        luigi.run(['pulse.StopJob', '--job', parsed.job_id])
 
     elif parsed.command == "start":
         print("(Re)starting job %s" % parsed.job_id)
-        luigi.run(['crawl.StartJob', '--job', parsed.job_id])
+        luigi.run(['pulse.StartJob', '--job', parsed.job_id])
 
     elif parsed.command == "build_sip":
         print("Building SIP for %s/%s" % (parsed.job_id, parsed.launch_id))
-        luigi.run(['crawl.BuildSip', '--job', parsed.job_id, '--launch', parsed.launch_id])
+        luigi.run(['package.BuildSip', '--job', parsed.job_id, '--launch', parsed.launch_id])
 
 
 

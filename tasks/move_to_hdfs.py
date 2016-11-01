@@ -1,4 +1,5 @@
 import os
+import re
 import glob
 import time
 import luigi
@@ -19,6 +20,14 @@ def get_hdfs_path(path):
 
 def get_hdfs_target(path):
     return luigi.contrib.hdfs.HdfsTarget(get_hdfs_path(path))
+
+
+def get_date_prefix(path):
+    timestamp = re.findall(r"\D(\d{14}|\d{17})\D", os.path.basename(path))
+    if len(timestamp) > 0:
+        return "%s-%s" % (timestamp[0][0:4], timestamp[0][4:6])
+    else:
+        return "none"
 
 
 class UploadFileToHDFS(luigi.Task):
@@ -81,12 +90,59 @@ class ForceUploadFileToHDFS(luigi.Task):
         logger.info("HDFS hash, post:  %s" % client.client.checksum(self.output().path))
 
 
-class CalculateLocalHash(luigi.Task):
+class CloseOpenWarcFile(luigi.Task):
+    """
+    This task can close files that have been left .open, but it is not safe to tie this in usually as WARCs from
+    warcprox do not get closed when the crawler runs a checkpoint.
+    """
     task_namespace = 'file'
+    job = luigi.EnumParameter(enum=Jobs)
+    launch_id = luigi.Parameter()
+    path = luigi.Parameter()
+
+    # Require that the job is stopped:
+    def requires(self):
+        return CheckJobStopped(self.job, self.launch_id)
+
+    def output(self):
+        return luigi.LocalTarget(self.path)
+
+    def run(self):
+        open_path = "%s.open" % self.path
+        if os.path.isfile(open_path) and not os.path.isfile(self.path):
+            logger.info("Found an open file that needs closing: %s " % open_path)
+            os.rename(open_path, self.path)
+
+
+class ClosedWarcFile(luigi.ExternalTask):
+    """
+    An external process is responsible to closing open WARC files, so we declare it here.
+    """
+    task_namespace = 'file'
+    job = luigi.EnumParameter(enum=Jobs)
+    launch_id = luigi.Parameter()
     path = luigi.Parameter()
 
     def output(self):
-        return luigi.LocalTarget('{}/file/{}.local.sha512'.format(state().state_folder, self.path))
+        return luigi.LocalTarget(self.path)
+
+
+class CalculateLocalHash(luigi.Task):
+    task_namespace = 'file'
+    job = luigi.EnumParameter(enum=Jobs)
+    launch_id = luigi.Parameter()
+    path = luigi.Parameter()
+    force_close = luigi.BoolParameter(default=False)
+
+    # If instructed, force the closure of any open WARC files. Not safe to use this be default (see above)
+    def requires(self):
+        if self.force_close:
+            return CloseOpenWarcFile(self.job, self.launch_id, self.path)
+        else:
+            return ClosedWarcFile(self.job, self.launch_id, self.path)
+
+    def output(self):
+        return hash_target(self.job, self.launch_id, "%s.local.sha512" % self.path)
 
     def run(self):
         logger.debug("file %s to hash" % (self.path))
@@ -112,6 +168,8 @@ class CalculateLocalHash(luigi.Task):
 
 class CalculateHdfsHash(luigi.Task):
     task_namespace = 'file'
+    job = luigi.EnumParameter(enum=Jobs)
+    launch_id = luigi.Parameter()
     path = luigi.Parameter()
     resources = { 'hdfs': 1 }
 
@@ -119,7 +177,7 @@ class CalculateHdfsHash(luigi.Task):
         return UploadFileToHDFS(self.path)
 
     def output(self):
-        return luigi.LocalTarget('{}/file/{}.hdfs.sha512'.format(state().state_folder, self.path))
+        return hash_target(self.job, self.launch_id, "%s.hdfs.sha512" % self.path)
 
     def run(self):
         logger.debug("file %s to hash" % (self.path))
@@ -140,14 +198,17 @@ class CalculateHdfsHash(luigi.Task):
 
 class MoveToHdfs(luigi.Task):
     task_namespace = 'file'
+    job = luigi.EnumParameter(enum=Jobs)
+    launch_id = luigi.Parameter()
     path = luigi.Parameter()
     delete_local = luigi.BoolParameter(default=False)
 
     def requires(self):
-        return [ CalculateLocalHash(self.path),  CalculateHdfsHash(self.path) ]
+        return [ CalculateLocalHash(self.job, self.launch_id, self.path),
+                 CalculateHdfsHash(self.job, self.launch_id, self.path) ]
 
     def output(self):
-        return luigi.LocalTarget('{}/file/{}.transferred'.format(state().state_folder, self.path))
+        return hash_target(self.job, self.launch_id, "%s.transferred" % self.path)
 
     def run(self):
         # Read in sha512
@@ -183,11 +244,11 @@ class MoveToHdfsIfStopped(luigi.Task):
 
     # Use the output of the underlying MoveToHdfs call:
     def output(self):
-        return MoveToHdfs(self.path, self.delete_local).output()
+        return MoveToHdfs(self.job, self.launch_id, self.path, self.delete_local).output()
 
     # Call the MoveToHdfs task as a dynamic dependency:
     def run(self):
-        yield MoveToHdfs(self.path, self.delete_local)
+        yield MoveToHdfs(self.job, self.launch_id, self.path, self.delete_local)
 
 
 class ScanJobLaunchFiles(luigi.WrapperTask):
@@ -203,19 +264,20 @@ class ScanJobLaunchFiles(luigi.WrapperTask):
         # Look in warcs and viral for WARCs e.g in /heritrix/output/{warcs|viral}/{job.name}/{launch_id}
         for out_type in ['warcs', 'viral']:
             for item in glob.glob("%s/output/%s/%s/%s/*.warc.gz" % (h3().local_root_folder, out_type, self.job.name, self.launch_id)):
-                yield MoveToHdfs(item, self.delete_local)
+                yield MoveToHdfs(self.job, self.launch_id, item, self.delete_local)
         # Look in /heritrix/output/wren too:
         for wren_item in glob.glob("%s/output/wren/*-%s-%s-*.warc.gz" % (h3().local_root_folder, self.job.name, self.launch_id)):
-            yield MoveToHdfs(wren_item, self.delete_local)
+            yield MoveToHdfs(self.job, self.launch_id, wren_item, self.delete_local)
         # And look for /heritrix/output/logs:
         for log_item in glob.glob("%s/output/logs/%s/%s/*.log*" % (h3().local_root_folder, self.job.name, self.launch_id)):
             if os.path.splitext(log_item)[1] == '.lck':
                 continue
             elif os.path.splitext(log_item)[1] == '.log':
                 # Only move files with the '.log' suffix if this job is no-longer running:
+                logger.info("Using MoveToHdfsIfStopped for %s" % log_item)
                 yield MoveToHdfsIfStopped(self.job, self.launch_id, log_item, self.delete_local)
             else:
-                yield MoveToHdfs(log_item, self.delete_local)
+                yield MoveToHdfs(self.job, self.launch_id, log_item, self.delete_local)
 
 
 class ScanForFiles(luigi.WrapperTask):
@@ -242,108 +304,11 @@ class ScanForFiles(luigi.WrapperTask):
                             yield self.scan_job_launch(job, launch)
 
     def scan_job_launch(self, job, launch):
-        logger.info("Yielding OLD...")
-        yield ScanJobLaunchFiles(job, launch)
+        return ScanJobLaunchFiles(job, launch)
 
-
-# ---
-
-
-from pywb.warc.archiveiterator import DefaultRecordParser
-import StringIO
-import requests
-import json
-
-def cdx_line(entry, filename):
-    out = StringIO.StringIO()
-    out.write(entry['urlkey'])
-    out.write(' ')
-    out.write(entry['timestamp'])
-    out.write(' ')
-    out.write(entry['url'])
-    out.write(' ')
-    out.write(entry['mime'])
-    out.write(' ')
-    out.write(entry['status'])
-    out.write(' ')
-    out.write(entry['digest'])
-    out.write(' - - ')
-    out.write(entry['length'])
-    out.write(' ')
-    out.write(entry['offset'])
-    out.write(' ')
-    out.write(filename)
-    out.write('\n')
-    line = out.getvalue()
-    out.close()
-    return line
-
-
-class WARCToOutbackCDX(luigi.Task):
-    path = luigi.Parameter()
-
-    session = requests.Session()
-
-    def output(self):
-        return luigi.LocalTarget('{}/file/{}.cdx'.format(state().state_folder, self.path))
-
-    def run(self):
-        stats = { 'record_count' : 0}
-
-        entry_iter = DefaultRecordParser(sort=False,
-                                         surt_ordered=True,
-                                         include_all=False,
-                                         verify_http=False,
-                                         cdx09=False,
-                                         cdxj=False,
-                                         minimal=False)(open(self.path, 'rb'))
-
-        for entry in entry_iter:
-            #logger.info("Entry: %s" % entry)
-            cdx_11 = cdx_line(entry, self.path)
-            stats['record_count'] += 1
-            r = self.session.post(cdx().endpoint, data=cdx_11.encode('utf-8'))
-            #  headers={'Content-type': 'text/plain; charset=utf-8'})
-            if r.status_code == 200:
-                pass
-                #logger.info("POSTed to cdxserver: %s" % cdx_11)
-            else:
-                logger.error("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
-                logger.error("Failed submission was: %s" % cdx_11.encode('utf-8'))
-                raise Exception("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
-
-        with self.output().open('w') as f:
-            f.write('{}'.format(json.dumps(stats, indent=4)))
-
-
-class IndexJobLaunchWARCs(luigi.WrapperTask):
-    """
-    This scans for WARCs associated with a particular launch of a given job and CDX indexes them.
-    """
-    task_namespace = 'cdx'
-    job = luigi.EnumParameter(enum=Jobs)
-    launch_id = luigi.Parameter()
-    delete_local = luigi.BoolParameter(default=False)
-
-    def requires(self):
-        # Look in warcs and viral for WARCs e.g in /heritrix/output/{warcs|viral}/{job.name}/{launch_id}
-        for item in glob.glob("%s/output/warcs/%s/%s/*.warc.gz" % (h3().local_root_folder, self.job.name, self.launch_id)):
-            yield WARCToOutbackCDX(item)
-        # Look in /heritrix/output/wren too:
-        for item in glob.glob("%s/output/wren/*-%s-%s-*.warc.gz" % (h3().local_root_folder, self.job.name, self.launch_id)):
-            yield WARCToOutbackCDX(item)
-
-
-class ScanForIndexing(ScanForFiles):
-    task_namespace = 'cdx'
-
-    def scan_job_launch(self, job, launch):
-        logger.info("Yielding...")
-        yield IndexJobLaunchWARCs(job, launch)
 
 if __name__ == '__main__':
-    luigi.run(['cdx.ScanForIndexing', '--date-interval', '2016-10-26-2016-10-30'])
-    #luigi.run(['file.ScanForFiles'])
+    luigi.run(['file.ScanForFiles', '--date-interval', '2016-11-01-2016-11-10'])
     #luigi.run(['file.ForceUploadFileToHDFS', '--path', '/Users/andy/Documents/workspace/pulse/testing/output/logs/daily/20161029192642/progress-statistics.log'])
 #    luigi.run(['file.ScanForFiles', '--date-interval', '2016-10-26-2016-10-30'])  # , '--local-scheduler'])
 #    luigi.run(['file.MoveToHdfs', '--path', '/Users/andy/Documents/workspace/pulse/python-shepherd/MANIFEST.in'])  # , '--local-scheduler'])

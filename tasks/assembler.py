@@ -96,7 +96,9 @@ class AssembleOutput(luigi.Task):
     stage = luigi.Parameter(default='final')
 
     def requires(self):
-        return PackageLogs(self.job, self.launch_id, self.stage)
+        if self.stage == 'final':
+            yield CheckJobStopped(self.job, self.launch_id)
+        yield PackageLogs(self.job, self.launch_id, self.stage)
 
     # TODO Move this into it's own job (atomicity):
     #    luigi.LocalTarget("%s/%s/%s/logs-%s.zip" % (self.LOCAL_LOG_ROOT, self.job.name, self.launch_id, self.stage))
@@ -104,20 +106,22 @@ class AssembleOutput(luigi.Task):
         return otarget(self.job, self.launch_id, self.stage)
 
     def run(self):
+
         logs = [self.get_crawl_log()]
         start_date = self.file_start_date(logs)
         # Find the WARCs referenced from the crawl log:
         (warcs, viral) = self.parse_crawl_log(logs)
         # TODO Look for WARCs not spotted via the logs and add them in (ALSO allow this in the log parser)
-        for item in glob.glob(self.warc_file_path("*.warc.gz")):
-            if item not in warcs:
-                logger.info("Found additional WARC: %s" % item)
-                warcs.append(item)
-        #
-        for item in glob.glob(self.viral_file_path("*.warc.gz")):
-            if item not in warcs:
-                logger.info("Found additional Viral WARC: %s" % item)
-                warcs.append(item)
+        if self.stage == 'final':
+            for item in glob.glob(self.warc_file_path("*.warc.gz")):
+                if item not in warcs:
+                    logger.info("Found additional WARC: %s" % item)
+                    warcs.append(item)
+            #
+            for item in glob.glob(self.viral_file_path("*.warc.gz")):
+                if item not in warcs:
+                    logger.info("Found additional Viral WARC: %s" % item)
+                    warcs.append(item)
 
         # TODO Get sha512 and ARK identifiers for WARCs now, and store in launch folder and thus the zip?
         # Loop over all the WARCs involved
@@ -127,7 +131,7 @@ class AssembleOutput(luigi.Task):
             # do some hard work here
             i += 1
             self.set_status_message = "Progress: Hashing WARC %d of %s" % (i, len(warcs))
-            hash_output = yield CalculateLocalHash(warc)
+            hash_output = yield CalculateLocalHash(self.job, self.launch_id, warc)
             # hash_file = yield HashLocalFile(warc)
             # with hash_file.open('r') as f
             with hash_output.open('r') as reader:
@@ -137,7 +141,7 @@ class AssembleOutput(luigi.Task):
             self.set_status_message = "Progress: Hashed WARC %d of %s" % (i, len(warcs))
 
         # Bundle logs and configuration data into a zip and upload it to HDFS
-        zips = [ self.input().path ]
+        zips = [ PackageLogs(self.job, self.launch_id, self.stage).output().path ]
 
         # FIXME Need to mint and add in ARKs at this point:
 
@@ -284,7 +288,7 @@ class AggregateOutputs(luigi.Task):
                 stage = 'final'
             else:
                 stage = item[-22:]
-            return AssembleOutput(self.job, self.launch_id, stage)
+            yield AssembleOutput(self.job, self.launch_id, stage)
 
     def output(self):
         return atarget(self.job, self.launch_id, "%s.%s" %(len(self.outputs), self.state))
@@ -412,8 +416,7 @@ def notify_success(task):
 
 
 if __name__ == '__main__':
-    luigi.run(['output.ScanForOutputs', '--date-interval', '2016-10-23-2016-10-26'])  # , '--local-scheduler'])
-# luigi.run(['crawl.job.StartJob', '--job', 'daily', '--local-scheduler'])
+    luigi.run(['output.ScanForOutputs', '--date-interval', '2016-11-01-2016-11-10'])  # , '--local-scheduler'])
 
 
 

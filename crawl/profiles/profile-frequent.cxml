@@ -67,6 +67,7 @@
 	<!-- SCOPE: rules for which discovered URIs to crawl; order is very 
 		 important because last decision returned other than 'NONE' wins. -->
 	<bean id="scope" class="org.archive.modules.deciderules.DecideRuleSequence">
+        <property name="logToFile" value="true" />
 		<property name="rules">
 			<list>
 				<!-- Begin by REJECTing all... -->
