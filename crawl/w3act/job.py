@@ -123,8 +123,8 @@ def write_watched_surt_file(targets, filename):
 class W3actJob(object):
     """Represents a Heritrix job for w3act."""
 
-    def __init__(self, w3act, w3act_targets, name, seeds=None, directory=None, heritrix=None, setup=True, use_credentials=False, heritrix_job_dir=None):
-        self.w3act = w3act
+    def __init__(self, w3act_targets, name, seeds=None, directory=None, heritrix=None, setup=True, use_credentials=False, heritrix_job_dir=None, nevercrawl=None):
+        self.nevercrawl_targets = nevercrawl
         self.use_credentials = use_credentials
         self.name = name
         if seeds is None:
@@ -144,8 +144,7 @@ class W3actJob(object):
 
     def get_blocking_scripts(self):
         """Blocks access to w3act's 'nevercrawl' targets."""
-        j = self.w3act.get_ld_export("nevercrawl")
-        blocked_urls = unique_list([to_surt(u) for t in j for u in t["seeds"]])
+        blocked_urls = unique_list([to_surt(u) for t in self.nevercrawl_targets for u in t["seeds"]])
         script = [get_surt_association_script(surt, "blockAll") for surt in blocked_urls]
         return script
 
