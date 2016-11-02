@@ -49,6 +49,7 @@ class CheckStatus(luigi.Task):
         h = hapyx.HapyX(server['url'], username=server['user'], password=server['pass'])
         state = {}
         try:
+            logger.info("Getting status for job %s on %s" % (job, server))
             info = h.get_job_info(job)
             state['details'] = info
             if info.has_key('job'):
@@ -79,6 +80,7 @@ class CheckStatus(luigi.Task):
     def get_queue_status(self, queue, server):
         state = {}
         try:
+            logger.info("Getting status for queue %s on %s" % (queue, server))
             qurl = '%s%s' % (server['prefix'], queue)
             # app.logger.info("GET: %s" % qurl)
             r = requests.get(qurl)
@@ -105,6 +107,7 @@ class CheckStatus(luigi.Task):
     def get_http_status(self, url):
         state = {}
         try:
+            logger.info("Getting status for %s" % (url))
             r = requests.get(url, allow_redirects=False)
             state['status'] = "%s" % r.status_code
             if r.status_code / 100 == 2 or r.status_code / 100 == 3:
@@ -121,6 +124,7 @@ class CheckStatus(luigi.Task):
     def get_hdfs_status(self, hdfs):
         state = {}
         try:
+            logger.info("Getting status for hdfs %s" % (hdfs))
             r = requests.get(hdfs['url'])
             state['status'] = "%s" % r.status_code
             if r.status_code / 100 == 2:
