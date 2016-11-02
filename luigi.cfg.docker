@@ -34,6 +34,7 @@ clamd_port=3310
 ampq_host=amqp
 cdxserver=http://cdxserver:8080/fc
 wayback=http://openwayback:8080/wayback
+wrender=http://webrender:8010/render
 servers=/shepherd/tasks/servers.json
 services=/shepherd/tasks/services.json
 

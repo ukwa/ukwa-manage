@@ -34,6 +34,7 @@ class h3(luigi.Config):
 class systems(luigi.Config):
     cdxserver = luigi.Parameter()
     wayback = luigi.Parameter()
+    wrender = luigi.Parameter()
     amqp_host = luigi.Parameter()
     clamd_host = luigi.Parameter()
     clamd_port = luigi.Parameter()

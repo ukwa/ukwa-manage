@@ -197,6 +197,7 @@ class W3actJob(object):
         cxml = cxml.replace("REPLACE_JOB_ROOT", self.name)
         cxml = cxml.replace("REPLACE_HERITRIX_JOBS", HERITRIX_JOBS)
         cxml = cxml.replace("REPLACE_AMQP_HOST", systems().amqp_host)
+        cxml = cxml.replace("REPLACE_WRENDER_ENDPOINT", systems().wrender)
         self.cxml = cxml
 
 
