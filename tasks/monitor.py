@@ -1,6 +1,7 @@
 import os
 import json
 import luigi
+import socket
 import logging
 import requests
 import datetime
@@ -10,6 +11,7 @@ from common import *
 
 logger = logging.getLogger('luigi-interface')
 
+socket.setdefaulttimeout(5)
 
 class CheckStatus(luigi.Task):
     """
@@ -83,7 +85,7 @@ class CheckStatus(luigi.Task):
             logger.info("Getting status for queue %s on %s" % (queue, server))
             qurl = '%s%s' % (server['prefix'], queue)
             # app.logger.info("GET: %s" % qurl)
-            r = requests.get(qurl)
+            r = requests.get(qurl, timeout=5)
             state['details'] = r.json()
             state['count'] = "{:0,}".format(state['details']['messages'])
             if 'error' in state['details']:
@@ -108,7 +110,7 @@ class CheckStatus(luigi.Task):
         state = {}
         try:
             logger.info("Getting status for %s" % (url))
-            r = requests.get(url, allow_redirects=False)
+            r = requests.get(url, allow_redirects=False, timeout=5)
             state['status'] = "%s" % r.status_code
             if r.status_code / 100 == 2 or r.status_code / 100 == 3:
                 state['status'] = "%.3fs" % r.elapsed.total_seconds()
@@ -125,7 +127,7 @@ class CheckStatus(luigi.Task):
         state = {}
         try:
             logger.info("Getting status for hdfs %s" % (hdfs))
-            r = requests.get(hdfs['url'])
+            r = requests.get(hdfs['url'], timeout=5)
             state['status'] = "%s" % r.status_code
             if r.status_code / 100 == 2:
                 state['status-class'] = "status-good"
