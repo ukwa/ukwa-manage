@@ -3,10 +3,54 @@ Shepherd
 
 Coordinates the services that make up the UK Web Archive.
 
-* * * * * /usr/local/bin/luigi --module tasks.monitor monitor.CheckStatus >> /var/log/luigi-monitor.log 2>&1
+
+Installation
+============
+
+As indicated in the [Dockerfile](Dockerfile), installation of RHEL/CentOS 7 requires a number of packages:
+
+    $ yum install epel-release git python-pip python-devel libpng-devel libjpeg-devel gcc gcc-c++ make libffi-devel openssl-devel supervisor libxml2 libxml2-devel libxslt libxslt-devel
+
+This should install Python 2.7 and the required libraries for the Python modules that are in use. Note that on RHEL/CentOS 6, you will need to find a cope of `libffi-devel-3.0.5-3.2.el6.x86_64.rpm` or similar and install it as there is no libffi-devel in EPEL.
+
+The libraries and command-line scripts can then be installed as:
+
+    $ python2.7 setup.py install
+
+Alternatively, you can use a [Virtual Environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/) to cleanly install things without affecting the system-wide package:
+
+    $ sudo pip install virtualenv
+    $ cd python-shepherd
+    $ virtualenv -p python2.7 venv27-shepherd
+
+This creates a basic Python 2.7 installation in a folder called `venv27-shepherd`. To use it, activate it:
+
+    $ source venv27-shepherd/bin/activate
+
+Now you can install the Shepherd package inside the virtual environment, along with all necessary dependencies:
+
+    $ python setup.py install
+
+This is highly recommended if your are modifying/developing this system. 
+
+We are currently using [PyCharmCE](https://www.jetbrains.com/pycharm/) as our primary development environment, as this provides good code interpretation and navigation and can be instructed to use a virtual environment.
+
+
+Workflow Orchestration Using Luigi
+==================================
+
+While the individual scripts are in here, there are more details in the [Pulse Wiki](https://github.com/ukwa/pulse/wiki).
+
+Examples
+--------
+
+    * * * * * /usr/local/bin/luigi --module tasks.monitor monitor.CheckStatus >> /var/log/luigi-monitor.log 2>&1
+
+Command Line Tools
+==================
 
 h3cc - Heritrix3 Crawl Controller
-=================================
+---------------------------------
 
 Script to interact with Heritrix directly, to perform some general crawler operations.
 
