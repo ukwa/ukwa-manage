@@ -69,7 +69,7 @@ class WARCToOutbackCDX(luigi.Task):
                     counter = stats[key].get(entry[key], 0)
                     counter += 1
                     stats[key][entry[key]] = counter
-            r = self.session.post(cdx().endpoint, data=cdx_11.encode('utf-8'))
+            r = self.session.post(systems().cdxserver, data=cdx_11.encode('utf-8'))
             #  headers={'Content-type': 'text/plain; charset=utf-8'})
             if r.status_code == 200:
                 pass

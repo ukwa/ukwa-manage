@@ -31,11 +31,12 @@ class h3(luigi.Config):
     hdfs_root_folder = luigi.Parameter()
 
 
-class cdx(luigi.Config):
-    endpoint = luigi.Parameter()
-
-
 class systems(luigi.Config):
+    cdxserver = luigi.Parameter()
+    wayback = luigi.Parameter()
+    amqp_host = luigi.Parameter()
+    clamd_host = luigi.Parameter()
+    clamd_port = luigi.Parameter()
     servers = luigi.Parameter()
     services = luigi.Parameter()
 

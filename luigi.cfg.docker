@@ -29,21 +29,17 @@ local_job_folder=/jobs
 hdfs_root_folder=/pulse/heritrix
 
 [systems]
+clamd_host=clamd
+clamd_port=3310
+ampq_host=amqp
+cdxserver=http://cdxserver:8080/fc
+wayback=http://openwayback:8080/wayback
 servers=/shepherd/tasks/servers.json
 services=/shepherd/tasks/services.json
 
 [slack]
 token=
 
-[amqp]
-host=amqp
-
 [dls]
 drop_folder=/dls-drop
 watch_folder=/dls-watch
-
-[tinycdxserver]
-endpoint=http://cdxserver:8080/fc
-
-[wayback]
-endpoint=http://openwayback:8080/wayback

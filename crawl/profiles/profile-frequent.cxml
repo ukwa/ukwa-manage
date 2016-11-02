@@ -302,7 +302,7 @@
       <property name="clientId" value="REPLACE_JOB_NAME" />
       <property name="routingKey" value="wrender-frequent" />
       <property name="exchange" value="heritrix" />
-      <property name="amqpUri" value="amqp://guest:guest@amqp:5672/%2f" />
+      <property name="amqpUri" value="amqp://guest:guest@REPLACE_AMQP_HOST:5672/%2f" />
       <property name="shouldProcessRule">
           <bean class="org.archive.modules.deciderules.DecideRuleSequence">
               <property name="rules">
@@ -326,7 +326,7 @@
     </bean>
     <!-- a 'top-level' bean that listens for URLs from AMQP -->
     <bean class="org.archive.crawler.frontier.AMQPUrlReceiver">
-      <property name="amqpUri" value="amqp://guest:guest@amqp:5672/%2f" />
+      <property name="amqpUri" value="amqp://guest:guest@REPLACE_AMQP_HOST:5672/%2f" />
       <property name="exchange" value="heritrix" />
       <property name="queueName" value="REPLACE_JOB_NAME" />
     </bean>
@@ -500,7 +500,7 @@
     <property name="targetCeleryTask" value="crawl.tasks.uri_to_index"/>
     <property name="routingKey" value="crawl.tasks.uri_to_index"/>
     <property name="exchange" value="default"/>
-    <property name="amqpUri" value="amqp://guest:guest@amqp:5672/%2f"/>
+    <property name="amqpUri" value="amqp://guest:guest@REPLACE_AMQP_HOST:5672/%2f"/>
     <property name="extraFields">
         <map>
           <entry key="job_name" value="#{metadata.jobName}"/>
@@ -513,7 +513,7 @@
     <property name="targetCeleryTask" value="crawl.tasks.uri_of_doc"/>
     <property name="routingKey" value="crawl.tasks.uri_of_doc"/>
     <property name="exchange" value="default"/>
-    <property name="amqpUri" value="amqp://guest:guest@amqp:5672/%2f"/>
+    <property name="amqpUri" value="amqp://guest:guest@REPLACE_AMQP_HOST:5672/%2f"/>
     <property name="extraFields">
         <map>
           <entry key="job_name" value="#{metadata.jobName}"/>

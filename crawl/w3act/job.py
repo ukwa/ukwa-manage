@@ -18,6 +18,7 @@ from crawl.w3act.util import unique_list
 from crawl.w3act import credentials
 from xml.etree.ElementTree import ParseError
 from celery.utils.log import get_task_logger
+from tasks.common import systems
 logger = get_task_logger(__name__)
 
 requests.packages.urllib3.disable_warnings()
@@ -34,10 +35,12 @@ HERITRIX_EXCLUDE="%s/exclude.txt" % HERITRIX_CONFIG_ROOT
 HERITRIX_SHORTENERS="%s/url.shorteners.txt" % HERITRIX_CONFIG_ROOT
 HERITRIX_SURTS="%s/surts.txt" % HERITRIX_CONFIG_ROOT
 
-CLAMD_PORTS = { "daily": "3310", "weekly": "3310", "monthly": "3310", "quarterly": "3310", "sixmonthly": "3310", "annual": "3310" }
-CLAMD_DEFAULT_PORT = "3310"
+CLAMD_DEFAULT_HOST = systems().clamd_host
+CLAMD_DEFAULT_PORT = systems().clamd_port
+
+CLAMD_PORTS = { }
+#"daily": "3310", "weekly": "3310", "monthly": "3310", "quarterly": "3310", "sixmonthly": "3310", "annual": "3310" }
 CLAMD_HOSTS = { }
-CLAMD_DEFAULT_HOST = "clamd"
 
 
 def to_surt(url):
@@ -193,6 +196,7 @@ class W3actJob(object):
             cxml = cxml.replace("REPLACE_CLAMD_PORT", CLAMD_DEFAULT_PORT)
         cxml = cxml.replace("REPLACE_JOB_ROOT", self.name)
         cxml = cxml.replace("REPLACE_HERITRIX_JOBS", HERITRIX_JOBS)
+        cxml = cxml.replace("REPLACE_AMQP_HOST", systems().amqp_host)
         self.cxml = cxml
 
 
