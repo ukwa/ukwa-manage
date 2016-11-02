@@ -5,7 +5,6 @@ import json
 import luigi.contrib.hdfs
 from pywb.warc.archiveiterator import DefaultRecordParser
 from common import *
-from move_to_hdfs import ScanForFiles
 
 
 def cdx_line(entry, filename):
@@ -101,7 +100,7 @@ class IndexJobLaunchWARCs(luigi.WrapperTask):
             yield WARCToOutbackCDX(self.job, self.launch_id, item)
 
 
-class ScanForIndexing(ScanForFiles):
+class ScanForIndexing(ScanForLaunches):
     task_namespace = 'cdx'
 
     def scan_job_launch(self, job, launch):

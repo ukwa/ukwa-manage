@@ -280,28 +280,8 @@ class ScanJobLaunchFiles(luigi.WrapperTask):
                 yield MoveToHdfs(self.job, self.launch_id, log_item, self.delete_local)
 
 
-class ScanForFiles(luigi.WrapperTask):
-    """
-    This task scans the output folder for jobs and instances of those jobs, looking for crawled content to process.
-    """
+class ScanForFiles(ScanForLaunches):
     task_namespace = 'file'
-    date_interval = luigi.DateIntervalParameter(
-        default=[datetime.date.today() - datetime.timedelta(days=1), datetime.date.today()])
-    delete_local = luigi.BoolParameter(default=False)
-
-    def requires(self):
-        # Look for jobs that need to be processed:
-        for date in self.date_interval:
-            for job_item in glob.glob("%s/*" % h3().local_job_folder):
-                job = Jobs[os.path.basename(job_item)]
-                if os.path.isdir(job_item):
-                    launch_glob = "%s/%s*" % (job_item, date.strftime('%Y%m%d'))
-                    # self.set_status_message("Looking for job launch folders matching %s" % launch_glob)
-                    for launch_item in glob.glob(launch_glob):
-                        if os.path.isdir(launch_item):
-                            launch = os.path.basename(launch_item)
-                            # TODO Limit total number of processes?
-                            yield self.scan_job_launch(job, launch)
 
     def scan_job_launch(self, job, launch):
         return ScanJobLaunchFiles(job, launch)
