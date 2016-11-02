@@ -206,7 +206,8 @@ class AssembleOutput(luigi.Task):
                 parts = re.split(" +", line, maxsplit=11)
                 # Skip failed downloads:
                 if parts[1] == '-' or parts[1] == '' or int(parts[1]) <= 0:
-                    logger.info('Skipping line with no +ve status: %s' % line)
+                    if parts[1] == '':
+                        logger.info("Skipping line with empty status! '%s' from log file '%s'" % (line, logs[0]))
                     continue
                 # Skip locally-resolved DNS records
                 if parts[1] == "1001":
