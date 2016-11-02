@@ -564,7 +564,9 @@
 				<!-- update the persist store -->
 				<ref bean="persistStoreProcessor" />
 				<!-- send the crawl log to a queue for downstream checks -->
- 			    <ref bean="crawlLogFeed"/>
+				<!--
+ 			    	<ref bean="crawlLogFeed"/>
+ 			    --->
 				<!-- send any discovered documents to a separate feed -->
         		<ref bean="crawlLogDocumentFeed"/>
 				<!-- ...send each outlink candidate URI to CandidatesChain, 
