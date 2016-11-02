@@ -222,7 +222,7 @@
 		<property name="digestAlgorithm" value="sha1" />
 	</bean>
 	<bean id="wrenderHttp" class="uk.bl.wap.crawler.processor.WrenderProcessor">
-		<property name="WrenderEndpoint" value="http://webrender:8010/render" />
+		<property name="WrenderEndpoint" value="REPLACE_WRENDER_ENDPOINT" />
         <property name="shouldProcessRule">
             <bean class="org.archive.modules.deciderules.DecideRuleSequence">
                 <property name="rules">
