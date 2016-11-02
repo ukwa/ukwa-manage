@@ -71,4 +71,5 @@ if __name__ == "__main__":
     surts = ["http://(%s" % url_to_surt(u) for t in items for u in t["seeds"]]
     with open(args.output_file, "wb") as o:
         o.write("\n".join(surts))
+  
 '''
