@@ -11,7 +11,7 @@ from common import *
 
 logger = logging.getLogger('luigi-interface')
 
-socket.setdefaulttimeout(5)
+socket.setdefaulttimeout(20)
 
 class CheckStatus(luigi.Task):
     """
@@ -110,7 +110,7 @@ class CheckStatus(luigi.Task):
         state = {}
         try:
             logger.info("Getting status for %s" % (url))
-            r = requests.get(url, allow_redirects=False, timeout=5)
+            r = requests.get(url, allow_redirects=False, timeout=20)
             state['status'] = "%s" % r.status_code
             if r.status_code / 100 == 2 or r.status_code / 100 == 3:
                 state['status'] = "%.3fs" % r.elapsed.total_seconds()
