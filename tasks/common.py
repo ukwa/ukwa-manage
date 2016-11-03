@@ -30,6 +30,7 @@ class h3(luigi.Config):
     password = luigi.Parameter()
     local_root_folder = luigi.Parameter()
     local_job_folder = luigi.Parameter()
+    local_wren_folder = luigi.Parameter()
     hdfs_root_folder = luigi.Parameter()
 
 
@@ -51,7 +52,6 @@ LOCAL_ROOT = h3().local_root_folder
 LOCAL_JOBS_ROOT = h3().local_job_folder
 WARC_ROOT = "%s/output/warcs" % h3().local_root_folder
 VIRAL_ROOT = "%s/output/viral" % h3().local_root_folder
-WREN_ROOT = "%s/output/wren" % h3().local_root_folder
 IMAGE_ROOT = "%s/output/images" % h3().local_root_folder
 LOG_ROOT = "%s/output/logs" % h3().local_root_folder
 LOCAL_LOG_ROOT = "%s/output/logs" % h3().local_root_folder

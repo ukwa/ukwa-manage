@@ -24,8 +24,9 @@ host=ukwa-heritrix-lbs
 port=8443
 username=heritrix
 password=heritrix
-local_root_folder=/heritrix/output
 local_job_folder=/jobs
+local_root_folder=/heritrix/output
+local_wren_folder=/heritrix/output/wren
 hdfs_root_folder=/pulse/heritrix
 
 [systems]

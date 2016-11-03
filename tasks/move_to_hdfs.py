@@ -251,6 +251,29 @@ class MoveToHdfsIfStopped(luigi.Task):
         yield MoveToHdfs(self.job, self.launch_id, self.path, self.delete_local)
 
 
+class MoveToWarcsFolder(luigi.Task):
+    """
+    This can used to move a WARC that's outside the
+    """
+    task_namespace = 'file'
+    job = luigi.EnumParameter(enum=Jobs)
+    launch_id = luigi.Parameter()
+    path = luigi.Parameter()
+
+    # Requires the source path to be present and closed:
+    def requires(self):
+        return ClosedWarcFile(self.job, self.launch_id, self.path)
+
+    # Specify the target folder:
+    def output(self):
+        return luigi.LocalTarget("%s/output/warcs/%s/%s/%s" % (h3().local_root_folder, self.job.name, self.launch_id,
+                                                               os.path.basename(self.path)))
+
+    # When run, just move the file:
+    def run(self):
+        os.rename(self.path, self.output().path)
+
+
 class ScanJobLaunchFiles(luigi.WrapperTask):
     """
     This scans for files associated with a particular launch of a given job and starts MoveToHdfs for each,
@@ -261,13 +284,13 @@ class ScanJobLaunchFiles(luigi.WrapperTask):
     delete_local = luigi.BoolParameter(default=False)
 
     def requires(self):
+        # Look in /heritrix/output/wren files and move them to the /warcs/ folder:
+        for wren_item in glob.glob("%s/*-%s-%s-*.warc.gz" % (h3().local_wren_folder, self.job.name, self.launch_id)):
+            yield MoveToWarcsFolder(self.job, self.launch_id, wren_item)
         # Look in warcs and viral for WARCs e.g in /heritrix/output/{warcs|viral}/{job.name}/{launch_id}
         for out_type in ['warcs', 'viral']:
             for item in glob.glob("%s/output/%s/%s/%s/*.warc.gz" % (h3().local_root_folder, out_type, self.job.name, self.launch_id)):
                 yield MoveToHdfs(self.job, self.launch_id, item, self.delete_local)
-        # Look in /heritrix/output/wren too:
-        for wren_item in glob.glob("%s/output/wren/*-%s-%s-*.warc.gz" % (h3().local_root_folder, self.job.name, self.launch_id)):
-            yield MoveToHdfs(self.job, self.launch_id, wren_item, self.delete_local)
         # And look for /heritrix/output/logs:
         for log_item in glob.glob("%s/output/logs/%s/%s/*.log*" % (h3().local_root_folder, self.job.name, self.launch_id)):
             if os.path.splitext(log_item)[1] == '.lck':

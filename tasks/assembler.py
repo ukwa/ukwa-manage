@@ -229,10 +229,14 @@ class AssembleOutput(luigi.Task):
                     warcfiles.add(jmd['warcFilename'])
                 elif 'warcPrefix' in jmd:
                     for wren in glob.glob(
-                                    "%s/%s*.warc.gz*" % (WREN_ROOT, jmd['warcPrefix'])):
+                                    "%s/%s*.warc.gz*" % (h3().local_wren_folder, jmd['warcPrefix'])):
                         if wren.endswith('.open'):
                             wren = wren[:-5]
                         warcfiles.add(os.path.basename(wren))
+                    # Also check in case file has already been moved into output/warcs/{job}/{launch}:
+                    for wren in glob.glob( self.warc_file_path("%s*.warc.gz*" % jmd['warcPrefix'])):
+                        warcfiles.add(os.path.basename(wren))
+                    # FIXME Also look on HDFS for matching files?
                 else:
                     logger.warning("No WARC file entry found for line: %s" % line)
 
@@ -242,9 +246,9 @@ class AssembleOutput(luigi.Task):
             if self._file_exists(self.viral_file_path(warcfile)):
                 logger.info("Found Viral WARC %s" % self.viral_file_path(warcfile))
                 viral.append(self.viral_file_path(warcfile))
-            elif self._file_exists("%s/%s" % (WREN_ROOT, warcfile)):
+            elif self._file_exists("%s/%s" % (h3().local_wren_folder, warcfile)):
                 logger.info("Found WREN WARC %s" % warcfile)
-                warcs.append("%s/%s" % (WREN_ROOT, warcfile))
+                warcs.append("%s/%s" % (h3().local_wren_folder, warcfile))
             elif self._file_exists(self.warc_file_path(warcfile)):
                 logger.info("Found WARC %s" % self.warc_file_path(warcfile))
                 warcs.append(self.warc_file_path(warcfile))

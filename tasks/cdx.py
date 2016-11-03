@@ -92,11 +92,9 @@ class IndexJobLaunchWARCs(luigi.WrapperTask):
     delete_local = luigi.BoolParameter(default=False)
 
     def requires(self):
-        # Look in warcs and viral for WARCs e.g in /heritrix/output/{warcs|viral}/{job.name}/{launch_id}
+        # Look in warcs folder for WARCs e.g in /heritrix/output/warcs/{job.name}/{launch_id}
+        # n.b. 'viral' don't get indexed, and 'wren' ones should get moved in.
         for item in glob.glob("%s/output/warcs/%s/%s/*.warc.gz" % (h3().local_root_folder, self.job.name, self.launch_id)):
-            yield WARCToOutbackCDX(self.job, self.launch_id, item)
-        # Look in /heritrix/output/wren too:
-        for item in glob.glob("%s/output/wren/*-%s-%s-*.warc.gz" % (h3().local_root_folder, self.job.name, self.launch_id)):
             yield WARCToOutbackCDX(self.job, self.launch_id, item)
 
 
