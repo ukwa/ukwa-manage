@@ -72,13 +72,14 @@ class CheckJobStopped(luigi.Task):
         h = hapyx.HapyX("https://%s:%s" % (h3().host, h3().port), username=h3().username, password=h3().password)
 
         # Is that job running?
-        status = h.status(self.job.name)
-        if status != "":
-            # Check the launch ID is not current:
-            launch_id = h.get_launch_id(self.job.name)
-            if launch_id == self.launch_id:
-                # Declare that we are awaiting an external process to stop this job:
-                yield StopJobExternalTask(self.job, self.launch_id)
+        if self.job.name in h.list_jobs():
+            status = h.status(self.job.name)
+            if status != "":
+                # Check the launch ID is not current:
+                launch_id = h.get_launch_id(self.job.name)
+                if launch_id == self.launch_id:
+                    # Declare that we are awaiting an external process to stop this job:
+                    yield StopJobExternalTask(self.job, self.launch_id)
 
         # Not running, so mark as stopped:
         with self.output().open('w') as f:

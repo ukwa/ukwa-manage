@@ -156,7 +156,7 @@ def notify_failure(task, exception):
     if slack().token:
         sc = SlackClient(slack().token)
         print(sc.api_call(
-            "chat.postMessage", channel="#crawls", text="Job %s failed: :scream:\n_%s_" % (task, exception),
+            "chat.postMessage", channel="#crawls", text="Job %s failed: :scream:\n_ %s _" % (task, exception),
             username='crawljobbot'))  # , icon_emoji=':robot_face:'))
     else:
         logger.error("No Slack auth token set, no message sent.")
