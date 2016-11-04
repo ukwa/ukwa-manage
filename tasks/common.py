@@ -81,6 +81,10 @@ def stats_target(job, launch_id, warc):
                                                                               os.path.basename(warc))))
 
 
+def dtarget(job, launch_id, status):
+    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('logs/docs', job, launch_id, status)))
+
+
 def vtarget(job, launch_id, status):
     return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('07.verified', job, launch_id, status)))
 
@@ -125,7 +129,6 @@ class ScanForLaunches(luigi.WrapperTask):
     task_namespace = 'scan'
     date_interval = luigi.DateIntervalParameter(
         default=[datetime.date.today() - datetime.timedelta(days=1), datetime.date.today()])
-    delete_local = luigi.BoolParameter(default=False)
 
     def requires(self):
         # Look for jobs that need to be processed:
@@ -143,22 +146,6 @@ class ScanForLaunches(luigi.WrapperTask):
 
     def scan_job_launch(self, job, launch):
         pass
-
-
-@luigi.Task.event_handler(luigi.Event.SUCCESS)
-def notify_success(task):
-    """Will be called directly after a failed execution
-       of `run` on any JobTask subclass
-    """
-    if slack().token and task.stage == 'final':
-        sc = SlackClient(slack().token)
-        print(sc.api_call(
-            "chat.postMessage", channel="#crawls",
-            text="Job %s finished and packaged successfully! :tada:"
-                 % format_crawl_task(task), username='crawljobbot'))
-        # , icon_emoji=':robot_face:'))
-    else:
-        logger.warning("No Slack auth token set, no message sent.")
 
 
 @luigi.Task.event_handler(luigi.Event.FAILURE)

@@ -61,7 +61,7 @@
 				  <property name="path" value="seeds.txt" />
 			  </bean>
 		</property>
-		<property name="sourceTagSeeds" value="false" />
+		<property name="sourceTagSeeds" value="true" />
 	</bean>
 	
 	<!-- SCOPE: rules for which discovered URIs to crawl; order is very 
