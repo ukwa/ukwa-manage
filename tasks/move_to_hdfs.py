@@ -282,15 +282,19 @@ class ScanForFilesToMove(ScanForLaunches):
     delete_local = luigi.BoolParameter(default=False)
 
     def scan_job_launch(self, job, launch):
+        logger.info("Looking in %s %s" % ( job, launch))
         # Look in /heritrix/output/wren files and move them to the /warcs/ folder:
-        for wren_item in glob.glob("%s/*-%s-%s-*.warc.gz" % (h3().local_wren_folder, job, launch)):
+        for wren_item in glob.glob("%s/*-%s-%s-*.warc.gz" % (h3().local_wren_folder, job.name, launch)):
             yield MoveToWarcsFolder(job, launch, wren_item)
         # Look in warcs and viral for WARCs e.g in /heritrix/output/{warcs|viral}/{job.name}/{launch_id}
         for out_type in ['warcs', 'viral']:
-            for item in glob.glob("%s/output/%s/%s/%s/*.warc.gz" % (h3().local_root_folder, out_type, job, launch)):
+            glob_path = "%s/output/%s/%s/%s/*.warc.gz" % (h3().local_root_folder, out_type, job.name, launch)
+            logger.info("GLOB:%s" % glob_path)
+            for item in glob.glob("%s/output/%s/%s/%s/*.warc.gz" % (h3().local_root_folder, out_type, job.name, launch)):
+                logger.info("ITEM:%s" % item)
                 yield MoveToHdfs(job, launch, item, self.delete_local)
         # And look for /heritrix/output/logs:
-        for log_item in glob.glob("%s/output/logs/%s/%s/*.log*" % (h3().local_root_folder, job, launch)):
+        for log_item in glob.glob("%s/output/logs/%s/%s/*.log*" % (h3().local_root_folder, job.name, launch)):
             if os.path.splitext(log_item)[1] == '.lck':
                 continue
             elif os.path.splitext(log_item)[1] == '.log':
