@@ -59,8 +59,15 @@ class WARCToOutbackCDX(luigi.Task):
                                          cdxj=False,
                                          minimal=False)(open(self.path, 'rb'))
 
+        line_count = 0
+
         for entry in entry_iter:
+            # Report progress:
+            line_count += 1
+            if line_count % 100 == 0:
+                self.set_status_message("Currently at line %i of file %s" % (line_count, self.path))
             #logger.info("Entry: %s" % entry)
+            # Create CDX line:
             cdx_11 = cdx_line(entry, self.path)
             stats['record_count'] += 1
             for key in ['mime', 'status', '_content_type']:
@@ -82,27 +89,17 @@ class WARCToOutbackCDX(luigi.Task):
             f.write('{}'.format(json.dumps(stats, indent=4)))
 
 
-class IndexJobLaunchWARCs(luigi.WrapperTask):
+class ScanForIndexing(ScanForLaunches):
     """
     This scans for WARCs associated with a particular launch of a given job and CDX indexes them.
     """
     task_namespace = 'cdx'
-    job = luigi.EnumParameter(enum=Jobs)
-    launch_id = luigi.Parameter()
-    delete_local = luigi.BoolParameter(default=False)
-
-    def requires(self):
-        # Look in warcs folder for WARCs e.g in /heritrix/output/warcs/{job.name}/{launch_id}
-        # n.b. 'viral' don't get indexed, and 'wren' ones should get moved in.
-        for item in glob.glob("%s/output/warcs/%s/%s/*.warc.gz" % (h3().local_root_folder, self.job.name, self.launch_id)):
-            yield WARCToOutbackCDX(self.job, self.launch_id, item)
-
-
-class ScanForIndexing(ScanForLaunches):
-    task_namespace = 'cdx'
 
     def scan_job_launch(self, job, launch):
-        return IndexJobLaunchWARCs(job, launch)
+        # Look in warcs folder for WARCs e.g in /heritrix/output/warcs/{job.name}/{launch_id}
+        # n.b. 'viral' don't get indexed, and 'wren' ones should get moved in.
+        for item in glob.glob("%s/output/warcs/%s/%s/*.warc.gz" % (h3().local_root_folder, job.name, launch)):
+            yield WARCToOutbackCDX(job, launch, item)
 
 if __name__ == '__main__':
     luigi.run(['cdx.ScanForIndexing', '--date-interval', '2016-11-01-2016-11-10'])
