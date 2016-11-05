@@ -160,7 +160,7 @@ class ScanLogForDocs(luigi.Task):
             for line in f:
                 line_count += 1
                 if line_count % 100 == 0:
-                    self.set_status_message("Currently at line %i of file %s" % (line_count, self.path))
+                    self.set_status_message = "Currently at line %i of file %s" % (line_count, self.path)
                 # And call method to extract documents from this line:
                 yield self.process_document(line, watched)
 

@@ -65,7 +65,7 @@ class WARCToOutbackCDX(luigi.Task):
             # Report progress:
             line_count += 1
             if line_count % 100 == 0:
-                self.set_status_message("Currently at line %i of file %s" % (line_count, self.path))
+                self.set_status_message = "Currently at line %i of file %s" % (line_count, self.path)
             #logger.info("Entry: %s" % entry)
             # Create CDX line:
             cdx_11 = cdx_line(entry, self.path)
