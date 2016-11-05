@@ -36,9 +36,8 @@ class WARCToOutbackCDX(luigi.Task):
     task_namespace = 'cdx'
     job = luigi.EnumParameter(enum=Jobs)
     launch_id = luigi.Parameter()
+    filename = luigi.Parameter()
     path = luigi.Parameter()
-
-    session = requests.Session()
 
     def output(self):
         return stats_target(self.job, self.launch_id, os.path.basename(self.path))
@@ -59,6 +58,8 @@ class WARCToOutbackCDX(luigi.Task):
                                          cdxj=False,
                                          minimal=False)(open(self.path, 'rb'))
 
+        session = requests.Session()
+
         line_count = 0
 
         for entry in entry_iter:
@@ -75,7 +76,7 @@ class WARCToOutbackCDX(luigi.Task):
                     counter = stats[key].get(entry[key], 0)
                     counter += 1
                     stats[key][entry[key]] = counter
-            r = self.session.post(systems().cdxserver, data=cdx_11.encode('utf-8'))
+            r = session.post(systems().cdxserver, data=cdx_11.encode('utf-8'))
             #  headers={'Content-type': 'text/plain; charset=utf-8'})
             if r.status_code == 200:
                 pass
@@ -85,8 +86,8 @@ class WARCToOutbackCDX(luigi.Task):
                 logger.error("Failed submission was: %s" % cdx_11.encode('utf-8'))
                 raise Exception("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
 
-        with self.output().open('w') as f:
-            f.write('{}'.format(json.dumps(stats, indent=4)))
+        with self.output().open('w') as out_file:
+            out_file.write('{}'.format(json.dumps(stats, indent=4)))
 
 
 class ScanForIndexing(ScanForLaunches):
@@ -98,8 +99,10 @@ class ScanForIndexing(ScanForLaunches):
     def scan_job_launch(self, job, launch):
         # Look in warcs folder for WARCs e.g in /heritrix/output/warcs/{job.name}/{launch_id}
         # n.b. 'viral' don't get indexed, and 'wren' ones should get moved in.
-        for item in glob.glob("%s/output/warcs/%s/%s/*.warc.gz" % (h3().local_root_folder, job.name, launch)):
-            yield WARCToOutbackCDX(job, launch, item)
+        glob_path = "%s/output/warcs/%s/%s/*.warc.gz" % (h3().local_root_folder, job.name, launch)
+        logger.info("Looking for warcs: %s" % glob_path)
+        for item in glob.glob(glob_path):
+            yield WARCToOutbackCDX(job, launch, os.path.basename(item), item)
 
 if __name__ == '__main__':
     luigi.run(['cdx.ScanForIndexing', '--date-interval', '2016-11-01-2016-11-10'])
