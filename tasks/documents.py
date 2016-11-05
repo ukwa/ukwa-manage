@@ -3,6 +3,8 @@ from crawl.w3act.w3act import w3act
 from common import *
 from crawl_job_tasks import CheckJobStopped
 import os
+import json
+import hashlib
 from urlparse import urlparse
 import requests
 from requests.utils import quote
@@ -74,6 +76,60 @@ class AvailableInWayback(luigi.ExternalTask):
         return False
 
 
+class ExtractDocumentAndPost(luigi.Task):
+    """
+    Hook into w3act, extract MD and resolve the associated target.
+
+    Note that the output file uses only the URL to make a hash-based identifier grouped by host, so this will only
+    process each URL it sees once. This makes sense as the current model does not allow different
+    Documents at the same URL in W3ACT.
+    """
+    task_namespace = 'doc'
+    job = luigi.EnumParameter(enum=Jobs)
+    launch_id = luigi.Parameter()
+    doc = luigi.DictParameter()
+    source = luigi.Parameter()
+
+    def requires(self):
+        yield AvailableInWayback(self.doc['document_url'], self.doc['wayback_timestamp'])
+
+    @staticmethod
+    def document_target(host, hash):
+        return luigi.LocalTarget('{}/documents/{}/{}'.format(state().state_folder, host, hash))
+
+    def output(self):
+        hasher = hashlib.md5()
+        hasher.update(self.doc['document_url'])
+        return self.document_target(urlparse(self.doc['document_url']).hostname, hasher.hexdigest())
+
+    def run(self):
+        # If so, lookup Target and extract any additional metadata:
+        w = w3act(act().url, act().username, act().password)
+        doc = DocumentMDEx(w, self.doc.get_wrapped().copy(), self.source).mdex()
+        # Documents may be rejected at this point:
+        if doc is None:
+            logger.critical("The document %s has been REJECTED!" % self.doc['document_url'])
+            return
+        # Inform W3ACT it's available:
+        logger.debug("Sending doc: %s" % doc)
+        r = w.post_document(doc)
+        if r.status_code == 200:
+            logger.info("Document POSTed to W3ACT: %s" % doc['document_url'])
+        else:
+            logger.error("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
+            raise Exception("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
+
+        # Add some more metadata to the output so we can work out where this came from later:
+        doc['job_name'] = self.job.name
+        doc['launch_id'] = self.launch_id
+        doc['source'] = self.source
+
+        # And write out to the status file
+        with self.output().open('w') as out_file:
+            out_file.write('{}'.format(json.dumps(doc, indent=4)))
+
+
+
 class ScanLogForDocs(luigi.Task):
     """Watched the crawled documents log queue and passes entries to w3act
 
@@ -139,17 +195,6 @@ class ScanLogForDocs(luigi.Task):
     stage = luigi.Parameter(default='final')
 
     def requires(self):
-        if self.stage == 'final':
-            yield CheckJobStopped(self.job, self.launch_id)
-
-    def output(self):
-        return dtarget(self.job, self.launch_id, self.stage)
-
-    def run(self):
-        """
-        Parses the crawl log to look for documents.
-        :return:
-        """
         # First find the watched seeds list:
         with open("%s/%s/%s/watched-surts.txt" % (h3().local_job_folder, self.job.name, self.launch_id)) as reader:
             watched = [line.rstrip('\n') for line in reader]
@@ -161,47 +206,56 @@ class ScanLogForDocs(luigi.Task):
                 line_count += 1
                 if line_count % 100 == 0:
                     self.set_status_message = "Currently at line %i of file %s" % (line_count, self.path)
-                # And call method to extract documents from this line:
-                yield self.process_document(line, watched)
+                # And yield tasks for each relevant document:
+                (timestamp, status_code, content_length, url, hop_path, via, mime,
+                 thread, start_time_plus_duration, hash, source, annotations) = re.split(" +", line, maxsplit=11)
+                # Skip non-downloads:
+                if status_code == '-' or status_code == '' or int(status_code) / 100 != 2:
+                    continue
+                # Check the URL and Content-Type:
+                if "application/pdf" in mime:
+                    for prefix in watched:
+                        if url.startswith(prefix):
+                            logger.info("Found document: %s" % line)
+                            # Proceed to extract metadata and pass on to W3ACT:
+                            doc = {}
+                            doc['wayback_timestamp'] = start_time_plus_duration[:14]
+                            doc['landing_page_url'] = via
+                            doc['document_url'] = url
+                            doc['filename'] = os.path.basename(urlparse(url).path)
+                            doc['size'] = int(content_length)
+                            logger.info("Found document: %s" % doc)
+                            yield ExtractDocumentAndPost(self.job, self.launch_id, doc, source)
 
-    @staticmethod
-    def process_document(line, watched):
-        (timestamp, status_code, content_length, url, hop_path, via, mime,
-         thread, start_time_plus_duration, hash, source, annotations) = re.split(" +", line, maxsplit=11)
-        # Skip non-downloads:
-        if status_code == '-' or status_code == '' or int(status_code) / 100 != 2:
-            return
-        # Check the URL and Content-Type:
-        if "application/pdf" in mime:
-            for prefix in watched:
-                if url.startswith(prefix):
-                    logger.info("Found document: %s" % line)
-                    doc = {}
-                    doc['wayback_timestamp'] = start_time_plus_duration[:14]
-                    doc['landing_page_url'] = via
-                    doc['document_url'] = url
-                    doc['filename'] = os.path.basename(urlparse(url).path)
-                    doc['size'] = int(content_length)
+    def output(self):
+        return dtarget(self.job, self.launch_id, self.stage)
 
-                    # Check if content appears to be in Wayback:
-                    yield AvailableInWayback(doc['document_url'], doc['wayback_timestamp'])
+    def run(self):
+        summary = []
+        for it in self.input():
+            summary.append(it.path)
+        # And write out to the status file:
+        with self.output().open('w') as out_file:
+            out_file.write('{}'.format(json.dumps(summary, indent=4)))
 
-                    # If so, lookup Target and extract any additional metadata:
-                    w = w3act(act().url, act().username, act().password)
-                    doc = DocumentMDEx(w, doc, source).mdex()
-                    # Documents may be rejected at this point:
-                    if doc is None:
-                        logger.critical("The document based on this message has been REJECTED! :: %s" % line)
-                        return
-                    # Inform W3ACT it's available:
-                    logger.debug("Sending doc: %s" % doc)
-                    r = w.post_document(doc)
-                    if r.status_code == 200:
-                        logger.info("Document POSTed to W3ACT: %s" % doc['document_url'])
-                        return
-                    else:
-                        logger.error("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
-                        raise Exception("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
+
+
+class ScanLogForDocsIfStopped(luigi.Task):
+    task_namespace = 'doc'
+    job = luigi.EnumParameter(enum=Jobs)
+    launch_id = luigi.Parameter()
+    path = luigi.Parameter()
+    stage = luigi.Parameter(default='final')
+
+    def requires(self):
+        if self.stage == 'final':
+            yield CheckJobStopped(self.job, self.launch_id)
+
+    def output(self):
+        return ScanLogForDocs(self.job, self.launch_id, self.path, self.stage).output()
+
+    def run(self):
+        yield ScanLogForDocs(self.job, self.launch_id, self.path, self.stage)
 
 
 class ScanForDocuments(ScanForLaunches):
@@ -232,4 +286,4 @@ class ScanForDocuments(ScanForLaunches):
 
 
 if __name__ == '__main__':
-    luigi.run(['doc.ScanForDocuments', '--date-interval', '2016-11-02-2016-11-10'])  # , '--local-scheduler'])
+    luigi.run(['doc.ScanForDocuments', '--date-interval', '2016-11-04-2016-11-10'])  # , '--local-scheduler'])

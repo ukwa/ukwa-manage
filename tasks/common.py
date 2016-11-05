@@ -82,7 +82,7 @@ def stats_target(job, launch_id, warc):
 
 
 def dtarget(job, launch_id, status):
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('logs/docs', job, launch_id, status)))
+    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('logs/documents', job, launch_id, status)))
 
 
 def vtarget(job, launch_id, status):
