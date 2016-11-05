@@ -100,10 +100,10 @@ class ScanForIndexing(ScanForLaunches):
         # Look in warcs folder for WARCs e.g in /heritrix/output/warcs/{job.name}/{launch_id}
         # n.b. 'viral' don't get indexed, and 'wren' ones should get moved in.
         glob_path = "%s/output/warcs/%s/%s/*.warc.gz" % (h3().local_root_folder, job.name, launch)
-        logger.info(" %s is looking for warcs: %s" % (self, glob_path))
+        logger.info("PID:%s is looking for warcs: %s" % (os.getpid(), glob_path))
         jobs = []
         for item in glob.glob(glob_path):
-            logger.info("%s is yielding %s" % (self, item))
+            logger.info("PID:%s is yielding %s" % (os.getpid(), item))
             yield WARCToOutbackCDX(job, launch, os.path.basename(item), item)
             #jobs.append(WARCToOutbackCDX(job, launch, os.path.basename(item), item))
         #return jobs
