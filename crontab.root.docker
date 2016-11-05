@@ -1,3 +1,4 @@
-0 0 * * * luigi --workers 1 --module tasks.assembler output.ScanForOutputs
-0 0 * * * luigi --workers 1 --module tasks.move_to_hdfs file.ScanForFiles
-0 0 * * * luigi --workers 1 --module tasks.cdx  cdx.ScanForIndexing
+* * * * * luigi --workers 1 --module tasks.assembler output.ScanForOutputs > /assemble.log 2>&1
+* * * * * luigi --workers 1 --module tasks.move_to_hdfs file.ScanForFilesToMove > /move.log 2>&1
+* * * * * luigi --workers 1 --module tasks.cdx  cdx.ScanForIndexing > /cdx.log 2>&1
+* * * * * luigi --workers 1 --module tasks.documents doc.ScanForDocuments >  /docs.log 2>&1

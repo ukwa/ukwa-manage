@@ -16,7 +16,7 @@ RUN cd /shepherd/ && python setup.py install
 ADD supervisord.conf.docker /etc/supervisor/conf.d/supervisord.conf
 
 # Add the crontab:
-ADD crontab.root.docker /var/spool/cron/crontabs/root
+RUN crontab /shepherd/crontab.root.docker
 
 # And add the luigi configuration:
 ADD luigi.cfg.docker /etc/luigi/client.cfg

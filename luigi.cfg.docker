@@ -25,14 +25,14 @@ port=8443
 username=heritrix
 password=heritrix
 local_job_folder=/jobs
-local_root_folder=/heritrix/output
-local_wren_folder=/heritrix/output/wren
+local_root_folder=/heritrix
+local_wren_folder=/heritrix/wren
 hdfs_root_folder=/pulse/heritrix
 
 [systems]
 clamd_host=clamd
 clamd_port=3310
-ampq_host=amqp
+amqp_host=amqp
 cdxserver=http://cdxserver:8080/fc
 wayback=http://openwayback:8080/wayback
 wrender=http://webrender:8010/render
