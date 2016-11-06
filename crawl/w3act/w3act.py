@@ -46,7 +46,7 @@ class w3act():
 		response = requests.post(loginUrl, data={"email": email, "password": password})
 		if not response.history:
 			logger.error("W3ACT Login failed!")
-			sys.exit()
+			raise Exception("W3ACT Login Failed!")
 		self.cookie = response.history[0].headers["set-cookie"]
 		self.get_headers = {
 			"Cookie": self.cookie,
