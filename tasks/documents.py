@@ -282,7 +282,7 @@ class ScanForDocuments(ScanForLaunches):
         logger.info("Ordered by date: %s" % output_list)
 
         for key in output_list:
-            yield ScanLogForDocs(job, launch, outputs[key], key)
+            yield ScanLogForDocsIfStopped(job, launch, outputs[key], key)
 
 
 if __name__ == '__main__':
