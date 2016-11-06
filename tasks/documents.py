@@ -56,6 +56,8 @@ class AvailableInWayback(luigi.ExternalTask):
     url = luigi.Parameter()
     ts = luigi.Parameter()
 
+    resources = { 'qa-wayback': 1 }
+
     def complete(self):
         try:
             wburl = '%s/xmlquery.jsp?type=urlquery&url=%s' % (systems().wayback, quote(self.url))
@@ -89,6 +91,8 @@ class ExtractDocumentAndPost(luigi.Task):
     launch_id = luigi.Parameter()
     doc = luigi.DictParameter()
     source = luigi.Parameter()
+
+    resources = { 'w3act': 1 }
 
     def requires(self):
         yield AvailableInWayback(self.doc['document_url'], self.doc['wayback_timestamp'])
