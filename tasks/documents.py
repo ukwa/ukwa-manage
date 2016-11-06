@@ -9,6 +9,7 @@ from urlparse import urlparse
 import requests
 from requests.utils import quote
 import xml.dom.minidom
+import luigi.contrib.esindex
 
 from crawl.dex.document_mdex import DocumentMDEx
 
@@ -78,6 +79,31 @@ class AvailableInWayback(luigi.ExternalTask):
         return False
 
 
+class RecordDocumentInMonitrix(luigi.contrib.esindex.CopyToIndex):
+    """
+    Post the document to Monitrix, i.e. push into an appropriate Elasticsearch index.
+    """
+    task_namespace = 'doc'
+    job = luigi.EnumParameter(enum=Jobs)
+    launch_id = luigi.Parameter()
+    doc = luigi.DictParameter()
+    source = luigi.Parameter()
+
+    host = systems().elasticsearch_host
+    port = systems().elasticsearch_port
+    index = "%s-documents-%s" % (systems().elasticsearch_index_prefix, datetime.datetime.now().strftime('%Y-%m-%d'))
+    doc_type = 'default'
+    purge_existing_index = False
+
+    def requires(self):
+        return ExtractDocumentAndPost(self.job, self.launch_id, self.doc, self.source)
+
+    def docs(self):
+        doc = json.load(self.input().open('r'))
+        doc['timestamp'] = datetime.datetime.now().isoformat()
+        return [ doc ]
+
+
 class ExtractDocumentAndPost(luigi.Task):
     """
     Hook into w3act, extract MD and resolve the associated target.
@@ -113,25 +139,25 @@ class ExtractDocumentAndPost(luigi.Task):
         # Documents may be rejected at this point:
         if doc is None:
             logger.critical("The document %s has been REJECTED!" % self.doc['document_url'])
-            return
-        # Inform W3ACT it's available:
-        logger.debug("Sending doc: %s" % doc)
-        r = w.post_document(doc)
-        if r.status_code == 200:
-            logger.info("Document POSTed to W3ACT: %s" % doc['document_url'])
+            doc['status'] = 'REJECTED'
         else:
-            logger.error("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
-            raise Exception("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
-
-        # Add some more metadata to the output so we can work out where this came from later:
-        doc['job_name'] = self.job.name
-        doc['launch_id'] = self.launch_id
-        doc['source'] = self.source
+            # Inform W3ACT it's available:
+            doc['status'] = 'ACCEPTED'
+            logger.debug("Sending doc: %s" % doc)
+            r = w.post_document(doc)
+            if r.status_code == 200:
+                logger.info("Document POSTed to W3ACT: %s" % doc['document_url'])
+            else:
+                logger.error("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
+                raise Exception("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
 
         # And write out to the status file
         with self.output().open('w') as out_file:
             out_file.write('{}'.format(json.dumps(doc, indent=4)))
 
+        # Also post to Monitrix if configured to do so:
+        if systems().elasticsearch_host:
+            yield RecordDocumentInMonitrix(self.job, self.launch_id, doc, self.source)
 
 
 class ScanLogForDocs(luigi.Task):
@@ -228,6 +254,10 @@ class ScanLogForDocs(luigi.Task):
                             doc['document_url'] = url
                             doc['filename'] = os.path.basename(urlparse(url).path)
                             doc['size'] = int(content_length)
+                            # Add some more metadata to the output so we can work out where this came from later:
+                            doc['job_name'] = self.job.name
+                            doc['launch_id'] = self.launch_id
+                            doc['source'] = source
                             logger.info("Found document: %s" % doc)
                             yield ExtractDocumentAndPost(self.job, self.launch_id, doc, source)
 
@@ -241,7 +271,6 @@ class ScanLogForDocs(luigi.Task):
         # And write out to the status file:
         with self.output().open('w') as out_file:
             out_file.write('{}'.format(json.dumps(summary, indent=4)))
-
 
 
 class ScanLogForDocsIfStopped(luigi.Task):

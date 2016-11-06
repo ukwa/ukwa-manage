@@ -41,6 +41,9 @@ class systems(luigi.Config):
     amqp_host = luigi.Parameter()
     clamd_host = luigi.Parameter()
     clamd_port = luigi.Parameter()
+    elasticsearch_host = luigi.Parameter()
+    elasticsearch_port = luigi.Parameter()
+    elasticsearch_index_prefix = luigi.Parameter()
     servers = luigi.Parameter()
     services = luigi.Parameter()
 

@@ -41,6 +41,9 @@ amqp_host=amqp
 cdxserver=http://cdxserver:8080/fc
 wayback=http://openwayback:8080/wayback
 wrender=http://webrender:8010/render
+elasticsearch_host=monitrix
+elasticsearch_port=9200
+elasticsearch_index_prefix=pulse
 servers=/shepherd/tasks/servers.json
 services=/shepherd/tasks/services.json
 
