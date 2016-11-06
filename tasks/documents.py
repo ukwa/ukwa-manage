@@ -139,6 +139,7 @@ class ExtractDocumentAndPost(luigi.Task):
         # Documents may be rejected at this point:
         if doc is None:
             logger.critical("The document %s has been REJECTED!" % self.doc['document_url'])
+            doc = self.doc.get_wrapped().copy()
             doc['status'] = 'REJECTED'
         else:
             # Inform W3ACT it's available:
