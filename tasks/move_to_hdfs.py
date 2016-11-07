@@ -278,8 +278,10 @@ class ScanForFilesToMove(ScanForLaunches):
     """
     This scans for files associated with a particular launch of a given job and starts MoveToHdfs for each,
     """
-    task_namespace = 'file'
     delete_local = luigi.BoolParameter(default=False)
+
+    task_namespace = 'scan'
+    scan_name = 'move-to-hdfs'
 
     def scan_job_launch(self, job, launch):
         logger.info("Looking in %s %s" % ( job, launch))
@@ -306,7 +308,7 @@ class ScanForFilesToMove(ScanForLaunches):
 
 
 if __name__ == '__main__':
-    luigi.run(['file.ScanForFilesToMove', '--date-interval', '2016-11-01-2016-11-10'])
+    luigi.run(['scan.ScanForFilesToMove', '--date-interval', '2016-11-01-2016-11-10'])
     #luigi.run(['file.ForceUploadFileToHDFS', '--path', '/Users/andy/Documents/workspace/pulse/testing/output/logs/daily/20161029192642/progress-statistics.log'])
 #    luigi.run(['file.ScanForFiles', '--date-interval', '2016-10-26-2016-10-30'])  # , '--local-scheduler'])
 #    luigi.run(['file.MoveToHdfs', '--path', '/Users/andy/Documents/workspace/pulse/python-shepherd/MANIFEST.in'])  # , '--local-scheduler'])

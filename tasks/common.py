@@ -123,7 +123,7 @@ def jtarget(job, launch_id, status):
     return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('01.jobs', job, launch_id, status)))
 
 
-class ScanForLaunches(luigi.WrapperTask):
+class ScanForLaunches(luigi.Task):
     """
     This task scans the output folder for jobs and instances of those jobs, looking for crawled content to process.
 
@@ -132,8 +132,14 @@ class ScanForLaunches(luigi.WrapperTask):
     task_namespace = 'scan'
     date_interval = luigi.DateIntervalParameter(
         default=[datetime.date.today() - datetime.timedelta(days=1), datetime.date.today()])
+    timestamp = luigi.DateMinuteParameter(default=datetime.datetime.today())
 
-    def requires(self):
+    def output(self):
+        return luigi.LocalTarget('{}/{}/scans/{}.{}.{}'.format(
+            state().state_folder, self.timestamp.strftime('%Y-%m'),
+            self.scan_name, self.date_interval, self.timestamp.isoformat()))
+
+    def run(self):
         # Look for jobs that need to be processed:
         for date in self.date_interval:
             for job_item in glob.glob("%s/*" % h3().local_job_folder):
@@ -146,6 +152,10 @@ class ScanForLaunches(luigi.WrapperTask):
                             launch = os.path.basename(launch_item)
                             # TODO Limit total number of processes?
                             yield self.scan_job_launch(job, launch)
+        # Log that we ran okay:
+        with self.output().open('w') as out_file:
+            #out_file.write('{}'.format(json.dumps(stats, indent=4)))
+            out_file.write('{}'.format(self.date_interval))
 
     def scan_job_launch(self, job, launch):
         pass

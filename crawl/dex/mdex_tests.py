@@ -12,9 +12,8 @@ import requests
 from requests.utils import quote
 import xml.dom.minidom
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
-from lib.agents.w3act import w3act
-from lib.agents.document_mdex import DocumentMDEx
+from crawl.w3act import w3act
+from document_mdex import DocumentMDEx
 
 # Set up a logging handler:
 handler = logging.StreamHandler()
@@ -39,11 +38,22 @@ def run_doc_mdex_test(url,lpu,src,tid,title):
     doc = {}
     doc['document_url'] = url
     doc['landing_page_url'] = lpu
-    doc = DocumentMDEx(act, doc, src).mdex()
+    doc = DocumentMDEx(act, doc, src, null_if_no_target_found=False).mdex()
     logger.info(json.dumps(doc))
     if doc['target_id'] != tid:
         logger.error("Target matching failed! %s v %s" % (doc['target_id'], tid))
         sys.exit()
+    if doc.get('title',None) != title:
+        logger.error("Wrong title found for this document! '%s' v '%s'" % (doc['title'], title))
+        sys.exit()
+
+def run_doc_mdex_test_extraction(url,lpu,src,title):
+    logger.info("Looking at document URL: %s" % url)
+    doc = {}
+    doc['document_url'] = url
+    doc['landing_page_url'] = lpu
+    doc = DocumentMDEx(act, doc, src, null_if_no_target_found=False).mdex()
+    logger.info(json.dumps(doc))
     if doc.get('title',None) != title:
         logger.error("Wrong title found for this document! '%s' v '%s'" % (doc['title'], title))
         sys.exit()
@@ -64,11 +74,17 @@ if __name__ == "__main__":
                     help="Wayback endpoint to check URL availability [default: %(default)s]" )
     
     args = parser.parse_args()
-    
-    # Set up connection to ACT:
-    act = w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
 
-    # the tests:
+    # Set up connection to ACT:
+    act = w3act.w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
+
+    # Extraction tests:
+    run_doc_mdex_test_extraction(
+        "https://www.euromod.ac.uk/sites/default/files/working-papers/em2-01.pdf",
+        "https://www.euromod.ac.uk/publications/date/2001/type/EUROMOD%20Working%20Paper%20Series",
+        "https://www.euromod.ac.uk/", "Towards a multi purpose framework for tax benefit microsimulation")
+
+    # the tests Target association:
 
     # - scottish parliament
     run_doc_mdex_test('http://www.parliament.scot/S4_EducationandCultureCommittee/BBC charter/BBCcallforviews.pdf', 

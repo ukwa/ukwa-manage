@@ -94,7 +94,8 @@ class ScanForIndexing(ScanForLaunches):
     """
     This scans for WARCs associated with a particular launch of a given job and CDX indexes them.
     """
-    task_namespace = 'cdx'
+    task_namespace = 'scan'
+    scan_name = 'cdx'
 
     def scan_job_launch(self, job, launch):
         # Look in warcs folder for WARCs e.g in /heritrix/output/warcs/{job.name}/{launch_id}
@@ -109,5 +110,5 @@ class ScanForIndexing(ScanForLaunches):
         #return jobs
 
 if __name__ == '__main__':
-    luigi.run(['cdx.ScanForIndexing', '--date-interval', '2016-11-01-2016-11-10'])
+    luigi.run(['scan.ScanForIndexing', '--date-interval', '2016-11-01-2016-11-10'])
 

@@ -386,7 +386,8 @@ class ScanForOutputs(ScanForLaunches):
     """
     This task scans the output folder for jobs and instances of those jobs, looking for crawled content to process.
     """
-    task_namespace = 'output'
+    task_namespace = 'scan'
+    scan_name = 'output'
 
     def scan_job_launch(self, job, launch):
         return ProcessOutputs(job, launch)
@@ -409,4 +410,4 @@ def notify_success(task):
 
 
 if __name__ == '__main__':
-    luigi.run(['output.ScanForOutputs', '--date-interval', '2016-11-01-2016-11-10'])  # , '--local-scheduler'])
+    luigi.run(['scan.ScanForOutputs', '--date-interval', '2016-11-01-2016-11-10'])  # , '--local-scheduler'])

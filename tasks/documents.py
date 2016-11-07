@@ -296,7 +296,8 @@ class ScanForDocuments(ScanForLaunches):
     """
     This task scans the output folder for jobs and instances of those jobs, looking for crawls logs.
     """
-    task_namespace = 'doc'
+    task_namespace = 'scan'
+    scan_name = 'docs'
 
     def scan_job_launch(self, job, launch):
         # Look for log files:
@@ -320,4 +321,4 @@ class ScanForDocuments(ScanForLaunches):
 
 
 if __name__ == '__main__':
-    luigi.run(['doc.ScanForDocuments', '--date-interval', '2016-11-04-2016-11-10'])  # , '--local-scheduler'])
+    luigi.run(['scan.ScanForDocuments', '--date-interval', '2016-11-04-2016-11-10'])  # , '--local-scheduler'])
