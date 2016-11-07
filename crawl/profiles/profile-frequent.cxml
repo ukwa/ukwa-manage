@@ -638,7 +638,7 @@
 	
 	<!-- CHECKPOINTSERVICE: checkpointing assistance -->
 	<bean id="checkpointService" class="org.archive.crawler.framework.CheckpointService">
-		<property name="checkpointIntervalMinutes" value="2440"/>
+		<property name="checkpointIntervalMinutes" value="360"/>
 		<property name="checkpointsDir" value="checkpoints"/>
 	</bean>
 	
@@ -669,7 +669,7 @@
 	</bean>
 	
 	<!-- URI PRECEDENCE POLICY -->
-	<bean id="uriPrecedencePolicy" class="org.archive.crawler.frontier.precedence.CostUriPrecedencePolicy">
+	<bean id="uriPrecedencePolicy" class="org.archive.crawler.frontier.precedence.HopsUriPrecedencePolicy">
 	</bean>
 	
 	<!-- COST ASSIGNMENT POLICY -->
