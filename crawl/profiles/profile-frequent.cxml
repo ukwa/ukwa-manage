@@ -597,9 +597,17 @@
 		<property name="balanceReplenishAmount" value="3000" />
 		<property name="errorPenaltyAmount" value="100" />
 		<property name="precedenceFloor" value="255" />
+		<!-- Use this to ensure the deep crawl of many sites does not prevent the
+     		high-priority content from being crawled (although this is just a mitigation
+     		for not having enough crawl capacity) -->
+    	<property name="queuePrecedencePolicy">
+        	<bean class="org.archive.crawler.frontier.precedence.HighestUriQueuePrecedencePolicy" />
+    	</property>
+    	<!--
 		<property name="queuePrecedencePolicy">
 			<bean class="org.archive.crawler.frontier.precedence.BaseQueuePrecedencePolicy" />
 		</property>
+		-->
 		<property name="snoozeLongMs" value="60000" />
 		<property name="retryDelaySeconds" value="20" />
 		<property name="maxRetries" value="5" />
@@ -669,8 +677,10 @@
 	</bean>
 	
 	<!-- URI PRECEDENCE POLICY -->
-	<bean id="uriPrecedencePolicy" class="org.archive.crawler.frontier.precedence.HopsUriPrecedencePolicy">
-	</bean>
+	<bean id="uriPrecedencePolicy"
+   class="org.archive.crawler.frontier.precedence.HopsUriPrecedencePolicy">
+	   <property name="navlinksOnly" value="false"/>
+ 	</bean>
 	
 	<!-- COST ASSIGNMENT POLICY -->
 	<bean id="costAssignmentPolicy" class="org.archive.crawler.frontier.UnitCostAssignmentPolicy">
