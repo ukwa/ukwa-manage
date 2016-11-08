@@ -253,13 +253,16 @@ class W3actJob(object):
             time.sleep(10)
 
 
-    def start(self):
+    def start(self, from_latest_checkpoint=False):
         """Starts the job."""
         logger.info("Building %s" % self.name)
         self.heritrix.build_job(self.name)
         self.waitfor("NASCENT")
         logger.info("Launching %s" % self.name)
-        self.heritrix.launch_job(self.name)
+        if from_latest_checkpoint:
+            self.heritrix.launch_from_latest_checkpoint(self.name)
+        else:
+            self.heritrix.launch_job(self.name)
         self.waitfor("PAUSED")
         self.write_act_info()
         logger.info("Running scripts for %s" % self.name)
@@ -288,6 +291,7 @@ class W3actJob(object):
             if status is "RUNNING":
                 self.heritrix.pause_job(self.name)
                 self.waitfor("PAUSED")
+            self.heritrix.checkpoint_job(self.name)
             self.heritrix.terminate_job(self.name)
             self.waitfor("FINISHED")
             self.heritrix.teardown_job(self.name)

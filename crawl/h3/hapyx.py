@@ -51,3 +51,30 @@ class HapyX(Hapy):
         xml = self.execute_script(job, "groovy", script)
         tree = ET.fromstring( xml.content )
         return tree.find( "rawOutput" ).text.strip()
+
+    def launch_from_latest_checkpoint(self, job):
+        info = self.get_job_info(job)
+        if info.has_key('job'):
+            checkpoints = info['job'].get("checkpointFiles").get("value", [])
+        else:
+            checkpoints = []
+
+        if len(checkpoints) == 0:
+            logger.info("No checkpoint found. Lauching as new job...")
+            self.launch_job(job)
+        else:
+            # Select the most recent checkpoint:
+            checkpoint = checkpoints[0]
+            logger.info("Launching from checkpoint %s..." %  checkpoint)
+            # And launch:
+            self._http_post(
+                url='%s/job/%s' % (self.base_url, job),
+                data=dict(
+                    action='launch',
+                    checkpoint=checkpoint
+                ),
+                code=303
+            )
+
+
+

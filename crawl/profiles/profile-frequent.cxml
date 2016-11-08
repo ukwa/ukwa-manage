@@ -51,7 +51,15 @@
 		<!-- <property name="audience" value=""/> -->
 		<property name="userAgentTemplate" value="bl.uk_lddc_bot/@VERSION@ (+@OPERATOR_CONTACT_URL@)"/>
 		<property name="robotsPolicyName" value="classic" />
+		<!-- <property name="robotsPolicyName" value="obey"/> -->
+		<!--
+  			<property name="robotsPolicyName"> <ref bean="ignoreForTransclusionsRobotsPolicy"/> </property>
+		-->
 	</bean>
+ 	<!-- ROBOTS.TXT ALTERNATIVE APPROACH: Ignore robots.txt for embeds and other transcluded resources.
+  	<bean id="ignoreForTransclusionsRobotsPolicy" class="uk.bl.wap.crawler.h3.modules.net.ObeyRobotsExceptTranscludedPolicy">
+  	</bean>
+  	-->	
 	
 	<!-- SEEDS ALTERNATE APPROACH: specifying external seeds.txt file
 		 Use either the above, or this, but not both. -->
@@ -67,7 +75,7 @@
 	<!-- SCOPE: rules for which discovered URIs to crawl; order is very 
 		 important because last decision returned other than 'NONE' wins. -->
 	<bean id="scope" class="org.archive.modules.deciderules.DecideRuleSequence">
-        <property name="logToFile" value="true" />
+        <property name="logToFile" value="false" />
 		<property name="rules">
 			<list>
 				<!-- Begin by REJECTing all... -->
@@ -82,7 +90,7 @@
 				</bean>
 				<!-- ...and ACCEPT associated/helper files... -->
 				<bean class="org.archive.modules.deciderules.MatchesRegexDecideRule">
-					<property name="regex" value="^https?://[^/]+/.+(?i)(\.(js|css|bmp|gif|jpe?g|[pm]ng|svg|tiff?|ico|web[pm]|aac|aiff?|m3u|m4[av]|midi?|mp[1234acu]|og[agm]|ra?m?|cda|alac|ac3|flac|wav|wm[av]|as[fx]|avi|flv|mov|mpe?g|qt|smil|swf))\b.*$" />
+					<property name="regex" value="^https?://[^/]+/.+(?i)(\.(js|css|bmp|gif|jpe?g|[pm]ng|svg|tiff?|ico|web[pm]|aac|aiff?|m3u|m4[av]|midi?|mp[1234acu]|og[agm]|ra?m?|cda|alac|ac3|flac|wav|wm[av]|as[fx]|avi|flv|mov|mpe?g|qt|smil|swf|woff|eot|ttf))\b.*$"/>
 					<property name="decision" value="ACCEPT" />
 				</bean>
 				<bean class="org.archive.modules.deciderules.HopsPathMatchesRegexDecideRule">
@@ -119,6 +127,20 @@
 					<property name="surtsDumpFile" value="exclude.dump" />
 					<property name="surtsSourceFile" value="exclude.txt" />
 				</bean>
+				<!-- ...always ACCEPT content hosted on servers that appear to be located in the UK... -->
+		        <!-- This only makes sense in the broad/domain crawl:
+		        <bean id="externalGeoLookupRule" class="uk.bl.wap.modules.deciderules.ExternalGeoLocationDecideRule">
+		          <property name="lookup">
+		            <ref bean="externalGeoLookup"/>
+		          </property>
+		          <property name="countryCodes">
+		            <list>
+		              <value>GB</value>
+		            </list>
+		          </property>
+		          <property name="lookupEveryUri" value="true"/>
+		        </bean>
+	  		    -->
 				<!-- ...but always ACCEPT those marked as prerequisitee for another URI... -->
 				<bean class="org.archive.modules.deciderules.PrerequisiteAcceptDecideRule">
 				</bean>
@@ -148,6 +170,13 @@
 		<property name="regex" value="^R+$" />
 		<property name="enabled" value="false" />
 	</bean>
+	<!-- GEO-LOOKUP: specifying location of external database. -->
+<!--
+  <bean id="externalGeoLookup" class="uk.bl.wap.modules.deciderules.ExternalGeoLookup">
+    <property name="database" value="#{ systemEnvironment['GEOLITE2_CITY_MMDB_LOCATION'] ?: '' }/GeoLite2-City.mmdb"/>
+  </bean>
+-->
+
 	<!-- 
 		PROCESSING CHAINS
 		Much of the crawler's work is specified by the sequential 
@@ -187,6 +216,8 @@
 	</bean>
 	<bean id="quotaEnforcer" class="org.archive.crawler.prefetch.QuotaEnforcer">
 		<property name="serverMaxSuccessKb" value="524288" />
+		<!-- This will log all out-of-quota URLs rather than just retiring the queue. -->
+     	<!-- property name="forceRetire" value="false"/ -->
 	</bean>
 	<!-- assembled into ordered CandidateChain bean -->
 	<bean id="candidateProcessors" class="org.archive.modules.CandidateChain">
@@ -217,6 +248,10 @@
 		<property name="calculateRobotsOnly" value="false" />
 	</bean>
 	<bean id="fetchDns" class="org.archive.modules.fetcher.FetchDNS">
+		<!-- The following is only invoked if DNS lookup fails. 
+         See https://github.com/internetarchive/heritrix3/blob/master/modules/src/main/java/org/archive/modules/fetcher/FetchDNS.java#L74-L78
+             http://www.dnsjava.org/doc/org/xbill/DNS/ResolverConfig.html 
+         (i.e. /etc/hosts does not override domain names for H3 -->
 		<property name="acceptNonDnsResolves" value="true" />
 		<property name="digestContent" value="true" />
 		<property name="digestAlgorithm" value="sha1" />
@@ -275,8 +310,8 @@
 	<bean id="extractorHttp" class="org.archive.modules.extractor.ExtractorHTTP">
 		<property name="inferRootPage" value="true" />
 	</bean>
-	<!--bean id="trapSuppressExtractor" class="org.archive.modules.extractor.TrapSuppressExtractor">
-	</bean-->
+	<bean id="trapSuppressExtractor" class="org.archive.modules.extractor.TrapSuppressExtractor">
+	</bean>
 	<bean id="extractorHtml" class="org.archive.modules.extractor.ExtractorHTML">
 		<property name="extractJavascript" value="false" />
 		<property name="extractValueAttributes" value="true" />
@@ -329,6 +364,8 @@
       <property name="amqpUri" value="amqp://guest:guest@REPLACE_AMQP_HOST:5672/%2f" />
       <property name="exchange" value="heritrix" />
       <property name="queueName" value="REPLACE_JOB_NAME" />
+      <property name="durable" value="true"/>
+      <property name="autoDelete" value="false"/>
     </bean>
     <!-- a processor that scans content for viruses -->
     <bean id="viralContent" class="uk.bl.wap.crawler.processor.ViralContentProcessor">
@@ -393,6 +430,9 @@
 				<!-- ...add IPs to crawl.log... -->
 				<bean id="ipAnnotator" class="uk.bl.wap.crawler.processor.IpAnnotator">
 				</bean>
+				<!-- ...add country-codes to crawl.log... -->
+				<!-- bean class="uk.bl.wap.crawler.processor.CountryCodeAnnotator">
+		        </bean -->
 				<!-- ...scan for viruses... -->
 				<ref bean="viralContent" />
 			</list>
@@ -546,8 +586,8 @@
 		<property name="seedsRedirectNewSeeds" value="true" />
 	</bean>
 	<bean id="disposition" class="org.archive.crawler.postprocessor.DispositionProcessor">
-		<property name="delayFactor" value="5.0" />
-		<property name="minDelayMs" value="3000" />
+		<property name="delayFactor" value="2.0" />
+		<property name="minDelayMs" value="500" />
 		<property name="respectCrawlDelayUpToSeconds" value="300" />
 		<property name="maxDelayMs" value="30000" />
 		<property name="maxPerHostBandwidthUsageKbSec" value="0" />

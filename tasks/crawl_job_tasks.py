@@ -128,6 +128,7 @@ class StartJob(luigi.Task):
     task_namespace = 'pulse'
     job = luigi.EnumParameter(enum=Jobs)
     date = luigi.DateParameter(default=datetime.date.today())
+    from_latest_checkpoint = luigi.BoolParameter(default=False)
 
     def requires(self):
         return [ StopJob(self.job), CrawlFeed(frequency=self.job.name), CrawlFeed(frequency='nevercrawl') ]
@@ -152,8 +153,8 @@ class StartJob(luigi.Task):
         status = h.status(self.job.name)
         logger.info("Got current job status: %s" % status)
 
-        logger.info("Starting job %s..." % job.name)
-        job.start()
+        logger.info("Starting job %s (from checkpoint = %s)..." % (job.name, self.from_latest_checkpoint))
+        job.start(from_latest_checkpoint=self.from_latest_checkpoint)
         launch_id = h.get_launch_id(self.job.name)
 
         logger.info("Launched job %s/%s with %s seeds." % (job.name, launch_id, len(job.seeds)))
