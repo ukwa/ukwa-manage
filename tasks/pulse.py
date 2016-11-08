@@ -36,6 +36,10 @@ def main():
     start = subparsers.add_parser('start', help="Start a job, or restart a currently running job.")
     start.add_argument(**job_id_args)
 
+    # Resume
+    start = subparsers.add_parser('resume', help="Start a job, resuming progress from the last checkpoint.")
+    start.add_argument(**job_id_args)
+
     # Validate Job
     vj = subparsers.add_parser('validate_job', help="Validate the output of a job and bundle associated log files etc.")
     vj.add_argument(**job_id_args)
@@ -53,7 +57,8 @@ def main():
 
     parsed = parser.parse_args()
 
-    # Got a command:
+    # Got a command, so do the action:
+
     if parsed.command == "stop":
         print("Stopping job %s" % parsed.job_id)
         luigi.run(['pulse.StopJob', '--job', parsed.job_id])
@@ -61,6 +66,10 @@ def main():
     elif parsed.command == "start":
         print("(Re)starting job %s" % parsed.job_id)
         luigi.run(['pulse.StartJob', '--job', parsed.job_id])
+
+    elif parsed.command == "resume":
+        print("Resuming job %s from latest checkpoint" % parsed.job_id)
+        luigi.run(['pulse.StartJob', '--job', parsed.job_id, '--from-latest-checkpoint'])
 
     elif parsed.command == "build_sip":
         print("Building SIP for %s/%s" % (parsed.job_id, parsed.launch_id))
