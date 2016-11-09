@@ -1,5 +1,6 @@
 import re
 from crawl.w3act.w3act import w3act
+from crawl.h3.utils import url_to_surt
 from common import *
 from crawl_job_tasks import CheckJobStopped
 import os
@@ -226,10 +227,7 @@ class ScanLogForDocs(luigi.Task):
     stage = luigi.Parameter(default='final')
 
     def requires(self):
-        # First find the watched seeds list:
-        with open("%s/%s/%s/watched-surts.txt" % (h3().local_job_folder, self.job.name, self.launch_id)) as reader:
-            watched = [line.rstrip('\n') for line in reader]
-            logger.info("WATCHED %s" % watched)
+        watched_surts = self.load_watched_surts()
         # Then scan the logs for documents:
         line_count = 0
         with open(self.path, 'r') as f:
@@ -245,8 +243,9 @@ class ScanLogForDocs(luigi.Task):
                     continue
                 # Check the URL and Content-Type:
                 if "application/pdf" in mime:
-                    for prefix in watched:
-                        if url.startswith(prefix):
+                    for prefix in watched_surts:
+                        surt = url_to_surt(url)
+                        if surt.startswith(prefix):
                             logger.info("Found document: %s" % line)
                             # Proceed to extract metadata and pass on to W3ACT:
                             doc = {}
@@ -272,6 +271,19 @@ class ScanLogForDocs(luigi.Task):
         # And write out to the status file:
         with self.output().open('w') as out_file:
             out_file.write('{}'.format(json.dumps(summary, indent=4)))
+
+    def load_watched_surts(self):
+        # First find the watched seeds list:
+        with open("%s/%s/%s/watched-surts.txt" % (h3().local_job_folder, self.job.name, self.launch_id)) as reader:
+            watched = [line.rstrip('\n') for line in reader]
+            logger.info("WATCHED %s" % watched)
+        # Convert to SURT form:
+        watched_surts = set()
+        for url in watched:
+            watched_surts.add(url_to_surt(url))
+        logger.info("WATCHED SURTS %s" % watched_surts)
+        return watched_surts
+
 
 
 class ScanLogForDocsIfStopped(luigi.Task):

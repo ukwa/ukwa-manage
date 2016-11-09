@@ -113,7 +113,7 @@ USAGE
                             help="URL to use for queries [default: %(default)s]")
         parser.add_argument('-l' '--query-limit', dest='query_limit', type=int, default=10,
                             help="Maximum number of results to return from queries [default: %(default)s]")
-        parser.add_argument(dest="command", help="Command to carry out, 'list-jobs', 'status', 'job-status', 'job-info', 'job-info-json', job-cxml', 'surt-scope', 'pending-urls', 'show-metadata', 'show-decide-rules'. [default: %(default)s]", metavar="command")
+        parser.add_argument(dest="command", help="Command to carry out, 'list-jobs', 'status', 'job-status', 'job-info', 'job-info-json', job-cxml', 'surt-scope', 'pending-urls', 'show-metadata', 'show-decide-rules', 'kill-all-toethreads'. [default: %(default)s]", metavar="command")
 
         # Process arguments
         args = parser.parse_args()
@@ -146,7 +146,7 @@ USAGE
             print json.dumps(ha.get_job_info(job), indent=4)
         elif command == "job-cxml":
             print ha.get_job_configuration(job)
-        elif command in ["surt-scope", "show-decide-rules", "show-metadata"]:
+        elif command in ["surt-scope", "show-decide-rules", "show-metadata", "kill-all-toethreads"]:
             template = env.get_template('%s.groovy' % command)
             r = ha.execute_script(engine="groovy", script=template.render(), name=job)
             print(r[0])

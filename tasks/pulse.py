@@ -60,7 +60,7 @@ def main():
     # Got a command, so do the action:
 
     if parsed.command == "stop":
-        print("Stopping job %s" % parsed.job_id)
+        print("Stopping and checkpointing job %s" % parsed.job_id)
         luigi.run(['pulse.StopJob', '--job', parsed.job_id])
 
     elif parsed.command == "start":

@@ -169,5 +169,5 @@ class StartJob(luigi.Task):
 
 if __name__ == '__main__':
     #luigi.run(['pulse.StopJob', '--job', 'daily'])#, '--local-scheduler'])
-    #luigi.run(['pulse.StartJob', '--job', 'daily'])  # , '--local-scheduler'])
-    luigi.run(['pulse.StartJob', '--job', 'daily', '--from-latest-checkpoint'])
+    luigi.run(['pulse.StartJob', '--job', 'daily'])  # , '--local-scheduler'])
+    #luigi.run(['pulse.StartJob', '--job', 'daily', '--from-latest-checkpoint'])
