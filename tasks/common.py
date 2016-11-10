@@ -140,18 +140,9 @@ class ScanForLaunches(luigi.Task):
             self.scan_name, self.date_interval, self.timestamp.isoformat()))
 
     def run(self):
-        # Look for jobs that need to be processed:
-        for date in self.date_interval:
-            for job_item in glob.glob("%s/*" % h3().local_job_folder):
-                job = Jobs[os.path.basename(job_item)]
-                if os.path.isdir(job_item):
-                    launch_glob = "%s/%s*" % (job_item, date.strftime('%Y%m%d'))
-                    # self.set_status_message("Looking for job launch folders matching %s" % launch_glob)
-                    for launch_item in glob.glob(launch_glob):
-                        if os.path.isdir(launch_item):
-                            launch = os.path.basename(launch_item)
-                            # TODO Limit total number of processes?
-                            yield self.scan_job_launch(job, launch)
+        # Enumerate the jobs:
+        for (job, launch) in self.enumerate_launches():
+            self.scan_job_launch(job, launch)
         # Log that we ran okay:
         with self.output().open('w') as out_file:
             #out_file.write('{}'.format(json.dumps(stats, indent=4)))
@@ -159,6 +150,20 @@ class ScanForLaunches(luigi.Task):
 
     def scan_job_launch(self, job, launch):
         pass
+
+    def enumerate_launches(self):
+        # Look for jobs that need to be processed:
+        for date in self.date_interval:
+            for job_item in glob.glob("%s/*" % h3().local_job_folder):
+                job = Jobs[os.path.basename(job_item)]
+                if os.path.isdir(job_item):
+                    launch_glob = "%s/%s*" % (job_item, date.strftime('%Y%m%d'))
+                    logger.info("Looking for job launch folders matching %s" % launch_glob)
+                    for launch_item in glob.glob(launch_glob):
+                        if os.path.isdir(launch_item):
+                            launch = os.path.basename(launch_item)
+                            yield (job, launch)
+
 
 
 @luigi.Task.event_handler(luigi.Event.FAILURE)

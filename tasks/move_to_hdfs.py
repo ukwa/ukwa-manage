@@ -324,6 +324,7 @@ class ScanForFilesToMove(ScanForLaunches):
     scan_name = 'move-to-hdfs'
 
     def scan_job_launch(self, job, launch):
+        logger.info("Looking at movings files for %s %s" %(job, launch))
         yield MoveFilesForLaunch(job, launch, self.delete_local)
 
 if __name__ == '__main__':
