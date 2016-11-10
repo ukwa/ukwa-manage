@@ -134,16 +134,18 @@ class ScanForLaunches(luigi.Task):
         default=[datetime.date.today() - datetime.timedelta(days=1), datetime.date.today()])
     timestamp = luigi.DateMinuteParameter(default=datetime.datetime.today())
 
+    def requires(self):
+        # Enumerate the jobs:
+        for (job, launch) in self.enumerate_launches():
+            logger.info("Processing %s/%s" % ( job, launch ))
+            yield self.scan_job_launch(job, launch)
+
     def output(self):
         return luigi.LocalTarget('{}/{}/scans/{}.{}.{}'.format(
             state().state_folder, self.timestamp.strftime('%Y-%m'),
             self.scan_name, self.date_interval, self.timestamp.isoformat()))
 
     def run(self):
-        # Enumerate the jobs:
-        for (job, launch) in self.enumerate_launches():
-            logger.info("Processing %s/%s" % ( job, launch ))
-            yield self.scan_job_launch(job, launch)
         # Log that we ran okay:
         with self.output().open('w') as out_file:
             #out_file.write('{}'.format(json.dumps(stats, indent=4)))
