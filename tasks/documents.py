@@ -62,22 +62,57 @@ class AvailableInWayback(luigi.ExternalTask):
 
     def complete(self):
         try:
-            wburl = '%s/xmlquery.jsp?type=urlquery&url=%s' % (systems().wayback, quote(self.url))
-            logger.debug("Checking %s" % wburl);
-            r = requests.get(wburl)
-            logger.debug("Response: %d" % r.status_code)
-            # Is it known, with a matching timestamp?
-            if r.status_code == 200:
-                dom = xml.dom.minidom.parseString(r.text)
-                for de in dom.getElementsByTagName('capturedate'):
-                    if de.firstChild.nodeValue == self.ts:
-                        # Excellent, it's been found:
-                        return True
+            # Check if the item+timestamp is known:
+            known = self.check_if_known()
+            if known:
+                # Check if the actual resource is available:
+                available = self.check_if_available()
+                return available
+            # Otherwise:
+            return False
         except Exception as e:
             logger.error("%s [%s %s]" % (str(e), self.url, self.ts))
             logger.exception(e)
         # Otherwise:
         return False
+
+    def check_if_known(self):
+        """
+        Checks if a resource with a particular timestamp is available in the index:
+        :return:
+        """
+        wburl = '%s/xmlquery.jsp?type=urlquery&url=%s' % (systems().wayback, quote(self.url))
+        logger.debug("Checking availability %s" % wburl)
+        r = requests.get(wburl)
+        logger.debug("Availability response: %d" % r.status_code)
+        # Is it known, with a matching timestamp?
+        if r.status_code == 200:
+            dom = xml.dom.minidom.parseString(r.text)
+            for de in dom.getElementsByTagName('capturedate'):
+                if de.firstChild.nodeValue == self.ts:
+                    # Excellent, it's been found:
+                    return True
+        else:
+            return False
+
+    def check_if_available(self):
+        """
+        Checks if the resource is actually accessible/downloadable.
+
+        This is done separately, as using this alone may accidentally get an older version.
+        :return:
+        """
+        wburl = '%s/%s/%s' % (systems().wayback, self.ts, self.url)
+        logger.debug("Checking download %s" % wburl)
+        r = requests.get(wburl)
+        logger.debug("Download response: %d" % r.status_code)
+        # Resource is present?
+        if r.status_code/100 == 2:
+            return True
+        else:
+            return False
+
+
 
 
 class RecordDocumentInMonitrix(luigi.contrib.esindex.CopyToIndex):
