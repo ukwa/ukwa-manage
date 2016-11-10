@@ -142,14 +142,12 @@ class ScanForLaunches(luigi.Task):
     def run(self):
         # Enumerate the jobs:
         for (job, launch) in self.enumerate_launches():
-            self.scan_job_launch(job, launch)
+            logger.info("Processing %s/%s" % ( job, launch ))
+            yield self.scan_job_launch(job, launch)
         # Log that we ran okay:
         with self.output().open('w') as out_file:
             #out_file.write('{}'.format(json.dumps(stats, indent=4)))
             out_file.write('{}'.format(self.date_interval))
-
-    def scan_job_launch(self, job, launch):
-        pass
 
     def enumerate_launches(self):
         # Look for jobs that need to be processed:
@@ -160,6 +158,7 @@ class ScanForLaunches(luigi.Task):
                     launch_glob = "%s/%s*" % (job_item, date.strftime('%Y%m%d'))
                     logger.info("Looking for job launch folders matching %s" % launch_glob)
                     for launch_item in glob.glob(launch_glob):
+                        logger.info("Found %s" % launch_item)
                         if os.path.isdir(launch_item):
                             launch = os.path.basename(launch_item)
                             yield (job, launch)
