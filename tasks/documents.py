@@ -2,7 +2,7 @@ import re
 from crawl.w3act.w3act import w3act
 from crawl.h3.utils import url_to_surt
 from common import *
-from crawl_job_tasks import CheckJobStopped
+from move_to_hdfs import MoveFilesForLaunch
 import os
 import json
 import hashlib
@@ -191,6 +191,7 @@ class ExtractDocumentAndPost(luigi.Task):
             else:
                 logger.error("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
                 raise Exception("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
+                #yield AvailableInWayback(doc['document_url'], doc['wayback_timestamp'], check_available=True)
 
         # And write out to the status file
         with self.output().open('w') as out_file:
@@ -333,8 +334,7 @@ class ScanLogForDocsIfStopped(luigi.Task):
     stage = luigi.Parameter(default='final')
 
     def requires(self):
-        if self.stage == 'final':
-            yield CheckJobStopped(self.job, self.launch_id)
+        return MoveFilesForLaunch(self.job, self.launch_id)
 
     def output(self):
         return ScanLogForDocs(self.job, self.launch_id, self.path, self.stage).output()

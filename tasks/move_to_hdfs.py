@@ -274,6 +274,46 @@ class MoveToWarcsFolder(luigi.Task):
         os.rename(self.path, self.output().path)
 
 
+class MoveFilesForLaunch(luigi.Task):
+    """
+    Move all the files associated with one launch
+    """
+    task_namespace = 'file'
+    job = luigi.EnumParameter(enum=Jobs)
+    launch_id = luigi.Parameter()
+    delete_local = luigi.BoolParameter(default=False)
+
+    def output(self):
+        return otarget(self.job, self.launch_id, "all-moved")
+
+    def run(self):
+        logger.info("Looking in %s %s" % ( self.job, self.launch_id))
+        # Look in /heritrix/output/wren files and move them to the /warcs/ folder:
+        for wren_item in glob.glob("%s/*-%s-%s-*.warc.gz" % (h3().local_wren_folder,self. job.name, self.launch_id)):
+            yield MoveToWarcsFolder(self.job, self.launch_id, wren_item)
+        # Look in warcs and viral for WARCs e.g in /heritrix/output/{warcs|viral}/{job.name}/{launch_id}
+        for out_type in ['warcs', 'viral']:
+            glob_path = "%s/output/%s/%s/%s/*.warc.gz" % (h3().local_root_folder, out_type, self.job.name, self.launch_id)
+            logger.info("GLOB:%s" % glob_path)
+            for item in glob.glob("%s/output/%s/%s/%s/*.warc.gz" % (h3().local_root_folder, out_type, self.job.name, self.launch_id)):
+                logger.info("ITEM:%s" % item)
+                yield MoveToHdfs(self.job, self.launch_id, item, self.delete_local)
+        # And look for /heritrix/output/logs:
+        for log_item in glob.glob("%s/output/logs/%s/%s/*.log*" % (h3().local_root_folder, self.job.name, self.launch_id)):
+            if os.path.splitext(log_item)[1] == '.lck':
+                continue
+            elif os.path.splitext(log_item)[1] == '.log':
+                # Only move files with the '.log' suffix if this job is no-longer running:
+                logger.info("Using MoveToHdfsIfStopped for %s" % log_item)
+                yield MoveToHdfsIfStopped(self.job, self.launch_id, log_item, self.delete_local)
+            else:
+                yield MoveToHdfs(self.job, self.launch_id, log_item, self.delete_local)
+
+        # and write out success
+        with self.output().open('w') as f:
+            f.write("MOVED")
+
+
 class ScanForFilesToMove(ScanForLaunches):
     """
     This scans for files associated with a particular launch of a given job and starts MoveToHdfs for each,
@@ -284,28 +324,7 @@ class ScanForFilesToMove(ScanForLaunches):
     scan_name = 'move-to-hdfs'
 
     def scan_job_launch(self, job, launch):
-        logger.info("Looking in %s %s" % ( job, launch))
-        # Look in /heritrix/output/wren files and move them to the /warcs/ folder:
-        for wren_item in glob.glob("%s/*-%s-%s-*.warc.gz" % (h3().local_wren_folder, job.name, launch)):
-            yield MoveToWarcsFolder(job, launch, wren_item)
-        # Look in warcs and viral for WARCs e.g in /heritrix/output/{warcs|viral}/{job.name}/{launch_id}
-        for out_type in ['warcs', 'viral']:
-            glob_path = "%s/output/%s/%s/%s/*.warc.gz" % (h3().local_root_folder, out_type, job.name, launch)
-            logger.info("GLOB:%s" % glob_path)
-            for item in glob.glob("%s/output/%s/%s/%s/*.warc.gz" % (h3().local_root_folder, out_type, job.name, launch)):
-                logger.info("ITEM:%s" % item)
-                yield MoveToHdfs(job, launch, item, self.delete_local)
-        # And look for /heritrix/output/logs:
-        for log_item in glob.glob("%s/output/logs/%s/%s/*.log*" % (h3().local_root_folder, job.name, launch)):
-            if os.path.splitext(log_item)[1] == '.lck':
-                continue
-            elif os.path.splitext(log_item)[1] == '.log':
-                # Only move files with the '.log' suffix if this job is no-longer running:
-                logger.info("Using MoveToHdfsIfStopped for %s" % log_item)
-                yield MoveToHdfsIfStopped(job, launch, log_item, self.delete_local)
-            else:
-                yield MoveToHdfs(job, launch, log_item, self.delete_local)
-
+        yield MoveFilesForLaunch(job, launch, self.delete_local)
 
 if __name__ == '__main__':
     luigi.run(['scan.ScanForFilesToMove', '--date-interval', '2016-11-01-2016-11-10'])
