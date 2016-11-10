@@ -57,6 +57,7 @@ class AvailableInWayback(luigi.ExternalTask):
     task_namespace = 'wb'
     url = luigi.Parameter()
     ts = luigi.Parameter()
+    check_available = luigi.BoolParameter(default=False)
 
     resources = { 'qa-wayback': 1 }
 
@@ -64,12 +65,15 @@ class AvailableInWayback(luigi.ExternalTask):
         try:
             # Check if the item+timestamp is known:
             known = self.check_if_known()
-            if known:
-                # Check if the actual resource is available:
-                available = self.check_if_available()
-                return available
-            # Otherwise:
-            return False
+            if self.check_available:
+                if known:
+                    # Check if the actual resource is available:
+                    available = self.check_if_available()
+                    return available
+                # Otherwise:
+                return False
+            else:
+                return known
         except Exception as e:
             logger.error("%s [%s %s]" % (str(e), self.url, self.ts))
             logger.exception(e)
@@ -104,8 +108,8 @@ class AvailableInWayback(luigi.ExternalTask):
         """
         wburl = '%s/%s/%s' % (systems().wayback, self.ts, self.url)
         logger.debug("Checking download %s" % wburl)
-        r = requests.get(wburl)
-        logger.debug("Download response: %d" % r.status_code)
+        r = requests.head(wburl)
+        logger.debug("Download HEAD response: %d" % r.status_code)
         # Resource is present?
         if r.status_code == 200:
             return True
