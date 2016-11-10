@@ -107,7 +107,7 @@ class AvailableInWayback(luigi.ExternalTask):
         r = requests.get(wburl)
         logger.debug("Download response: %d" % r.status_code)
         # Resource is present?
-        if r.status_code/100 == 2:
+        if r.status_code == 200:
             return True
         else:
             return False
