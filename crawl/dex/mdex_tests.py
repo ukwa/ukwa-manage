@@ -84,6 +84,12 @@ if __name__ == "__main__":
         "https://www.euromod.ac.uk/publications/date/2001/type/EUROMOD%20Working%20Paper%20Series",
         "https://www.euromod.ac.uk/", "Towards a multi purpose framework for tax benefit microsimulation")
 
+
+    run_doc_mdex_test_extraction(
+        "https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/128968/competency-guidance.pdf",
+        "https://www.gov.uk/government/organisations/department-for-work-pensions/about/recruitment",
+        "https://www.gov.uk/government/organisations/department-for-work-pensions", "Guidance on writing competency statements for a job application")
+
     # the tests Target association:
 
     # - scottish parliament

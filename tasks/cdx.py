@@ -3,6 +3,7 @@ import StringIO
 import requests
 import json
 import luigi.contrib.hdfs
+from urlparse import urlparse
 from pywb.warc.archiveiterator import DefaultRecordParser
 from common import *
 
@@ -49,6 +50,7 @@ class WARCToOutbackCDX(luigi.Task):
             '_content_type' : {},
             'status': {}
         }
+        hosts_stats = {}
 
         entry_iter = DefaultRecordParser(sort=False,
                                          surt_ordered=True,
@@ -71,11 +73,19 @@ class WARCToOutbackCDX(luigi.Task):
             # Create CDX line:
             cdx_11 = cdx_line(entry, self.path)
             stats['record_count'] += 1
+            hostname = urlparse(entry['url']).hostname
+            host_stats = hosts_stats.get(hostname, {'record_count' : 0, 'mime' : {}, '_content_type' : {}, 'status': {} })
+            host_stats['record_count'] += 1
             for key in ['mime', 'status', '_content_type']:
                 if entry.has_key(key):
                     counter = stats[key].get(entry[key], 0)
                     counter += 1
                     stats[key][entry[key]] = counter
+                    counter = host_stats[key].get(entry[key], 0)
+                    counter += 1
+                    host_stats[key][entry[key]] = counter
+            hosts_stats[hostname] = host_stats
+
             r = session.post(systems().cdxserver, data=cdx_11.encode('utf-8'))
             #  headers={'Content-type': 'text/plain; charset=utf-8'})
             if r.status_code == 200:
@@ -87,7 +97,7 @@ class WARCToOutbackCDX(luigi.Task):
                 raise Exception("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
 
         with self.output().open('w') as out_file:
-            out_file.write('{}'.format(json.dumps(stats, indent=4)))
+            out_file.write('{}'.format(json.dumps({ 'totals': stats , 'by-host': hosts_stats}, indent=4)))
 
 
 class ScanForIndexing(ScanForLaunches):

@@ -75,11 +75,25 @@ class DocumentMDEx(object):
         # Grab the landing page URL as HTML
         r = requests.get(self.doc["landing_page_url"])
         h = html.fromstring(r.content)
+        h.make_links_absolute(self.doc["landing_page_url"])
+        # Attempt to find the nearest prior header:
+        for a in h.xpath("//a[@href]"):
+            if self.doc["document_url"] in a.attrib["href"]:
+                element = a
+                while element.getparent() is not None:
+                    element = element.getparent()
+                    #logger.info("ELEMENT %s " % element)
+                    for hel in element.xpath(".//*[self::h2 or self::h3 or self::h4 or self::h5]"):
+                        logger.info("header %s" % hel.text_content())
+                        #self.doc['title'] = hel.text_content()
+                        return
+                self.doc['title'] = a.text_content()
+                return
         # Extract a title from the first header, or failing that, the page title:
         self.doc['title'] = self._get0(h.xpath("//h1/text()")).strip()
         if not self.doc['title']:
             self.doc['title'] = self._get0(h.xpath("//title/text()")).strip()
-    
+
     def mdex_gov_uk_publications(self):
         # Start by grabbing the Link-rel-up header to refine the landing page url:
         # e.g. https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/497662/accidents-involving-illegal-alcohol-levels-2014.pdf
@@ -96,6 +110,8 @@ class DocumentMDEx(object):
         logger.debug('xpath/title %s' % h.xpath('//header//h1/text()') )
         self.doc['title'] = self._get0(h.xpath('//header//h1/text()'))
         self.doc['publication_date'] = self._get0(h.xpath("//aside[contains(@class, 'meta')]//time/@datetime"))[0:10]
+        if self.doc['publication_date'] == '':
+            self.doc.pop('publication_date')
         self.doc['publishers'] = h.xpath("//aside[contains(@class, 'meta')]//a[contains(@class, 'organisation-link')]/text()")
         # Look through landing page for links, find metadata section corresponding to the document:
         for a in h.xpath("//a"):
