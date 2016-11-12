@@ -47,6 +47,11 @@ class DocumentMDEx(object):
             logger.error("Ignoring error during extraction for document %s and landing page %s" % (self.doc['document_url'], self.doc['landing_page_url']))
             logging.exception(e)
 
+        if not 'title' in self.doc or not self.doc['title']:
+            logger.info("Falling back on default extraction logic...")
+            self.mdex_default()
+            logger.info("GOT %s" % self.doc)
+
         # Look up which Target this URL should be associated with:
         if self.act and self.doc.has_key('landing_page_url'):
             logger.info("Looking for match for %s source %s and publishers '%s'" % (self.doc['landing_page_url'], self.source, self.doc.get('publishers',[])))
@@ -76,6 +81,7 @@ class DocumentMDEx(object):
         r = requests.get(self.doc["landing_page_url"])
         h = html.fromstring(r.content)
         h.make_links_absolute(self.doc["landing_page_url"])
+        logger.info("Looking for links...")
         # Attempt to find the nearest prior header:
         for a in h.xpath("//a[@href]"):
             if self.doc["document_url"] in a.attrib["href"]:
@@ -83,9 +89,16 @@ class DocumentMDEx(object):
                 while element.getparent() is not None:
                     element = element.getparent()
                     #logger.info("ELEMENT %s " % element)
+                    #logger.info("ELEMENT %s " % element.text_content())
                     for hel in element.xpath(".//*[self::h2 or self::h3 or self::h4 or self::h5]"):
                         logger.info("header %s" % hel.text_content())
-                        #self.doc['title'] = hel.text_content()
+                        self.doc['title'] = hel.text_content()
+                        return
+                    # If no descending match, try a preceding match:
+                    for hel in element.xpath("./preceding-sibling::*[self::h2 or self::h3][1]"):
+                        #logger.info("EEE %s" % hel.text_content())
+                        logger.info("Preceeding header %s" % hel.text_content())
+                        self.doc['title'] = hel.text_content()
                         return
                 self.doc['title'] = a.text_content()
                 return
@@ -116,7 +129,8 @@ class DocumentMDEx(object):
         # Look through landing page for links, find metadata section corresponding to the document:
         for a in h.xpath("//a"):
             if self.doc["document_url"] in urljoin(self.doc["landing_page_url"], a.attrib["href"]):
-                if a.getparent().getparent().attrib["class"] == "attachment-details":
+                if ("class" in a.getparent().getparent().attrib) and \
+                                a.getparent().getparent().attrib["class"] == "attachment-details":
                     div = a.getparent().getparent()
                     # Process title, allowing document title metadata to override:
                     lp_title = self._get0(div.xpath("./h2[@class='title']/a/text()"))

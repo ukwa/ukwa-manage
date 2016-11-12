@@ -78,20 +78,31 @@ if __name__ == "__main__":
     # Set up connection to ACT:
     act = w3act.w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
 
+
     # Extraction tests:
+    run_doc_mdex_test_extraction(
+        "https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/421402/List_of_lawyers_in_Mexico.pdf",
+        "https://www.gov.uk/government/world/organisations/british-embassy-mexico-city",
+        "https://www.gov.uk/government/publications?departments[]=department-for-transport",
+        "List of lawyers and interpreters")
+
     run_doc_mdex_test_extraction(
         "https://www.euromod.ac.uk/sites/default/files/working-papers/em2-01.pdf",
         "https://www.euromod.ac.uk/publications/date/2001/type/EUROMOD%20Working%20Paper%20Series",
         "https://www.euromod.ac.uk/", "Towards a multi purpose framework for tax benefit microsimulation")
-
 
     run_doc_mdex_test_extraction(
         "https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/128968/competency-guidance.pdf",
         "https://www.gov.uk/government/organisations/department-for-work-pensions/about/recruitment",
         "https://www.gov.uk/government/organisations/department-for-work-pensions", "Guidance on writing competency statements for a job application")
 
-    # the tests Target association:
+    run_doc_mdex_test_extraction(
+        "https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/421402/List_of_lawyers_in_Mexico.pdf",
+        "https://www.gov.uk/government/world/organisations/british-embassy-mexico-city",
+        "https://www.gov.uk/government/publications?departments[]=department-for-transport",
+        "List of lawyers and interpreters")
 
+    # the tests Target association:
     # - scottish parliament
     run_doc_mdex_test('http://www.parliament.scot/S4_EducationandCultureCommittee/BBC charter/BBCcallforviews.pdf', 
         'http://www.parliament.scot/help/92650.aspx', 
