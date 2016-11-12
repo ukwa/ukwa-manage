@@ -86,19 +86,20 @@ class DocumentMDEx(object):
         for a in h.xpath("//a[@href]"):
             if self.doc["document_url"] in a.attrib["href"]:
                 element = a
+                # try a preceding match:
+                for hel in a.xpath("./preceding::*[self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6][1]"):
+                    # logger.info("EEE %s" % hel.text_content())
+                    logger.info("Preceding header %s" % hel.text_content())
+                    self.doc['title'] = hel.text_content().strip()
+                    return
+                # Try recursing up the tree (I think this is superceded by the preceding-match logic above).
                 while element.getparent() is not None:
                     element = element.getparent()
                     #logger.info("ELEMENT %s " % element)
                     #logger.info("ELEMENT %s " % element.text_content())
                     for hel in element.xpath(".//*[self::h2 or self::h3 or self::h4 or self::h5]"):
                         logger.info("header %s" % hel.text_content())
-                        self.doc['title'] = hel.text_content()
-                        return
-                    # If no descending match, try a preceding match:
-                    for hel in element.xpath("./preceding-sibling::*[self::h2 or self::h3][1]"):
-                        #logger.info("EEE %s" % hel.text_content())
-                        logger.info("Preceeding header %s" % hel.text_content())
-                        self.doc['title'] = hel.text_content()
+                        self.doc['title'] = hel.text_content().strip()
                         return
                 self.doc['title'] = a.text_content()
                 return

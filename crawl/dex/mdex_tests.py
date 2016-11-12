@@ -81,12 +81,6 @@ if __name__ == "__main__":
 
     # Extraction tests:
     run_doc_mdex_test_extraction(
-        "https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/421402/List_of_lawyers_in_Mexico.pdf",
-        "https://www.gov.uk/government/world/organisations/british-embassy-mexico-city",
-        "https://www.gov.uk/government/publications?departments[]=department-for-transport",
-        "List of lawyers and interpreters")
-
-    run_doc_mdex_test_extraction(
         "https://www.euromod.ac.uk/sites/default/files/working-papers/em2-01.pdf",
         "https://www.euromod.ac.uk/publications/date/2001/type/EUROMOD%20Working%20Paper%20Series",
         "https://www.euromod.ac.uk/", "Towards a multi purpose framework for tax benefit microsimulation")
@@ -131,7 +125,7 @@ if __name__ == "__main__":
     run_doc_mdex_test('http://www.local.gov.uk/documents/10180/5716319/LGA+DECC+energy+efficiency+221113.pdf/86a87aaf-8650-4ef3-969b-3aff0e50083e',
         'http://www.local.gov.uk/web/guest/media-releases/-/journal_content/56/10180/5716193/NEWS',
         'http://www.local.gov.uk/publications',
-        36040, "Allow councils to lead energy efficiency schemes, says LGA")
+        36040, "LGA press release 30 November 2013" ) # page title: "Allow councils to lead energy efficiency schemes, says LGA")
 
     # - DCMS
     run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/522511/Research_to_explore_public_views_about_the_BBC_-_Wave_1_data_tables.pdf',
