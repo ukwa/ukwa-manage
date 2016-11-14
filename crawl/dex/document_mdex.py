@@ -14,22 +14,83 @@ import requests
 import logging
 from urlparse import urljoin
 from lxml import html
+from crawl.h3.utils import url_to_surt
+from tasks.common import logger
 
-logger = logging.getLogger(__name__)
 
 class DocumentMDEx(object):
     '''
     Given a Landing Page extract additional metadata.
     '''
 
-    def __init__(self, act, document, source, null_if_no_target_found=True):
+    def __init__(self, targets, document, source, null_if_no_target_found=True):
         '''
         The connection to W3ACT and the Document to be enhanced.
         '''
-        self.act = act
+        self.targets = targets
         self.doc = document
         self.source = source
         self.null_if_no_target_found = null_if_no_target_found
+
+
+    def find_watched_target_for(self, url, source, publishers):
+        '''
+        Given a URL and an array of publisher strings, determine which Watched Target to associate them with.
+        '''
+        # Find the list of Targets where a seed matches the given URL
+        surt = url_to_surt(url, host_only=True)
+        matches = []
+        for t in self.targets:
+            if t['watched']:
+                a_match = False
+                for seed in t['seeds']:
+                    if surt.startswith(url_to_surt(seed, host_only=True)):
+                        a_match = True
+                if a_match:
+                    matches.append(t)
+
+        # No matches:
+        if len(matches) == 0:
+            logger.error("No match found for url %s" % url)
+            return None
+        # raise Exception("No matching target for url "+url)
+        # If one match, assume that is the right Target:
+        if len(matches) == 1:
+            return int(matches[0]['id'])
+        #
+        # Else multiple matches, so need to disambiguate.
+        #
+        # Attempt to disambiguate based on source ONLY:
+        if source is not None:
+            for t in matches:
+                for seed in t['seeds']:
+                    logger.info("Looking for source match '%s' against '%s' " % (source, seed))
+                    if seed == source:
+                        # return int(t['id'])
+                        logger.info("Found match source+seed but this is not enough to disambiguate longer crawls.")
+                        break
+        # Then attempt to disambiguate based on publisher
+        # FIXME Make this a bit more forgiving of punctation/minor differences
+        title_matches = []
+        for t in matches:
+            for publisher in publishers:
+                logger.info("Looking for publisher match '%s' in title '%s' " % (publisher, t['title']))
+                if publisher and publisher.lower() in t['title'].lower():
+                    title_matches.append(t)
+                    break
+        if len(title_matches) == 0:
+            logger.critical("No matching title to associate with url %s " % url)
+            return None
+        # raise Exception("No matching title to associate with url %s " % url)
+        elif len(title_matches) == 1:
+            return int(title_matches[0]['id'])
+        else:
+            logger.error("Too many matching titles for %s" % url)
+            for t in title_matches:
+                logger.error("Candidate: %d %s " % (t['id'], t['title']))
+            logger.critical("Assuming first match is sufficient... (%s)" % title_matches[0]['title'])
+            return int(title_matches[0]['id'])
+
 
     def mdex(self):
         '''
@@ -53,9 +114,9 @@ class DocumentMDEx(object):
             logger.info("GOT %s" % self.doc)
 
         # Look up which Target this URL should be associated with:
-        if self.act and self.doc.has_key('landing_page_url'):
+        if self.targets and self.doc.has_key('landing_page_url'):
             logger.info("Looking for match for %s source %s and publishers '%s'" % (self.doc['landing_page_url'], self.source, self.doc.get('publishers',[])))
-            self.doc['target_id'] = self.act.find_watched_target_for(self.doc['landing_page_url'], self.source, self.doc.get('publishers', []))
+            self.doc['target_id'] = self.find_watched_target_for(self.doc['landing_page_url'], self.source, self.doc.get('publishers', []))
         
         # If there is no association, drop it:
         if not self.doc.get('target_id', None) and self.null_if_no_target_found:
