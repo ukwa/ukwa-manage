@@ -78,8 +78,13 @@ if __name__ == "__main__":
     # Set up connection to ACT:
     act = w3act.w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
 
+    # Non-matching Target test
+    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/567676/east_dulwich_community_nursery_association.pdf',
+                    'https://www.gov.uk/government/publications/east-dulwich-community-nursery-association-inquiry-report',
+                    'https://www.gov.uk/government/publications?departments[]=department-for-transport',
+                    None,"East Dulwich Community Nursery Association")
 
-    # Extraction tests:
+    # Title-only extraction tests:
     run_doc_mdex_test_extraction(
         "https://www.euromod.ac.uk/sites/default/files/working-papers/em2-01.pdf",
         "https://www.euromod.ac.uk/publications/date/2001/type/EUROMOD%20Working%20Paper%20Series",
