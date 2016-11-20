@@ -9,3 +9,6 @@ crawl/ui/servers.json
 state/*
 venv-*
 
+luigi.cfg
+luigi-ddb.cfg
+
