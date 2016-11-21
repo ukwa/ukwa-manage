@@ -1,14 +1,20 @@
-from __future__ import absolute_import
-
-import os
+import io
 import json
 import datetime
 import crawl.tasks
+from requests.utils import quote
+import xml.dom.minidom
+import requests
+import zlib
+from pywb.warc.archiveiterator import DefaultRecordParser
+from pywb.warc.recordloader import ArcWarcRecordLoader
+from pywb.utils.bufferedreaders import DecompressingBufferedReader
 from crawl.h3 import hapyx
 from tasks.monitor import CheckStatus
 from tasks.common import systems
+from luigi.contrib.hdfs.webhdfs_client import webhdfs
 from flask import Flask
-from flask import render_template, redirect, url_for, request
+from flask import render_template, redirect, url_for, request, Response, send_file
 app = Flask(__name__)
 
 
@@ -25,6 +31,12 @@ def status():
 
     # And render
     return render_template('dashboard.html', title="Status", services=services)
+
+
+@app.route('/ping')
+def ping_pong():
+    return 'pong!'
+
 
 @app.route('/get-rendered-original')
 def get_rendered_original():
@@ -43,7 +55,44 @@ def get_rendered_original():
     # Query URL
     qurl = "%s:%s" % (type, url)
     # Query CDX Server for the item
+    (warc_filename, warc_offset) = lookup_in_cdx(qurl)
+    r = requests.get("%s/pulse/heritrix%s?op=OPEN&user=%s&offset=%s" % (systems().webhdfs, warc_filename, webhdfs().user, warc_offset))
+    r.raw.decode_content = False
+
     # Grab the payload from the WARC and return it.
+    rl = ArcWarcRecordLoader()
+    record = rl.parse_record_stream(DecompressingBufferedReader(stream=io.BytesIO(r.content)))
+    print(record)
+    print(record.length)
+    print(record.stream.limit)
+
+    return send_file(record.stream, mimetype=record.content_type)
+
+    #return "Test %s@%s" % (warc_filename, warc_offset)
+
+
+def lookup_in_cdx(qurl):
+    """
+    Checks if a resource is in the CDX index.
+    :return:
+    """
+    query = "%s?q=type:urlquery+url:%s" % (systems().cdxserver, quote(qurl))
+    r = requests.get(query)
+    print(r.url)
+    app.logger.debug("Availability response: %d" % r.status_code)
+    # Is it known, with a matching timestamp?
+    if r.status_code == 200:
+        dom = xml.dom.minidom.parseString(r.text)
+        for result in dom.getElementsByTagName('result'):
+            file = result.getElementsByTagName('file')[0].firstChild.nodeValue
+            compressedoffset = result.getElementsByTagName('compressedoffset')[0].firstChild.nodeValue
+            return file, compressedoffset
+        #for de in dom.getElementsByTagName('capturedate'):
+        #    if de.firstChild.nodeValue == self.ts:
+        #        # Excellent, it's been found:
+        #        return
+    else:
+        return None, None
 
 
 @app.route('/control/dc/pause')
@@ -76,4 +125,4 @@ def stop(frequency=None):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5505)
