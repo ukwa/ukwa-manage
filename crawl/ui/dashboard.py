@@ -11,10 +11,10 @@ from pywb.warc.recordloader import ArcWarcRecordLoader
 from pywb.utils.bufferedreaders import DecompressingBufferedReader
 from crawl.h3 import hapyx
 from tasks.monitor import CheckStatus
-from tasks.common import systems
+from tasks.common import systems, h3
 from luigi.contrib.hdfs.webhdfs_client import webhdfs
 from flask import Flask
-from flask import render_template, redirect, url_for, request, Response, send_file
+from flask import render_template, redirect, url_for, request, Response, send_file, abort
 app = Flask(__name__)
 
 
@@ -56,10 +56,15 @@ def get_rendered_original():
     qurl = "%s:%s" % (type, url)
     # Query CDX Server for the item
     (warc_filename, warc_offset) = lookup_in_cdx(qurl)
-    r = requests.get("%s/pulse/heritrix%s?op=OPEN&user=%s&offset=%s" % (systems().webhdfs, warc_filename, webhdfs().user, warc_offset))
-    r.raw.decode_content = False
+
+    # If not found, say so:
+    if warc_filename is None:
+        abort(404)
 
     # Grab the payload from the WARC and return it.
+    r = requests.get("%s%s%s?op=OPEN&user=%s&offset=%s" % (systems().webhdfs, h3().hdfs_root_folder,
+                                                           warc_filename, webhdfs().user, warc_offset))
+    r.raw.decode_content = False
     rl = ArcWarcRecordLoader()
     record = rl.parse_record_stream(DecompressingBufferedReader(stream=io.BytesIO(r.content)))
     print(record)
@@ -80,19 +85,23 @@ def lookup_in_cdx(qurl):
     r = requests.get(query)
     print(r.url)
     app.logger.debug("Availability response: %d" % r.status_code)
+    print(r.status_code, r.text)
     # Is it known, with a matching timestamp?
     if r.status_code == 200:
-        dom = xml.dom.minidom.parseString(r.text)
-        for result in dom.getElementsByTagName('result'):
-            file = result.getElementsByTagName('file')[0].firstChild.nodeValue
-            compressedoffset = result.getElementsByTagName('compressedoffset')[0].firstChild.nodeValue
-            return file, compressedoffset
+        try:
+            dom = xml.dom.minidom.parseString(r.text)
+            for result in dom.getElementsByTagName('result'):
+                file = result.getElementsByTagName('file')[0].firstChild.nodeValue
+                compressedoffset = result.getElementsByTagName('compressedoffset')[0].firstChild.nodeValue
+                return file, compressedoffset
+        except Exception as e:
+            app.logger.error("Lookup failed for %s!" % qurl)
+            app.logger.exception(e)
         #for de in dom.getElementsByTagName('capturedate'):
         #    if de.firstChild.nodeValue == self.ts:
         #        # Excellent, it's been found:
         #        return
-    else:
-        return None, None
+    return None, None
 
 
 @app.route('/control/dc/pause')
