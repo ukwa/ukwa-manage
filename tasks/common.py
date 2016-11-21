@@ -38,6 +38,9 @@ class systems(luigi.Config):
     cdxserver = luigi.Parameter()
     wayback = luigi.Parameter()
     wrender = luigi.Parameter()
+    # Prefix for webhdfs queries, separate from general Luigi HDFS configuration.
+    # e.g. http://localhost:50070/webhdfs/v1
+    webhdfs = luigi.Parameter()
     amqp_host = luigi.Parameter()
     clamd_host = luigi.Parameter()
     clamd_port = luigi.Parameter()

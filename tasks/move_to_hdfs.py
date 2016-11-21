@@ -35,13 +35,10 @@ class UploadFileToHDFS(luigi.Task):
     """
     This copies up to HDFS but uses a temporary filename (via a suffix) to avoid downstream tasks
     thinking the work is already done.
-
-    TODO Consider removing the temp file if something goes wrong (although I think I prefer to handle such
-    exceptions manually)
     """
     task_namespace = 'file'
     path = luigi.Parameter()
-    resources = { 'hdfs': 1 }
+    resources = {'hdfs': 1}
 
     def output(self):
         t = get_hdfs_target(self.path)
@@ -49,24 +46,41 @@ class UploadFileToHDFS(luigi.Task):
         return t
 
     def run(self):
-        # Copy up to HDFS, making it suitably atomic by using a temporary filename during upload:
-        tmp_path = "%s.temp" % self.output().path
-        logger.info("Uploading as %s" % tmp_path)
+        """
+        Copy up to HDFS, making it suitably atomic by using a temporary filename during upload:
+        :return:
+        """
+        # Set up the HDFS client:
         client = luigi.contrib.hdfs.get_autoconfig_client(threading.local())
-        with open(self.path, 'r') as f:
-            client.client.write(data=f, hdfs_path=tmp_path, overwrite=False)
+
+        # Create the temporary file name:
+        tmp_path = "%s.temp" % self.output().path
+
+        # Now upload the file, allowing overwrites as this is a temporary file and
+        # simultanous updates should not be possible:
+        logger.info("Uploading as %s" % tmp_path)
+        with open(self.output().path, 'r') as f:
+            client.client.write(data=f, hdfs_path=tmp_path, overwrite=True)
+
+        # Check if the destination file exists and raise an exception if so:
+        if client.exists(self.output().path):
+            raise Exception("Path %s already exists! This should never happen!" % self.output().path)
+
         # Move the uploaded file into the right place:
         client.client.rename(tmp_path, self.output().path)
+
         # Give the namenode a moment to catch-up with itself and then check it's there:
         # FIXME I suspect this is only needed for our ancient HDFS
         time.sleep(2)
         status = client.client.status(self.output().path)
+
+        # Log successful upload:
         logger.info("Upload completed for %s" % self.output().path)
 
 
 class ForceUploadFileToHDFS(luigi.Task):
     """
-    Variant of UploadFileToHDFS that allows overwriting the HDFS file.
+    Variant of UploadFileToHDFS that allows direct overwriting the HDFS file (no '.temp').
 
     Implemented as a separate task to minimise likelihood of overwrite being enabled accidentally.
 
