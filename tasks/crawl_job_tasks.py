@@ -167,6 +167,21 @@ class StartJob(luigi.Task):
         return
 
 
+@StartJob.event_handler(luigi.Event.SUCCESS)
+def notify_success(task):
+    """
+    Always inform the channel when a crawl is started:
+    """
+    if slack().token and task.stage == 'final':
+        sc = SlackClient(slack().token)
+        print(sc.api_call(
+            "chat.postMessage", channel="#crawls",
+            text="Job %s (re)started successfully! :tada:"
+                 % format_crawl_task(task), username='crawljobbot'))
+    else:
+        logger.warning("No Slack auth token set, no message sent.")
+
+
 if __name__ == '__main__':
     #luigi.run(['pulse.StopJob', '--job', 'daily'])#, '--local-scheduler'])
     luigi.run(['pulse.StartJob', '--job', 'daily'])  # , '--local-scheduler'])
