@@ -41,6 +41,7 @@ amqp_host=amqp
 cdxserver=http://cdxserver:8080/fc
 wayback=http://openwayback:8080/wayback
 wrender=http://webrender:8010/render
+webhdfs=http://hadoop:50070/webhdfs/v1
 elasticsearch_host=monitrix
 elasticsearch_port=9200
 elasticsearch_index_prefix=pulse
