@@ -8,7 +8,7 @@ from crawl.h3 import hapyx
 from tasks.monitor import CheckStatus
 from tasks.common import systems
 from flask import Flask
-from flask import render_template, redirect, url_for
+from flask import render_template, redirect, url_for, request
 app = Flask(__name__)
 
 
@@ -25,6 +25,25 @@ def status():
 
     # And render
     return render_template('dashboard.html', title="Status", services=services)
+
+@app.route('/get-rendered-original')
+def get_rendered_original():
+    """
+    Grabs a rendered resource.
+
+    Only reason Wayback can't do this is that it does not like the extended URIs
+    i.e. 'screenshot:http://' and replaces them with 'http://screenshot:http://'
+    """
+    url = request.args.get('url')
+    app.logger.debug("Got URL: %s" % url)
+    #
+    type = request.args.get('type', 'screenshot')
+    app.logger.debug("Got type: %s" % type)
+
+    # Query URL
+    qurl = "%s:%s" % (type, url)
+    # Query CDX Server for the item
+    # Grab the payload from the WARC and return it.
 
 
 @app.route('/control/dc/pause')

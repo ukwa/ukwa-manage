@@ -78,7 +78,7 @@ class DocumentMDEx(object):
                     title_matches.append(t)
                     break
         if len(title_matches) == 0:
-            logger.critical("No matching title to associate with url %s " % url)
+            logger.warning("No matching title to associate with url %s " % url)
             return None
         # raise Exception("No matching title to associate with url %s " % url)
         elif len(title_matches) == 1:
