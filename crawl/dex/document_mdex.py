@@ -11,7 +11,6 @@ Created on 8 Feb 2016
 
 import json
 import requests
-import logging
 from urlparse import urljoin
 from lxml import html
 from crawl.h3.utils import url_to_surt
@@ -85,10 +84,10 @@ class DocumentMDEx(object):
         elif len(title_matches) == 1:
             return int(title_matches[0]['id'])
         else:
-            logger.error("Too many matching titles for %s" % url)
+            logger.warning("Too many matching titles for %s" % url)
             for t in title_matches:
-                logger.error("Candidate: %d %s " % (t['id'], t['title']))
-            logger.critical("Assuming first match is sufficient... (%s)" % title_matches[0]['title'])
+                logger.warning("Candidate: %d %s " % (t['id'], t['title']))
+            logger.warning("Assuming first match is sufficient... (%s)" % title_matches[0]['title'])
             return int(title_matches[0]['id'])
 
 
@@ -98,15 +97,15 @@ class DocumentMDEx(object):
         '''
         # Pass the document through a different extractor based on how the URL starts.
         try:
-            if( self.doc["landing_page_url"].startswith("https://www.gov.uk/government/")):
+            if( self.doc["document_url"].startswith("https://www.gov.uk/")):
                 self.mdex_gov_uk_publications()
-            elif( self.doc["landing_page_url"].startswith("http://www.ifs.org.uk/publications/")):
+            elif( self.doc["document_url"].startswith("http://www.ifs.org.uk/")):
                 self.mdex_ifs_reports()
             else:
                 self.mdex_default()
         except Exception as e:
             logger.error("Ignoring error during extraction for document %s and landing page %s" % (self.doc['document_url'], self.doc['landing_page_url']))
-            logging.exception(e)
+            logger.exception(e)
 
         if not 'title' in self.doc or not self.doc['title']:
             logger.info("Falling back on default extraction logic...")

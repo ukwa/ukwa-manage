@@ -389,6 +389,13 @@ class RunDocumentExtractionTests(luigi.Task):
         pass
 
     def run(self):
+        # gov.uk documnent discovered via other (IFS) site:
+        self.run_doc_mdex_test(
+            'https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/214379/WP77techapp.pdf',
+            'http://www.ifs.org.uk/publications/8736',
+            'http://www.ifs.org.uk/',
+            35911, "Technical annexe")
+
         # Non-matching Target test
         self.run_doc_mdex_test(
             'https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/567676/east_dulwich_community_nursery_association.pdf',
