@@ -47,35 +47,49 @@ class UploadFileToHDFS(luigi.Task):
 
     def run(self):
         """
-        Copy up to HDFS, making it suitably atomic by using a temporary filename during upload:
-        :return:
+        The local file is self.path
+        The remote file is self.output().path
+
+        :return: None
+        """
+        self.uploader(self.path, self.output().path)
+
+    @staticmethod
+    def uploader(local_path, hdfs_path):
+        """
+        Copy up to HDFS, making it suitably atomic by using a temporary filename during upload.
+
+        Done as a static method to prevent accidental confusion of self.path/self.output().path etc.
+
+        :return: None
         """
         # Set up the HDFS client:
         client = luigi.contrib.hdfs.get_autoconfig_client(threading.local())
 
         # Create the temporary file name:
-        tmp_path = "%s.temp" % self.output().path
+        tmp_path = "%s.temp" % hdfs_path
 
         # Now upload the file, allowing overwrites as this is a temporary file and
         # simultanous updates should not be possible:
         logger.info("Uploading as %s" % tmp_path)
-        with open(self.output().path, 'r') as f:
+        with open(local_path, 'r') as f:
             client.client.write(data=f, hdfs_path=tmp_path, overwrite=True)
 
         # Check if the destination file exists and raise an exception if so:
-        if client.exists(self.output().path):
-            raise Exception("Path %s already exists! This should never happen!" % self.output().path)
+        if client.exists(hdfs_path):
+            raise Exception("Path %s already exists! This should never happen!" % hdfs_path)
 
         # Move the uploaded file into the right place:
-        client.client.rename(tmp_path, self.output().path)
+        client.client.rename(tmp_path, hdfs_path)
 
         # Give the namenode a moment to catch-up with itself and then check it's there:
         # FIXME I suspect this is only needed for our ancient HDFS
         time.sleep(2)
-        status = client.client.status(self.output().path)
+        status = client.client.status(hdfs_path)
 
         # Log successful upload:
-        logger.info("Upload completed for %s" % self.output().path)
+        logger.info("Upload completed for %s" % hdfs_path)
+
 
 
 class ForceUploadFileToHDFS(luigi.Task):
