@@ -1,0 +1,8 @@
+<div class="pure-u-1-1 dashboard-piece dashboard-content {% if 'status-class' in hdfs['state'] %} {{ hdfs['state']['status-class'] }}{% else %} status-unknown{% endif %}">
+    <h2 title="{{ hdfs['name'] }}: {{ hdfs['status'] }}">
+        {{ hdfs['state']['percent'] }} full
+    </h2>
+    <div class="percentage-status-indicator" style="height: {{ hdfs['state']['percent'] }}"></div>
+    <p>{{ hdfs['name'] }}<br/>{{ hdfs['state']['remaining'] }} remaining (raw)</p>
+    <p class="tile-icon"><a href="{{ hdfs['name'] }}: {{ hdfs['status'] }}"><i class="fa fa-chain" aria-hidden="true"></i></a></p>
+</div>
