@@ -289,8 +289,10 @@ class ScanLogForDocs(luigi.Task):
                 # Check the URL and Content-Type:
                 if "application/pdf" in mime:
                     for prefix in watched_surts:
-                        surt = url_to_surt(url)
-                        if surt.startswith(prefix):
+                        document_surt = url_to_surt(url)
+                        landing_page_surt = url_to_surt(via)
+                        # Are both URIs under the same watched SURT:
+                        if document_surt.startswith(prefix) and landing_page_surt.startswith(prefix):
                             logger.info("Found document: %s" % line)
                             # Proceed to extract metadata and pass on to W3ACT:
                             doc = {}
