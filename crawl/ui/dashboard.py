@@ -63,8 +63,9 @@ def get_rendered_original():
         abort(404)
 
     # Grab the payload from the WARC and return it.
-    r = requests.get("%s%s%s?op=OPEN&user=%s&offset=%s" % (systems().webhdfs, h3().hdfs_root_folder,
+    r = requests.get("%s%s%s?op=OPEN&user.name=%s&offset=%s" % (systems().webhdfs, h3().hdfs_root_folder,
                                                            warc_filename, webhdfs().user, warc_offset))
+    app.logger.info("Loading from: %s" % r.url)
     r.raw.decode_content = False
     rl = ArcWarcRecordLoader()
     record = rl.parse_record_stream(DecompressingBufferedReader(stream=io.BytesIO(r.content)))
