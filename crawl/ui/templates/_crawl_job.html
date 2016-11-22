@@ -1,8 +1,12 @@
 <div class="{{ tile_class }} dashboard-piece dashboard-content{% if 'status-class' in crawler['state'] %} {{ crawler['state']['status-class'] }}{% else %} status-unknown{% endif %}">
+    {% if crawler['state']['status'] == "RUNNING" %}
+    <h2 title="{{ crawler['state']['rate'] }} URI/s">{{ crawler['state']['rate'] }}</h2>
+    {% else %}
     <h2>{{ crawler['state']['status'] }}</h2>
+    {% endif %}
+    <a class="button-light pure-button" href="{{ crawler['url'] }}engine/job/{{ crawler['name'] }}">
+        {{ job }}</a>
     <p>
-        <a class="button-light pure-button" href="{{ crawler['url'] }}engine/job/{{ crawler['name'] }}">{{
-            job }}</a>
         {% if job in crawler["error"] %}
         <span class="errorInfo">{{ crawler["error"][job] }}</span>
         {% endif %}

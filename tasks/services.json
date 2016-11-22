@@ -205,13 +205,11 @@
       "name": "HDFS",
       "host": "nellie.bl.uk",
       "url": "http://nellie.bl.uk:50070/dfshealth.jsp"
-    }
-  },
-  "hdfs-2": {
+    },
     "hdfs-ddb": {
       "name": "HDFS DDB",
       "host": "hadoop.ddb.wa.bl.uk",
-      "url": "http://hadoop.ddb.wa.bl.uk:50070"
+      "url": "http://hadoop.ddb.wa.bl.uk:50070/dfshealth.jsp"
     }
   }
 }

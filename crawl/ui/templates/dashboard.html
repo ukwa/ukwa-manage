@@ -93,7 +93,7 @@
                     </div>
                 </div>
                 <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
-                    <h1>FREQUENT CRAWLS (BETA)</h1>
+                    <h1>FREQUENT CRAWLS (DDB)</h1>
                 </div>
                 <div class="pure-u-1-1">
 
@@ -132,19 +132,21 @@
                 </div>
 
                 <div class="pure-u-1-1">
-
                     <div class="pure-g">
                         {% set hdfs = services['hdfs']['hdfs-prod'] %}
-<div class="pure-u-1-1 dashboard-piece dashboard-content {% if 'status-class' in hdfs['state'] %} {{ hdfs['state']['status-class'] }}{% else %} status-unknown{% endif %}">
-    <h2 title="{{ hdfs['name'] }}: {{ hdfs['status'] }}">
-        {{ hdfs['name'] }}
-    </h2>
-    <div class="percentage-status-indicator" style="height: {{ hdfs['state']['percent'] }}"></div>
-    <p>{{ hdfs['state']['percent'] }} full<br/>{{ hdfs['state']['remaining'] }} remaining (raw)</p>
-    <p class="tile-icon"><a href="{{ hdfs['name'] }}: {{ hdfs['status'] }}"><i class="fa fa-chain" aria-hidden="true"></i></a></p>
-</div>
+                        {% include '_hdfs.html' %}
                     </div>
+                </div>
 
+                <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
+                    <h1>STORAGE (DDB)</h1>
+                </div>
+
+                <div class="pure-u-1-1">
+                    <div class="pure-g">
+                        {% set hdfs = services['hdfs']['hdfs-ddb'] %}
+                        {% include '_hdfs.html' %}
+                    </div>
                 </div>
 
             </div>
@@ -199,7 +201,7 @@
                 </div>
 
                 <div class="pure-u-1-1 dashboard-title-small dashboard-piece-greybg">
-                    <h1>CURATION (ACT BETA/DDHAPT)</h1>
+                    <h1>CURATION (ACT DDB)</h1>
                 </div>
 
                 <div class="pure-u-1-1">

@@ -69,7 +69,7 @@ class CheckStatus(luigi.Task):
         elif state['status'] == "RUNNING":
             # Replacing RUNNING with docs/second rate
             rate = state['details']['job']['rateReport']['currentDocsPerSecond']
-            state['status'] = "%.2f URI/s" % float(rate)
+            state['rate'] = "%.2f" % float(rate)
             if rate < 1.0:
                 state['status-class'] = "status-warning"
             else:
@@ -157,4 +157,4 @@ class CheckStatus(luigi.Task):
 
 
 if __name__ == '__main__':
-    luigi.run(['monitor.CheckStatus'])#, '--local-scheduler'])
+    luigi.run(['monitor.CheckStatus', '--local-scheduler'])

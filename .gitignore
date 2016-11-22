@@ -5,6 +5,7 @@
 *.pyc
 
 crawl/ui/servers.json
+tasks/servers.json
 
 state/*
 venv-*

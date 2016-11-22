@@ -16,8 +16,8 @@
     text-align: center;
     position: relative;
     padding-bottom: 0px;
-    min-height: 120px;
-    height: 120px;
+    min-height: 140px;
+    height: 140px;
     overflow: hidden;
 }
 .dashboard-piece-hh { /* Half-height */
@@ -28,8 +28,8 @@
     text-align: center;
     position: relative;
     padding-bottom: 0px;
-    min-height: 60px;
-    height: 60px;
+    min-height: 70px;
+    height: 70px;
     overflow: hidden;
 }
 .dashboard-title {
@@ -75,15 +75,20 @@
 }
 .dashboard-content h2 {
     font-weight: lighter;
-    font-size: 1.8em;
+    font-size: 2.5em;
     opacity: 0.85;
     margin: 0.5em 0;
+    color: #fff;
 }
 .dashboard-content h3 {
     font-weight: lighter;
-    font-size: 1.1em;
+    font-size: 1.5em;
     opacity: 0.9;
     margin: 0.5em 0 0 0;
+    color: #fff;
+}
+.dashboard-content h3 a {
+    color: #fff;
 }
 .dashboard-content p {
     margin: 0.2em 0;
