@@ -21,8 +21,8 @@ app = Flask(__name__)
 @app.route('/')
 def status():
 
-    json_file = CheckStatus(date=datetime.datetime.today() - datetime.timedelta(minutes=1)).output().path
-    #json_file = "../state/monitor/checkstatus.2016-11-22T1110"
+    #json_file = CheckStatus(date=datetime.datetime.today() - datetime.timedelta(minutes=1)).output().path
+    json_file = "../state/monitor/checkstatus.2016-11-22T1110"
     app.logger.info("Attempting to load %s" % json_file)
     with open(json_file,'r') as reader:
         services = json.load(reader)

@@ -69,7 +69,7 @@ class CheckStatus(luigi.Task):
         elif state['status'] == "RUNNING":
             # Replacing RUNNING with docs/second rate
             rate = state['details']['job']['rateReport']['currentDocsPerSecond']
-            state['rate'] = "%.2f" % float(rate)
+            state['rate'] = "%.1f" % float(rate)
             if rate < 1.0:
                 state['status-class'] = "status-warning"
             else:
