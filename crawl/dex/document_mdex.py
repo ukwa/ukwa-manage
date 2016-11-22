@@ -14,7 +14,7 @@ import requests
 from urlparse import urljoin
 from lxml import html
 from crawl.h3.utils import url_to_surt
-from tasks.common import logger
+from tasks.common import logger, systems
 
 
 class DocumentMDEx(object):
@@ -31,6 +31,13 @@ class DocumentMDEx(object):
         self.source = source
         self.null_if_no_target_found = null_if_no_target_found
 
+    def lp_wb_url(self):
+        wb_url = "%s/%s/%s" % ( systems().wayback, self.doc['wayback_timestamp'], self.doc['landing_page_url'])
+        return wb_url
+
+    def doc_wb_url(self):
+        wb_url = "%s/%s/%s" % ( systems().wayback, self.doc['wayback_timestamp'], self.doc['document_url'])
+        return wb_url
 
     def find_watched_target_for(self, url, source, publishers):
         '''
@@ -138,7 +145,7 @@ class DocumentMDEx(object):
     def mdex_default(self):
         ''' Default extractor uses landing page for title etc.'''
         # Grab the landing page URL as HTML
-        r = requests.get(self.doc["landing_page_url"])
+        r = requests.get(self.lp_wb_url())
         h = html.fromstring(r.content)
         h.make_links_absolute(self.doc["landing_page_url"])
         logger.info("Looking for links...")
@@ -172,13 +179,13 @@ class DocumentMDEx(object):
         # Start by grabbing the Link-rel-up header to refine the landing page url:
         # e.g. https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/497662/accidents-involving-illegal-alcohol-levels-2014.pdf
         # Link: <https://www.gov.uk/government/statistics/reported-road-casualties-in-great-britain-estimates-involving-illegal-alcohol-levels-2014>; rel="up"
-        r = requests.head(url=self.doc['document_url'])
+        r = requests.head(url=self.doc_wb_url())
         if r.links.has_key('up'):
             lpu = r.links['up']
             self.doc["landing_page_url"] = lpu['url']
         # Grab the landing page URL as HTML
         logger.debug("Downloading and parsing: %s" % self.doc['landing_page_url'])
-        r = requests.get(self.doc["landing_page_url"])
+        r = requests.get(self.lp_wb_url())
         h = html.fromstring(r.content)
         # Extract the metadata:
         logger.debug('xpath/title %s' % h.xpath('//header//h1/text()') )
@@ -216,7 +223,7 @@ class DocumentMDEx(object):
                 self.mdex_default()
                 return
         # Grab the landing page URL as HTML
-        r = requests.get(self.doc["landing_page_url"])
+        r = requests.get(self.lp_wb_url())
         h = html.fromstring(r.content)
         # Extract the metadata:
         self.doc['title'] = self._get0(h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//*[contains(@itemprop,'name')]/text()")).strip()
