@@ -126,7 +126,7 @@ def jtarget(job, launch_id, status):
     return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('01.jobs', job, launch_id, status)))
 
 
-class ScanForLaunches(luigi.Task):
+class ScanForLaunches(luigi.WrapperTask):
     """
     This task scans the output folder for jobs and instances of those jobs, looking for crawled content to process.
 
@@ -142,17 +142,6 @@ class ScanForLaunches(luigi.Task):
         for (job, launch) in self.enumerate_launches():
             logger.info("Processing %s/%s" % ( job, launch ))
             yield self.scan_job_launch(job, launch)
-
-    def output(self):
-        return luigi.LocalTarget('{}/{}/scans/{}.{}.{}'.format(
-            state().state_folder, self.timestamp.strftime('%Y-%m'),
-            self.scan_name, self.date_interval, self.timestamp.isoformat()))
-
-    def run(self):
-        # Log that we ran okay:
-        with self.output().open('w') as out_file:
-            #out_file.write('{}'.format(json.dumps(stats, indent=4)))
-            out_file.write('{}'.format(self.date_interval))
 
     def enumerate_launches(self):
         # Look for jobs that need to be processed:

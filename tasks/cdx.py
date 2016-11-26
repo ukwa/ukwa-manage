@@ -100,6 +100,18 @@ class WARCToOutbackCDX(luigi.Task):
             out_file.write('{}'.format(json.dumps({ 'totals': stats , 'by-host': hosts_stats}, indent=4)))
 
 
+#class IndexWarcs(luigi.WrapperTask):
+#    task_namespace = 'cdx'
+#    job = luigi.EnumParameter(enum=Jobs)
+#    launch_id = luigi.Parameter()
+#    paths = luigi.ListParameter()
+#
+#    def requires(self):
+#        for item in self.paths:
+#            yield WARCToOutbackCDX(self.job, self.launch, os.path.basename(item), item)
+#
+
+
 class ScanForIndexing(ScanForLaunches):
     """
     This scans for WARCs associated with a particular launch of a given job and CDX indexes them.
@@ -112,12 +124,12 @@ class ScanForIndexing(ScanForLaunches):
         # n.b. 'viral' don't get indexed, and 'wren' ones should get moved in.
         glob_path = "%s/output/warcs/%s/%s/*.warc.gz" % (h3().local_root_folder, job.name, launch)
         logger.info("PID:%s is looking for warcs: %s" % (os.getpid(), glob_path))
-        jobs = []
+        #warcs = []
         for item in glob.glob(glob_path):
             logger.info("PID:%s is yielding %s" % (os.getpid(), item))
             yield WARCToOutbackCDX(job, launch, os.path.basename(item), item)
-            #jobs.append(WARCToOutbackCDX(job, launch, os.path.basename(item), item))
-        #return jobs
+            #warcs.append(item)
+        #return IndexWarcs(job, launch, warcs)
 
 if __name__ == '__main__':
     luigi.run(['scan.ScanForIndexing', '--date-interval', '2016-11-01-2016-11-10'])
