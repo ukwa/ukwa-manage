@@ -168,11 +168,11 @@ class StartJob(luigi.Task):
 
 
 @StartJob.event_handler(luigi.Event.SUCCESS)
-def notify_success(task):
+def startjob_notify_success(task):
     """
     Always inform the channel when a crawl is started:
     """
-    if slack().token and task.stage == 'final':
+    if slack().token:
         sc = SlackClient(slack().token)
         print(sc.api_call(
             "chat.postMessage", channel="#crawls",
