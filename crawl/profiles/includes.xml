@@ -116,6 +116,8 @@
 					<value>http://(com,oxforddnb,</value>
 					<value>http://(com,oup,global,</value>
 					<value>http://(uk,org,brereton,</value>
+					<value>http://(uk,org,webarchive,www,)/wayback</value>
+					<value>http://(uk,org,webarchive,beta,</value>
 				</list>
 			</property>
 			<property name="targetSheetNames">
@@ -127,6 +129,8 @@
 		<bean class="org.archive.crawler.spring.SurtPrefixesSheetAssociation">
 			<property name="surtPrefixes">
 				<list>
+					<value>http://(wales,gov,</value>
+					<value>http://(uk,gov,www,</value>
 					<value>http://(uk,gov,nationalarchives,</value>
 				</list>
 			</property>
