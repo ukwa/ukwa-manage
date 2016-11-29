@@ -335,32 +335,6 @@
 	</bean>
 	<bean id="extractorJs" class="org.archive.modules.extractor.ExtractorJS">
 	</bean>
-    <bean id="extractorMq" class="org.archive.modules.AMQPPublishProcessor">
-      <property name="clientId" value="REPLACE_JOB_NAME" />
-      <property name="routingKey" value="wrender-frequent" />
-      <property name="exchange" value="heritrix" />
-      <property name="amqpUri" value="amqp://guest:guest@REPLACE_AMQP_HOST:5672/%2f" />
-      <property name="shouldProcessRule">
-          <bean class="org.archive.modules.deciderules.DecideRuleSequence">
-              <property name="rules">
-                  <list>
-                      <!-- Begin by REJECTing all... -->
-                      <bean class="org.archive.modules.deciderules.RejectDecideRule"/>
-                      <!-- ...then ACCEPT http(s) URLs with an acceptable HTTP status... -->
-                      <bean class="org.archive.modules.deciderules.SeedAcceptDecideRule"/>
-                      <bean class="org.archive.modules.deciderules.MatchesRegexDecideRule">
-                          <property name="regex" value="^https?://[^/]+/$"/>
-                          <property name="decision" value="ACCEPT"/>
-                      </bean>
-                      <bean class="org.archive.modules.deciderules.ExpressionDecideRule">
-                          <property name="decision" value="REJECT"/>
-                          <property name="groovyExpression" value="(curi.getFetchStatus() &lt; 200 || curi.getFetchStatus() &gt;= 300)"/>
-                      </bean>
-                  </list>
-              </property>
-          </bean>
-      </property>
-    </bean>
     <!-- a 'top-level' bean that listens for URLs from AMQP -->
     <bean class="org.archive.crawler.frontier.AMQPUrlReceiver">
       <property name="amqpUri" value="amqp://guest:guest@REPLACE_AMQP_HOST:5672/%2f" />
@@ -409,10 +383,6 @@
 				<ref bean="extractorHttp"/>
 				<!-- ...suppress likely crawler traps... -->
 				<!--ref bean="trapSuppressExtractor" /-->
-				<!-- ...extract oulinks via Asynchronous Messaging Queue... -->
-				<!--
-				<ref bean="extractorMq"/>
-				-->
 				<!-- ...extract outlinks from JSON... -->
 				<!--
 				<ref bean="extractorJson" />
