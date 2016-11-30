@@ -10,6 +10,7 @@ import threading
 import subprocess
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
+import shutil
 from common import *
 from crawl_job_tasks import CheckJobStopped
 
@@ -140,7 +141,7 @@ class CloseOpenWarcFile(luigi.Task):
         open_path = "%s.open" % self.path
         if os.path.isfile(open_path) and not os.path.isfile(self.path):
             logger.info("Found an open file that needs closing: %s " % open_path)
-            os.rename(open_path, self.path)
+            shutil.move(open_path, self.path)
 
 
 class ClosedWarcFile(luigi.ExternalTask):
@@ -300,7 +301,7 @@ class MoveToWarcsFolder(luigi.Task):
 
     # When run, just move the file:
     def run(self):
-        os.rename(self.path, self.output().path)
+        shutil.move(self.path, self.output().path)
 
 
 class MoveFilesForLaunch(luigi.Task):
