@@ -30,7 +30,7 @@ scope_sheets = {"resource": "resourceScope", "plus1": "plus1Scope", "subdomains"
 W3ACT_FIELDS=["id", "title", "schedules", "depth", "scope", "ignoreRobotsTxt"]
 
 HERITRIX_CONFIG_ROOT=os.path.realpath(os.path.join(os.path.dirname(__file__),"../profiles"))
-HERITRIX_PROFILE="%s/profile-frequent.cxml" % HERITRIX_CONFIG_ROOT
+HERITRIX_PROFILE="%s/profile-pulse.cxml" % HERITRIX_CONFIG_ROOT
 HERITRIX_EXCLUDE="%s/exclude.txt" % HERITRIX_CONFIG_ROOT
 HERITRIX_SHORTENERS="%s/url.shorteners.txt" % HERITRIX_CONFIG_ROOT
 HERITRIX_SURTS="%s/surts.txt" % HERITRIX_CONFIG_ROOT
