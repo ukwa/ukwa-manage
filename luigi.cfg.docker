@@ -25,7 +25,7 @@ username=wa-sysadm@bl.uk
 password=sysAdmin
 
 [h3]
-host=ukwa-heritrix-lbs
+host=ukwa-heritrix-daily
 port=8443
 username=heritrix
 password=heritrix
