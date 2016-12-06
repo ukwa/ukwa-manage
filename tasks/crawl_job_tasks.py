@@ -37,7 +37,6 @@ class CrawlFeed(luigi.Task):
             f.write('{}'.format(json.dumps(targets, indent=4)))
 
 
-
 def mark_job_as(job, launch_id, mark):
     record = jtarget(job, launch_id, mark)
     with record.open('w') as f:
