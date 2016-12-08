@@ -190,13 +190,17 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
             def read(self, size=None):
                 logger.warning("read()ing from current position: %i" % self.pos)
                 chunk = self.stream.read(size)
+                logger.warning("read() %s" % chunk)
                 self.pos += len(chunk)
+                logger.warning("read()ing current position now: %i" % self.pos)
                 return chunk
 
             def readline(self):
                 logger.warning("readline()ing from current position: %i" % self.pos)
                 line = self.stream.readline()
+                logger.warning("readline() %s" % line)
                 self.pos += len(bytes(line))
+                logger.warning("readline()ing current position now: %i" % self.pos)
                 return line
 
             def tell(self):
@@ -210,6 +214,7 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
         for (offset, record, errors) in fh.read_records(limit=None):
             logger.warning("GOT %s :: %s :: %s" % (offset, record, errors))
             if record:
+                logger.warning("WarcRecord type=%s" % record.type)
                 yield record,
             else:
                 logging.error(errors)
