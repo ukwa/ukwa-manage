@@ -2,9 +2,14 @@ import os
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
-import pywb
 import urlparse
 from pywb.warc.archiveiterator import DefaultRecordParser
+# Additional imports so Python jobs can package required dependencies:
+import pywb
+import six
+import brotli
+import enum
+import _cffi_backend
 
 
 class ExternalListFile(luigi.ExternalTask):
@@ -110,7 +115,7 @@ class ExternalFilesFromList(luigi.ExternalTask):
         :rtype: object (:py:class:`luigi.target.Target`)
         """
         for line in open(self.input_file, 'r').readlines():
-            return luigi.contrib.hdfs.HdfsTarget(line)
+            yield luigi.contrib.hdfs.HdfsTarget(line.strip(), format=luigi.contrib.hdfs.format.PlainFormat)
 
 
 class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
@@ -135,6 +140,9 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
 
     def extra_files(self):
         return ["luigi.cfg"]
+
+    def extra_modules(self):
+        return [pywb, six, brotli, enum, _cffi_backend]
 
     def libjars(self):
         return ["../jars/warc-hadoop-recordreaders-2.2.0-BETA-7-SNAPSHOT-job.jar"]
@@ -184,4 +192,4 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
 
 
 if __name__ == '__main__':
-    luigi.run(['GenerateWarcStats', '--input-file', 'warc-test-list.txt', '--local-scheduler'])
+    luigi.run(['GenerateWarcStats', '--input-file', 'daily-warcs-test.txt', '--local-scheduler'])
