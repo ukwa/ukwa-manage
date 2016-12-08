@@ -1,6 +1,7 @@
 import os
 import io
 import sys
+import logging
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
@@ -12,6 +13,7 @@ try:
 except ImportError:
     from httplib import HTTPResponse
 
+logger = logging.getLogger('luigi-interface')
 
 #    This was an experiment with Python-based streaming Hadoop jobs for performing basic processing of warcs
 # and e.g. generating stats. However all implementations (`warctools`, `warc` and `pywb`) require
@@ -188,10 +190,11 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
 
             def readline(self):
                 line = self.stream.readline()
-                self.pos += len(line)
+                self.pos += len(bytes(line))
                 return line
 
             def tell(self):
+                logger.info("tell()ing current position: %i" % self.pos)
                 return self.pos
 
 

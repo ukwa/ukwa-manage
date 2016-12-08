@@ -1,8 +1,10 @@
 import os
+import logging
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
 
+logger = logging.getLogger('luigi-interface')
 
 class GenerateWarcStats(luigi.contrib.hadoop_jar.HadoopJarJobTask):
     """
