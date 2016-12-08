@@ -208,9 +208,11 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
                                                      gzip=None)
 
         for (offset, record, errors) in fh.read_records(limit=None):
-            print("GOT", offset, record, errors)
+            logger.warning("GOT %s :: %s :: %s" % (offset, record, errors))
             if record:
                 yield record,
+            else:
+                logging.error(errors)
 
     def mapper(self, record):
         """
