@@ -1,0 +1,9 @@
+[hadoop]
+streaming-jar=/usr/local/Cellar/hadoop/2.7.3/libexec/share/hadoop/tools/lib/hadoop-streaming-2.7.3.jar
+version=cdh3
+python-executable=/usr/local/bin/python2.7
+
+[blit]
+http-proxy=http://192.168.1.1:3127
+url-template=http://192.168.218.83/%s
+hdfs-url-template=http://nellie-private.bl.uk:14000/webhdfs/v1/user/anjackson/%s?op=OPEN&user.name=hdfs
