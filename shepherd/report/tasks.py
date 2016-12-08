@@ -1,5 +1,6 @@
 import os
 import io
+import sys
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
@@ -147,11 +148,25 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
     def libjars(self):
         return ["../jars/warc-hadoop-recordreaders-2.2.0-BETA-7-SNAPSHOT-job.jar"]
 
-    def reader(self, input_stream):
-        # Special reader to read the input stream and yield CDX entries:
-        fh = hanzo.warctools.WarcRecord.open_archive(filename="dummy.warc.gz", file_handle=io.BufferedReader(input_stream))
+    def run_mapper(self, stdin=sys.stdin, stdout=sys.stdout):
+        """
+        Run the mapper on the hadoop node.
+        ANJ: Creating modified version to pass through the raw stdin
+        """
+        self.init_hadoop()
+        self.init_mapper()
+        outputs = self._map_input(stdin)
+        if self.reducer == NotImplemented:
+            self.writer(outputs, stdout)
+        else:
+            self.internal_writer(outputs, stdout)
 
-        for (offset, record, errors) in fh.read_records(limit=None,offsets=False):
+    def reader(self, stdin):
+        # Special reader to read the input stream and yield WARC records:
+        fh = hanzo.warctools.WarcRecord.open_archive(filename="dummy.warc.gz",
+                                                     file_handle=io.BufferedReader(stdin))
+
+        for (offset, record, errors) in fh.read_records(limit=None):
             if record:
                 yield record
 
