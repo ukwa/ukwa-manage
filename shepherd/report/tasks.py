@@ -1,22 +1,15 @@
 import os
+import io
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 import urlparse
-from pywb.warc.archiveiterator import DefaultRecordParser
 import hanzo, hanzo.warctools
 from hanzo.warctools import WarcRecord
 try:
     from http.client import HTTPResponse
 except ImportError:
     from httplib import HTTPResponse
-
-# Additional imports so Python jobs can package required dependencies:
-import pywb
-import six
-import brotli
-import enum
-import _cffi_backend
 
 
 class ExternalListFile(luigi.ExternalTask):
@@ -53,7 +46,7 @@ class GenerateWarcStatsIndirect(luigi.contrib.hadoop.JobTask):
         return ExternalListFile(self.input_file)
 
     def extra_modules(self):
-        return [pywb.warc.archiveiterator]
+        return []
 
     def extra_files(self):
         return ["luigi.cfg"]
@@ -84,17 +77,17 @@ class GenerateWarcStatsIndirect(luigi.contrib.hadoop.JobTask):
             return
 
         warc = luigi.contrib.hdfs.HdfsTarget(line)
-        entry_iter = DefaultRecordParser(sort=False,
-                                         surt_ordered=True,
-                                         include_all=False,
-                                         verify_http=False,
-                                         cdx09=False,
-                                         cdxj=False,
-                                         minimal=False)(warc.open('rb'))
+        #entry_iter = DefaultRecordParser(sort=False,
+        #                                 surt_ordered=True,
+       ##                                  include_all=False,
+        #                                 verify_http=False,
+        #                                 cdx09=False,
+        #                                 cdxj=False,
+        #                                 minimal=False)(warc.open('rb'))
 
-        for entry in entry_iter:
-            hostname = urlparse.urlparse(entry['url']).hostname
-            yield hostname, entry['status']
+        #for entry in entry_iter:
+        #    hostname = urlparse.urlparse(entry['url']).hostname
+        #    yield hostname, entry['status']
 
     def reducer(self, key, values):
         """
@@ -156,9 +149,9 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
 
     def reader(self, input_stream):
         # Special reader to read the input stream and yield CDX entries:
-        fh = hanzo.warctools.WarcRecord.open_archive(filename=self.input().path, file_handle=input_stream)
+        fh = hanzo.warctools.WarcRecord.open_archive(filename="dummy.warc.gz", file_handle=io.BufferedReader(input_stream))
 
-        for (offset, record, errors) in fh.read_records(limit=None):
+        for (offset, record, errors) in fh.read_records(limit=None,offsets=False):
             if record:
                 yield record
 
