@@ -163,7 +163,14 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
 
     def reader(self, stdin):
         # Special reader to read the input stream and yield WARC records:
-        class TellingReader(object):
+        class TellingReader():
+
+            def __init__(self, stream):
+                self.stream = stream
+
+            def read(self, size=None):
+                chunk = self.stream.read(size=size)
+                return chunk
 
             def tell(self):
                 return 0
