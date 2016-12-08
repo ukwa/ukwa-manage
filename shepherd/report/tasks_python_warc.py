@@ -15,7 +15,8 @@ except ImportError:
 
 logger = logging.getLogger('luigi-interface')
 
-#    This was an experiment with Python-based streaming Hadoop jobs for performing basic processing of warcs
+#
+# This was an experiment with Python-based streaming Hadoop jobs for performing basic processing of warcs
 # and e.g. generating stats. However all implementations (`warctools`, `warc` and `pywb`) require
 # behaviour that is 'difficult' to support. For the first two, both use Python's gzip support,
 # which requires seekable streams (e.g. `seek(offset,whence)` support). Python Wayback (`pywb`)
@@ -23,6 +24,9 @@ logger = logging.getLogger('luigi-interface')
 # makes deployment more difficult. Therefore, we use Java map-reduce jobs for WARC parsing, but
 # we can generate simple line-oriented text files from the WARCs, after which streaming works
 # just fine.
+#
+# Also attempted to use Hadoop's built-in auto-gunzipping support, which is built into streaming mode.
+#
 
 class ExternalListFile(luigi.ExternalTask):
     """
@@ -194,11 +198,10 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
                 return line
 
             def tell(self):
-                logger.info("tell()ing current position: %i" % self.pos)
+                logger.warning("tell()ing current position: %i" % self.pos)
                 return self.pos
 
-
-        fh = hanzo.warctools.WarcRecord.open_archive(filename="dummy.warc",
+        fh = hanzo.warctools.WarcRecord.open_archive(WarcRecord, filename="dummy.warc",
                                                      file_handle=TellingReader(stdin),
                                                      gzip=None)
 
