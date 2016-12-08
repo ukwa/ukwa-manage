@@ -173,7 +173,7 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
                 return chunk
 
             def seek(self, pos, whence=None):
-                return self.stream.seek(pos, whence=whence)
+                return self.stream.seek(pos, whence)
 
             def tell(self):
                 return 0
