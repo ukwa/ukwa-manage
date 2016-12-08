@@ -28,7 +28,7 @@ class GenerateWarcStats(luigi.contrib.hadoop_jar.HadoopJarJobTask):
         return "uk.bl.wa.hadoop.mapreduce.warcstats.WARCStatsTool"
 
     def args(self):
-        return [self.input_file]
+        return [self.input_file, self.output().path]
 
 
 if __name__ == '__main__':
