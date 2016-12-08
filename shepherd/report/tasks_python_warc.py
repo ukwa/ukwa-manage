@@ -182,7 +182,7 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
                 self.pos = 0
 
             def read(self, size=None):
-                chunk = self.stream.read(size=size)
+                chunk = self.stream.read(size)
                 self.pos += len(chunk)
                 return chunk
 
@@ -194,7 +194,8 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
 
 
         fh = hanzo.warctools.WarcRecord.open_archive(filename="dummy.warc",
-                                                     file_handle=TellingReader(stdin))
+                                                     file_handle=TellingReader(stdin),
+                                                     gzip=None)
 
         for (offset, record, errors) in fh.read_records(limit=None):
             if record:
