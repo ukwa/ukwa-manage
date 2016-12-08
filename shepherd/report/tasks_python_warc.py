@@ -154,6 +154,10 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
         return [hanzo]
 
     def libjars(self):
+        """
+        Declare custom code, just for the UnsplittableInputFileFormat:
+        :return:
+        """
         return ["../jars/warc-hadoop-recordreaders-2.2.0-BETA-7-SNAPSHOT-job.jar"]
 
     def run_mapper(self, stdin=sys.stdin, stdout=sys.stdout):
@@ -183,14 +187,13 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
                 return chunk
 
             def seek(self, pos, whence=None):
-                #return self.stream.seek(pos, whence)
-                return 0
+                return self.stream.seek(pos, whence)
 
             def tell(self):
                 return self.pos
 
 
-        fh = hanzo.warctools.WarcRecord.open_archive(filename="dummy.warc.gz",
+        fh = hanzo.warctools.WarcRecord.open_archive(filename="dummy.warc",
                                                      file_handle=TellingReader(stdin))
 
         for (offset, record, errors) in fh.read_records(limit=None):
