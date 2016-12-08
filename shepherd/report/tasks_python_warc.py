@@ -201,7 +201,7 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
 
         for (offset, record, errors) in fh.read_records(limit=None):
             if record:
-                yield record
+                yield record,
 
     def mapper(self, record):
         """
