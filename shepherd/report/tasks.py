@@ -181,3 +181,7 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
         """
         for value in values:
             yield key, sum(values)
+
+
+if __name__ == '__main__':
+    luigi.run(['GenerateWarcStats', '--input-file', 'warc-test-list.txt', '--local-scheduler'])
