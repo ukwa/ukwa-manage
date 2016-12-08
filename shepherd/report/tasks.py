@@ -4,6 +4,13 @@ import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 import urlparse
 from pywb.warc.archiveiterator import DefaultRecordParser
+import hanzo, hanzo.warctools
+from hanzo.warctools import WarcRecord
+try:
+    from http.client import HTTPResponse
+except ImportError:
+    from httplib import HTTPResponse
+
 # Additional imports so Python jobs can package required dependencies:
 import pywb
 import six
@@ -142,43 +149,35 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
         return ["luigi.cfg"]
 
     def extra_modules(self):
-        return [pywb, six, brotli, enum, _cffi_backend]
+        return [hanzo]
 
     def libjars(self):
         return ["../jars/warc-hadoop-recordreaders-2.2.0-BETA-7-SNAPSHOT-job.jar"]
 
     def reader(self, input_stream):
-        # Special code to read the input stream and yield CDX entries:
-        entry_iter = DefaultRecordParser(sort=False,
-                                         surt_ordered=True,
-                                         include_all=False,
-                                         verify_http=False,
-                                         cdx09=False,
-                                         cdxj=False,
-                                         minimal=False)(input_stream)
+        # Special reader to read the input stream and yield CDX entries:
+        fh = hanzo.warctools.WarcRecord.open_archive(filename=self.input().path, file_handle=input_stream)
 
-        for entry in entry_iter:
-            yield entry
+        for (offset, record, errors) in fh.read_records(limit=None):
+            if record:
+                yield record
 
-    def mapper(self, entry):
+    def mapper(self, record):
         """
-        The pywb record parser gives access to the following properties (at least):
 
-        entry['urlkey']
-        entry['timestamp']
-        entry['url']
-        entry['mime']
-        entry['status']
-        entry['digest']
-        entry['length']
-        entry['offset']
-
-        :param line:
+        :param record:
         :return:
         """
 
-        hostname = urlparse.urlparse(entry['url']).hostname
-        yield hostname, entry['status']
+        # Look at HTTP Responses:
+        if (record.type == WarcRecord.RESPONSE
+                and record.content_type.startswith(b'application/http')):
+            # Parse the HTTP Headers:
+            f = HTTPResponse(record.content_file)
+            f.begin()
+
+            hostname = urlparse.urlparse(record.url).hostname
+            yield hostname, f.status
 
     def reducer(self, key, values):
         """
