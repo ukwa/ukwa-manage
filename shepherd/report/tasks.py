@@ -164,7 +164,7 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
     def reader(self, stdin):
         # Special reader to read the input stream and yield WARC records:
         fh = hanzo.warctools.WarcRecord.open_archive(filename="dummy.warc.gz",
-                                                     file_handle=io.BufferedReader(stdin))
+                                                     file_handle=io.BufferedReader(stdin.fileno()))
 
         for (offset, record, errors) in fh.read_records(limit=None):
             if record:
