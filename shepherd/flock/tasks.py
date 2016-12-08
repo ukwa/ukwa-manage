@@ -11,7 +11,7 @@ class StartHeritrix(luigi.Task):
     NOT in production. Just an idea right now.
     '''
     task_namespace = 'flock'
-    job = luigi.Parameter()
+    job = luigi.Parameter() 
 
     #def requires(self):
     #    return [ StopJob(self.job), CrawlFeed(frequency=self.job.name), CrawlFeed(frequency='nevercrawl') ]
