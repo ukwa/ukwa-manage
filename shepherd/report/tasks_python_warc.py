@@ -201,7 +201,7 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
                 logger.warning("tell()ing current position: %i" % self.pos)
                 return self.pos
 
-        fh = hanzo.warctools.WarcRecord.open_archive(WarcRecord, filename="dummy.warc",
+        fh = hanzo.warctools.WarcRecord.open_archive(filename="dummy.warc",
                                                      file_handle=TellingReader(stdin),
                                                      gzip=None)
 
