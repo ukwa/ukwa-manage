@@ -188,11 +188,13 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
                 self.pos = 0
 
             def read(self, size=None):
+                logger.warning("read()ing from current position: %i" % self.pos)
                 chunk = self.stream.read(size)
                 self.pos += len(chunk)
                 return chunk
 
             def readline(self):
+                logger.warning("readline()ing from current position: %i" % self.pos)
                 line = self.stream.readline()
                 self.pos += len(bytes(line))
                 return line
@@ -206,6 +208,7 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
                                                      gzip=None)
 
         for (offset, record, errors) in fh.read_records(limit=None):
+            print("GOT", offset, record, errors)
             if record:
                 yield record,
 
