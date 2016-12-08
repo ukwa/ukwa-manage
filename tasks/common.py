@@ -158,7 +158,6 @@ class ScanForLaunches(luigi.WrapperTask):
                             yield (job, launch)
 
 
-
 @luigi.Task.event_handler(luigi.Event.FAILURE)
 def notify_failure(task, exception):
     """Will be called directly after a failed execution
@@ -173,4 +172,19 @@ def notify_failure(task, exception):
         logger.error("No Slack auth token set, no message sent.")
         logger.error(task)
         logger.exception(exception)
+
+
+@luigi.Task.event_handler(luigi.Event.SUCCESS)
+def celebrate_success(task):
+    """Will be called directly after a successful execution
+       of `run` on any Task subclass (i.e. all luigi Tasks)
+    """
+    if slack().token:
+        sc = SlackClient(slack().token)
+        print(sc.api_call(
+            "chat.postMessage", channel="#crawls",
+            text="%s! :tada:"
+                 % format_crawl_task(task), username='crawljobbot'))
+    else:
+        logger.warning("No Slack auth token set, no message sent.")
 
