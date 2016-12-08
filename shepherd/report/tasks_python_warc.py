@@ -178,7 +178,7 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
         class TellingReader():
 
             def __init__(self, stream):
-                self.stream = io.open(stream.fileno())
+                self.stream = stream
                 self.pos = 0
 
             def read(self, size=None):
@@ -186,8 +186,10 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
                 self.pos += len(chunk)
                 return chunk
 
-            def seek(self, pos, whence=None):
-                return self.stream.seek(pos, whence)
+            def readline(self):
+                line = self.stream.readline()
+                self.pos += len(line)
+                return line
 
             def tell(self):
                 return self.pos
