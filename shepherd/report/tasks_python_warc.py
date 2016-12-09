@@ -236,7 +236,14 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
         if (record.type == WarcRecord.RESPONSE
                 and record.content_type.startswith(b'application/http')):
             # Parse the HTTP Headers:
-            f = HTTPResponse(record.content_file)
+            class FakeSocket():
+                def __init__(self, content_file):
+                    self._file = content_file
+
+                def makefile(self, *args, **kwargs):
+                    return self._file
+
+            f = HTTPResponse(FakeSocket(record.content_file))
             f.begin()
 
             hostname = urlparse.urlparse(record.url).hostname
