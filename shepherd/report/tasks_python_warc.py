@@ -168,7 +168,7 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
                 super(BinaryInputHadoopJobRunner, self).__init__(
                     streaming_jar=streaming_jar,
                     input_format="uk.bl.wa.hadoop.mapreduce.hash.UnsplittableInputFileFormat",
-                    libjars="../jars/warc-hadoop-recordreaders-2.2.0-BETA-7-SNAPSHOT-job.jar")
+                    libjars=["../jars/warc-hadoop-recordreaders-2.2.0-BETA-7-SNAPSHOT-job.jar"])
 
         return BinaryInputHadoopJobRunner()
 
