@@ -183,8 +183,7 @@ def celebrate_success(task):
         sc = SlackClient(slack().token)
         print(sc.api_call(
             "chat.postMessage", channel="#crawls",
-            text="%s! :tada:"
-                 % format_crawl_task(task), username='crawljobbot'))
+            text="%s! :tada:" % task, username='crawljobbot'))
     else:
         logger.warning("No Slack auth token set, no message sent.")
 
