@@ -144,8 +144,6 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
     """
     input_file = luigi.Parameter()
 
-    input_format = "uk.bl.wa.hadoop.mapreduce.hash.UnsplittableInputFileFormat"
-
     def output(self):
         out_name = "%s-stats.tsv" % os.path.splitext(self.input_file)[0]
         return luigi.contrib.hdfs.HdfsTarget(out_name, format=luigi.contrib.hdfs.PlainDir)
@@ -165,6 +163,9 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
         :return:
         """
         return ["../jars/warc-hadoop-recordreaders-2.2.0-BETA-7-SNAPSHOT-job.jar"]
+
+    def input_format(self):
+        return "uk.bl.wa.hadoop.mapreduce.hash.UnsplittableInputFileFormat"
 
     def run_mapper(self, stdin=sys.stdin, stdout=sys.stdout):
         """
