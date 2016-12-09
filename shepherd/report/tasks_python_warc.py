@@ -6,7 +6,7 @@ import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 import urlparse
-import hanzo, hanzo.warctools
+import hanzo, hanzo.warctools, hanzo.warcpayload
 from hanzo.warctools import WarcRecord
 try:
     from http.client import HTTPResponse
@@ -235,15 +235,8 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
         # Look at HTTP Responses:
         if (record.type == WarcRecord.RESPONSE
                 and record.content_type.startswith(b'application/http')):
-            # Parse the HTTP Headers:
-            class FakeSocket():
-                def __init__(self, content_file):
-                    self._file = content_file
-
-                def makefile(self, *args, **kwargs):
-                    return self._file
-
-            f = HTTPResponse(FakeSocket(record.content_file))
+            # Parse the HTTP Headers, faking a socket wrapper:
+            f = hanzo.warcpayload.FileHTTPResponse(record.content_file)
             f.begin()
 
             hostname = urlparse.urlparse(record.url).hostname
@@ -258,6 +251,8 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
         """
         for value in values:
             yield key, sum(values)
+
+
 
 
 if __name__ == '__main__':
