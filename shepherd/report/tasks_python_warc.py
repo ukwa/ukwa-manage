@@ -26,6 +26,8 @@ logger = logging.getLogger('luigi-interface')
 # just fine.
 #
 # Also attempted to use Hadoop's built-in auto-gunzipping support, which is built into streaming mode.
+# After some difficulties, this could be made to work, but was unreliable as different nodes would behave differently
+# with respect to keeping-going when gunzipping concateneted gz records.
 #
 
 class ExternalListFile(luigi.ExternalTask):
@@ -201,9 +203,9 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
                 logger.warning("read()ing current position now: %i" % self.pos)
                 return chunk
 
-            def readline(self):
+            def readline(self,size=None):
                 logger.warning("readline()ing from current position: %i" % self.pos)
-                line = self.stream.readline()
+                line = self.stream.readline(size)
                 logger.warning("readline() %s" % line)
                 self.pos += len(bytes(line))
                 logger.warning("readline()ing current position now: %i" % self.pos)

@@ -32,7 +32,9 @@ class DocumentMDEx(object):
         self.null_if_no_target_found = null_if_no_target_found
 
     def lp_wb_url(self):
-        wb_url = "%s/%s/%s" % ( systems().wayback, self.doc['wayback_timestamp'], self.doc['landing_page_url'])
+        # FIXME Redirect due to timestamp goes through W3ACT! Going direct to live web for now:
+        #wb_url = "%s/%s/%s" % ( systems().wayback, self.doc['wayback_timestamp'], self.doc['landing_page_url'])
+        wb_url =  self.doc['landing_page_url']
         return wb_url
 
     def doc_wb_url(self):
