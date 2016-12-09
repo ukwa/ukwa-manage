@@ -164,8 +164,19 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
         """
         return ["../jars/warc-hadoop-recordreaders-2.2.0-BETA-7-SNAPSHOT-job.jar"]
 
-    def input_format(self):
-        return "uk.bl.wa.hadoop.mapreduce.hash.UnsplittableInputFileFormat"
+    def job_runner(self):
+        class BinaryInputHadoopJobRunner(luigi.contrib.hadoop.HadoopJobRunner):
+            """
+            A job runner to use the UnsplittableInputFileFormat (based on DefaultHadoopJobRunner):
+            """
+            def __init__(self):
+                config = luigi.configuration.get_config()
+                streaming_jar = config.get('hadoop', 'streaming-jar')
+                super(BinaryInputHadoopJobRunner, self).__init__(
+                    streaming_jar=streaming_jar,
+                    input_format="uk.bl.wa.hadoop.mapreduce.hash.UnsplittableInputFileFormat")
+
+        return BinaryInputHadoopJobRunner()
 
     def run_mapper(self, stdin=sys.stdin, stdout=sys.stdout):
         """
