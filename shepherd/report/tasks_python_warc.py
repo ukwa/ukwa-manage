@@ -184,7 +184,7 @@ class GenerateWarcStats(luigi.contrib.hadoop.JobTask):
         class TellingReader():
 
             def __init__(self, stream):
-                self.stream = stream
+                self.stream = io.open(stream.fileno(),'rb')
                 self.pos = 0
 
             def read(self, size=None):
