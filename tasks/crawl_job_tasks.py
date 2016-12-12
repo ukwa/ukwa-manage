@@ -126,19 +126,19 @@ class StopJob(luigi.Task):
 class StartJob(luigi.Task):
     task_namespace = 'pulse'
     job = luigi.EnumParameter(enum=Jobs)
-    date = luigi.DateParameter(default=datetime.date.today())
+    date = luigi.DateMinuteParameter(default=datetime.datetime.today())
     from_latest_checkpoint = luigi.BoolParameter(default=False)
 
     def requires(self):
         return [ StopJob(self.job), CrawlFeed(frequency=self.job.name), CrawlFeed(frequency='nevercrawl') ]
 
     # Do no output anything, as we don't want anything to prevent restarts, or initiate downstream actions.
-    #def output(self):
-    #    return luigi.LocalTarget('state/jobs/{}.started.{}'.format(self.job.name, self.date.isoformat()))
+    def output(self):
+        return luigi.LocalTarget('state/jobs/{}.started.{}'.format(self.job.name, self.date.isoformat()))
 
     # Always allow re-starting:
-    def complete(self):
-        return False
+    #def complete(self):
+    #    return False
 
     def run(self):
         # Set up connection to H3:
@@ -157,8 +157,8 @@ class StartJob(luigi.Task):
         launch_id = h.get_launch_id(self.job.name)
 
         logger.info("Launched job %s/%s with %s seeds." % (job.name, launch_id, len(job.seeds)))
-        #with self.output().open('w') as f:
-        #    f.write('{}\n'.format(launch_id))
+        with self.output().open('w') as f:
+            f.write('{}\n'.format(launch_id))
 
         # Record an output file that can be use as a Target by a different task.:
         mark_job_as(job, launch_id, 'started')
@@ -167,18 +167,8 @@ class StartJob(luigi.Task):
 
 
 @StartJob.event_handler(luigi.Event.SUCCESS)
-def startjob_notify_success(task):
-    """
-    Always inform the channel when a crawl is started:
-    """
-    if slack().token:
-        sc = SlackClient(slack().token)
-        print(sc.api_call(
-            "chat.postMessage", channel="#crawls",
-            text="Job %s (re)started successfully! :tada:"
-                 % format_crawl_task(task), username='crawljobbot'))
-    else:
-        logger.warning("No Slack auth token set, no message sent.")
+def run_task_success(task):
+    celebrate_success(task)
 
 
 if __name__ == '__main__':

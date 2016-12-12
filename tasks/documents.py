@@ -118,8 +118,6 @@ class AvailableInWayback(luigi.ExternalTask):
             return False
 
 
-
-
 class RecordDocumentInMonitrix(luigi.contrib.esindex.CopyToIndex):
     """
     Post the document to Monitrix, i.e. push into an appropriate Elasticsearch index.
@@ -347,6 +345,11 @@ class ScanLogForDocsIfStopped(luigi.Task):
 
     def run(self):
         yield ScanLogForDocs(self.job, self.launch_id, self.path, self.stage)
+
+
+@ExtractDocumentAndPost.event_handler(luigi.Event.SUCCESS)
+def run_task_success(task):
+    celebrate_success(task)
 
 
 class ScanForDocuments(ScanForLaunches):

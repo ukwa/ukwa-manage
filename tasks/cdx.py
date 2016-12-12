@@ -6,6 +6,7 @@ import luigi.contrib.hdfs
 from urlparse import urlparse
 from pywb.warc.archiveiterator import DefaultRecordParser
 from common import *
+from crawl_job_tasks import CheckJobStopped
 
 
 def cdx_line(entry, filename):
@@ -110,6 +111,31 @@ class WARCToOutbackCDX(luigi.Task):
 #        for item in self.paths:
 #            yield WARCToOutbackCDX(self.job, self.launch, os.path.basename(item), item)
 #
+
+
+class WARCToOutbackCDXIfStopped(luigi.Task):
+    task_namespace = 'cdx'
+    job = luigi.EnumParameter(enum=Jobs)
+    launch_id = luigi.Parameter()
+    filename = luigi.Parameter()
+    path = luigi.Parameter()
+
+    # Require that the job is stopped:
+    def requires(self):
+        return CheckJobStopped(self.job, self.launch_id)
+
+    # Use the output of the underlying MoveToHdfs call:
+    def output(self):
+        return WARCToOutbackCDX(self.job, self.launch_id, self.path, self.delete_local).output()
+
+    # Call the MoveToHdfs task as a dynamic dependency:
+    def run(self):
+        yield WARCToOutbackCDX(self.job, self.launch_id, self.path, self.delete_local)
+
+
+@WARCToOutbackCDX.event_handler(luigi.Event.SUCCESS)
+def run_task_success(task):
+    celebrate_success(task)
 
 
 class ScanForIndexing(ScanForLaunches):

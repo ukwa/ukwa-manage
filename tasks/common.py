@@ -174,7 +174,7 @@ def notify_failure(task, exception):
         logger.exception(exception)
 
 
-@luigi.Task.event_handler(luigi.Event.SUCCESS)
+#@luigi.Task.event_handler(luigi.Event.SUCCESS)
 def celebrate_success(task):
     """Will be called directly after a successful execution
        of `run` on any Task subclass (i.e. all luigi Tasks)
@@ -183,7 +183,6 @@ def celebrate_success(task):
         sc = SlackClient(slack().token)
         print(sc.api_call(
             "chat.postMessage", channel="#crawls",
-            text="%s! :tada:" % task, username='crawljobbot'))
+            text="Job %s succeeded! :tada:" % task, username='crawljobbot'))
     else:
         logger.warning("No Slack auth token set, no message sent.")
-
