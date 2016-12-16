@@ -100,27 +100,27 @@ stdout_events_enabled = true
 stderr_events_enabled = true
 
 ; This program runs a basic crawler dashboard
-[program:crawldash]
-command=gunicorn crawl.ui.dashboard:app -c crawl/ui/gunicorn.conf.py
-directory=/shepherd/
-user=nobody
-autostart=true
-autorestart=true
-redirect_stderr=true
-environment=PYTHONUNBUFFERED="TRUE",SHEPHERD_CONFIG="/shepherd/crawl/docker.cfg"
-stdout_events_enabled = true
-stderr_events_enabled = true
+;[program:crawldash]
+;command=gunicorn crawl.ui.dashboard:app -c crawl/ui/gunicorn.conf.py
+;directory=/shepherd/
+;user=nobody
+;autostart=true
+;autorestart=true
+;redirect_stderr=true
+;environment=PYTHONUNBUFFERED="TRUE",SHEPHERD_CONFIG="/shepherd/crawl/docker.cfg"
+;stdout_events_enabled = true
+;stderr_events_enabled = true
 
-;
-; Run a one-off process at start up to get things going:
-;
-[program:pulse-start-daily]
-command=sh -c "sleep 30; pulse start daily"
-autorestart = false
-startsecs = 0
-redirect_stderr=true
-stdout_events_enabled = true
-stderr_events_enabled = true
+;;
+;; Run a one-off process at start up to get things going:
+;;
+;[program:pulse-start-daily]
+;command=sh -c "sleep 30; pulse start daily"
+;autorestart = false
+;startsecs = 0
+;redirect_stderr=true
+;stdout_events_enabled = true
+;stderr_events_enabled = true
 
 ; For Docker, this ensures all logging is passed into the supervisord logs so it can be seen easily.
 ; (otherwise, by default, supervisord logs each process to a separate file that can't be seen in the Docker Compose logs)
