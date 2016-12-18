@@ -347,7 +347,7 @@ class ScanLogForDocsIfStopped(luigi.Task):
         yield ScanLogForDocs(self.job, self.launch_id, self.path, self.stage)
 
 
-@ExtractDocumentAndPost.event_handler(luigi.Event.SUCCESS)
+@ScanLogForDocs.event_handler(luigi.Event.SUCCESS)
 def run_task_success(task):
     celebrate_success(task)
 
