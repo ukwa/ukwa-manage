@@ -25,22 +25,24 @@ def status():
     try:
         json_file = CheckStatus(date=datetime.datetime.today()).output().path
         #json_file = "../state/monitor/checkstatus.2016-11-22T1110"
-        app.logger.info("Attempting to load %s" % json_file)
-        with open(json_file,'r') as reader:
-            services = json.load(reader)
+        services = load_services(json_file)
     except Exception as e:
         # If that fails, load the stats from one minute ago:
         json_file = CheckStatus(date=datetime.datetime.today() - datetime.timedelta(minutes=1)).output().path
-        # json_file = "../state/monitor/checkstatus.2016-11-22T1110"
-        app.logger.info("Attempting to load %s" % json_file)
-        with open(json_file, 'r') as reader:
-            services = json.load(reader)
+        services = load_services(json_file)
 
     # Log collected data:
     #app.logger.info(json.dumps(services, indent=4))
 
     # And render
     return render_template('dashboard.html', title="Status", services=services)
+
+
+def load_services(json_file):
+    app.logger.info("Attempting to load %s" % json_file)
+    with open(json_file, 'r') as reader:
+        services = json.load(reader)
+    return services
 
 
 @app.route('/ping')
