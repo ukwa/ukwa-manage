@@ -21,11 +21,20 @@ app = Flask(__name__)
 @app.route('/')
 def status():
 
-    json_file = CheckStatus(date=datetime.datetime.today() - datetime.timedelta(minutes=1)).output().path
-    #json_file = "../state/monitor/checkstatus.2016-11-22T1110"
-    app.logger.info("Attempting to load %s" % json_file)
-    with open(json_file,'r') as reader:
-        services = json.load(reader)
+    # Attempt to load current statistics, if available:
+    try:
+        json_file = CheckStatus(date=datetime.datetime.today()).output().path
+        #json_file = "../state/monitor/checkstatus.2016-11-22T1110"
+        app.logger.info("Attempting to load %s" % json_file)
+        with open(json_file,'r') as reader:
+            services = json.load(reader)
+    except Exception as e:
+        # If that fails, load the stats from one minute ago:
+        json_file = CheckStatus(date=datetime.datetime.today() - datetime.timedelta(minutes=1)).output().path
+        # json_file = "../state/monitor/checkstatus.2016-11-22T1110"
+        app.logger.info("Attempting to load %s" % json_file)
+        with open(json_file, 'r') as reader:
+            services = json.load(reader)
 
     # Log collected data:
     #app.logger.info(json.dumps(services, indent=4))
