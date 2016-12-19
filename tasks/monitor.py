@@ -11,7 +11,7 @@ from common import *
 
 logger = logging.getLogger('luigi-interface')
 
-socket.setdefaulttimeout(20)
+socket.setdefaulttimeout(10)
 
 class CheckStatus(luigi.Task):
     """
@@ -48,7 +48,7 @@ class CheckStatus(luigi.Task):
 
     def get_h3_status(self, job, server):
         # Set up connection to H3:
-        h = hapyx.HapyX(server['url'], username=server['user'], password=server['pass'])
+        h = hapyx.HapyX(server['url'], username=server['user'], password=server['pass'], timeout=5)
         state = {}
         try:
             logger.info("Getting status for job %s on %s" % (job, server))
@@ -110,7 +110,7 @@ class CheckStatus(luigi.Task):
         state = {}
         try:
             logger.info("Getting status for %s" % (url))
-            r = requests.get(url, allow_redirects=False, timeout=20)
+            r = requests.get(url, allow_redirects=False, timeout=10)
             state['status'] = "%s" % r.status_code
             if r.status_code / 100 == 2 or r.status_code / 100 == 3:
                 state['status'] = "%.3fs" % r.elapsed.total_seconds()
