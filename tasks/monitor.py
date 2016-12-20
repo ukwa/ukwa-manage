@@ -11,7 +11,9 @@ from common import *
 
 logger = logging.getLogger('luigi-interface')
 
-socket.setdefaulttimeout(10)
+# Avoid hangs when systems are unreachable:
+TIMEOUT = 10
+socket.setdefaulttimeout(TIMEOUT)
 
 class CheckStatus(luigi.Task):
     """
@@ -48,7 +50,7 @@ class CheckStatus(luigi.Task):
 
     def get_h3_status(self, job, server):
         # Set up connection to H3:
-        h = hapyx.HapyX(server['url'], username=server['user'], password=server['pass'], timeout=5)
+        h = hapyx.HapyX(server['url'], username=server['user'], password=server['pass'], timeout=TIMEOUT)
         state = {}
         try:
             logger.info("Getting status for job %s on %s" % (job, server))
@@ -85,7 +87,7 @@ class CheckStatus(luigi.Task):
             logger.info("Getting status for queue %s on %s" % (queue, server))
             qurl = '%s%s' % (server['prefix'], queue)
             # app.logger.info("GET: %s" % qurl)
-            r = requests.get(qurl, timeout=5)
+            r = requests.get(qurl, timeout=TIMEOUT)
             state['details'] = r.json()
             state['count'] = "{:0,}".format(state['details']['messages'])
             if 'error' in state['details']:
@@ -110,7 +112,7 @@ class CheckStatus(luigi.Task):
         state = {}
         try:
             logger.info("Getting status for %s" % (url))
-            r = requests.get(url, allow_redirects=False, timeout=10)
+            r = requests.get(url, allow_redirects=False, timeout=TIMEOUT)
             state['status'] = "%s" % r.status_code
             if r.status_code / 100 == 2 or r.status_code / 100 == 3:
                 state['status'] = "%.3fs" % r.elapsed.total_seconds()
@@ -127,7 +129,7 @@ class CheckStatus(luigi.Task):
         state = {}
         try:
             logger.info("Getting status for hdfs %s" % (hdfs))
-            r = requests.get(hdfs['url'], timeout=5)
+            r = requests.get(hdfs['url'], timeout=TIMEOUT)
             state['status'] = "%s" % r.status_code
             if r.status_code / 100 == 2:
                 state['status-class'] = "status-good"
