@@ -10,13 +10,23 @@ Intended to be invoked with as:
 
 """
 
-import ConfigParser, os, sys
+import os, sys, string
 
 
 def main():
-    config = ConfigParser.ConfigParser(defaults=os.environ)
-    config.read([sys.argv[1]])
-    config.write(open(sys.argv[2], 'w'))
+    # Load the template file:
+    template = open(sys.argv[1],'r').read()
+    t = string.Template(template)
+
+    # Map environment variables up to upper-case:
+    env = dict((k.upper(), v) for k, v in os.environ.iteritems())
+
+    # Perform the substitution:
+    out = t.substitute(env)
+
+    # Write out the result:
+    with open(sys.argv[2], 'w') as f:
+        f.write(out)
 
 if __name__ == "__main__":
     main()

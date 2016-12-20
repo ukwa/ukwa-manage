@@ -8,40 +8,40 @@ version=cdh3
 
 [hdfs]
 client=webhdfs
-namenode_host=%(hdfs_namenode_host)s
-namenode_port=%(hdfs_namenode_port)s
-effective_user=%(hdfs_effective_user)s
+namenode_host=$HDFS_NAMENODE_HOST
+namenode_port=$HDFS_NAMENODE_PORT
+effective_user=$HDFS_EFFECTIVE_USER
 
 [webhdfs]
-port=%(webhdfs_port)s
-user=%(webhdfs_user)s
+port=$WEBHDFS_PORT
+user=$WEBHDFS_USER
 
 [state]
 state_folder=/state
 
 [act]
-url=%(w3act_url)s
-username=%(w3act_username)s
-password=%(w3act_pw)s
+url=$W3ACT_URL
+username=$W3ACT_USERNAME
+password=$W3ACT_PW
 
 [h3]
 host=ukwa-heritrix-daily
 port=8443
-username=%(heritrix_username)s
-password=%(heritrix_password)s
+username=$HERITRIX_USERNAME
+password=$HERITRIX_PASSWORD
 local_job_folder=/jobs
 local_root_folder=/heritrix
 local_wren_folder=/heritrix/wren
-hdfs_root_folder=%(hdfs_output_prefix)s
+hdfs_root_folder=$HDFS_OUTPUT_PREFIX
 
 [systems]
-clamd_host=%(clamd_host)s
-clamd_port=%(clamd_port)s
-amqp_host=%(amqp_host)s
-cdxserver=%(cdxserver_url)s
+clamd_host=$CLAMD_HOST
+clamd_port=$CLAMD_PORT
+amqp_host=$AMQP_HOST
+cdxserver=$CDXSERVER_URL
 wayback=http://openwayback:8080/wayback
 wrender=http://webrender:8010/render
-webhdfs=%(webhdfs_prefix)s
+webhdfs=$WEBHDFS_PREFIX
 elasticsearch_host=monitrix
 elasticsearch_port=9200
 elasticsearch_index_prefix=pulse
@@ -49,7 +49,7 @@ servers=/shepherd/tasks/servers.json
 services=/shepherd/tasks/services.json
 
 [slack]
-token=%(slack_token)s
+token=$SLACK_TOKEN
 
 [dls]
 drop_folder=/dls-drop
