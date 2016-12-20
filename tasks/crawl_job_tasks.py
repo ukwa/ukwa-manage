@@ -17,6 +17,11 @@ from crawl.w3act.job import remove_action_files
 from common import *
 
 
+def get_hapy_for_job(job):
+    host = "https://%s-%s:%s" % (h3().host, job.name, h3().port)
+    return hapyx.HapyX(host, username=h3().username, password=h3().password)
+
+
 class CrawlFeed(luigi.Task):
     task_namespace = 'pulse'
     frequency = luigi.Parameter()
@@ -68,7 +73,7 @@ class CheckJobStopped(luigi.Task):
 
     def run(self):
         # Set up connection to H3:
-        h = hapyx.HapyX("https://%s:%s" % (h3().host, h3().port), username=h3().username, password=h3().password)
+        h = get_hapy_for_job(self.job)
 
         # Is that job running?
         status = h.status(self.job.name)
@@ -91,7 +96,7 @@ class StopJob(luigi.Task):
 
     def complete(self):
         # Set up connection to H3:
-        h = hapyx.HapyX("https://%s:%s" % (h3().host, h3().port), username=h3().username, password=h3().password)
+        h = get_hapy_for_job(self.job)
 
         # Is this job known?
         if self.job.name in h.list_jobs():
@@ -105,7 +110,7 @@ class StopJob(luigi.Task):
 
     def run(self):
         # Set up connection to H3:
-        h = hapyx.HapyX("https://%s:%s" % (h3().host, h3().port), username=h3().username, password=h3().password)
+        h = get_hapy_for_job(self.job)
 
         logger.info("I'm stopping %s" % (self.job.name))
 
@@ -142,7 +147,7 @@ class StartJob(luigi.Task):
 
     def run(self):
         # Set up connection to H3:
-        h = hapyx.HapyX("https://%s:%s" % (h3().host, h3().port), username=h3().username, password=h3().password)
+        h = get_hapy_for_job(self.job)
 
         logger.info("Starting %s" % (self.job.name))
         targets = json.load(self.input()[1].open('r'))

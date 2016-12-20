@@ -8,51 +8,52 @@ from slackclient import SlackClient
 
 logger = logging.getLogger('luigi-interface')
 
+
 class Jobs(enum.Enum):
     daily = 1
     weekly = 2
 
 
 class state(luigi.Config):
-    state_folder = luigi.Parameter()
+    state_folder = os.environ.get('LUIGI_STATE_FOLDER', luigi.Parameter(default='/state'))
 
 
 class act(luigi.Config):
-    url = luigi.Parameter(default='world')
-    username = luigi.Parameter(default='')
-    password = luigi.Parameter(default='pass')
+    url = os.environ.get('W3ACT_URL', luigi.Parameter(default='http://w3act:9000/act'))
+    username = os.environ.get('W3ACT_USER', luigi.Parameter(default='wa-sysadm@bl.uk'))
+    password = os.environ.get('W3ACT_PW', luigi.Parameter(default='sysAdmin'))
 
 
 class h3(luigi.Config):
-    host = luigi.Parameter()
-    port = luigi.IntParameter()
-    username = luigi.Parameter()
-    password = luigi.Parameter()
-    local_root_folder = luigi.Parameter()
-    local_job_folder = luigi.Parameter()
-    local_wren_folder = luigi.Parameter()
-    hdfs_root_folder = luigi.Parameter()
+    host = luigi.Parameter(default='ukwa-heritrix')
+    port = luigi.IntParameter(default=8443)
+    username = os.environ.get('HERITRIX_USER', luigi.Parameter(default='heritrix'))
+    password = os.environ.get('HERITRIX_PASSWORD', luigi.Parameter(default='heritrix'))
+    local_root_folder = luigi.Parameter(default='/heritrix')
+    local_job_folder = luigi.Parameter(default='/jobs')
+    local_wren_folder = luigi.Parameter(default='/heritrix/wren')
+    hdfs_root_folder = os.environ.get('HDFS_PREFIX', luigi.Parameter('/1_data/pulse'))
 
 
 class systems(luigi.Config):
-    cdxserver = luigi.Parameter()
-    wayback = luigi.Parameter()
-    wrender = luigi.Parameter()
+    cdxserver = os.environ.get('CDXSERVER_URL', luigi.Parameter(default='http://cdxserver:8080/fc'))
+    wayback = os.environ.get('WAYBACK_URL', luigi.Parameter(default='http://openwayback:8080/wayback'))
+    wrender = os.environ.get('WRENDER_URL', luigi.Parameter(default='http://webrender:8010/render'))
     # Prefix for webhdfs queries, separate from general Luigi HDFS configuration.
     # e.g. http://localhost:50070/webhdfs/v1
-    webhdfs = luigi.Parameter()
-    amqp_host = luigi.Parameter()
-    clamd_host = luigi.Parameter()
-    clamd_port = luigi.Parameter()
-    elasticsearch_host = luigi.Parameter()
-    elasticsearch_port = luigi.Parameter()
-    elasticsearch_index_prefix = luigi.Parameter()
-    servers = luigi.Parameter()
-    services = luigi.Parameter()
+    webhdfs = os.environ.get('WEBHDFS_PREFIX', luigi.Parameter(default='http://hadoop:50070/webhdfs/v1'))
+    amqp_host = os.environ.get('AMQP_HOST', luigi.Parameter(default='amqp'))
+    clamd_host = os.environ.get('CLAMD_HOST', luigi.Parameter(default='clamd'))
+    clamd_port = os.environ.get('CLAMD_PORT', luigi.Parameter(default=3310))
+    elasticsearch_host = os.environ.get('ELASTICSEARCH_HOST', luigi.Parameter(default='monitrix'))
+    elasticsearch_port = os.environ.get('ELASTICSEARCH_PORT', luigi.Parameter(default=9200))
+    elasticsearch_index_prefix = os.environ.get('ELASTICSEARCH_INDEX_PREFIX', luigi.Parameter(default='pulse'))
+    servers = luigi.Parameter(default='/shepherd/tasks/servers.json')
+    services = luigi.Parameter(default='/shepherd/tasks/services.json')
 
 
 class slack(luigi.Config):
-    token = luigi.Parameter()
+    token = os.environ.get('SLACK_TOKEN', luigi.Parameter())
 
 LOCAL_ROOT = h3().local_root_folder
 LOCAL_JOBS_ROOT = h3().local_job_folder

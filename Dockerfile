@@ -19,7 +19,8 @@ ADD supervisord.conf.docker /etc/supervisor/conf.d/supervisord.conf
 RUN crontab /shepherd/crontab.root.docker
 
 # And add the luigi configuration:
-ADD luigi.cfg.docker /etc/luigi/client.cfg
+ADD luigi.cfg.template /etc/luigi/luigi.cfg.template
+ADD launch-luigi-docker.sh /
 
 # This is needed to force SupervisorD to run as root.
 # TODO Avoid this in future, as it should not be necessary even under Docker.

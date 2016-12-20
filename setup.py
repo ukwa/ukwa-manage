@@ -4,9 +4,15 @@ from setuptools import setup, find_packages
 with open('requirements.txt') as f:
     requirements = f.read().splitlines()
 
+def get_version():
+    try:
+        return subprocess.check_output(['git', 'describe', '--tags', '--always']).strip()
+    except:
+        return "?.?.?"
+
 setup(
     name='shepherd',
-    version=subprocess.check_output(['git', 'describe', '--tags', '--always']).strip(),
+    version=get_version(),
     packages=find_packages(),
     install_requires=requirements,
     include_package_data=True,
@@ -20,7 +26,8 @@ setup(
             'movetohdfs=crawl.hdfs.movetohdfs:main',
             'h3cc=crawl.h3.h3cc:main',
             'w3act=crawl.w3act.w3act_cli:main',
-            'pulse=tasks.pulse:main'
+            'pulse=tasks.pulse:main',
+            'generate-luigi-config=tasks.generate_config:main'
         ],
     }
 )
