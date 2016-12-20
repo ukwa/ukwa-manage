@@ -21,7 +21,7 @@ state_folder=/state
 
 [act]
 url=$W3ACT_URL
-username=$W3ACT_USERNAME
+username=$W3ACT_USER
 password=$W3ACT_PW
 
 [h3]
