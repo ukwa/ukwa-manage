@@ -25,7 +25,7 @@ username=$W3ACT_USER
 password=$W3ACT_PW
 
 [h3]
-host=ukwa-heritrix-daily
+host=ukwa-heritrix
 port=8443
 username=$HERITRIX_USERNAME
 password=$HERITRIX_PASSWORD
