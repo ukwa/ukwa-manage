@@ -18,7 +18,10 @@ from common import *
 
 
 def get_hapy_for_job(job):
-    host = "https://%s-%s:%s" % (h3().host, job.name, h3().port)
+    if h3().host == 'localhost':
+        host = "https://%s:%s" % (h3().host, h3().port)
+    else:
+        host = "https://%s-%s:%s" % (h3().host, job.name, h3().port)
     return hapyx.HapyX(host, username=h3().username, password=h3().password)
 
 
@@ -177,6 +180,6 @@ def run_task_success(task):
 
 
 if __name__ == '__main__':
-    #luigi.run(['pulse.StopJob', '--job', 'daily'])#, '--local-scheduler'])
-    luigi.run(['pulse.StartJob', '--job', 'daily'])  # , '--local-scheduler'])
+    #luigi.run(['pulse.StopJob', '--job', 'daily', '--local-scheduler'])
+    luigi.run(['pulse.StartJob', '--job', 'daily', '--local-scheduler'])
     #luigi.run(['pulse.StartJob', '--job', 'daily', '--from-latest-checkpoint'])

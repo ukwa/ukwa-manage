@@ -410,4 +410,4 @@ def notify_success(task):
 
 
 if __name__ == '__main__':
-    luigi.run(['scan.ScanForOutputs', '--date-interval', '2016-11-01-2016-11-10'])  # , '--local-scheduler'])
+    luigi.run(['scan.ScanForOutputs', '--date-interval', '2016-11-01-2016-11-10', '--local-scheduler'])

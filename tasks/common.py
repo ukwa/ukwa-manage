@@ -1,7 +1,9 @@
 import os
 import glob
 import enum
+import json
 import luigi
+import luigi.contrib.esindex
 import logging
 import datetime
 from slackclient import SlackClient
@@ -12,6 +14,10 @@ logger = logging.getLogger('luigi-interface')
 class Jobs(enum.Enum):
     daily = 1
     weekly = 2
+    monthly = 3
+    quarterly = 4
+    sixmonthly = 5
+    annual = 6
 
 
 class state(luigi.Config):
@@ -159,11 +165,53 @@ class ScanForLaunches(luigi.WrapperTask):
                             yield (job, launch)
 
 
+class RecordEvent(luigi.contrib.esindex.CopyToIndex):
+    """
+    Post this event to Monitrix, i.e. push into an appropriate Elasticsearch index.
+    """
+    task_namespace = 'doc'
+    job = luigi.Parameter()
+    launch_id = luigi.Parameter()
+    event = luigi.DictParameter()
+    source = luigi.Parameter()
+    event_type = luigi.Parameter()
+
+    host = systems().elasticsearch_host
+    port = systems().elasticsearch_port
+    doc_type = 'default'
+    #mapping = { "content": { "type": "text" } }
+    purge_existing_index = False
+    index =  "{}-{}".format(systems().elasticsearch_index_prefix,
+                             datetime.datetime.now().strftime('%Y-%m-%d'))
+
+    def docs(self):
+        if isinstance(self.event, luigi.parameter.FrozenOrderedDict):
+            doc = self.event.get_wrapped()
+        else:
+            doc = {}
+        # Add more default/standard fields:
+        doc['timestamp'] = datetime.datetime.now().isoformat()
+        doc['job'] = self.job
+        doc['launch_id'] = self.launch_id
+        doc['source'] = self.source
+        doc['event_type'] = self.event_type
+        return [doc]
+
+
 @luigi.Task.event_handler(luigi.Event.FAILURE)
 def notify_failure(task, exception):
     """Will be called directly after a failed execution
        of `run` on any JobTask subclass
     """
+
+    if systems().elasticsearch_host:
+        doc = { 'content' : "Job %s failed: %s" % (task, exception) }
+        source = 'luigi'
+        esrm = RecordEvent("unknown_job", "unknown_launch_id", doc, source, "task-failure")
+        esrm.run()
+    else:
+        logger.warning("No Elasticsearch host set, no failure message sent.")
+
     if slack().token:
         sc = SlackClient(slack().token)
         print(sc.api_call(
@@ -175,15 +223,15 @@ def notify_failure(task, exception):
         logger.exception(exception)
 
 
-#@luigi.Task.event_handler(luigi.Event.SUCCESS)
+@luigi.Task.event_handler(luigi.Event.SUCCESS)
 def celebrate_success(task):
     """Will be called directly after a successful execution
        of `run` on any Task subclass (i.e. all luigi Tasks)
     """
-    if slack().token:
-        sc = SlackClient(slack().token)
-        print(sc.api_call(
-            "chat.postMessage", channel="#crawls",
-            text=":tada: Job %s succeeded!" % task, username='crawljobbot'))
+    if systems().elasticsearch_host:
+        doc = { 'content' : "Job %s succeeded." % task }
+        source = 'luigi'
+        esrm = RecordEvent("unknown_job", "unknown_launch_id", doc, source, "task-success")
+        esrm.run()
     else:
-        logger.warning("No Slack auth token set, no message sent.")
+        logger.warning("No Elasticsearch host set, no success message sent.")
