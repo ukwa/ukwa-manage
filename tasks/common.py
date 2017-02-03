@@ -199,7 +199,7 @@ class RecordEvent(luigi.contrib.esindex.CopyToIndex):
 
 
 @luigi.Task.event_handler(luigi.Event.FAILURE)
-def notify_failure(task, exception):
+def notify_any_failure(task, exception):
     """Will be called directly after a failed execution
        of `run` on any JobTask subclass
     """
@@ -224,7 +224,7 @@ def notify_failure(task, exception):
 
 
 @luigi.Task.event_handler(luigi.Event.SUCCESS)
-def celebrate_success(task):
+def celebrate_any_success(task):
     """Will be called directly after a successful execution
        of `run` on any Task subclass (i.e. all luigi Tasks)
     """

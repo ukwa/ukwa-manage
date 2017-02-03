@@ -344,9 +344,9 @@ class MoveFilesForLaunch(luigi.Task):
             f.write("MOVED")
 
 
-@MoveToHdfs.event_handler(luigi.Event.SUCCESS)
-def run_task_success(task):
-    celebrate_success(task)
+#@MoveToHdfs.event_handler(luigi.Event.SUCCESS)
+#def run_task_success(task):
+#    celebrate_success(task)
 
 
 class ScanForFilesToMove(ScanForLaunches):

@@ -174,9 +174,9 @@ class StartJob(luigi.Task):
         return
 
 
-@StartJob.event_handler(luigi.Event.SUCCESS)
-def run_task_success(task):
-    celebrate_success(task)
+#@StartJob.event_handler(luigi.Event.SUCCESS)
+#def run_task_success(task):
+#    celebrate_success(task)
 
 
 if __name__ == '__main__':

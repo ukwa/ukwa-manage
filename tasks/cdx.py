@@ -133,9 +133,9 @@ class WARCToOutbackCDXIfStopped(luigi.Task):
         yield WARCToOutbackCDX(self.job, self.launch_id, self.path, self.delete_local)
 
 
-@WARCToOutbackCDX.event_handler(luigi.Event.SUCCESS)
-def run_task_success(task):
-    celebrate_success(task)
+#@WARCToOutbackCDX.event_handler(luigi.Event.SUCCESS)
+#def run_task_success(task):
+#    celebrate_success(task)
 
 
 class ScanForIndexing(ScanForLaunches):
