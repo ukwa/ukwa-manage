@@ -231,7 +231,15 @@
 		</property>
 	</bean>
 		
-	<!-- FETCH CHAIN --> 
+	<!-- FETCH CHAIN -->
+    <!-- a 'top-level' bean that listens for URLs from AMQP -->
+    <bean class="org.archive.crawler.frontier.AMQPUrlReceiver">
+      <property name="amqpUri" value="amqp://guest:guest@REPLACE_AMQP_HOST:5672/%2f" />
+      <property name="exchange" value="heritrix" />
+      <property name="queueName" value="REPLACE_JOB_NAME" />
+      <property name="durable" value="true"/>
+      <property name="autoDelete" value="false"/>
+    </bean>
 	<!-- processors declared as named beans -->
 	<bean id="preselector" class="org.archive.crawler.prefetch.Preselector">
 		<property name="recheckScope" value="false" />
@@ -252,7 +260,7 @@
          See https://github.com/internetarchive/heritrix3/blob/master/modules/src/main/java/org/archive/modules/fetcher/FetchDNS.java#L74-L78
              http://www.dnsjava.org/doc/org/xbill/DNS/ResolverConfig.html 
          (i.e. /etc/hosts does not override domain names for H3 -->
-		<property name="acceptNonDnsResolves" value="true" />
+		<property name="acceptNonDnsResolves" value="false" />
 		<property name="digestContent" value="true" />
 		<property name="digestAlgorithm" value="sha1" />
 	</bean>
@@ -335,14 +343,6 @@
 	</bean>
 	<bean id="extractorJs" class="org.archive.modules.extractor.ExtractorJS">
 	</bean>
-    <!-- a 'top-level' bean that listens for URLs from AMQP -->
-    <bean class="org.archive.crawler.frontier.AMQPUrlReceiver">
-      <property name="amqpUri" value="amqp://guest:guest@REPLACE_AMQP_HOST:5672/%2f" />
-      <property name="exchange" value="heritrix" />
-      <property name="queueName" value="REPLACE_JOB_NAME" />
-      <property name="durable" value="true"/>
-      <property name="autoDelete" value="false"/>
-    </bean>
     <!-- a processor that scans content for viruses -->
     <bean id="viralContent" class="uk.bl.wap.crawler.processor.ViralContentProcessor">
 		<property name="clamdHost" value="REPLACE_CLAMD_HOST" />
@@ -580,7 +580,9 @@
  			    	    <ref bean="crawlLogFeed"/>
  			        -->
 				<!-- send any discovered documents to a separate feed -->
+				<!--
         	         	<ref bean="crawlLogDocumentFeed"/>
+        	    -->
 				<!-- ...send each outlink candidate URI to CandidatesChain, 
 					and enqueue those ACCEPTed to the frontier... -->
 				<ref bean="candidates"/>
@@ -592,7 +594,7 @@
 	
 	<!-- CRAWLCONTROLLER: Control interface, unifying context -->
 	<bean id="crawlController" class="org.archive.crawler.framework.CrawlController">
-		<property name="maxToeThreads" value="200" />
+		<property name="maxToeThreads" value="100" />
 		<property name="pauseAtStart" value="true" />
 		<property name="runWhileEmpty" value="true" />
 		<property name="recorderInBufferBytes" value="524288" />
