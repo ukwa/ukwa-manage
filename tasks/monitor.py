@@ -12,7 +12,7 @@ from common import *
 logger = logging.getLogger('luigi-interface')
 
 # Avoid hangs when systems are unreachable:
-TIMEOUT = 10
+TIMEOUT = 6
 socket.setdefaulttimeout(TIMEOUT)
 
 class CheckStatus(luigi.Task):
