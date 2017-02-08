@@ -1,15 +1,70 @@
 {
   "AMQP-FC": {
-    "prefix": "http://guest:guest@127.0.0.1:15672/api/queues/%2F/"
+    "prefix": "http://guest:guest@192.168.45.26:15672/api/queues/%2F/",
+    "user_prefix": "http://192.168.45.26:15672/#/queues/%2F/"
   },
-  "H3-FC": {
-    "url":"https://localhost:8443/",
-    "user": "heritrix",
-    "pass": "heritrix"
+  "AMQP-DC": {
+    "prefix": "http://guest:guest@192.168.45.53:15672/api/queues/%2F/",
+    "user_prefix": "http://192.168.45.53:15672/#/queues/%2F/"
   },
-  "H3-DC": {
-    "url":"https://localhost:8443/",
-    "user": "heritrix",
-    "pass": "heritrix"
+  "H3-FC0": {
+    "url":"https://crawler03.bl.uk:8443/",
+    "user": "admin",
+  },
+  "H3-FC1": {
+    "url":"https://crawler03.bl.uk:8444/",
+    "user": "admin",
+  },
+  "H3-FC2": {
+    "url":"https://crawler03.bl.uk:8445/",
+    "user": "admin",
+  },
+  "H3-FC3": {
+    "url":"https://crawler03.bl.uk:8446/",
+    "user": "admin",
+  },
+  "AMQP-PC": {
+    "prefix": "http://guest:guest@192.168.45.86:15672/api/queues/%2F/",
+    "user_prefix": "http://192.168.45.86:15672/#/queues/%2F/"
+  },
+  "H3-PC0": {
+    "url":"https://crawler07:8443/",
+    "user": "admin",
+  },
+  "H3-PC1": {
+    "url":"https://crawler07:8444/",
+    "user": "admin",
+  },
+  "H3-PC2": {
+    "url":"https://crawler07:8445/",
+    "user": "admin",
+  },
+  "H3-PC3": {
+    "url":"https://crawler07:8446/",
+    "user": "admin",
+  },
+  "H3-PC4": {
+    "url":"https://crawler07:8447/",
+    "user": "admin",
+  },
+  "H3-PC5": {
+    "url":"https://crawler07:8448/",
+    "user": "admin",
+  },
+  "H3-DC0": {
+    "url":"https://192.168.45.12:8443/",
+    "user": "admin",
+  },
+  "H3-DC1": {
+    "url":"https://192.168.45.12:8444/",
+    "user": "admin",
+  },
+  "H3-DC2": {
+    "url":"https://192.168.45.12:8445/",
+    "user": "admin",
+  },
+  "H3-DC3": {
+    "url":"https://192.168.45.12:8446/",
+    "user": "admin",
   }
 }
