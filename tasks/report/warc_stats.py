@@ -12,9 +12,11 @@ class GenerateWarcStats(luigi.contrib.hadoop_jar.HadoopJarJobTask):
     As this uses the stream directly and so data-locality is preserved.
 
     Parameters:
-        input_file: The file (locally) that contains the list of WARC files to process
+        input_file: The path of the input file that contains the list of WARC files to process
+        from_hdfs: Is the input file on HDFS (defaults to True)
     """
     input_file = luigi.Parameter()
+    from_hdfs = luigi.BoolParameter(default=True)
 
     def output(self):
         out_name = "%s-stats.tsv" % os.path.splitext(self.input_file)[0]

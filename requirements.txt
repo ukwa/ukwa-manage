@@ -30,7 +30,7 @@ itsdangerous==0.24
 Jinja2==2.8
 kombu==3.0.35
 lockfile==0.12.2
-luigi==2.3.3
+luigi==2.5.0
 lxml==3.6.0
 MarkupSafe==0.23
 mechanize==0.2.5
