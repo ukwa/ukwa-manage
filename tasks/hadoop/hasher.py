@@ -3,6 +3,7 @@ import logging
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
+import tasks.report.crawl_summary
 
 logger = logging.getLogger('luigi-interface')
 
@@ -21,7 +22,7 @@ class GenerateWarcHashes(luigi.contrib.hadoop_jar.HadoopJarJobTask):
         return luigi.contrib.hdfs.HdfsTarget(out_name, format=luigi.contrib.hdfs.Plain)
 
     def requires(self):
-        return Warc(self.input_file)
+        return tasks.report.crawl_summary.GenerateWarcList(self.input_file)
 
     def jar(self):
         return "../jars/warc-hadoop-recordreaders-2.2.0-BETA-7-SNAPSHOT-job.jar"
