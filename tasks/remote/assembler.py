@@ -24,9 +24,9 @@ LOCAL_WREN_FOLDER = os.environ.get('LOCAL_WREN_FOLDER','/heritrix/wren')
 #SSH_KWARGS = { 'user': 'heritrix', 'key_file': 'id_rsa' }
 
 
-def remote_glob(host, path):
-    rf = luigi.contrib.ssh.RemoteFileSystem(host)#, **SSH_KWARGS)
-    return rf.listdir(path)
+#def remote_glob(host, path):
+#    rf = luigi.contrib.ssh.RemoteFileSystem(host)#, **SSH_KWARGS)
+#    return rf.listdir(path)
     #rc = luigi.contrib.ssh.RemoteContext(host=host)
     #for item in rc.check_output('ls -1d %s' % path):
     #    yield item
@@ -101,7 +101,7 @@ class PackageLogs(luigi.Task):
 
     def requires(self):
         if self.stage == 'final':
-            return CheckJobStopped(self.job, self.launch_id)
+            return CheckJobStopped(self.job, self.launch_id, self.host)
 
     def output(self):
         return luigi.LocalTarget('{}/{}.zip'.format(LUIGI_STATE_FOLDER,
@@ -110,6 +110,8 @@ class PackageLogs(luigi.Task):
     def run(self):
         """Zips up all log/config. files and copies said archive to HDFS; finds the
         earliest timestamp in the logs."""
+        # Set up remote connection:
+        rf = luigi.contrib.ssh.RemoteFileSystem(self.host)
         # Set up the output, first making sure the full path exists:
         with self.output().open('w') as f:
             f.write('')
@@ -117,26 +119,26 @@ class PackageLogs(luigi.Task):
         # What to remove from the paths:
         chop = len(str(LOCAL_PREFIX))
         with zipfile.ZipFile(self.output().path, 'w', allowZip64=True) as zipout:
-            for crawl_log in remote_glob("%s/logs/%s/%s/crawl.log%s" % (
+            for crawl_log in rf.listdir("%s/logs/%s/%s/crawl.log%s" % (
                     LOCAL_OUTPUT_FOLDER, self.job.name, self.launch_id, get_stage_suffix(self.stage))):
                 logger.info("Found %s..." % os.path.basename(crawl_log))
                 zipout.write(crawl_log, arcname=crawl_log[chop:])
 
-            for log in remote_glob("%s/logs/%s/%s/*-errors.log%s" % (
+            for log in rf.listdir("%s/logs/%s/%s/*-errors.log%s" % (
                     LOCAL_OUTPUT_FOLDER, self.job.name, self.launch_id, get_stage_suffix(self.stage))):
                 logger.info("Found %s..." % os.path.basename(log))
                 zipout.write(log, arcname=log[chop:])
 
-            for txt in remote_glob("%s/%s/%s/*.txt" % (LOCAL_JOB_FOLDER, self.job.name, self.launch_id)):
+            for txt in rf.listdir("%s/%s/%s/*.txt" % (LOCAL_JOB_FOLDER, self.job.name, self.launch_id)):
                 logger.info("Found %s..." % os.path.basename(txt))
                 zipout.write(txt, arcname=txt[chop:])
 
-            for txt in remote_glob("%s/%s/%s/*.json" % (LOCAL_JOB_FOLDER, self.job.name, self.launch_id)):
+            for txt in rf.listdir("%s/%s/%s/*.json" % (LOCAL_JOB_FOLDER, self.job.name, self.launch_id)):
                 logger.info("Found %s..." % os.path.basename(txt))
                 zipout.write(txt, arcname=txt[chop:])
 
             cxml = "%s/%s/%s/crawler-beans.cxml" % (LOCAL_JOB_FOLDER, self.job.name, self.launch_id)
-            if os.path.exists(cxml):
+            if rf.exists(cxml):
                 logger.info("Found config...")
                 zipout.write(cxml, arcname=cxml[chop:])
             else:
@@ -157,7 +159,7 @@ class AssembleOutput(luigi.Task):
 
     def requires(self):
         if self.stage == 'final':
-            yield CheckJobStopped(self.job, self.launch_id)
+            yield CheckJobStopped(self.job, self.launch_id, self.host)
         yield PackageLogs(self.job, self.launch_id, self.stage)
 
     # TODO Move this into it's own job? (atomicity):
@@ -167,19 +169,20 @@ class AssembleOutput(luigi.Task):
             '{}/{}'.format(LUIGI_STATE_FOLDER, target_name('03.outputs', self.job, self.launch_id, self.stage)))
 
     def run(self):
-
-        logs = [self.get_crawl_log()]
+        # Set up remote connection:
+        rf = luigi.contrib.ssh.RemoteFileSystem(self.host)
+        logs = [self.get_crawl_log(rf)]
         start_date = self.file_start_date(logs)
         # Find the WARCs referenced from the crawl log:
         (warcs, viral) = self.parse_crawl_log(logs)
         # TODO Look for WARCs not spotted via the logs and add them in (ALSO allow this in the log parser)
         if self.stage == 'final':
-            for item in remote_glob(self.host, self.warc_file_path("*.warc.gz")):
+            for item in rf.listdir(self.warc_file_path("*.warc.gz")):
                 if item not in warcs:
                     logger.info("Found additional WARC: %s" % item)
                     warcs.append(item)
             #
-            for item in remote_glob(self.host, self.viral_file_path("*.warc.gz")):
+            for item in rf.listdir(self.viral_file_path("*.warc.gz")):
                 if item not in warcs:
                     logger.info("Found additional Viral WARC: %s" % item)
                     warcs.append(item)
@@ -219,13 +222,13 @@ class AssembleOutput(luigi.Task):
         with self.output().open('w') as f:
             f.write('{}'.format(json.dumps(job_output, indent=4)))
 
-    def get_crawl_log(self):
+    def get_crawl_log(self, rf):
         # First, parse the crawl log(s) and determine the WARC file names:
         logfilepath = "%s/logs/%s/%s/crawl.log%s" % (LOCAL_OUTPUT_FOLDER, self.job.name,
                                                      self.launch_id, get_stage_suffix(self.stage))
         logger.info("Looking for crawl logs stage: %s" % self.stage)
         logger.info("Looking for crawl logs: %s" % logfilepath)
-        if os.path.exists(logfilepath):
+        if rf.exists(logfilepath):
             logger.info("Found %s..." % os.path.basename(logfilepath))
             return logfilepath
         else:
@@ -261,6 +264,8 @@ class AssembleOutput(luigi.Task):
         Parses the crawl log to check the WARCs are present.
         :return:
         """
+        # Set up remote connection:
+        rf = luigi.contrib.ssh.RemoteFileSystem(self.host)
         warcfiles = set()
         with open(logs[0], 'r') as f:
             for line in f:
@@ -289,13 +294,13 @@ class AssembleOutput(luigi.Task):
                 if 'warcFilename' in jmd:
                     warcfiles.add(jmd['warcFilename'])
                 elif 'warcPrefix' in jmd:
-                    for wren in remote_glob(
+                    for wren in rf.listdir(
                                     "%s/%s*.warc.gz*" % (LOCAL_WREN_FOLDER, jmd['warcPrefix'])):
                         if wren.endswith('.open'):
                             wren = wren[:-5]
                         warcfiles.add(os.path.basename(wren))
                     # Also check in case file has already been moved into output/warcs/{job}/{launch}:
-                    for wren in remote_glob( self.warc_file_path("%s*.warc.gz*" % jmd['warcPrefix'])):
+                    for wren in rf.listdir( self.warc_file_path("%s*.warc.gz*" % jmd['warcPrefix'])):
                         warcfiles.add(os.path.basename(wren))
                     # FIXME Also look on HDFS for matching files?
                 else:
@@ -304,13 +309,13 @@ class AssembleOutput(luigi.Task):
         warcs = []
         viral = []
         for warcfile in warcfiles:
-            if self._file_exists(self.viral_file_path(warcfile)):
+            if self._file_exists(self.viral_file_path(warcfile), rf):
                 logger.info("Found Viral WARC %s" % self.viral_file_path(warcfile))
                 viral.append(self.viral_file_path(warcfile))
-            elif self._file_exists("%s/%s" % (LOCAL_WREN_FOLDER, warcfile)):
+            elif self._file_exists("%s/%s" % (LOCAL_WREN_FOLDER, warcfile), rf):
                 logger.info("Found WREN WARC %s" % warcfile)
                 warcs.append("%s/%s" % (LOCAL_WREN_FOLDER, warcfile))
-            elif self._file_exists(self.warc_file_path(warcfile)):
+            elif self._file_exists(self.warc_file_path(warcfile), rf):
                 logger.info("Found WARC %s" % self.warc_file_path(warcfile))
                 warcs.append(self.warc_file_path(warcfile))
             else:
@@ -319,7 +324,7 @@ class AssembleOutput(luigi.Task):
         return warcs, viral
 
     @staticmethod
-    def _file_exists(path):
+    def _file_exists(path, rf):
         """
         Checks whether the given file exists and has content - allowed to be '.open' at this point.
 
@@ -327,10 +332,9 @@ class AssembleOutput(luigi.Task):
 
         :type path: str
         """
-        if os.path.exists(path) and os.path.isfile(path) and os.path.getsize(path) > 0:
+        if rf.exists(path) and rf.isfile(path):# and rf.getsize(path) > 0:
             return True
-        elif os.path.exists("%s.open" % path) and os.path.isfile("%s.open" % path) and os.path.getsize(
-                        "%s.open" % path) > 0:
+        elif rf.exists("%s.open" % path) and rf.isfile("%s.open" % path):# and rf.getsize("%s.open" % path) > 0:
             return True
         elif get_hdfs_target(path).exists():
             return True
@@ -406,10 +410,12 @@ class ProcessOutputs(luigi.Task):
 
     def requires(self):
         # FIXME Need to make sure this copes with crawl.log.TIMESTAMP etc. from failures.
+        # Set up remote connection:
+        rf = luigi.contrib.ssh.RemoteFileSystem(self.host)
         # Look for checkpoints to package, and package them in the correct order:
         outputs = {}
         is_final = False
-        for item_path in remote_glob(self.host,
+        for item_path in rf.listdir(self.host,
                                      "%s/logs/%s/%s/crawl.log*" % (LOCAL_OUTPUT_FOLDER, self.job.name, self.launch_id)):
             item = os.path.basename(item_path)
             logger.info("ITEM %s" % item)
@@ -452,7 +458,7 @@ class ProcessOutputs(luigi.Task):
             with self.output().open('w') as f:
                 f.write('{}'.format(json.dumps(outputs, indent=4)))
         else:
-            yield CheckJobStopped(self.job, self.launch_id)
+            yield CheckJobStopped(self.job, self.launch_id, self.host)
 
 
 class ScanForLaunches(luigi.WrapperTask):
@@ -474,16 +480,18 @@ class ScanForLaunches(luigi.WrapperTask):
             yield self.scan_job_launch(host, job, launch)
 
     def enumerate_launches(self):
+        # Set up connection:
+        rf = luigi.contrib.ssh.RemoteFileSystem(self.host)  # , **SSH_KWARGS)
         # Look for jobs that need to be processed:
         for date in self.date_interval:
-            for job_item in remote_glob(self.host, "%s/*" % LOCAL_JOB_FOLDER):
+            for job_item in rf.listdir("%s/*" % LOCAL_JOB_FOLDER):
                 job = os.path.basename(job_item)
-                if os.path.isdir(job_item):
+                if rf.isdir(job_item):
                     launch_glob = "%s/%s*" % (job_item, date.strftime('%Y%m%d'))
                     logger.info("Looking for job launch folders matching %s" % launch_glob)
-                    for launch_item in remote_glob(self.host, launch_glob):
+                    for launch_item in rf.listdir(launch_glob):
                         logger.info("Found %s" % launch_item)
-                        if os.path.isdir(launch_item):
+                        if rf.isdir(launch_item):
                             launch = os.path.basename(launch_item)
                             yield (self.host, job, launch)
 
@@ -500,4 +508,4 @@ class ScanForOutputs(ScanForLaunches):
 
 
 if __name__ == '__main__':
-    luigi.run(['scan.ScanForOutputs', '--host', 'crawler07.bl.uk' '--date-interval', '2017-02-06-2017-02-08', '--local-scheduler'])
+    luigi.run(['scan.ScanForOutputs', '--host', 'crawler07.bl.uk', '--date-interval', '2017-02-06-2017-02-08', '--local-scheduler'])
