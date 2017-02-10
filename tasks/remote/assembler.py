@@ -483,11 +483,16 @@ class ScanForLaunches(luigi.WrapperTask):
                 if rf.isdir(job_item):
                     launch_glob = "%s/%s*" % (job_item, date.strftime('%Y%m%d'))
                     logger.info("Looking for job launch folders matching %s" % launch_glob)
-                    for launch_item in self.remote_ls(launch_glob, rf):
-                        logger.info("Found %s" % launch_item)
-                        if rf.isdir(launch_item):
-                            launch = os.path.basename(launch_item)
-                            yield (self.host, job, launch)
+                    try:
+                        for launch_item in self.remote_ls(launch_glob, rf):
+                            logger.info("Found %s" % launch_item)
+                            if rf.isdir(launch_item):
+                                launch = os.path.basename(launch_item)
+                                yield (self.host, job, launch)
+                    except Exception as e:
+                        # This pattern deals with non-existant directories by catching the exception.
+                        logger.info("Error when listing.")
+                        logger.exception(e)
 
     @staticmethod
     def remote_ls(path, rf):
@@ -501,10 +506,6 @@ class ScanForLaunches(luigi.WrapperTask):
             path = path[:-1]
 
         path = path or '.'
-
-        # Ignore non-existant paths:
-        if not rf.exists(path):
-            return []
 
         listing = rf.remote_context.check_output(["ls", "-1d", path]).splitlines()
         return [v.decode('utf-8') for v in listing]
