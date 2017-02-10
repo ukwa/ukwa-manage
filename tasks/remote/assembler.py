@@ -33,7 +33,7 @@ def get_hdfs_target(path):
 
 
 def target_name(state_class, job, launch_id, status):
-    return '{}-{}/{}/{}/{}.{}.{}.{}'.format(launch_id[:4],launch_id[4:6], job.name, launch_id, state_class, job.name, launch_id, status)
+    return '{}-{}/{}/{}/{}.{}.{}.{}'.format(launch_id[:4],launch_id[4:6], job, launch_id, state_class, job, launch_id, status)
 
 
 def get_stage_suffix(stage):
@@ -114,24 +114,24 @@ class PackageLogs(luigi.Task):
         chop = len(str(LOCAL_PREFIX))
         with zipfile.ZipFile(self.output().path, 'w', allowZip64=True) as zipout:
             for crawl_log in rf.listdir("%s/logs/%s/%s/crawl.log%s" % (
-                    LOCAL_OUTPUT_FOLDER, self.job.name, self.launch_id, get_stage_suffix(self.stage))):
+                    LOCAL_OUTPUT_FOLDER, self.job, self.launch_id, get_stage_suffix(self.stage))):
                 logger.info("Found %s..." % os.path.basename(crawl_log))
                 zipout.write(crawl_log, arcname=crawl_log[chop:])
 
             for log in rf.listdir("%s/logs/%s/%s/*-errors.log%s" % (
-                    LOCAL_OUTPUT_FOLDER, self.job.name, self.launch_id, get_stage_suffix(self.stage))):
+                    LOCAL_OUTPUT_FOLDER, self.job, self.launch_id, get_stage_suffix(self.stage))):
                 logger.info("Found %s..." % os.path.basename(log))
                 zipout.write(log, arcname=log[chop:])
 
-            for txt in rf.listdir("%s/%s/%s/*.txt" % (LOCAL_JOB_FOLDER, self.job.name, self.launch_id)):
+            for txt in rf.listdir("%s/%s/%s/*.txt" % (LOCAL_JOB_FOLDER, self.job, self.launch_id)):
                 logger.info("Found %s..." % os.path.basename(txt))
                 zipout.write(txt, arcname=txt[chop:])
 
-            for txt in rf.listdir("%s/%s/%s/*.json" % (LOCAL_JOB_FOLDER, self.job.name, self.launch_id)):
+            for txt in rf.listdir("%s/%s/%s/*.json" % (LOCAL_JOB_FOLDER, self.job, self.launch_id)):
                 logger.info("Found %s..." % os.path.basename(txt))
                 zipout.write(txt, arcname=txt[chop:])
 
-            cxml = "%s/%s/%s/crawler-beans.cxml" % (LOCAL_JOB_FOLDER, self.job.name, self.launch_id)
+            cxml = "%s/%s/%s/crawler-beans.cxml" % (LOCAL_JOB_FOLDER, self.job, self.launch_id)
             if rf.exists(cxml):
                 logger.info("Found config...")
                 zipout.write(cxml, arcname=cxml[chop:])
@@ -157,7 +157,7 @@ class AssembleOutput(luigi.Task):
         yield PackageLogs(self.job, self.launch_id, self.stage)
 
     # TODO Move this into it's own job? (atomicity):
-    #    luigi.LocalTarget("%s/%s/%s/logs-%s.zip" % (self.LOCAL_LOG_ROOT, self.job.name, self.launch_id, self.stage))
+    #    luigi.LocalTarget("%s/%s/%s/logs-%s.zip" % (self.LOCAL_LOG_ROOT, self.job, self.launch_id, self.stage))
     def output(self):
         return luigi.LocalTarget(
             '{}/{}'.format(LUIGI_STATE_FOLDER, target_name('03.outputs', self.job, self.launch_id, self.stage)))
@@ -203,7 +203,7 @@ class AssembleOutput(luigi.Task):
 
         # Output the job package summary:
         job_output = {
-            'job_id': self.job.name,
+            'job_id': self.job,
             'launch_id': self.launch_id,
             'start_date': start_date,
             'warcs': warcs,
@@ -218,7 +218,7 @@ class AssembleOutput(luigi.Task):
 
     def get_crawl_log(self, rf):
         # First, parse the crawl log(s) and determine the WARC file names:
-        logfilepath = "%s/logs/%s/%s/crawl.log%s" % (LOCAL_OUTPUT_FOLDER, self.job.name,
+        logfilepath = "%s/logs/%s/%s/crawl.log%s" % (LOCAL_OUTPUT_FOLDER, self.job,
                                                      self.launch_id, get_stage_suffix(self.stage))
         logger.info("Looking for crawl logs stage: %s" % self.stage)
         logger.info("Looking for crawl logs: %s" % logfilepath)
@@ -248,10 +248,10 @@ class AssembleOutput(luigi.Task):
         return timestamps[0].strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def warc_file_path(self, warcfile):
-        return "%s/warcs/%s/%s/%s" % (LOCAL_OUTPUT_FOLDER, self.job.name, self.launch_id, warcfile)
+        return "%s/warcs/%s/%s/%s" % (LOCAL_OUTPUT_FOLDER, self.job, self.launch_id, warcfile)
 
     def viral_file_path(self, warcfile):
-        return "%s/viral/%s/%s/%s" % (LOCAL_OUTPUT_FOLDER, self.job.name, self.launch_id, warcfile)
+        return "%s/viral/%s/%s/%s" % (LOCAL_OUTPUT_FOLDER, self.job, self.launch_id, warcfile)
 
     def parse_crawl_log(self, logs):
         """
@@ -410,7 +410,7 @@ class ProcessOutputs(luigi.Task):
         outputs = {}
         is_final = False
         for item_path in rf.listdir(self.host,
-                                     "%s/logs/%s/%s/crawl.log*" % (LOCAL_OUTPUT_FOLDER, self.job.name, self.launch_id)):
+                                     "%s/logs/%s/%s/crawl.log*" % (LOCAL_OUTPUT_FOLDER, self.job, self.launch_id)):
             item = os.path.basename(item_path)
             logger.info("ITEM %s" % item)
             if item == "crawl.log":
@@ -478,39 +478,34 @@ class ScanForLaunches(luigi.WrapperTask):
         rf = luigi.contrib.ssh.RemoteFileSystem(self.host)
         # Look for jobs that need to be processed:
         for date in self.date_interval:
-            for job_item in self.remote_ls("%s/*" % LOCAL_JOB_FOLDER, rf):
+            for job_item in self.remote_ls(LOCAL_JOB_FOLDER, "*", rf):
                 job = os.path.basename(job_item)
                 if rf.isdir(job_item):
-                    launch_glob = "%s/%s*" % (job_item, date.strftime('%Y%m%d'))
+                    launch_glob = "%s*" % date.strftime('%Y%m%d')
                     logger.info("Looking for job launch folders matching %s" % launch_glob)
-                    try:
-                        for launch_item in self.remote_ls(launch_glob, rf):
-                            logger.info("Found %s" % launch_item)
-                            if rf.isdir(launch_item):
-                                launch = os.path.basename(launch_item)
-                                yield (self.host, job, launch)
-                    except Exception as e:
-                        # This pattern deals with non-existant directories by catching the exception.
-                        logger.info("Error when listing.")
-                        logger.exception(e)
+                    for launch_item in self.remote_ls(job_item, launch_glob, rf):
+                        logger.info("Found %s" % launch_item)
+                        if rf.isdir(launch_item):
+                            launch = os.path.basename(launch_item)
+                            yield (self.host, job, launch)
 
     @staticmethod
-    def remote_ls(path, rf):
+    def remote_list(parent, glob, rf):
         """
-        Based on RemoteFileSystem.listdir but non-recursive
-        :param path:
-        :param remote_context:
+        Based on RemoteFileSystem.listdir but non-recursive.
+
+        :param parent:
+        :param glob:
+        :param rf:
         :return:
         """
-        while path.endswith('/'):
-            path = path[:-1]
+        while parent.endswith('/'):
+            parent = parent[:-1]
 
-        path = path or '.'
+        parent = parent or '.'
 
-        listing = rf.remote_context.check_output(["ls", "-1d", path]).splitlines()
+        listing = rf.remote_context.check_output(["find", "-L", parent, '-maxdepth', '1', '-name', glob]).splitlines()
         return [v.decode('utf-8') for v in listing]
-
-
 
 
 class ScanForOutputs(ScanForLaunches):
