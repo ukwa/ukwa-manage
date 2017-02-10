@@ -409,8 +409,8 @@ class ProcessOutputs(luigi.Task):
         # Look for checkpoints to package, and package them in the correct order:
         outputs = {}
         is_final = False
-        for item_path in rf.listdir(self.host,
-                                     "%s/logs/%s/%s/crawl.log*" % (LOCAL_OUTPUT_FOLDER, self.job, self.launch_id)):
+        for item_path in rf.listdir("%s/logs/%s/%s/crawl.log*" %
+                                            (LOCAL_OUTPUT_FOLDER, self.job, self.launch_id)):
             item = os.path.basename(item_path)
             logger.info("ITEM %s" % item)
             if item == "crawl.log":
