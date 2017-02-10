@@ -478,19 +478,19 @@ class ScanForLaunches(luigi.WrapperTask):
         rf = luigi.contrib.ssh.RemoteFileSystem(self.host)
         # Look for jobs that need to be processed:
         for date in self.date_interval:
-            for job_item in self.remote_ls("%s/*" % LOCAL_JOB_FOLDER, rf.remote_context):
+            for job_item in self.remote_ls("%s/*" % LOCAL_JOB_FOLDER, rf):
                 job = os.path.basename(job_item)
                 if rf.isdir(job_item):
                     launch_glob = "%s/%s*" % (job_item, date.strftime('%Y%m%d'))
                     logger.info("Looking for job launch folders matching %s" % launch_glob)
-                    for launch_item in self.remote_ls(launch_glob, rf.remote_context):
+                    for launch_item in self.remote_ls(launch_glob, rf):
                         logger.info("Found %s" % launch_item)
                         if rf.isdir(launch_item):
                             launch = os.path.basename(launch_item)
                             yield (self.host, job, launch)
 
     @staticmethod
-    def remote_ls(path, remote_context):
+    def remote_ls(path, rf):
         """
         Based on RemoteFileSystem.listdir but non-recursive
         :param path:
@@ -502,7 +502,11 @@ class ScanForLaunches(luigi.WrapperTask):
 
         path = path or '.'
 
-        listing = remote_context.check_output(["ls", "-1d", path]).splitlines()
+        # Ignore non-existant paths:
+        if not rf.exists(path):
+            return []
+
+        listing = rf.remote_context.check_output(["ls", "-1d", path]).splitlines()
         return [v.decode('utf-8') for v in listing]
 
 
