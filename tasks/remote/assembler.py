@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import os
 import re
 import json
@@ -18,9 +20,9 @@ logger = logging.getLogger('luigi-interface')
 LUIGI_STATE_FOLDER = os.environ['LUIGI_STATE_FOLDER']
 HDFS_PREFIX = os.environ['HDFS_PREFIX']
 LOCAL_PREFIX = os.environ['LOCAL_PREFIX']
-LOCAL_JOB_FOLDER = os.environ.get('LOCAL_JOB_FOLDER','/heritrix/jobs')
-LOCAL_OUTPUT_FOLDER = os.environ.get('LOCAL_OUTPUT_FOLDER','/heritrix/output')
-LOCAL_WREN_FOLDER = os.environ.get('LOCAL_WREN_FOLDER','/heritrix/wren')
+LOCAL_JOB_FOLDER = "%s%s" %( LOCAL_PREFIX, os.environ.get('LOCAL_JOB_FOLDER','/heritrix/jobs'))
+LOCAL_OUTPUT_FOLDER = "%s%s" %( LOCAL_PREFIX, os.environ.get('LOCAL_OUTPUT_FOLDER','/heritrix/output') )
+LOCAL_WREN_FOLDER = "%s%s" %( LOCAL_PREFIX, os.environ.get('LOCAL_WREN_FOLDER','/heritrix/wren') )
 #SSH_KWARGS = { 'user': 'heritrix', 'key_file': 'id_rsa' }
 
 
@@ -508,4 +510,4 @@ class ScanForOutputs(ScanForLaunches):
 
 
 if __name__ == '__main__':
-    luigi.run(['scan.ScanForOutputs', '--host', 'crawler07.bl.uk', '--date-interval', '2017-02-06-2017-02-08', '--local-scheduler'])
+    luigi.run(['scan.ScanForOutputs', '--host', 'crawler07', '--date-interval', '2017-02-06-2017-02-08', '--local-scheduler'])
