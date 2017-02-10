@@ -504,7 +504,7 @@ class ScanForLaunches(luigi.WrapperTask):
 
         parent = parent or '.'
 
-        listing = rf.remote_context.check_output(["find", "-L", parent, '-maxdepth', '1', '-name', glob]).splitlines()
+        listing = rf.remote_context.check_output(["find", "-L", parent, '-maxdepth', '1', '-name', '"%s"' % glob]).splitlines()
         return [v.decode('utf-8') for v in listing]
 
 
