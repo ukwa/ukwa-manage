@@ -490,7 +490,7 @@ class ScanForLaunches(luigi.WrapperTask):
                             yield (self.host, job, launch)
 
     @staticmethod
-    def remote_list(parent, glob, rf):
+    def remote_ls(parent, glob, rf):
         """
         Based on RemoteFileSystem.listdir but non-recursive.
 
