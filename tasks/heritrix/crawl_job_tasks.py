@@ -17,11 +17,14 @@ import crawl.h3.hapyx as hapyx
 from crawl.w3act.job import W3actJob
 from crawl.w3act.job import remove_action_files
 from tasks.w3act.feeds import CrawlFeed
-from tasks.common import target_name
 
 logger = logging.getLogger('luigi-interface')
 
 LOCAL_JOB_FOLDER = '/heritrix/jobs'
+
+
+def target_name(state_class, job, launch_id, status):
+    return '{}-{}/{}/{}/{}.{}.{}.{}'.format(launch_id[:4],launch_id[4:6], job, launch_id, state_class, job, launch_id, status)
 
 
 def jtarget(job, launch_id, status):
