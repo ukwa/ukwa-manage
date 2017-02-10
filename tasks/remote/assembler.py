@@ -26,14 +26,6 @@ LOCAL_WREN_FOLDER = "%s%s" %( LOCAL_PREFIX, os.environ.get('LOCAL_WREN_FOLDER','
 #SSH_KWARGS = { 'user': 'heritrix', 'key_file': 'id_rsa' }
 
 
-#def remote_glob(host, path):
-#    rf = luigi.contrib.ssh.RemoteFileSystem(host)#, **SSH_KWARGS)
-#    return rf.listdir(path)
-    #rc = luigi.contrib.ssh.RemoteContext(host=host)
-    #for item in rc.check_output('ls -1d %s' % path):
-    #    yield item
-
-
 def get_hdfs_target(path):
     # Prefix the original path with the HDFS root folder, stripping any leading '/' so the path is considered relative
     hdfs_path = os.path.join(HDFS_PREFIX, path.lstrip(os.path.sep))
@@ -483,19 +475,37 @@ class ScanForLaunches(luigi.WrapperTask):
 
     def enumerate_launches(self):
         # Set up connection:
-        rf = luigi.contrib.ssh.RemoteFileSystem(self.host)  # , **SSH_KWARGS)
+        rf = luigi.contrib.ssh.RemoteFileSystem(self.host)
         # Look for jobs that need to be processed:
         for date in self.date_interval:
-            for job_item in rf.listdir("%s/*" % LOCAL_JOB_FOLDER):
+            for job_item in self.remote_ls("%s/*" % LOCAL_JOB_FOLDER, rf.remote_context):
                 job = os.path.basename(job_item)
                 if rf.isdir(job_item):
                     launch_glob = "%s/%s*" % (job_item, date.strftime('%Y%m%d'))
                     logger.info("Looking for job launch folders matching %s" % launch_glob)
-                    for launch_item in rf.listdir(launch_glob):
+                    for launch_item in self.remote_ls(launch_glob, rf.remote_context):
                         logger.info("Found %s" % launch_item)
                         if rf.isdir(launch_item):
                             launch = os.path.basename(launch_item)
                             yield (self.host, job, launch)
+
+    @staticmethod
+    def remote_ls(path, remote_context):
+        """
+        Based on RemoteFileSystem.listdir but non-recursive
+        :param path:
+        :param remote_context:
+        :return:
+        """
+        while path.endswith('/'):
+            path = path[:-1]
+
+        path = path or '.'
+
+        listing = remote_context.check_output(["ls", "-1d", path]).splitlines()
+        return [v.decode('utf-8') for v in listing]
+
+
 
 
 class ScanForOutputs(ScanForLaunches):
