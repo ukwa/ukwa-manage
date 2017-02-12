@@ -26,14 +26,6 @@ LOCAL_OUTPUT_FOLDER = "%s%s" %( LOCAL_PREFIX, os.environ.get('LOCAL_OUTPUT_FOLDE
 LOCAL_WREN_FOLDER = "%s%s" %( LOCAL_PREFIX, os.environ.get('LOCAL_WREN_FOLDER','/heritrix/wren') )
 
 
-def get_hdfs_target(path):
-    # Chop out any local prefix:
-    hdfs_path = path[len(LOCAL_PREFIX):]
-    # Prefix the original path with the HDFS root folder, stripping any leading '/' so the path is considered relative
-    hdfs_path = os.path.join(HDFS_PREFIX, hdfs_path.lstrip("/"))
-    return luigi.contrib.hdfs.HdfsTarget(hdfs_path)
-
-
 def target_name(state_class, job, launch_id, status):
     return '{}-{}/{}/{}/{}.{}.{}.{}'.format(launch_id[:4],launch_id[4:6], job, launch_id, state_class, job, launch_id, status)
 
@@ -51,102 +43,6 @@ def get_stage_suffix(stage):
         return ''
     else:
         return ".%s" % stage
-
-
-def remote_ls(parent, glob, rf):
-    """
-    Based on RemoteFileSystem.listdir but non-recursive.
-
-    :param parent:
-    :param glob:
-    :param rf:
-    :return:
-    """
-    while parent.endswith('/'):
-        parent = parent[:-1]
-
-    parent = parent or '.'
-
-    # If the parent folder does not exists, there are no matches:
-    if not rf.exists(parent):
-        return []
-
-    listing = rf.remote_context.check_output(["find", "-L", parent, '-maxdepth', '1', '-name', '"%s"' % glob]).splitlines()
-    return [v.decode('utf-8') for v in listing]
-
-class StopJobExternalTask(luigi.ExternalTask):
-    """
-    This task is used to mark jobs as stopped, but this is not something that can be forced automatically, see StopJob.
-    """
-    task_namespace = 'output'
-    host = luigi.Parameter()
-    job = luigi.Parameter()
-    launch_id = luigi.Parameter()
-
-    def output(self):
-        return jtarget(self.job, self.launch_id, 'stopped')
-
-
-class CheckJobStopped(luigi.Task):
-    """
-    Checks if given job/launch is currently running. Will not force the crawl to stop.
-    """
-    task_namespace = 'output'
-    host = luigi.Parameter()
-    job = luigi.Parameter()
-    launch_id = luigi.Parameter()
-
-    def output(self):
-        return jtarget(self.job, self.launch_id, 'stopped')
-
-    def run(self):
-        # Set up connection to H3:
-        rf = luigi.contrib.ssh.RemoteFileSystem(self.host)
-
-        # Is that job running?
-        if rf.exists("%s/logs/%s/%s/crawl.log.lck" % (LOCAL_OUTPUT_FOLDER, self.job, self.launch_id)) or \
-                rf.exists("%s/logs/%s/%s/job.log.lck" % (LOCAL_OUTPUT_FOLDER, self.job, self.launch_id)):
-            # Declare that we are awaiting an external process to stop this job:
-            yield StopJobExternalTask(self.host, self.job, self.launch_id)
-
-        # Not running, so mark as stopped:
-        with self.output().open('w') as f:
-            f.write('{} {}\n'.format(self.job, self.launch_id))
-
-
-class CalculateRemoteHash(luigi.Task):
-    task_namespace = 'output'
-    host = luigi.Parameter()
-    path = luigi.Parameter()
-
-    def output(self):
-        return self.hash_target("%s.local.sha512" % self.path)
-
-    def run(self):
-        logger.debug("file %s to hash" % self.path)
-
-        t = luigi.contrib.ssh.RemoteTarget(self.path,self.host)#, **SSH_KWARGS)
-        with t.open('r') as reader:
-            file_hash = hashlib.sha512(reader.read()).hexdigest()
-
-        # test hash
-        CalculateRemoteHash.check_hash(self.path, file_hash)
-
-        with self.output().open('w') as f:
-            f.write(file_hash)
-
-    @staticmethod
-    def check_hash(path, file_hash):
-        logger.debug("Checking file %s hash %s" % (path, file_hash))
-        if len(file_hash) != 128:
-            raise Exception("%s hash not 128 character length [%s]" % (path, len(file_hash)))
-        if not all(c in string.hexdigits for c in file_hash):
-            raise Exception("%s hash not all hex [%s]" % (path, file_hash))
-
-    @staticmethod
-    def hash_target(file):
-        return luigi.LocalTarget('{}/{}/{}'.format(LUIGI_STATE_FOLDER,
-                                                   'files/hash', os.path.basename(file)))
 
 
 class PackageLogs(luigi.Task):

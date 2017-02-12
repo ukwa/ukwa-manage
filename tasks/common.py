@@ -4,6 +4,7 @@ import enum
 import json
 import luigi
 import luigi.contrib.esindex
+import string
 import logging
 import datetime
 from slackclient import SlackClient
@@ -68,6 +69,14 @@ VIRAL_ROOT = "%s/output/viral" % h3().local_root_folder
 IMAGE_ROOT = "%s/output/images" % h3().local_root_folder
 LOG_ROOT = "%s/output/logs" % h3().local_root_folder
 LOCAL_LOG_ROOT = "%s/output/logs" % h3().local_root_folder
+
+
+def check_hash(path, file_hash):
+    logger.debug("Checking file %s hash %s" % (path, file_hash))
+    if len(file_hash) != 128:
+        raise Exception("%s hash not 128 character length [%s]" % (path, len(file_hash)))
+    if not all(c in string.hexdigits for c in file_hash):
+        raise Exception("%s hash not all hex [%s]" % (path, file_hash))
 
 
 def format_crawl_task(task):
