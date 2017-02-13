@@ -299,9 +299,11 @@ class MoveToWarcsFolder(luigi.Task):
         return luigi.LocalTarget("%s/output/warcs/%s/%s/%s" % (h3().local_root_folder, self.job.name, self.launch_id,
                                                                os.path.basename(self.path)))
 
-    # When run, just move the file:
+    # When run, just move the file, taking care to ensure atomicity:
     def run(self):
-        shutil.move(self.path, self.output().path)
+        # This runs using a Luigi-generated temporary path, which is them atomically renamed to the desired path on exit
+        with self.output().temporary_path() as temp_output_path:
+            shutil.move(self.path, temp_output_path)
 
 
 class MoveFilesForLaunch(luigi.Task):
