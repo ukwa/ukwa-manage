@@ -32,7 +32,8 @@ class BackupRemoteDockerPostgres(luigi.Task):
 
         # Launch pg_dump remotely
         rc = luigi.contrib.ssh.RemoteContext(self.host)
-        cmd = 'docker exec %s pg_dump --format=c --file=%s %s"' % (self.service, remote_docker_backup_path, self.db)
+        cmd = ['docker', 'exec', self.service,
+                'pg_dump', '--format=c', '--file=%s' % remote_docker_backup_path, self.db ]
         rc.check_output(cmd)
 
         #cmd = 'su - postgres -c "/usr/bin/pg_dump --format=c --file=%s %s"' % (remote_backup_path, self.db)
