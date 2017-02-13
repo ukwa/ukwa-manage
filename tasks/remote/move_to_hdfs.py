@@ -173,10 +173,11 @@ class MoveToHdfs(luigi.Task):
         with self.output().open('w') as f:
             f.write(hdfs_hash)
 
-
+# FIXME We must take care to make this atomic as move can be copy if the systems are presented as different drives.
 class MoveRemoteWrenWarcFile(luigi.Task):
     """
     Moves closed 'WREN' WARCs to the appropriate WARC folder.
+
     """
     task_namespace = 'file'
     host = luigi.Parameter()
