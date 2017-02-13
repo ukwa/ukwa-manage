@@ -43,9 +43,9 @@ class BackupRemoteDockerPostgres(luigi.Task):
 
 
 if __name__ == '__main__':
-    luigi.run(['backup.BackupRemotePostgres',
-                '--host', 'crawler07', '--service', 'pulsedeploy_postgres_1' '--db', 'w3act',
+    luigi.run(['backup.BackupRemoteDockerPostgres', '--local-scheduler',
+                '--host', 'crawler07', '--service', 'pulsedeploy_postgres_1', '--db', 'w3act',
                 '--remote-host-backup-folder', '/zfspool/test/postgresql'])
-#    luigi.run(['backup.BackupRemotePostgres',
+#    luigi.run(['backup.BackupRemoteDockerPostgres',
 #                '--host', 'crawler07', '--service', 'pulse_prod_postgres_1' '--db', 'w3act',
 #                '--remote-host-backup-folder', '/zfspool/prod/postgresql'])
