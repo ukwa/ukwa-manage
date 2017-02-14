@@ -213,7 +213,7 @@ def notify_any_failure(task, exception):
        of `run` on any JobTask subclass
     """
 
-    if systems().elasticsearch_host:
+    if os.environ.get("ELASTICSEARCH_HOST", None):
         doc = { 'content' : "Job %s failed: %s" % (task, exception) }
         source = 'luigi'
         esrm = RecordEvent("unknown_job", "unknown_launch_id", doc, source, "task-failure")
@@ -221,7 +221,7 @@ def notify_any_failure(task, exception):
     else:
         logger.warning("No Elasticsearch host set, no failure message sent.")
 
-    if slack().token:
+    if os.environ.get("SLACK_TOKEN", None):
         sc = SlackClient(slack().token)
         print(sc.api_call(
             "chat.postMessage", channel="#crawls", text=":scream: Job _%s_ failed:\n> %s" % (task, exception),
@@ -237,7 +237,7 @@ def celebrate_any_success(task):
     """Will be called directly after a successful execution
        of `run` on any Task subclass (i.e. all luigi Tasks)
     """
-    if systems().elasticsearch_host:
+    if os.environ.get("ELASTICSEARCH_HOST", None):
         doc = { 'content' : "Job %s succeeded." % task }
         source = 'luigi'
         esrm = RecordEvent("unknown_job", "unknown_launch_id", doc, source, "task-success")

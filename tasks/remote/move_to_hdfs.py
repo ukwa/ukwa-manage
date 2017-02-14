@@ -8,16 +8,21 @@ import datetime
 import threading
 import luigi.contrib.hdfs
 import luigi.contrib.ssh
-from tasks.common import hash_target, check_hash
+from tasks.common import check_hash
 
 logger = logging.getLogger('luigi-interface')
 
 LUIGI_STATE_FOLDER = os.environ['LUIGI_STATE_FOLDER']
 HDFS_PREFIX = os.environ['HDFS_PREFIX']
+WEBHDFS_PREFIX = os.environ['WEBHDFS_PREFIX']
 
 CRAWL_JOB_FOLDER = os.environ.get('local_job_folder','/heritrix/jobs')
 CRAWL_OUTPUT_FOLDER = os.environ.get('local_output_folder','/heritrix/output')
 WREN_FOLDER =  os.environ.get('local_wren_folder','/heritrix/wren')
+
+
+def hash_target(path):
+    return luigi.LocalTarget('{}/files/hash/{}'.format(LUIGI_STATE_FOLDER, os.path.basename(path)))
 
 
 class UploadRemoteFileToHDFS(luigi.Task):
@@ -40,15 +45,15 @@ class UploadRemoteFileToHDFS(luigi.Task):
 
     def run(self):
         """
-        The local file is self.path
+        The local file is self.source_path
         The remote file is self.output().path
 
         :return: None
         """
-        self.uploader(self.source_path, self.output().path)
+        self.uploader(self.host, self.source_path, self.output().path)
 
     @staticmethod
-    def uploader(local_path, hdfs_path):
+    def uploader(host, local_path, hdfs_path):
         """
         Copy up to HDFS, making it suitably atomic by using a temporary filename during upload.
 
@@ -66,10 +71,14 @@ class UploadRemoteFileToHDFS(luigi.Task):
         # simultanous updates should not be possible:
         logger.info("Uploading as %s" % tmp_path)
 
-        one = 'curl -L -i -X PUT -T local_file "http://:50075/webhdfs/v1/?op=CREATE..."'
-        two = 'curl -X PUT -L "http://host:port/webhdfs/v1/tmp/myLargeFile.zip?op=CREATE&data=true" --header "Content-Type:application/octet-stream" --header "Transfer-Encoding:chunked" -T "/myLargeFile.zip"'
-        with open(local_path, 'r') as f:
-            client.client.write(data=f, hdfs_path=tmp_path, overwrite=True)
+        # n.b. uses CURL to push content via WebHDFS/HttpFS:
+        #one = 'curl -L -i -X PUT -T local_file "http://:50075/webhdfs/v1/?op=CREATE..."'
+        #two = 'curl -X PUT -L "http://host:port/webhdfs/v1/tmp/myLargeFile.zip?op=CREATE&data=true" --header "Content-Type:application/octet-stream" --header "Transfer-Encoding:chunked" -T "/myLargeFile.zip"'
+        rc = luigi.contrib.ssh.RemoteContext(host)
+        cmd = ['curl', '-X', 'PUT', '-L', '-T', '"%s"' % local_path,
+               '"%s%s?op=CREATE&user.name=root&data=true"' % (WEBHDFS_PREFIX, tmp_path) ]
+        logger.debug("UPLOADER: %s" % " ".join(cmd))
+        rc.check_output(cmd)
 
         # Check if the destination file exists and raise an exception if so:
         if client.exists(hdfs_path):
@@ -95,13 +104,13 @@ class CalculateHdfsHash(luigi.Task):
     resources = { 'hdfs': 1 }
 
     def requires(self):
-        return UploadRemoteFileToHDFS(self.path)
+        return UploadRemoteFileToHDFS(self.host, self.source_path, self.target_path)
 
     def output(self):
-        return hash_target(self.job, self.launch_id, "%s.hdfs.sha512" % self.path)
+        return hash_target("%s.hdfs.sha512" % self.target_path)
 
     def run(self):
-        logger.debug("file %s to hash" % (self.path))
+        logger.debug("HDFS file %s to hash" % (self.target_path))
 
         # get hash for local or hdfs file
         t = self.input()
@@ -111,7 +120,7 @@ class CalculateHdfsHash(luigi.Task):
             file_hash = hashlib.sha512(reader.read()).hexdigest()
 
         # test hash is sane
-        check_hash(self.path, file_hash)
+        check_hash(self.target_path, file_hash)
 
         with self.output().open('w') as f:
             f.write(file_hash)
@@ -123,12 +132,12 @@ class CalculateRemoteHash(luigi.Task):
     path = luigi.Parameter()
 
     def output(self):
-        return self.hash_target("%s.local.sha512" % self.path)
+        return hash_target("%s.%s.sha512" % (self.path, self.host))
 
     def run(self):
-        logger.debug("file %s to hash" % self.path)
+        logger.debug("Remote file %s to hash" % self.path)
 
-        t = luigi.contrib.ssh.RemoteTarget(self.path,self.host)#, **SSH_KWARGS)
+        t = luigi.contrib.ssh.RemoteTarget(path=self.path,host=self.host)#, **SSH_KWARGS)
         with t.open('r') as reader:
             file_hash = hashlib.sha512(reader.read()).hexdigest()
 
@@ -147,11 +156,11 @@ class MoveToHdfs(luigi.Task):
     delete_local = luigi.BoolParameter(default=False)
 
     def requires(self):
-        return [ CalculateRemoteHash(self.job, self.launch_id, self.path),
-                 CalculateHdfsHash(self.job, self.launch_id, self.path) ]
+        return [ CalculateRemoteHash(self.host, self.source_path),
+                 CalculateHdfsHash(self.host, self.source_path, self.target_path) ]
 
     def output(self):
-        return hash_target(self.job, self.launch_id, "%s.transferred" % self.path)
+        return hash_target("%s.transferred" % self.target_path)
 
     def run(self):
         # Read in sha512
@@ -164,11 +173,12 @@ class MoveToHdfs(luigi.Task):
         logger.info("Got HDFS hash %s" % hdfs_hash)
 
         if local_hash != hdfs_hash:
-            raise Exception("Local & HDFS hashes do not match for %s" % self.path)
+            raise Exception("Local & HDFS hashes do not match for %s > %s" % (self.source_path, self.target_path))
 
         # Otherwise, move to hdfs was good, so delete:
         if self.delete_local:
-            os.remove(str(self.path))
+            logger.error("DELETE NOT IMPLEMENTED!")
+            # os.remove(str(self.path))
         # and write out success
         with self.output().open('w') as f:
             f.write(hdfs_hash)
@@ -185,13 +195,13 @@ class MoveRemoteWrenWarcFile(luigi.Task):
 
     # Requires the source path to be present and closed:
     def requires(self):
-        return luigi.contrib.ssh.RemoteTarget(self.host, self.source_path)
+        return luigi.contrib.ssh.RemoteTarget(path=self.source_path, host=self.host)
 
     # Specify the target folder:
     def output(self):
         # FIXME Parse job and launch ID and generate target_path
         target_path = self.path
-        return luigi.contrib.ssh.RemoteTarget(self.host, target_path)
+        return luigi.contrib.ssh.RemoteTarget(path=target_path, host=self.host)
 
     def get_date_prefix(path):
         timestamp = re.findall(r"\D(\d{14}|\d{17})\D", os.path.basename(path))
@@ -211,9 +221,9 @@ class ScanForFilesToMove(luigi.WrapperTask):
     Look for files ready to be moved up to HDFS.  First moves any closed WREN WARCS, then attempts to move the
     important crawl files, mostly WARCs and logs.
     """
-    task_namespace = 'move-to-hdfs'
+    task_namespace = 'move'
     host = luigi.Parameter()
-    local_prefix = luigi.Parameter(default="/zfspool")
+    remote_prefix = luigi.Parameter(default="/zfspool")
     delete_local = luigi.BoolParameter(default=False)
     date_interval = luigi.DateIntervalParameter(
         default=[datetime.date.today() - datetime.timedelta(days=1), datetime.date.today()])
@@ -225,48 +235,49 @@ class ScanForFilesToMove(luigi.WrapperTask):
         :return:
         """
         # Set up base paths:
-        local_job_folder = "%s%s" %( self.local_prefix, CRAWL_JOB_FOLDER)
-        local_output_folder = "%s%s" %( self.local_prefix, CRAWL_OUTPUT_FOLDER )
-        local_wren_folder = "%s%s" %( self.local_prefix, WREN_FOLDER)
+        local_job_folder = "%s%s" %( self.remote_prefix, CRAWL_JOB_FOLDER)
+        local_output_folder = "%s%s" %( self.remote_prefix, CRAWL_OUTPUT_FOLDER )
+        local_wren_folder = "%s%s" %( self.remote_prefix, WREN_FOLDER)
         rf = luigi.contrib.ssh.RemoteFileSystem(self.host)
 
         # Look in /heritrix/output/wren files and move closed WARCs to the /warcs/ folder:
         for wren_source in self.listdir_in_date_range(rf, local_wren_folder, "*.warc.gz"):
+            logger.debug("WREN MOVE: %s" % wren_source)
             yield MoveRemoteWrenWarcFile(self.host, wren_source)
             
         # Look in warcs and viral for WARCs e.g in /heritrix/output/{warcs|viral}/**/*.warc.gz
         for out_type in ['warcs', 'viral']:
-            glob_path = "%s/%s/%s/%s/*.warc.gz" % (local_output_folder, out_type, self.job.name, self.launch_id)
             for item in self.listdir_in_date_range(rf, "%s/%s" % (local_output_folder, out_type), "*.warc.gz"):
-                self.request_move(item)
+                logger.debug("WARC: %s" % item)
+                yield self.request_move(item)
 
         # And look for /heritrix/output/logs/**/*.log*:
         for log_item in self.listdir_in_date_range(rf, "%s/logs/" % local_output_folder, "*.log*"):
+            logger.debug("WARC: %s" % log_item)
             if os.path.splitext(log_item)[1] == '.lck':
                 continue
             elif os.path.splitext(log_item)[1] == '.log':
                 # Only move files with the '.log' suffix if this job is no-longer running (based on .lck file):
                 if not rf.exists("%s.lck" % log_item):
-                    self.request_move(item)
+                    yield self.request_move(log_item)
                 else:
                     logger.info("Can't move locked log: %s" % log_item)
             else:
-                self.request_move(item)
+                yield self.request_move(log_item)
 
     def request_move(self, item):
         logger.info("Requesting Move to HDFS for:%s" % item)
-        yield MoveToHdfs(item, self.hdfs_path(item), self.delete_local)
+        return MoveToHdfs(self.host, item, self.hdfs_path(item), self.delete_local)
 
     def hdfs_path(self, path):
         # Chop out any local prefix:
-        hdfs_path = path[len(self.local_prefix):]
+        hdfs_path = path[len(self.remote_prefix):]
         # Prefix this path with the HDFS root folder, stripping any leading '/' so the path is considered relative
         if hdfs_path:
             hdfs_path = os.path.join(HDFS_PREFIX, hdfs_path.lstrip("/"))
         return hdfs_path
 
-    @staticmethod
-    def listdir_in_date_range(rf, path, match):
+    def listdir_in_date_range(self, rf, path, match):
         """
         Based on RemoteFileSystem.listdir but non-recursive.
 
@@ -286,7 +297,13 @@ class ScanForFilesToMove(luigi.WrapperTask):
         if not rf.exists(path):
             return []
 
-        listing = rf.remote_context.check_output(["find", "-L", path, "-type", "f" ,"-name", '"%s"' % match]).splitlines()
+        # Construct an appropriate `find` command:
+        cmd = ["find", "-L", path, "-type", "f", "-newermt",
+               self.date_interval.date_a.strftime('"%Y-%m-%d"'), "!", "-newermt",
+               self.date_interval.date_b.strftime('"%Y-%m-%d"'), "-name", '"%s"' % match]
+        #logger.debug(": %s" % " ".join(cmd))
+
+        listing = rf.remote_context.check_output(cmd).splitlines()
         return [v.decode('utf-8') for v in listing]
 
 
@@ -314,7 +331,8 @@ class ScanForFilesToMove(luigi.WrapperTask):
 
 
 if __name__ == '__main__':
-    luigi.run(['scan.ScanForFilesToMove', '--date-interval', '2016-11-01-2016-11-10'])
+    luigi.run(['move.ScanForFilesToMove', '--date-interval', '2017-02-11-2017-02-12', '--host' , 'localhost',
+               '--remote-prefix', '/Users/andy/Documents/workspace/pulse/testing' , '--local-scheduler'])
     #luigi.run(['file.ForceUploadFileToHDFS', '--path', '/Users/andy/Documents/workspace/pulse/testing/output/logs/daily/20161029192642/progress-statistics.log'])
 #    luigi.run(['file.ScanForFiles', '--date-interval', '2016-10-26-2016-10-30'])  # , '--local-scheduler'])
 #    luigi.run(['file.MoveToHdfs', '--path', '/Users/andy/Documents/workspace/pulse/python-shepherd/MANIFEST.in'])  # , '--local-scheduler'])
