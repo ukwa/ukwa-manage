@@ -15,8 +15,8 @@ from crawl.w3act.w3act import w3act
 import crawl.h3.hapyx as hapyx
 from crawl.w3act.job import W3actJob
 from crawl.w3act.job import remove_action_files
-from common import *
-from crawl_job_tasks import CheckJobStopped
+from tasks.common import *
+from tasks.crawl_job_tasks import CheckJobStopped
 from assembler import AssembleOutput
 
 

@@ -5,8 +5,8 @@ import json
 import luigi.contrib.hdfs
 from urlparse import urlparse
 from pywb.warc.archiveiterator import DefaultRecordParser
-from common import *
-from crawl_job_tasks import CheckJobStopped
+from tasks.common import *
+from tasks.crawl_job_tasks import CheckJobStopped
 
 
 def cdx_line(entry, filename):

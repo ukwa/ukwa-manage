@@ -1,7 +1,7 @@
 import re
 from crawl.w3act.w3act import w3act
 from crawl.h3.utils import url_to_surt
-from common import *
+from tasks.common import *
 from move_to_hdfs import MoveFilesForLaunch
 import os
 import json
