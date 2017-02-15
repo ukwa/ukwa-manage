@@ -23,7 +23,7 @@ class GenerateMonthlyReport(luigi.Task):
 
     """
     task_namespace = 'report'
-    date_stamp = luigi.MonthParameter(default=date.today())
+    date = luigi.MonthParameter(default=date.today())
 
     a_frequencies = ["daily", "weekly", "monthly", "quarterly", "sixmonthly", "annual", "domaincrawl", "nevercrawl"]
     a_ldls = [("The British Library", "DLS-LON-WB01"), ("Trinity College Dublin", "DLS-BSP-WB04"),
@@ -42,7 +42,7 @@ class GenerateMonthlyReport(luigi.Task):
     def output(self):#/var/www/html/act/
         datetime_string = self.date.strftime(luigi.DateMinuteParameter.date_format)
         return luigi.LocalTarget('%s/%s/monthly-stats-%s.html' %
-                                 (LUIGI_STATE_FOLDER, datetime_string[0:7], self.date_stamp.strftime("%Y%m%d")))
+                                 (LUIGI_STATE_FOLDER, datetime_string[0:7], self.date.strftime("%Y%m%d")))
 
     def run(self):
         # initialise
@@ -215,6 +215,8 @@ class GenerateMonthlyReport(luigi.Task):
     #			logger.debug("Processing {0}: {1} - {2} {3}".format(server, name, last_month.strftime("%b"), last_month.strftime("%Y")))
     #			subprocess.Popen([LDREPORT, last_month.strftime("%b"), last_month.strftime("%Y"), server, name], stdout=o_out, stderr=subprocess.STDOUT)
             o_out.write("<tr><td cols=\"2\"><br/><b>LDL stats produced differently now, ask about da-super wastats</b></td></tr>\n")
+            # http://git.wa.bl.uk/servers/discovery_supervisor/raw/master/wastats/server/mapred.wa/home/hdfs/wastats/wastats
+
 
         with open(s_outputfile, "ab") as o_out:
             o_out.write("</table>\n</body>\n</html>")

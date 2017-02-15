@@ -37,9 +37,9 @@ class CrawlFeed(luigi.Task):
             f.write('{}'.format(json.dumps(targets, indent=4)))
 
 
-class TargetList(luigi.Task):
+class AllTargetIDs(luigi.Task):
     """
-    Get the lists of all targets, with full details for each, whether or not they are scheduled for crawling.
+    Get the lists of all targets, just IDs.
 
     Only generated once per day as this is rather heavy going.
     """
@@ -47,8 +47,8 @@ class TargetList(luigi.Task):
     date = luigi.DateParameter(default=datetime.date.today())
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateMinuteParameter.date_format)
-        return luigi.LocalTarget('%s/%s/w3act/target-list.%s' % (
+        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
+        return luigi.LocalTarget('%s/%s/w3act/target-all-ids.%s' % (
             LUIGI_STATE_FOLDER, datetime_string[0:7], datetime_string))
 
     def run(self):
@@ -56,45 +56,76 @@ class TargetList(luigi.Task):
         w = w3act(ACT_URL, ACT_USER, ACT_PASSWORD)
         # Load the targets:
         target_ids = w.get_target_list();
-        # Grab detailed target data:
-        logger.info("Getting detailed information for %i targets..." % len(target_ids))
-        targets = []
-        i = 0
-        for tid in target_ids:
-            targets.append(w.get_target(tid))
-            i += 1
-            if i % 100 == 0:
-                logger.info("Downloaded %i/%i (%f%%)..." %(i, len(target_ids), i/len(target_ids)))
         # Persist to disk:
         with self.output().open('w') as f:
-            f.write('{}'.format(json.dumps(targets, indent=4)))
+            f.write('{}'.format(json.dumps(target_ids, indent=4)))
+
+
+class GetTarget(luigi.Task):
+    """
+    Get the metadata for one target
+
+    Only generated once per day as this is rather heavy going.
+    """
+    task_namespace = 'w3act'
+    id = luigi.IntParameter()
+    date = luigi.DateParameter(default=datetime.date.today())
+
+    # Set up connection to W3ACT:
+    w = w3act(ACT_URL, ACT_USER, ACT_PASSWORD)
+
+    def output(self):
+        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
+        return luigi.LocalTarget('%s/%s/w3act/targets/target-%i.%s' % (
+            LUIGI_STATE_FOLDER, datetime_string[0:7], self.id, datetime_string))
+
+    def run(self):
+        # Load the targets:
+        target = self.w.get_target(self.id);
+        # Persist to disk:
+        with self.output().open('w') as f:
+            f.write('{}'.format(json.dumps(target, indent=4)))
 
 
 class TargetListForFrequency(luigi.Task):
     """
-    Filters the full Target list by frequency
+    Get the lists of all targets, with full details for each, whether or not they are scheduled for crawling.
+
+    Only generated once per day as this is rather heavy going.
     """
     task_namespace = 'w3act'
     frequency = luigi.Parameter()
     date = luigi.DateParameter(default=datetime.date.today())
 
     def requires(self):
-        return TargetList()
+        return AllTargetIDs(self.date)
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateMinuteParameter.date_format)
+        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
         return luigi.LocalTarget('%s/%s/w3act/target-list.%s.%s' % (
-            LUIGI_STATE_FOLDER, datetime_string[0:7], datetime_string, self.frequency))
+            LUIGI_STATE_FOLDER, datetime_string[0:7], self.frequency, datetime_string))
 
     def run(self):
-        # Load and filter targets
+        # Load the targets:
+        with self.input().open() as f:
+            target_ids = json.load(f)
+        # Grab detailed target data:
+        logger.info("Getting detailed information for %i targets..." % len(target_ids))
+        tasks = []
+        for tid in target_ids:
+            tasks.append(GetTarget(tid))
+        task_outputs = yield tasks
+        #
         targets = []
-        for t in json.load(self.input().open()):
-            if t['crawlFrequeny'] == self.frequency:
+        i = 0
+        for target_output in task_outputs:
+            t = json.load(target_output.open())
+            if t['field_crawl_frequency'].lower() == self.frequency.lower():
                 targets.append(t)
-
+            i += 1
+            if i % 100 == 0:
+                logger.info("Downloaded %i/%i (%f%%)..." % (i, len(target_ids), float(i) * 100.0 / len(target_ids)))
         # Persist to disk:
         with self.output().open('w') as f:
             f.write('{}'.format(json.dumps(targets, indent=4)))
-
 
