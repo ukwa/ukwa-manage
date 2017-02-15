@@ -15,7 +15,7 @@ from tasks.w3act.feeds import TargetListForFrequency
 
 logger = logging.getLogger('luigi-interface')
 
-#LUIGI_STATE_FOLDER = os.environ['LUIGI_STATE_FOLDER']
+LUIGI_STATE_FOLDER = os.environ['LUIGI_STATE_FOLDER']
 
 
 class GenerateMonthlyReport(luigi.Task):
@@ -40,7 +40,9 @@ class GenerateMonthlyReport(luigi.Task):
         return feeds
 
     def output(self):#/var/www/html/act/
-        return luigi.LocalTarget('./monthly-stats-' + self.date_stamp.strftime("%Y%m%d") + '.html')
+        datetime_string = self.date.strftime(luigi.DateMinuteParameter.date_format)
+        return luigi.LocalTarget('%s/%s/monthly-stats-%s.html' %
+                                 (LUIGI_STATE_FOLDER, datetime_string[0:7], self.date_stamp.strftime("%Y%m%d")))
 
     def run(self):
         # initialise
