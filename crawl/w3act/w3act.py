@@ -73,7 +73,7 @@ class w3act():
     def get_json(self, path):
         path = path.lstrip("/")
         qurl = "%s/%s" % (self.url, path)
-        logger.info("Getting %s" % qurl)
+        logger.debug("Getting %s" % qurl)
         return self._get_json(qurl)
 
     def _get_ld_export(self, frequency):
@@ -89,6 +89,15 @@ class w3act():
 
     def get_oa_export(self, frequency):
         return self._get_json("%s/api/crawl/feed/oa/%s" % (self.url, frequency))
+
+    def get_target_list(self):
+        return self._get_json("%s/api/targets" % self.url)
+
+    def get_ld_target_list(self, frequency):
+        return self._get_json("%s/targets/export/ld/%s" % (self.url, frequency))
+
+    def get_by_target_list(self, frequency):
+        return self._get_json("%s/targets/export/by/%s" % (self.url, frequency))
 
     def post_document(self, doc):
         ''' See https://github.com/ukwa/w3act/wiki/Document-REST-Endpoint '''
