@@ -16,7 +16,7 @@ from crawl.w3act.w3act import w3act
 import crawl.h3.hapyx as hapyx
 from crawl.w3act.job import W3actJob
 from crawl.w3act.job import remove_action_files
-from tasks.w3act.feeds import CrawlFeed
+from tasks.crawl.w3act.feeds import CrawlFeed
 
 logger = logging.getLogger('luigi-interface')
 

@@ -3,7 +3,6 @@ import json
 import luigi
 import logging
 import datetime
-from multiprocessing import Pool, Process
 from crawl.w3act.w3act import w3act
 
 logger = logging.getLogger('luigi-interface')
