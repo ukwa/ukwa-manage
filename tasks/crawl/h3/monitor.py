@@ -1,19 +1,10 @@
-import luigi.contrib.ssh
+import os
+import luigi
+import shutil
+import logging
+from crawl_job_tasks import CheckJobStopped
 
-
-rf = luigi.contrib.ssh.RemoteFileSystem('localhost')
-rf.remote_context.check_output()
-
-one = 'curl -L -i -X PUT -T local_file "http://:50075/webhdfs/v1/?op=CREATE..."'
-two = 'curl -X PUT -L "http://host:port/webhdfs/v1/tmp/myLargeFile.zip?op=CREATE&data=true" --header "Content-Type:application/octet-stream" --header "Transfer-Encoding:chunked" -T "/myLargeFile.zip"'
-
-if __name__ == '__main__':
-    rfs = luigi.contrib.ssh.RemoteFileSystem("crawler04.bl.uk", username="root", key_file="ssh-id/id_rsa")
-    for f in rfs.listdir("/heritrix/output/warcs/dc3-20160810"):
-        print(f)
-
-
-
+logger = logging.getLogger('luigi-interface')
 
 class CloseOpenWarcFile(luigi.Task):
     """
