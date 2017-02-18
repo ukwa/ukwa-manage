@@ -63,8 +63,7 @@ class w3act():
             if r.status_code == 200:
                 js = json.loads(r.content)
             else:
-                logger.info(r.status_code)
-                logger.info(r.text)
+                logger.info("%i - %s" % (r.status_code, r.text))
         except:
             logger.warning(str(sys.exc_info()[0]))
             logger.warning(str(traceback.format_exc()))
@@ -90,8 +89,14 @@ class w3act():
     def get_oa_export(self, frequency):
         return self._get_json("%s/api/crawl/feed/oa/%s" % (self.url, frequency))
 
-    def get_target_list(self):
-        return self._get_json("%s/api/targets" % self.url)
+    def get_target_ids(self):
+        return self._get_json("%s/api/targets/ids" % self.url)
+
+    def get_targets(self, page=0, page_length=1000):
+        return self._get_json("%s/api/targets?p=%i&l=%i" % (self.url, page, page_length))
+
+    def get_ld_target_ids(self, frequency):
+        return self._get_json("%s/api/crawl/ids/ld/%s" % (self.url, frequency))
 
     def get_ld_target_list(self, frequency):
         return self._get_json("%s/targets/export/ld/%s" % (self.url, frequency))

@@ -25,7 +25,7 @@ class GenerateMonthlyReport(luigi.Task):
     task_namespace = 'report'
     date = luigi.MonthParameter(default=date.today())
 
-    a_frequencies = ["daily", "weekly", "monthly", "quarterly", "sixmonthly", "annual", "domaincrawl", "nevercrawl"]
+    a_frequencies = ["daily", "weekly", "monthly", "quarterly", "six-monthly", "annual", "domaincrawl", "nevercrawl"]
     a_ldls = [("The British Library", "DLS-LON-WB01"), ("Trinity College Dublin", "DLS-BSP-WB04"),
               ("Bodleian Library", "DLS-BSP-WB03"), ("Cambridge University Library", "DLS-BSP-WB02"),
               ("The National Library of Scotland", "DLS-NLS-WB01"), ("The National Library of Wales", "dls-nlw-wb01")]
@@ -41,7 +41,7 @@ class GenerateMonthlyReport(luigi.Task):
 
     def output(self):#/var/www/html/act/
         datetime_string = self.date.strftime(luigi.DateMinuteParameter.date_format)
-        return luigi.LocalTarget('%s/%s/monthly-stats-%s.html' %
+        return luigi.LocalTarget('%s/%s/reports/monthly-stats-%s.html' %
                                  (LUIGI_STATE_FOLDER, datetime_string[0:7], self.date.strftime("%Y%m%d")))
 
     def run(self):
@@ -60,10 +60,11 @@ class GenerateMonthlyReport(luigi.Task):
 
         # get counts
         self.process_frequent_exports(d_counts, a_schedules)
-        # i_wct_uids = get_ukwa_licensed_content(w3act_exporter, logger)
+        ## i_wct_uids = get_ukwa_licensed_content(w3act_exporter, logger)
         #i_new_instances = self.calculate_instances()
         i_new_instances = 0
-        i_new_sips = self.calculate_sips()
+        #i_new_sips = self.calculate_sips()
+        i_new_sips = 0
 
         # calculate organisations and schedules
         a_orgs = Counter(a_orgs)
@@ -179,7 +180,7 @@ class GenerateMonthlyReport(luigi.Task):
         i_ymdhmsnow = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         s_outputfile = self.output()
 
-        with open(s_outputfile, "wb") as o_out:
+        with s_outputfile.open("wb") as o_out:
             o_out.write("<!DOCTYPE html>\n<html lang=\"en-GB\">\n")
             o_out.write("<head>\n<style>html * { font-family: Arial }</style>\n</head>\n<body>\n")
             o_out.write("<h1>Monthly Crawl Stats - %s</h1>\n" % datetime.now().strftime("%Y-%m-%d"))
@@ -216,9 +217,6 @@ class GenerateMonthlyReport(luigi.Task):
     #			subprocess.Popen([LDREPORT, last_month.strftime("%b"), last_month.strftime("%Y"), server, name], stdout=o_out, stderr=subprocess.STDOUT)
             o_out.write("<tr><td cols=\"2\"><br/><b>LDL stats produced differently now, ask about da-super wastats</b></td></tr>\n")
             # http://git.wa.bl.uk/servers/discovery_supervisor/raw/master/wastats/server/mapred.wa/home/hdfs/wastats/wastats
-
-
-        with open(s_outputfile, "ab") as o_out:
             o_out.write("</table>\n</body>\n</html>")
 
 # main --------------------------------------------------------------------------------------------
