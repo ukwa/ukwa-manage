@@ -11,7 +11,7 @@ from urlparse import urlparse
 from collections import Counter
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
-from tasks.w3act.feeds import TargetListForFrequency
+from tasks.crawl.w3act.feeds import TargetListForFrequency
 
 logger = logging.getLogger('luigi-interface')
 
