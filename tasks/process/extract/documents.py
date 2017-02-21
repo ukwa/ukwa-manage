@@ -8,6 +8,7 @@ import requests
 from requests.utils import quote
 import xml.dom.minidom
 import luigi.contrib.hdfs
+import luigi.contrib.hadoop
 
 from crawl.w3act.w3act import w3act
 from crawl.h3.utils import url_to_surt
@@ -29,6 +30,190 @@ ACT_PASSWORD = os.environ['ACT_PASSWORD']
 
 def dtarget(job, launch_id, status):
     return luigi.LocalTarget('{}/{}'.format(LUIGI_STATE_FOLDER, target_name('logs/documents', job, launch_id, status)))
+
+
+class LogFilesForJobLaunch(luigi.Task):
+    """
+    On initialisation, looks up all logs current on HDFS for a particular job.
+
+    Emits list of files into an appropriate state folder.
+    """
+    task_namespace = 'scan'
+    job = luigi.Parameter()
+    launch_id = luigi.Parameter()
+
+    output_list = []
+
+    def get_output_list(self):
+        if len(self.output_list) > 0:
+            return
+        # Get HDFS client:
+        client = luigi.contrib.hdfs.get_autoconfig_client()
+        # Look for log files:
+        outputs = {}
+        is_final = False
+        parent_path = "%s/heritrix/output/logs/%s/%s" % (HDFS_PREFIX, self.job, self.launch_id)
+        for item in client.listdir(parent_path):
+            item_path = os.path.join(parent_path,item)
+            if item == "crawl.log":
+                is_final = True
+                outputs["final"] = item_path
+            elif item.endswith(".lck"):
+                pass
+            elif item.startswith("crawl.log"):
+                outputs[item[-14:]] = item_path
+            else:
+                logger.debug("Skipping %s" % item_path)
+        # Just store the values:
+        self.output_list = sorted(outputs.values())
+
+    def output(self):
+        self.get_output_list()
+        return luigi.contrib.hdfs.HdfsTarget(path="%s/log-files-%s-%s-%i.txt"
+                                             % (LUIGI_STATE_FOLDER, self.job, self.launch_id, len(self.output_list)))
+
+    def run(self):
+        self.get_output_list()
+        with self.output().open('w') as out_file:
+            for output in self.output_list:
+                logger.info("Writing %s" % output)
+                out_file.write('{}\n'.format(output))
+            out_file.close()
+
+
+
+class ScanLogFileForDocs(luigi.contrib.hadoop.JobTask):
+    """
+    Map-Reduce job that scans a log file for documents associated with 'Watched' targets.
+
+    Should run locally if run with only local inputs.
+
+    Input:
+
+    {
+        "annotations": "ip:173.236.225.186,duplicate:digest",
+        "content_digest": "sha1:44KA4PQA5TYRAXDIVJIAFD72RN55OQHJ",
+        "content_length": 324,
+        "extra_info": {},
+        "hop_path": "IE",
+        "host": "acid.matkelly.com",
+        "jobName": "frequent",
+        "mimetype": "text/html",
+        "seed": "WTID:12321444",
+        "size": 511,
+        "start_time_plus_duration": "20160127211938966+230",
+        "status_code": 404,
+        "thread": 189,
+        "timestamp": "2016-01-27T21:19:39.200Z",
+        "url": "http://acid.matkelly.com/img.png",
+        "via": "http://acid.matkelly.com/",
+        "warc_filename": "BL-20160127211918391-00001-35~ce37d8d00c1f~8443.warc.gz",
+        "warc_offset": 36748
+    }
+
+    Note that 'seed' is actually the source tag, and is set up to contain the original (Watched) Target ID.
+
+    Output:
+
+    [
+    {
+    "id_watched_target":<long>,
+    "wayback_timestamp":<String>,
+    "landing_page_url":<String>,
+    "document_url":<String>,
+    "filename":<String>,
+    "size":<long>
+    },
+    <further documents>
+    ]
+
+    See https://github.com/ukwa/w3act/wiki/Document-REST-Endpoint
+
+    i.e.
+
+    seed -> id_watched_target
+    start_time_plus_duration -> wayback_timestamp
+    via -> landing_page_url
+    url -> document_url (and filename)
+    content_length -> size
+
+    Note that, if necessary, this process to refer to the
+    cdx-server and wayback to get more information about
+    the crawled data and improve the landing page and filename data.
+
+
+    """
+
+    task_namespace = 'doc'
+    job = luigi.Parameter()
+    launch_id = luigi.Parameter()
+
+    n_reduce_tasks = 5
+
+    watched_surts = set()
+
+    def get_watched_surts(self):
+        # First find the watched seeds list:
+        feed = CrawlFeed(self.job).output()
+        targets = json.load(feed)
+        watched = []
+        for t in targets:
+            if t['watched']:
+                for seed in t['seeds']:
+                    watched.append(seed)
+        # Convert to SURT form:
+        for url in watched:
+            self.watched_surts.add(url_to_surt(url))
+        logger.info("WATCHED SURTS %s" % self.watched_surts)
+
+    def requires(self):
+        return LogFilesForJobLaunch(self.job, self.launch_id)
+
+    def output(self):
+        out_name = "%s.docs" % self.launch_id
+        return luigi.contrib.hdfs.HdfsTarget(out_name, format=luigi.contrib.hdfs.Plain)
+
+    def mapper(self, line):
+        if len(self.watched_surts) == 0:
+            self.get_watched_surts()
+        (timestamp, status_code, content_length, url, hop_path, via, mime,
+         thread, start_time_plus_duration, hash, source, annotations) = re.split(" +", line, maxsplit=11)
+        # Skip non-downloads:
+        if status_code == '-' or status_code == '' or int(status_code) / 100 != 2:
+            return
+        # Check the URL and Content-Type:
+        if "application/pdf" in mime:
+            for prefix in self.watched_surts:
+                document_surt = url_to_surt(url)
+                landing_page_surt = url_to_surt(via)
+                # Are both URIs under the same watched SURT:
+                if document_surt.startswith(prefix) and landing_page_surt.startswith(prefix):
+                    logger.info("Found document: %s" % line)
+                    # Proceed to extract metadata and pass on to W3ACT:
+                    doc = {
+                        'wayback_timestamp': start_time_plus_duration[:14],
+                        'landing_page_url': via,
+                        'document_url': url,
+                        'filename': os.path.basename(urlparse(url).path),
+                        'size': int(content_length),
+                        # Add some more metadata to the output so we can work out where this came from later:
+                        'job_name': self.job,
+                        'launch_id': self.launch_id,
+                        'source': source
+                    }
+                    logger.info("Found document: %s" % doc)
+                    yield url, json.dumps(doc)
+
+    def reducer(self, key, values):
+        """
+        A pass-through reducer.
+
+        :param key:
+        :param values:
+        :return:
+        """
+        for value in values:
+            yield key, value
 
 
 class AvailableInWayback(luigi.ExternalTask):
@@ -184,148 +369,35 @@ class ExtractDocumentAndPost(luigi.Task):
             else:
                 logger.error("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
                 raise Exception("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
-                #yield AvailableInWayback(doc['document_url'], doc['wayback_timestamp'], check_available=True)
 
         # And write out to the status file
         with self.output().open('w') as out_file:
             out_file.write('{}'.format(json.dumps(doc, indent=4)))
 
 
-class ScanLogForDocs(luigi.Task):
-    """Watched the crawled documents log queue and passes entries to w3act
+class ExtractDocuments(luigi.Task):
+    """
+    Via required tasks, launched M-R job to process crawl logs.
 
-    Input:
-
-    {
-        "annotations": "ip:173.236.225.186,duplicate:digest",
-        "content_digest": "sha1:44KA4PQA5TYRAXDIVJIAFD72RN55OQHJ",
-        "content_length": 324,
-        "extra_info": {},
-        "hop_path": "IE",
-        "host": "acid.matkelly.com",
-        "jobName": "frequent",
-        "mimetype": "text/html",
-        "seed": "WTID:12321444",
-        "size": 511,
-        "start_time_plus_duration": "20160127211938966+230",
-        "status_code": 404,
-        "thread": 189,
-        "timestamp": "2016-01-27T21:19:39.200Z",
-        "url": "http://acid.matkelly.com/img.png",
-        "via": "http://acid.matkelly.com/",
-        "warc_filename": "BL-20160127211918391-00001-35~ce37d8d00c1f~8443.warc.gz",
-        "warc_offset": 36748
-    }
-
-    Note that 'seed' is actually the source tag, and is set up to contain the original (Watched) Target ID.
-
-    Output:
-
-    [
-    {
-    "id_watched_target":<long>,
-    "wayback_timestamp":<String>,
-    "landing_page_url":<String>,
-    "document_url":<String>,
-    "filename":<String>,
-    "size":<long>
-    },
-    <further documents>
-    ]
-
-    See https://github.com/ukwa/w3act/wiki/Document-REST-Endpoint
-
-    i.e.
-
-    seed -> id_watched_target
-    start_time_plus_duration -> wayback_timestamp
-    via -> landing_page_url
-    url -> document_url (and filename)
-    content_length -> size
-
-    Note that, if necessary, this process to refer to the
-    cdx-server and wayback to get more information about
-    the crawled data and improve the landing page and filename data.
-
-
+    Then runs through output documents and attempts to post them to W3ACT.
     """
     task_namespace = 'doc'
     job = luigi.Parameter()
     launch_id = luigi.Parameter()
-    path = luigi.Parameter()
-    stage = luigi.Parameter(default='final')
 
     def requires(self):
-        return CrawlFeed(self.job)
+        return ScanLogFileForDocs(self.job, self.launch_id)
 
     def output(self):
-        return dtarget(self.job, self.launch_id, self.stage)
+        return luigi.LocalTarget('{}/documents/extracted-{}-{}'.format(LUIGI_STATE_FOLDER, self.job, self.launch_id))
 
     def run(self):
-        watched_surts = self.load_watched_surts()
-        # Get HDFS Input
-        log_file = luigi.contrib.hdfs.HdfsTarget(path=self.path)
-        # Then scan the logs for documents:
-        summary = []
-        line_count = 0
-        with log_file.open('r') as f:
-            for line in f:
-                if line_count % 100 == 0:
-                    self.set_status_message = "Currently at line %i of file %s" % (line_count, self.path)
-                    logger.info(self.set_status_message)
-                line_count += 1
-                # And yield tasks for each relevant document:
-                (timestamp, status_code, content_length, url, hop_path, via, mime,
-                 thread, start_time_plus_duration, hash, source, annotations) = re.split(" +", line, maxsplit=11)
-                # Skip non-downloads:
-                if status_code == '-' or status_code == '' or int(status_code) / 100 != 2:
-                    continue
-                # Check the URL and Content-Type:
-                if "application/pdf" in mime:
-                    for prefix in watched_surts:
-                        document_surt = url_to_surt(url)
-                        landing_page_surt = url_to_surt(via)
-                        # Are both URIs under the same watched SURT:
-                        if document_surt.startswith(prefix) and landing_page_surt.startswith(prefix):
-                            logger.info("Found document: %s" % line)
-                            # Proceed to extract metadata and pass on to W3ACT:
-                            doc = {}
-                            doc['wayback_timestamp'] = start_time_plus_duration[:14]
-                            doc['landing_page_url'] = via
-                            doc['document_url'] = url
-                            doc['filename'] = os.path.basename(urlparse(url).path)
-                            doc['size'] = int(content_length)
-                            # Add some more metadata to the output so we can work out where this came from later:
-                            doc['job_name'] = self.job
-                            doc['launch_id'] = self.launch_id
-                            doc['source'] = source
-                            logger.info("Found document: %s" % doc)
-                            yield ExtractDocumentAndPost(self.job, self.launch_id, doc, source)
-                            summary.append({
-                                'job': self.job,
-                                'launch_id': self.launch_id,
-                                'doc': doc,
-                                'source': source
-                            })
-
-        # And write out to the status file:
-        with self.output().open('w') as out_file:
-            out_file.write('{}'.format(json.dumps(summary, indent=4)))
-
-    def load_watched_surts(self):
-        # First find the watched seeds list:
-        targets = json.load(self.input().open('r'))
-        watched = []
-        for t in targets:
-            if t['watched']:
-                for seed in t['seeds']:
-                    watched.append(seed)
-        # Convert to SURT form:
-        watched_surts = set()
-        for url in watched:
-            watched_surts.add(url_to_surt(url))
-        logger.info("WATCHED SURTS %s" % watched_surts)
-        return watched_surts
+        # Loop over documents discovered, and attempt to post to W3ACT:
+        with self.input().open('r') as in_file:
+            for line in in_file:
+                url, docjson = line.strip().split("\t", 1)
+                doc = json.loads(docjson)
+                yield ExtractDocumentAndPost(self.job, self.launch_id, doc, doc["source"])
 
 
 class ScanForDocuments(ScanForOutputs):
@@ -336,29 +408,7 @@ class ScanForDocuments(ScanForOutputs):
     scan_name = 'docs'
 
     def process_output(self, job, launch):
-        # Get HDFS client:
-        client = luigi.contrib.hdfs.get_autoconfig_client()
-        # Look for log files:
-        outputs = {}
-        is_final = False
-        parent_path = "%s/heritrix/output/logs/%s/%s" % (HDFS_PREFIX, job, launch)
-        for item in client.listdir(parent_path):
-            item_path = os.path.join(parent_path,item)
-            if item == "crawl.log":
-                is_final = True
-                outputs["final"] = item_path
-            elif item.endswith(".lck"):
-                pass
-            elif item.startswith("crawl.log"):
-                outputs[item[-14:]] = item_path
-            else:
-                logger.info("Skipping %s" % item_path)
-
-        output_list = sorted(outputs.keys())
-        logger.info("Ordered by date: %s" % output_list)
-
-        for key in output_list:
-            yield ScanLogForDocs(job, launch, outputs[key], key)
+        yield ExtractDocuments(job, launch)
 
 
 if __name__ == '__main__':
