@@ -148,7 +148,7 @@ class ScanLogFileForDocs(luigi.contrib.hadoop.JobTask):
     job = luigi.Parameter()
     launch_id = luigi.Parameter()
 
-    n_reduce_tasks = 5
+    n_reduce_tasks = 1 # This is set to 1 as there is intended to be one output file.
 
     watched_surts = set()
 
@@ -412,4 +412,5 @@ class ScanForDocuments(ScanForOutputs):
 
 
 if __name__ == '__main__':
-    luigi.run(['scan.ScanForDocuments', '--date-interval', '2017-02-10-2017-02-12', '--local-scheduler'])
+    luigi.run(['doc.ExtractDocuments', '--job', 'weekly', '--launch-id', '20170220090024', '--local-scheduler'])
+    #luigi.run(['scan.ScanForDocuments', '--date-interval', '2017-02-10-2017-02-12', '--local-scheduler'])
