@@ -18,8 +18,8 @@ from tasks.common import target_name
 
 logger = logging.getLogger('luigi-interface')
 
-HDFS_PREFIX = ""
-WAYBACK_PREFIX = "http://localhost:9080/wayback"
+HDFS_PREFIX = os.environ.get("HDFS_PREFIX", "")
+WAYBACK_PREFIX = os.environ.get("WAYBACK_PREFIX", "http://localhost:9080/wayback")
 
 LUIGI_STATE_FOLDER = os.environ['LUIGI_STATE_FOLDER']
 ACT_URL = os.environ['ACT_URL']
