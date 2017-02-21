@@ -111,12 +111,18 @@ class ListDuplicateWebArchiveFilesOnHDFS(luigi.Task):
     Takes the full WARC list and filters UKWA content by folder:
     """
     date = luigi.DateParameter(default=datetime.date.today())
+    collection = luigi.Parameter(default='ukwa')
 
     def requires(self):
-        return ListWebArchiveFilesOnHDFS(self.date)
+        if self.collection == 'ukwa':
+            return ListUKWAWebArchiveFilesOnHDFS(self.date)
+        elif self.collection == 'all':
+            return ListWebArchiveFilesOnHDFS(self.date)
+        else:
+            raise Exception("Unrecognised collection parameter! %s non known!" % self.collection)
 
     def output(self):
-        return state_file(self.date, 'hdfs', 'warc-duplicate-files-list.jsonl')
+        return state_file(self.date, 'hdfs', 'warc-%s-duplicate-files-list.jsonl' % self.collection)
 
     def run(self):
         filenames = {}

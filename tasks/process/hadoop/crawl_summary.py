@@ -11,7 +11,7 @@ import luigi.contrib.hadoop_jar
 
 logger = logging.getLogger('luigi-interface')
 
-HDFS_PREFIX = "/1_data/pulse/crawler07/heritrix/output"
+HDFS_PREFIX = ""
 HDFS_TASK_PREFIX = "/tasks"
 
 class ScanForOutputs(luigi.WrapperTask):
@@ -36,11 +36,11 @@ class ScanForOutputs(luigi.WrapperTask):
         client = luigi.contrib.hdfs.get_autoconfig_client()
         # Look for jobs that need to be processed:
         for date in self.date_interval:
-            for job_item in client.listdir("%s/warcs" % HDFS_PREFIX):
+            for job_item in client.listdir("%s/heritrix/output/warcs" % HDFS_PREFIX):
                 job = os.path.basename(job_item)
                 launch_glob = date.strftime('%Y%m%d')
                 #logger.debug("Looking for job launch folders matching %s" % launch_glob)
-                for launch_item in client.listdir("%s/warcs/%s" % (HDFS_PREFIX, job)):
+                for launch_item in client.listdir("%s/heritrix/output/warcs/%s" % (HDFS_PREFIX, job)):
                     if launch_item.startswith(launch_glob):
                         launch = os.path.basename(launch_item)
                         yield (job, launch)

@@ -12,15 +12,6 @@ from slackclient import SlackClient
 logger = logging.getLogger('luigi-interface')
 
 
-class Jobs(enum.Enum):
-    daily = 1
-    weekly = 2
-    monthly = 3
-    quarterly = 4
-    sixmonthly = 5
-    annual = 6
-
-
 class state(luigi.Config):
     state_folder = os.environ.get('LUIGI_STATE_FOLDER', luigi.Parameter(default='/state'))
 
@@ -80,17 +71,17 @@ def check_hash(path, file_hash):
 
 
 def format_crawl_task(task):
-    return '{} (launched {}-{}-{} {}:{})'.format(task.job.name, task.launch_id[:4],
+    return '{} (launched {}-{}-{} {}:{})'.format(task.job, task.launch_id[:4],
                                                 task.launch_id[4:6],task.launch_id[6:8],
                                                 task.launch_id[8:10],task.launch_id[10:12])
 
 
 def target_name(state_class, job, launch_id, status):
-    return '{}-{}/{}/{}/{}.{}.{}.{}'.format(launch_id[:4],launch_id[4:6], job.name, launch_id, state_class, job.name, launch_id, status)
+    return '{}-{}/{}/{}/{}.{}.{}.{}'.format(launch_id[:4],launch_id[4:6], job, launch_id, state_class, job, launch_id, status)
 
 
 def short_target_name(state_class, job, launch_id, tail):
-    return '{}-{}/{}/{}/{}.{}'.format(launch_id[:4],launch_id[4:6], job.name, launch_id, state_class, tail)
+    return '{}-{}/{}/{}/{}.{}'.format(launch_id[:4],launch_id[4:6], job, launch_id, state_class, tail)
 
 
 def hash_target(job, launch_id, file):

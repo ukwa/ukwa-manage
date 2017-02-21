@@ -1,19 +1,34 @@
 import re
-from crawl.w3act.w3act import w3act
-from crawl.h3.utils import url_to_surt
-from tasks.common import *
-from move_to_hdfs import MoveFilesForLaunch
 import os
 import json
 import hashlib
+import logging
 from urlparse import urlparse
 import requests
 from requests.utils import quote
 import xml.dom.minidom
-import luigi.contrib.esindex
+import luigi.contrib.hdfs
 
+from crawl.w3act.w3act import w3act
+from crawl.h3.utils import url_to_surt
 from crawl.dex.document_mdex import DocumentMDEx
-from tasks.crawl_job_tasks import CrawlFeed
+from tasks.crawl.h3.crawl_job_tasks import CrawlFeed
+from tasks.process.hadoop.crawl_summary import ScanForOutputs
+from tasks.common import target_name
+
+logger = logging.getLogger('luigi-interface')
+
+HDFS_PREFIX = ""
+WAYBACK_PREFIX = "http://localhost:9080/wayback"
+
+LUIGI_STATE_FOLDER = os.environ['LUIGI_STATE_FOLDER']
+ACT_URL = os.environ['ACT_URL']
+ACT_USER = os.environ['ACT_USER']
+ACT_PASSWORD = os.environ['ACT_PASSWORD']
+
+
+def dtarget(job, launch_id, status):
+    return luigi.LocalTarget('{}/{}'.format(LUIGI_STATE_FOLDER, target_name('logs/documents', job, launch_id, status)))
 
 
 class AvailableInWayback(luigi.ExternalTask):
@@ -86,7 +101,7 @@ class AvailableInWayback(luigi.ExternalTask):
         Checks if a resource with a particular timestamp is available in the index:
         :return:
         """
-        wburl = '%s/xmlquery.jsp?type=urlquery&url=%s' % (systems().wayback, quote(self.url))
+        wburl = '%s/xmlquery.jsp?type=urlquery&url=%s' % (WAYBACK_PREFIX, quote(self.url))
         logger.debug("Checking availability %s" % wburl)
         r = requests.get(wburl)
         logger.debug("Availability response: %d" % r.status_code)
@@ -107,7 +122,7 @@ class AvailableInWayback(luigi.ExternalTask):
         This is done separately, as using this alone may accidentally get an older version.
         :return:
         """
-        wburl = '%s/%s/%s' % (systems().wayback, self.ts, self.url)
+        wburl = '%s/%s/%s' % (WAYBACK_PREFIX, self.ts, self.url)
         logger.debug("Checking download %s" % wburl)
         r = requests.head(wburl)
         logger.debug("Download HEAD response: %d" % r.status_code)
@@ -116,31 +131,6 @@ class AvailableInWayback(luigi.ExternalTask):
             return True
         else:
             return False
-
-
-class RecordDocumentInMonitrix(luigi.contrib.esindex.CopyToIndex):
-    """
-    Post the document to Monitrix, i.e. push into an appropriate Elasticsearch index.
-    """
-    task_namespace = 'doc'
-    job = luigi.EnumParameter(enum=Jobs)
-    launch_id = luigi.Parameter()
-    doc = luigi.DictParameter()
-    source = luigi.Parameter()
-
-    host = systems().elasticsearch_host
-    port = systems().elasticsearch_port
-    index = "%s-documents-%s" % (systems().elasticsearch_index_prefix, datetime.datetime.now().strftime('%Y-%m-%d'))
-    doc_type = 'default'
-    purge_existing_index = False
-
-    def requires(self):
-        return ExtractDocumentAndPost(self.job, self.launch_id, self.doc, self.source)
-
-    def docs(self):
-        doc = json.load(self.input().open('r'))
-        doc['timestamp'] = datetime.datetime.now().isoformat()
-        return [ doc ]
 
 
 class ExtractDocumentAndPost(luigi.Task):
@@ -152,7 +142,7 @@ class ExtractDocumentAndPost(luigi.Task):
     Documents at the same URL in W3ACT.
     """
     task_namespace = 'doc'
-    job = luigi.EnumParameter(enum=Jobs)
+    job = luigi.Parameter()
     launch_id = luigi.Parameter()
     doc = luigi.DictParameter()
     source = luigi.Parameter()
@@ -167,7 +157,7 @@ class ExtractDocumentAndPost(luigi.Task):
 
     @staticmethod
     def document_target(host, hash):
-        return luigi.LocalTarget('{}/documents/{}/{}'.format(state().state_folder, host, hash))
+        return luigi.LocalTarget('{}/documents/{}/{}'.format(LUIGI_STATE_FOLDER, host, hash))
 
     def output(self):
         hasher = hashlib.md5()
@@ -187,7 +177,7 @@ class ExtractDocumentAndPost(luigi.Task):
             # Inform W3ACT it's available:
             doc['status'] = 'ACCEPTED'
             logger.debug("Sending doc: %s" % doc)
-            w = w3act(act().url, act().username, act().password)
+            w = w3act(ACT_URL, ACT_USER, ACT_PASSWORD)
             r = w.post_document(doc)
             if r.status_code == 200:
                 logger.info("Document POSTed to W3ACT: %s" % doc['document_url'])
@@ -199,10 +189,6 @@ class ExtractDocumentAndPost(luigi.Task):
         # And write out to the status file
         with self.output().open('w') as out_file:
             out_file.write('{}'.format(json.dumps(doc, indent=4)))
-
-        # Also post to Monitrix if configured to do so:
-        if systems().elasticsearch_host:
-            yield RecordDocumentInMonitrix(self.job, self.launch_id, doc, self.source)
 
 
 class ScanLogForDocs(luigi.Task):
@@ -264,20 +250,30 @@ class ScanLogForDocs(luigi.Task):
 
     """
     task_namespace = 'doc'
-    job = luigi.EnumParameter(enum=Jobs)
+    job = luigi.Parameter()
     launch_id = luigi.Parameter()
     path = luigi.Parameter()
     stage = luigi.Parameter(default='final')
 
     def requires(self):
+        return CrawlFeed(self.job)
+
+    def output(self):
+        return dtarget(self.job, self.launch_id, self.stage)
+
+    def run(self):
         watched_surts = self.load_watched_surts()
+        # Get HDFS Input
+        log_file = luigi.contrib.hdfs.HdfsTarget(path=self.path)
         # Then scan the logs for documents:
+        summary = []
         line_count = 0
-        with open(self.path, 'r') as f:
+        with log_file.open('r') as f:
             for line in f:
-                line_count += 1
                 if line_count % 100 == 0:
                     self.set_status_message = "Currently at line %i of file %s" % (line_count, self.path)
+                    logger.info(self.set_status_message)
+                line_count += 1
                 # And yield tasks for each relevant document:
                 (timestamp, status_code, content_length, url, hop_path, via, mime,
                  thread, start_time_plus_duration, hash, source, annotations) = re.split(" +", line, maxsplit=11)
@@ -300,28 +296,30 @@ class ScanLogForDocs(luigi.Task):
                             doc['filename'] = os.path.basename(urlparse(url).path)
                             doc['size'] = int(content_length)
                             # Add some more metadata to the output so we can work out where this came from later:
-                            doc['job_name'] = self.job.name
+                            doc['job_name'] = self.job
                             doc['launch_id'] = self.launch_id
                             doc['source'] = source
                             logger.info("Found document: %s" % doc)
                             yield ExtractDocumentAndPost(self.job, self.launch_id, doc, source)
+                            summary.append({
+                                'job': self.job,
+                                'launch_id': self.launch_id,
+                                'doc': doc,
+                                'source': source
+                            })
 
-    def output(self):
-        return dtarget(self.job, self.launch_id, self.stage)
-
-    def run(self):
-        summary = []
-        for it in self.input():
-            summary.append(it.path)
         # And write out to the status file:
         with self.output().open('w') as out_file:
             out_file.write('{}'.format(json.dumps(summary, indent=4)))
 
     def load_watched_surts(self):
         # First find the watched seeds list:
-        with open("%s/%s/%s/watched-surts.txt" % (h3().local_job_folder, self.job.name, self.launch_id)) as reader:
-            watched = [line.rstrip('\n') for line in reader]
-            logger.info("WATCHED %s" % watched)
+        targets = json.load(self.input().open('r'))
+        watched = []
+        for t in targets:
+            if t['watched']:
+                for seed in t['seeds']:
+                    watched.append(seed)
         # Convert to SURT form:
         watched_surts = set()
         for url in watched:
@@ -330,55 +328,38 @@ class ScanLogForDocs(luigi.Task):
         return watched_surts
 
 
-class ScanLogForDocsIfStopped(luigi.Task):
-    task_namespace = 'doc'
-    job = luigi.EnumParameter(enum=Jobs)
-    launch_id = luigi.Parameter()
-    path = luigi.Parameter()
-    stage = luigi.Parameter(default='final')
-
-    def requires(self):
-        return MoveFilesForLaunch(self.job, self.launch_id)
-
-    def output(self):
-        return ScanLogForDocs(self.job, self.launch_id, self.path, self.stage).output()
-
-    def run(self):
-        yield ScanLogForDocs(self.job, self.launch_id, self.path, self.stage)
-
-
-#@ScanLogForDocs.event_handler(luigi.Event.SUCCESS)
-#def run_task_success(task):
-#    celebrate_success(task)
-
-
-class ScanForDocuments(ScanForLaunches):
+class ScanForDocuments(ScanForOutputs):
     """
     This task scans the output folder for jobs and instances of those jobs, looking for crawls logs.
     """
     task_namespace = 'scan'
     scan_name = 'docs'
 
-    def scan_job_launch(self, job, launch):
+    def process_output(self, job, launch):
+        # Get HDFS client:
+        client = luigi.contrib.hdfs.get_autoconfig_client()
         # Look for log files:
         outputs = {}
         is_final = False
-        for item_path in glob.glob("%s/%s/%s/crawl.log*" % (LOG_ROOT, job.name, launch)):
-            item = os.path.basename(item_path)
+        parent_path = "%s/heritrix/output/logs/%s/%s" % (HDFS_PREFIX, job, launch)
+        for item in client.listdir(parent_path):
+            item_path = os.path.join(parent_path,item)
             if item == "crawl.log":
                 is_final = True
                 outputs["final"] = item_path
             elif item.endswith(".lck"):
                 pass
-            else:
+            elif item.startswith("crawl.log"):
                 outputs[item[-14:]] = item_path
+            else:
+                logger.info("Skipping %s" % item_path)
 
         output_list = sorted(outputs.keys())
         logger.info("Ordered by date: %s" % output_list)
 
         for key in output_list:
-            yield ScanLogForDocsIfStopped(job, launch, outputs[key], key)
+            yield ScanLogForDocs(job, launch, outputs[key], key)
 
 
 if __name__ == '__main__':
-    luigi.run(['scan.ScanForDocuments', '--date-interval', '2016-11-04-2016-11-10'])  # , '--local-scheduler'])
+    luigi.run(['scan.ScanForDocuments', '--date-interval', '2017-02-10-2017-02-12', '--local-scheduler'])
