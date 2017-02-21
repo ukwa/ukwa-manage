@@ -25,7 +25,9 @@ def state_file(date, tag, suffix, on_hdfs=False):
 
 class ListAllFilesOnHDFS(luigi.Task):
     """
-    This task lists all files on HDFS. As this can be a very large list, it avoids reading it all into memory. It
+    This task lists all files on HDFS (skipping directories).
+
+    As this can be a very large list, it avoids reading it all into memory. It
     parses each line, and creates a JSON item for each, outputting the result in
     [JSON Lines format](http://jsonlines.org/).
 
@@ -56,10 +58,15 @@ class ListAllFilesOnHDFS(luigi.Task):
                         'modified_at': timestamp.isoformat(),
                         'filename': filename
                     }
-                    f.write(json.dumps(info)+'\n')
+                    # Skip directories:
+                    if permissions[0] != 'd':
+                        f.write(json.dumps(info)+'\n')
 
 
 class ListWebArchiveFilesOnHDFS(luigi.Task):
+    """
+    Takes the full file list and strips it down to just the WARCs and ARCs
+    """
     date = luigi.DateParameter(default=datetime.date.today())
 
     def requires(self):
@@ -69,10 +76,68 @@ class ListWebArchiveFilesOnHDFS(luigi.Task):
         return state_file(self.date, 'hdfs', 'warc-files-list.jsonl')
 
     def run(self):
+        with self.output().open('w') as f:
+            for line in self.input().open('r'):
+                item = json.loads(line.strip())
+                # Archive file names:
+                if item['filename'].endswith('.warc.gz') or item['filename'].endswith('.arc.gz') \
+                        or item['filename'].endswith('.warc') or item['filename'].endswith('.arc'):
+                    f.write(json.dumps(item) + '\n')
+
+
+class ListUKWAWebArchiveFilesOnHDFS(luigi.Task):
+    """
+    Takes the full WARC list and filters UKWA content by folder:
+    """
+    date = luigi.DateParameter(default=datetime.date.today())
+
+    def requires(self):
+        return ListWebArchiveFilesOnHDFS(self.date)
+
+    def output(self):
+        return state_file(self.date, 'hdfs', 'warc-ukwa-files-list.jsonl')
+
+    def run(self):
+        with self.output().open('w') as f:
+            for line in self.input().open('r'):
+                item = json.loads(line.strip())
+                # Archive file names:
+                if item['filename'].startswith('/data/') or item['filename'].startswith('/heritrix/'):
+                    f.write(json.dumps(item) + '\n')
+
+
+class ListDuplicateWebArchiveFilesOnHDFS(luigi.Task):
+    """
+    Takes the full WARC list and filters UKWA content by folder:
+    """
+    date = luigi.DateParameter(default=datetime.date.today())
+
+    def requires(self):
+        return ListWebArchiveFilesOnHDFS(self.date)
+
+    def output(self):
+        return state_file(self.date, 'hdfs', 'warc-duplicate-files-list.jsonl')
+
+    def run(self):
+        filenames = {}
         for line in self.input().open('r'):
             item = json.loads(line.strip())
-            if item['filename'].endswith('.warc.gz') or item['filename'].endswith('.arc.gz'):
-                print(item)
+            # Archive file names:
+            basename = os.path.basename(item['filename'])
+            if basename not in filenames:
+                filenames[basename] = [item['filename']]
+            else:
+                filenames[basename].append(item['filename'])
+
+        # And emit duplicates:
+        unduplicated = 0
+        with self.output().open('w') as f:
+            for basename in filenames:
+                if len(filenames[basename]) > 1:
+                    f.write("%s\t%i\t%s\n" % (basename, len(filenames[basename]), json.dumps(filenames[basename])))
+                else:
+                    unduplicated += 1
+        logger.info("Of %i WARC filenames, %i are stored in a single HDFS location." % (len(filenames), unduplicated))
 
 
 class GenerateWarcHashes(luigi.contrib.hadoop_jar.HadoopJarJobTask):
@@ -102,5 +167,6 @@ class GenerateWarcHashes(luigi.contrib.hadoop_jar.HadoopJarJobTask):
 
 
 if __name__ == '__main__':
-    luigi.run(['ListWebArchiveFilesOnHDFS', '--local-scheduler'])
+    #luigi.run(['ListUKWAWebArchiveFilesOnHDFS', '--local-scheduler'])
+    luigi.run(['ListDuplicateWebArchiveFilesOnHDFS', '--local-scheduler'])
 #    luigi.run(['GenerateWarcHashes', 'daily-warcs-test.txt'])
