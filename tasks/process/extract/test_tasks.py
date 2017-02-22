@@ -1,7 +1,7 @@
 import json
 import luigi
 from crawl.dex.document_mdex import DocumentMDEx
-from tasks.crawl_job_tasks import CrawlFeed
+from tasks.crawl.h3.crawl_job_tasks import CrawlFeed
 from tasks.common import logger
 
 
