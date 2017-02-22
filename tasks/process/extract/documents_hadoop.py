@@ -168,7 +168,7 @@ class ScanLogFileForDocsMR(luigi.contrib.hadoop.JobTask):
             yield key, value
 
 
-class ExtractDocuments(luigi.Task):
+class ExtractDocumentsMR(luigi.Task):
     """
     Via required tasks, launched M-R job to process crawl logs.
 
@@ -217,5 +217,5 @@ class ExtractDocuments(luigi.Task):
 
 
 if __name__ == '__main__':
-    luigi.run(['doc.ExtractDocuments', '--job', 'weekly', '--launch-id', '20170220090024', '--local-scheduler'])
+    luigi.run(['doc.ExtractDocumentsMR', '--job', 'weekly', '--launch-id', '20170220090024', '--local-scheduler'])
     #luigi.run(['scan.ScanForDocuments', '--date-interval', '2017-02-10-2017-02-12', '--local-scheduler'])
