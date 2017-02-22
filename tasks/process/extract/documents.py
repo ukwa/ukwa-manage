@@ -178,14 +178,15 @@ class ExtractDocumentAndPost(luigi.Task):
         else:
             # Inform W3ACT it's available:
             doc['status'] = 'ACCEPTED'
-            logger.debug("Sending doc: %s" % doc)
-            w = w3act(ACT_URL, ACT_USER, ACT_PASSWORD)
-            r = w.post_document(doc)
-            if r.status_code == 200:
-                logger.info("Document POSTed to W3ACT: %s" % doc['document_url'])
-            else:
-                logger.error("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
-                raise Exception("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
+            logger.error("Submission disabled! %s " % doc)
+            #logger.debug("Sending doc: %s" % doc)
+            #w = w3act(ACT_URL, ACT_USER, ACT_PASSWORD)
+            #r = w.post_document(doc)
+            #if r.status_code == 200:
+            #    logger.info("Document POSTed to W3ACT: %s" % doc['document_url'])
+            #else:
+            #    logger.error("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
+            #    raise Exception("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
 
         # And write out to the status file
         with self.output().open('w') as out_file:
@@ -222,8 +223,7 @@ class ExtractDocuments(luigi.Task):
                 for line in in_file:
                     url, docjson = line.strip().split("\t", 1)
                     doc = json.loads(docjson)
-                    logger.error("Submission disabled! %s " % doc)
-                    # yield ExtractDocumentAndPost(self.job, self.launch_id, doc, doc["source"])
+                    yield ExtractDocumentAndPost(self.job, self.launch_id, doc, doc["source"])
 
     def get_watched_surts(self, feed):
         # First find the unique watched seeds list:
