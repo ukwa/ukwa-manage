@@ -39,9 +39,10 @@ class LogFilesForJobLaunch(luigi.ExternalTask):
                 pass
             elif item.startswith("crawl.log"):
                 outputs.append(luigi.contrib.hdfs.HdfsTarget(path=item_path, format=Plain))
-                logger.debug("Including %s" % item)
+                #logger.debug("Including %s" % item)
             else:
-                logger.debug("Skipping %s" % item)
+                pass
+                #logger.debug("Skipping %s" % item)
         # Return the logs to be processed:
         return outputs
 
@@ -139,7 +140,7 @@ class ScanLogFileForDocs(luigi.contrib.hadoop.JobTask):
         return HdfsFile(self.log_path)
 
     def output(self):
-        out_name = "/9_processing/task-state/%s/%s/%s.docs" % (self.job, self.launch_id, os.path.basename(self.log_path))
+        out_name = "task-state/%s/%s/%s.docs" % (self.job, self.launch_id, os.path.basename(self.log_path))
         return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=PlainDir)
 
     def extra_modules(self):
