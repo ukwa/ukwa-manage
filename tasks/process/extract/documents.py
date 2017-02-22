@@ -59,14 +59,16 @@ class LogFilesForJobLaunch(luigi.Task):
         for item in client.listdir(parent_path):
             item_path = os.path.join(parent_path,item)
             if item == "crawl.log":
+                logger.debug("Processing %s, %s" % (item, item_path))
                 is_final = True
                 outputs["final"] = item_path
             elif item.endswith(".lck"):
                 pass
             elif item.startswith("crawl.log"):
+                logger.debug("Processing %s, %s" % (item, item_path))
                 outputs[item[-14:]] = item_path
             else:
-                logger.debug("Skipping %s" % item_path)
+                logger.debug("Skipping %s, %s" % (item, item_path))
         # Just store the values:
         self.output_list = sorted(outputs.values())
 
