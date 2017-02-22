@@ -10,6 +10,7 @@ from requests.utils import quote
 import xml.dom.minidom
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
+from luigi.contrib.hdfs.format import Plain
 
 import crawl
 from crawl.w3act.w3act import w3act
@@ -293,7 +294,7 @@ class ScanLogFileForDocs(luigi.Task):
             for log_file_path in self.input()['logs'].open('r'):
                 logger.info("Processing log file: %s..." % log_file_path)
                 # Get HDFS Input
-                log_file = luigi.contrib.hdfs.HdfsTarget(path=log_file_path)
+                log_file = luigi.contrib.hdfs.HdfsTarget(path=log_file_path, format=Plain)
                 # Then scan the logs for documents:
                 line_count = 0
                 with log_file.open('r') as f:
