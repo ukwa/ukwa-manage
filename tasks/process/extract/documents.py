@@ -303,7 +303,7 @@ class ScanLogFileForDocs(luigi.Task):
                 with client.client.read(hdfs_path=log_file_path) as f:
                     for line in f:
                         if line_count % 100 == 0:
-                            self.set_status_message = "Currently at line %i of file %s" % (line_count, self.path)
+                            self.set_status_message = "Currently at line %i of file %s" % (line_count, log_file_path)
                             logger.info(self.set_status_message)
                         line_count += 1
                         # And yield tasks for each relevant document:
