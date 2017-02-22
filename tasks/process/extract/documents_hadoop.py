@@ -118,6 +118,7 @@ class ScanLogFileForDocsMR(luigi.contrib.hadoop.JobTask):
     n_reduce_tasks = 1 # This is set to 1 as there is intended to be one output file.
 
     def requires(self):
+        logger.info("WATCHED SURTS %s" % self.watched_surts)
         return LogFilesForJobLaunch(self.job, self.launch_id)
 
     def output(self):
@@ -211,7 +212,7 @@ class ExtractDocumentsMR(luigi.Task):
         watched_surts = []
         for url in watched:
             watched_surts.append(url_to_surt(url))
-        logger.info("WATCHED SURTS %s" % self.watched_surts)
+        logger.info("WATCHED SURTS %s" % watched_surts)
 
         return watched_surts
 
