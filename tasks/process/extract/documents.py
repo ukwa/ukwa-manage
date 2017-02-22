@@ -294,12 +294,13 @@ class ScanLogFileForDocs(luigi.Task):
         with self.output().open('w') as out_file:
             # loop over log files:
             for log_file_path in self.input()['logs'].open('r'):
+                log_file_path = log_file_path.strip()
                 logger.info("Processing log file: %s..." % log_file_path)
                 # Get HDFS Input
                 #log_file = luigi.contrib.hdfs.HdfsTarget(path=log_file_path, format=Plain)
                 # Then scan the logs for documents:
                 line_count = 0
-                with client.read(hdfs_path=log_file_path) as f:
+                with client.client.read(hdfs_path=log_file_path) as f:
                     for line in f:
                         if line_count % 100 == 0:
                             self.set_status_message = "Currently at line %i of file %s" % (line_count, self.path)
