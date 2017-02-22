@@ -179,17 +179,19 @@ class ExtractDocuments(luigi.Task):
     launch_id = luigi.Parameter()
 
     def requires(self):
-        feed = yield CrawlFeed(self.job)
-        watched = self.get_watched_surts(self, feed)
-        yield ScanLogFileForDocsMR(self.job, self.launch_id, watched)
+        return None
 
     def output(self):
         return luigi.LocalTarget(
             '{}/documents/extracted-hadoop-{}-{}'.format(LUIGI_STATE_FOLDER, self.job, self.launch_id))
 
     def run(self):
+        # Set up:
+        feed = yield CrawlFeed(self.job)
+        watched = self.get_watched_surts(feed)
+        docfile = yield ScanLogFileForDocsMR(self.job, self.launch_id, watched)
         # Loop over documents discovered, and attempt to post to W3ACT:
-        with self.input().open('r') as in_file:
+        with docfile.open() as in_file:
             for line in in_file:
                 url, docjson = line.strip().split("\t", 1)
                 doc = json.loads(docjson)
