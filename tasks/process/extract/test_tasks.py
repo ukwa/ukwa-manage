@@ -21,20 +21,6 @@ class RunDocumentExtractionTests(luigi.Task):
 
     def run(self):
 
-        # gov.uk documnent discovered via other sites:
-        self.run_doc_mdex_test(
-            'https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/214379/WP77techapp.pdf',
-            'http://www.ifs.org.uk/publications/8736',
-            'http://www.ifs.org.uk/',
-            35911, "Technical annexe")
-        # This example is problematic becuase it's a gov.uk document without an 'up' relation to discover it's proper landing page.
-        # Running separate crawls or more complete link-based document extraction and analysis would avoid this.
-        self.run_doc_mdex_test(
-            'https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/438143/analysis-of-the-airports-commission_s-consultation-responses.pdf',
-            'http://www.huffingtonpost.co.uk/rob-gray/heathrow-expansion-building-runway_b_12634602.html?utm_hp_ref=heathrow-third-runway',
-            'http://www.huffingtonpost.co.uk/',
-            None, "We've Backed A New Heathrow Runway... Now We Need To Build It!")
-
         # Non-matching Target test
         self.run_doc_mdex_test(
             'https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/567676/east_dulwich_community_nursery_association.pdf',
@@ -132,6 +118,20 @@ class RunDocumentExtractionTests(luigi.Task):
             'https://www.gov.uk/government/consultations/harbour-closure-and-pilotage-function-removal-orders-draft-guidance',
             'https://www.gov.uk/',
             35846, "Guidance on harbour closure orders and pilotage function removal orders: summary of responses")
+
+        # gov.uk documnent discovered via other sites:
+        self.run_doc_mdex_test(
+            'https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/214379/WP77techapp.pdf',
+            'http://www.ifs.org.uk/publications/8736',
+            'http://www.ifs.org.uk/',
+            35911, "Technical annexe")
+        # This example is problematic becuase it's a gov.uk document without an 'up' relation to discover it's proper landing page.
+        # Running separate crawls or more complete link-based document extraction and analysis would avoid this.
+        self.run_doc_mdex_test(
+            'https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/438143/analysis-of-the-airports-commission_s-consultation-responses.pdf',
+            'http://www.huffingtonpost.co.uk/rob-gray/heathrow-expansion-building-runway_b_12634602.html?utm_hp_ref=heathrow-third-runway',
+            'http://www.huffingtonpost.co.uk/',
+            None, "We've Backed A New Heathrow Runway... Now We Need To Build It!")
 
     def run_doc_mdex_test(self, url, lpu, src, tid, title):
         logger.info("Looking at document URL: %s" % url)
