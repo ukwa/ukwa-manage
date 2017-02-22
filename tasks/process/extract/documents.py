@@ -84,8 +84,9 @@ class LogFilesForJobLaunch(luigi.Task):
             out_file.close()
 
 
-
-class ScanLogFileForDocs(luigi.contrib.hadoop.JobTask):
+# FIXME Unfortunately, the metadata extraction depends on lxml, which required native dependencies
+# FIXME   (libxml2-devel, libxslt-devel) and therefore this is not really workable.
+class ScanLogFileForDocsMR(luigi.contrib.hadoop.JobTask):
     """
     Map-Reduce job that scans a log file for documents associated with 'Watched' targets.
 
@@ -220,6 +221,134 @@ class ScanLogFileForDocs(luigi.contrib.hadoop.JobTask):
         """
         for value in values:
             yield key, value
+
+
+class ScanLogFileForDocs(luigi.Task):
+    """Watched the crawled documents log queue and passes entries to w3act
+    Input:
+    {
+        "annotations": "ip:173.236.225.186,duplicate:digest",
+        "content_digest": "sha1:44KA4PQA5TYRAXDIVJIAFD72RN55OQHJ",
+        "content_length": 324,
+        "extra_info": {},
+        "hop_path": "IE",
+        "host": "acid.matkelly.com",
+        "jobName": "frequent",
+        "mimetype": "text/html",
+        "seed": "WTID:12321444",
+        "size": 511,
+        "start_time_plus_duration": "20160127211938966+230",
+        "status_code": 404,
+        "thread": 189,
+        "timestamp": "2016-01-27T21:19:39.200Z",
+        "url": "http://acid.matkelly.com/img.png",
+        "via": "http://acid.matkelly.com/",
+        "warc_filename": "BL-20160127211918391-00001-35~ce37d8d00c1f~8443.warc.gz",
+        "warc_offset": 36748
+    }
+    Note that 'seed' is actually the source tag, and is set up to contain the original (Watched) Target ID.
+    Output:
+    [
+    {
+    "id_watched_target":<long>,
+    "wayback_timestamp":<String>,
+    "landing_page_url":<String>,
+    "document_url":<String>,
+    "filename":<String>,
+    "size":<long>
+    },
+    <further documents>
+    ]
+    See https://github.com/ukwa/w3act/wiki/Document-REST-Endpoint
+    i.e.
+    seed -> id_watched_target
+    start_time_plus_duration -> wayback_timestamp
+    via -> landing_page_url
+    url -> document_url (and filename)
+    content_length -> size
+    Note that, if necessary, this process to refer to the
+    cdx-server and wayback to get more information about
+    the crawled data and improve the landing page and filename data.
+    """
+    task_namespace = 'doc'
+    job = luigi.Parameter()
+    launch_id = luigi.Parameter()
+
+    def requires(self):
+        return { 'feed': CrawlFeed(self.job), 'logs': LogFilesForJobLaunch(self.job, self.launch_id) }
+
+    def output(self):
+        return dtarget(self.job, self.launch_id, self.stage)
+
+    def run(self):
+        # Setup...
+        watched_surts = self.load_watched_surts()
+        summary = []
+        # loop over log files:
+        for log_file_path in self.input()['logs'].open('r'):
+            logger.info("Processing log file: %s..." % log_file_path)
+            # Get HDFS Input
+            log_file = luigi.contrib.hdfs.HdfsTarget(path=log_file_path)
+            # Then scan the logs for documents:
+            line_count = 0
+            with log_file.open('r') as f:
+                for line in f:
+                    if line_count % 100 == 0:
+                        self.set_status_message = "Currently at line %i of file %s" % (line_count, self.path)
+                        logger.info(self.set_status_message)
+                    line_count += 1
+                    # And yield tasks for each relevant document:
+                    (timestamp, status_code, content_length, url, hop_path, via, mime,
+                     thread, start_time_plus_duration, hash, source, annotations) = re.split(" +", line, maxsplit=11)
+                    # Skip non-downloads:
+                    if status_code == '-' or status_code == '' or int(status_code) / 100 != 2:
+                        continue
+                    # Check the URL and Content-Type:
+                    if "application/pdf" in mime:
+                        for prefix in watched_surts:
+                            document_surt = url_to_surt(url)
+                            landing_page_surt = url_to_surt(via)
+                            # Are both URIs under the same watched SURT:
+                            if document_surt.startswith(prefix) and landing_page_surt.startswith(prefix):
+                                logger.info("Found document: %s" % line)
+                                # Proceed to extract metadata and pass on to W3ACT:
+                                doc = {}
+                                doc['wayback_timestamp'] = start_time_plus_duration[:14]
+                                doc['landing_page_url'] = via
+                                doc['document_url'] = url
+                                doc['filename'] = os.path.basename(urlparse(url).path)
+                                doc['size'] = int(content_length)
+                                # Add some more metadata to the output so we can work out where this came from later:
+                                doc['job_name'] = self.job
+                                doc['launch_id'] = self.launch_id
+                                doc['source'] = source
+                                logger.info("Found document: %s" % doc)
+                                yield ExtractDocumentAndPost(self.job, self.launch_id, doc, source)
+                                summary.append({
+                                    'job': self.job,
+                                    'launch_id': self.launch_id,
+                                    'doc': doc,
+                                    'source': source
+                                })
+
+        # And write out to the status file:
+        with self.output().open('w') as out_file:
+            out_file.write('{}'.format(json.dumps(summary, indent=4)))
+
+    def load_watched_surts(self):
+        # First find the watched seeds list:
+        targets = json.load(self.input()['feed'].open('r'))
+        watched = []
+        for t in targets:
+            if t['watched']:
+                for seed in t['seeds']:
+                    watched.append(seed)
+        # Convert to SURT form:
+        watched_surts = set()
+        for url in watched:
+            watched_surts.add(url_to_surt(url))
+        logger.info("WATCHED SURTS %s" % watched_surts)
+        return watched_surts
 
 
 class AvailableInWayback(luigi.ExternalTask):
