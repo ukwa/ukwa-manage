@@ -3,13 +3,10 @@ import os
 import json
 import logging
 from urlparse import urlparse
-import requests
-import dateutil, six
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 from luigi.contrib.hdfs.format import Plain
 
-import crawl
 from crawl.h3.utils import url_to_surt
 from tasks.crawl.h3.crawl_job_tasks import CrawlFeed
 from tasks.process.extract.documents import LUIGI_STATE_FOLDER, HDFS_PREFIX
@@ -34,7 +31,9 @@ class LogFilesForJobLaunch(luigi.ExternalTask):
         # Get HDFS client:
         client = luigi.contrib.hdfs.get_autoconfig_client()
         parent_path = "%s/heritrix/output/logs/%s/%s" % (HDFS_PREFIX, self.job, self.launch_id)
-        for item in client.listdir(parent_path):
+        for listed_item in client.listdir(parent_path):
+            # Oddly, depending on the implementation, the listed_path may be absolute or basename-only, so fix here:
+            item = os.path.basename(listed_item)
             item_path = os.path.join(parent_path, item)
             if item.endswith(".lck"):
                 logger.error("Lock file should be be present on HDFS! %s" % (item, item_path))
