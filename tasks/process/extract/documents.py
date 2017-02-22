@@ -56,7 +56,8 @@ class LogFilesForJobLaunch(luigi.Task):
         outputs = {}
         is_final = False
         parent_path = "%s/heritrix/output/logs/%s/%s" % (HDFS_PREFIX, self.job, self.launch_id)
-        for item in client.listdir(parent_path):
+        for list_item in client.listdir(parent_path):
+            item = os.path.basename(list_item)
             item_path = os.path.join(parent_path,item)
             if item == "crawl.log":
                 logger.debug("Processing %s, %s" % (item, item_path))
