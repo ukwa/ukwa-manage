@@ -338,3 +338,11 @@ Separate process bundles up per checkpoint (gather.py)
 Separate process sends Documents to a queue (in H3) and sends the queue to W3ACT (mule.py)
 muster.py, yoke.py, shear.py, rouseabout, riggwelter (upside down sheep), 
 lanolin (grease), cull.py, heft (land), flock, fold, dip, bellwether (flock lead)
+
+
+    easy_install-2.7 pip
+    pip install --upgrade setuptools
+    yum install gcc libffi-devel python-devel openssl-devel libxml2-devel libxslt-devel
+    pip install -r requirements.txt
+
+

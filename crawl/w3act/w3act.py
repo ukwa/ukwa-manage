@@ -9,7 +9,7 @@ import traceback
 import time
 import dateutil.parser
 
-from tasks.common import logger
+logger = logging.getLogger('luigi-interface')
 
 
 class CachedItem(object):

@@ -5,14 +5,17 @@ import hashlib
 import logging
 from urlparse import urlparse
 import requests
+import dateutil, six
 from requests.utils import quote
 import xml.dom.minidom
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 
+import crawl
 from crawl.w3act.w3act import w3act
 from crawl.h3.utils import url_to_surt
 from crawl.dex.document_mdex import DocumentMDEx
+import tasks
 from tasks.crawl.h3.crawl_job_tasks import CrawlFeed
 from tasks.process.hadoop.crawl_summary import ScanForOutputs
 from tasks.common import target_name
@@ -172,6 +175,9 @@ class ScanLogFileForDocs(luigi.contrib.hadoop.JobTask):
     def output(self):
         out_name = "%s.docs" % self.launch_id
         return luigi.contrib.hdfs.HdfsTarget(out_name, format=luigi.contrib.hdfs.Plain)
+
+    def extra_modules(self):
+        return [requests, crawl, dateutil, six]
 
     def mapper(self, line):
         if len(self.watched_surts) == 0:
