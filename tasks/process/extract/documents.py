@@ -86,7 +86,6 @@ class LogFilesForJobLaunch(luigi.Task):
             for output in self.output_list:
                 logger.info("Writing %s" % output)
                 out_file.write('{}\n'.format(output))
-            out_file.close()
 
 
 # FIXME Unfortunately, the metadata extraction depends on lxml, which required native dependencies
