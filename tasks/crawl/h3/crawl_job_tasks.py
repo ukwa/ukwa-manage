@@ -1,18 +1,10 @@
 from __future__ import absolute_import
 
 import os
-import re
-import enum
 import json
 import luigi
 import datetime
-import glob
-import gzip
-import time
-from dateutil.parser import parse
-import zipfile
 import logging
-from crawl.w3act.w3act import w3act
 import crawl.h3.hapyx as hapyx
 from crawl.w3act.job import W3actJob
 from crawl.w3act.job import remove_action_files

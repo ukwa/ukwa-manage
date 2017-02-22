@@ -11,7 +11,7 @@ import crawl
 from crawl.h3.utils import url_to_surt
 import tasks # FIXME This is only imported because it's needed for compilation to work on Hadoop
 from tasks.crawl.h3.crawl_job_tasks import CrawlFeed
-from tasks.process.extract.documents import LUIGI_STATE_FOLDER, HDFS_PREFIX
+from tasks.common import LUIGI_STATE_FOLDER, HDFS_PREFIX
 
 logger = logging.getLogger('luigi-interface')
 

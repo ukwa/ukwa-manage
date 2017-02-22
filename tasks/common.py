@@ -11,6 +11,13 @@ from slackclient import SlackClient
 
 logger = logging.getLogger('luigi-interface')
 
+HDFS_PREFIX = os.environ.get("HDFS_PREFIX", "")
+WAYBACK_PREFIX = os.environ.get("WAYBACK_PREFIX", "http://localhost:9080/wayback")
+
+LUIGI_STATE_FOLDER = os.environ['LUIGI_STATE_FOLDER']
+ACT_URL = os.environ['ACT_URL']
+ACT_USER = os.environ['ACT_USER']
+ACT_PASSWORD = os.environ['ACT_PASSWORD']
 
 class state(luigi.Config):
     state_folder = os.environ.get('LUIGI_STATE_FOLDER', luigi.Parameter(default='/state'))
