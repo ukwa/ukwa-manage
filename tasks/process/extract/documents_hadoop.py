@@ -113,7 +113,7 @@ class ScanLogFileForDocsMR(luigi.contrib.hadoop.JobTask):
     task_namespace = 'doc'
     job = luigi.Parameter()
     launch_id = luigi.Parameter()
-    watched_surts = luigi.DictParameter()
+    watched_surts = luigi.ListParameter()
 
     n_reduce_tasks = 1 # This is set to 1 as there is intended to be one output file.
 
