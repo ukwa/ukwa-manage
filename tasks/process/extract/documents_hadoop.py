@@ -34,8 +34,8 @@ class LogFilesForJobLaunch(luigi.ExternalTask):
         # Get HDFS client:
         client = luigi.contrib.hdfs.get_autoconfig_client()
         parent_path = "%s/heritrix/output/logs/%s/%s" % (HDFS_PREFIX, self.job, self.launch_id)
-        for item_path in client.listdir(parent_path):
-            item = os.path.basename(item_path)
+        for item in client.listdir(parent_path):
+            item_path = os.path.join(parent_path, item)
             if item.endswith(".lck"):
                 logger.error("Lock file should be be present on HDFS! %s" % (item, item_path))
                 pass
