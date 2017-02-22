@@ -180,7 +180,7 @@ class ScanLogFileForDocsMR(luigi.contrib.hadoop.JobTask):
 
     def output(self):
         out_name = "%s.docs" % self.launch_id
-        return luigi.contrib.hdfs.HdfsTarget(out_name, format=luigi.contrib.hdfs.Plain)
+        return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=Plain)
 
     def extra_modules(self):
         return [requests, crawl, dateutil, six]
@@ -297,7 +297,7 @@ class ScanLogFileForDocs(luigi.Task):
                 log_file = luigi.contrib.hdfs.HdfsTarget(path=log_file_path, format=Plain)
                 # Then scan the logs for documents:
                 line_count = 0
-                with log_file.open('r') as f:
+                with log_file.open() as f:
                     for line in f:
                         if line_count % 100 == 0:
                             self.set_status_message = "Currently at line %i of file %s" % (line_count, self.path)
