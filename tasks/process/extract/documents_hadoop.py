@@ -7,11 +7,8 @@ import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 from luigi.contrib.hdfs.format import Plain
 
-import crawl
+import crawl # Imported so extra_modules MR-bundle can access the following:
 from crawl.h3.utils import url_to_surt
-import tasks # FIXME This is only imported because it's needed for compilation to work on Hadoop
-from tasks.crawl.h3.crawl_job_tasks import CrawlFeed
-from tasks.common import LUIGI_STATE_FOLDER, HDFS_PREFIX
 
 logger = logging.getLogger('luigi-interface')
 
@@ -32,7 +29,7 @@ class LogFilesForJobLaunch(luigi.ExternalTask):
         outputs = []
         # Get HDFS client:
         client = luigi.contrib.hdfs.get_autoconfig_client()
-        parent_path = "%s/heritrix/output/logs/%s/%s" % (HDFS_PREFIX, self.job, self.launch_id)
+        parent_path = "/heritrix/output/logs/%s/%s" % (self.job, self.launch_id)
         for listed_item in client.listdir(parent_path):
             # Oddly, depending on the implementation, the listed_path may be absolute or basename-only, so fix here:
             item = os.path.basename(listed_item)
@@ -127,7 +124,7 @@ class ScanLogFileForDocsMR(luigi.contrib.hadoop.JobTask):
         return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=Plain)
 
     def extra_modules(self):
-        return [crawl, tasks]
+        return [crawl]
 
     def mapper(self, line):
         (timestamp, status_code, content_length, url, hop_path, via, mime,
@@ -168,54 +165,6 @@ class ScanLogFileForDocsMR(luigi.contrib.hadoop.JobTask):
         """
         for value in values:
             yield key, value
-
-
-class ExtractDocumentsMR(luigi.Task):
-    """
-    Via required tasks, launched M-R job to process crawl logs.
-
-    Then runs through output documents and attempts to post them to W3ACT.
-    """
-    task_namespace = 'doc'
-    job = luigi.Parameter()
-    launch_id = luigi.Parameter()
-
-    def requires(self):
-        return None
-
-    def output(self):
-        return luigi.LocalTarget(
-            '{}/documents/extracted-hadoop-{}-{}'.format(LUIGI_STATE_FOLDER, self.job, self.launch_id))
-
-    def run(self):
-        # Set up:
-        feed = yield CrawlFeed(self.job)
-        watched = self.get_watched_surts(feed)
-        docfile = yield ScanLogFileForDocsMR(self.job, self.launch_id, watched)
-        # Loop over documents discovered, and attempt to post to W3ACT:
-        with docfile.open() as in_file:
-            for line in in_file:
-                url, docjson = line.strip().split("\t", 1)
-                doc = json.loads(docjson)
-                logger.error("Submission disabled! %s " % doc)
-                #yield ExtractDocumentAndPost(self.job, self.launch_id, doc, doc["source"])
-
-    def get_watched_surts(self, feed):
-        # First find the unique watched seeds list:
-        targets = json.load(feed.open())
-        watched = set()
-        for t in targets:
-            if t['watched']:
-                for seed in t['seeds']:
-                    watched.add(seed)
-
-        # Convert to SURT form:
-        watched_surts = []
-        for url in watched:
-            watched_surts.append(url_to_surt(url))
-        logger.info("WATCHED SURTS %s" % watched_surts)
-
-        return watched_surts
 
 
 if __name__ == '__main__':

@@ -10,13 +10,12 @@ import xml.dom.minidom
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 
-import crawl
 from crawl.w3act.w3act import w3act
 from crawl.h3.utils import url_to_surt
 from crawl.dex.document_mdex import DocumentMDEx
-import tasks
 from tasks.crawl.h3.crawl_job_tasks import CrawlFeed
 from tasks.process.hadoop.crawl_summary import ScanForOutputs
+from tasks.process.extract.documents_hadoop import ScanLogFileForDocsMR
 from tasks.common import target_name
 
 logger = logging.getLogger('luigi-interface')
@@ -393,6 +392,54 @@ class ExtractDocuments(luigi.Task):
                 url, docjson = line.strip().split("\t", 1)
                 doc = json.loads(docjson)
                 yield ExtractDocumentAndPost(self.job, self.launch_id, doc, doc["source"])
+
+
+class ExtractDocumentsMR(luigi.Task):
+    """
+    Via required tasks, launched M-R job to process crawl logs.
+
+    Then runs through output documents and attempts to post them to W3ACT.
+    """
+    task_namespace = 'doc'
+    job = luigi.Parameter()
+    launch_id = luigi.Parameter()
+
+    def requires(self):
+        return None
+
+    def output(self):
+        return luigi.LocalTarget(
+            '{}/documents/extracted-hadoop-{}-{}'.format(LUIGI_STATE_FOLDER, self.job, self.launch_id))
+
+    def run(self):
+        # Set up:
+        feed = yield CrawlFeed(self.job)
+        watched = self.get_watched_surts(feed)
+        docfile = yield ScanLogFileForDocsMR(self.job, self.launch_id, watched)
+        # Loop over documents discovered, and attempt to post to W3ACT:
+        with docfile.open() as in_file:
+            for line in in_file:
+                url, docjson = line.strip().split("\t", 1)
+                doc = json.loads(docjson)
+                logger.error("Submission disabled! %s " % doc)
+                # yield ExtractDocumentAndPost(self.job, self.launch_id, doc, doc["source"])
+
+    def get_watched_surts(self, feed):
+        # First find the unique watched seeds list:
+        targets = json.load(feed.open())
+        watched = set()
+        for t in targets:
+            if t['watched']:
+                for seed in t['seeds']:
+                    watched.add(seed)
+
+        # Convert to SURT form:
+        watched_surts = []
+        for url in watched:
+            watched_surts.append(url_to_surt(url))
+        logger.info("WATCHED SURTS %s" % watched_surts)
+
+        return watched_surts
 
 
 class ScanForDocuments(ScanForOutputs):
