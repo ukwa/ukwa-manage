@@ -9,6 +9,7 @@ from luigi.contrib.hdfs.format import Plain
 
 import crawl
 from crawl.h3.utils import url_to_surt
+import tasks # FIXME This is only imported because it's needed for compilation to work on Hadoop
 from tasks.crawl.h3.crawl_job_tasks import CrawlFeed
 from tasks.process.extract.documents import LUIGI_STATE_FOLDER, HDFS_PREFIX
 
@@ -126,7 +127,7 @@ class ScanLogFileForDocsMR(luigi.contrib.hadoop.JobTask):
         return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=Plain)
 
     def extra_modules(self):
-        return [crawl]
+        return [crawl, tasks]
 
     def mapper(self, line):
         (timestamp, status_code, content_length, url, hop_path, via, mime,
