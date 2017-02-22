@@ -75,8 +75,10 @@ class LogFilesForJobLaunch(luigi.Task):
 
     def output(self):
         self.get_output_list()
-        return luigi.contrib.hdfs.HdfsTarget(path="%s/log-files-%s-%s-%i.txt"
+        return luigi.LocalTarget(path="%s/log-files-%s-%s-%i.txt"
                                              % (LUIGI_STATE_FOLDER, self.job, self.launch_id, len(self.output_list)))
+        #return luigi.contrib.hdfs.HdfsTarget(path="%s/log-files-%s-%s-%i.txt"
+        #                                     % (LUIGI_STATE_FOLDER, self.job, self.launch_id, len(self.output_list)))
 
     def run(self):
         self.get_output_list()
