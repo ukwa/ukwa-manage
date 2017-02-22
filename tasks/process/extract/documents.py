@@ -278,62 +278,55 @@ class ScanLogFileForDocs(luigi.Task):
         return { 'feed': CrawlFeed(self.job), 'logs': LogFilesForJobLaunch(self.job, self.launch_id) }
 
     def output(self):
-        return dtarget(self.job, self.launch_id, self.stage)
+        return dtarget(self.job, self.launch_id, "docs-found")
 
     def run(self):
         # Setup...
         watched_surts = self.load_watched_surts()
-        summary = []
-        # loop over log files:
-        for log_file_path in self.input()['logs'].open('r'):
-            logger.info("Processing log file: %s..." % log_file_path)
-            # Get HDFS Input
-            log_file = luigi.contrib.hdfs.HdfsTarget(path=log_file_path)
-            # Then scan the logs for documents:
-            line_count = 0
-            with log_file.open('r') as f:
-                for line in f:
-                    if line_count % 100 == 0:
-                        self.set_status_message = "Currently at line %i of file %s" % (line_count, self.path)
-                        logger.info(self.set_status_message)
-                    line_count += 1
-                    # And yield tasks for each relevant document:
-                    (timestamp, status_code, content_length, url, hop_path, via, mime,
-                     thread, start_time_plus_duration, hash, source, annotations) = re.split(" +", line, maxsplit=11)
-                    # Skip non-downloads:
-                    if status_code == '-' or status_code == '' or int(status_code) / 100 != 2:
-                        continue
-                    # Check the URL and Content-Type:
-                    if "application/pdf" in mime:
-                        for prefix in watched_surts:
-                            document_surt = url_to_surt(url)
-                            landing_page_surt = url_to_surt(via)
-                            # Are both URIs under the same watched SURT:
-                            if document_surt.startswith(prefix) and landing_page_surt.startswith(prefix):
-                                logger.info("Found document: %s" % line)
-                                # Proceed to extract metadata and pass on to W3ACT:
-                                doc = {}
-                                doc['wayback_timestamp'] = start_time_plus_duration[:14]
-                                doc['landing_page_url'] = via
-                                doc['document_url'] = url
-                                doc['filename'] = os.path.basename(urlparse(url).path)
-                                doc['size'] = int(content_length)
-                                # Add some more metadata to the output so we can work out where this came from later:
-                                doc['job_name'] = self.job
-                                doc['launch_id'] = self.launch_id
-                                doc['source'] = source
-                                logger.info("Found document: %s" % doc)
-                                yield ExtractDocumentAndPost(self.job, self.launch_id, doc, source)
-                                summary.append({
-                                    'job': self.job,
-                                    'launch_id': self.launch_id,
-                                    'doc': doc,
-                                    'source': source
-                                })
-
-        # And write out to the status file:
+        # open the output file:
         with self.output().open('w') as out_file:
-            out_file.write('{}'.format(json.dumps(summary, indent=4)))
+            # loop over log files:
+            for log_file_path in self.input()['logs'].open('r'):
+                logger.info("Processing log file: %s..." % log_file_path)
+                # Get HDFS Input
+                log_file = luigi.contrib.hdfs.HdfsTarget(path=log_file_path)
+                # Then scan the logs for documents:
+                line_count = 0
+                with log_file.open('r') as f:
+                    for line in f:
+                        if line_count % 100 == 0:
+                            self.set_status_message = "Currently at line %i of file %s" % (line_count, self.path)
+                            logger.info(self.set_status_message)
+                        line_count += 1
+                        # And yield tasks for each relevant document:
+                        (timestamp, status_code, content_length, url, hop_path, via, mime,
+                         thread, start_time_plus_duration, hash, source, annotations) = re.split(" +", line, maxsplit=11)
+                        # Skip non-downloads:
+                        if status_code == '-' or status_code == '' or int(status_code) / 100 != 2:
+                            continue
+                        # Check the URL and Content-Type:
+                        if "application/pdf" in mime:
+                            for prefix in watched_surts:
+                                document_surt = url_to_surt(url)
+                                landing_page_surt = url_to_surt(via)
+                                # Are both URIs under the same watched SURT:
+                                if document_surt.startswith(prefix) and landing_page_surt.startswith(prefix):
+                                    logger.info("Found document: %s" % line)
+                                    # Proceed to extract metadata and pass on to W3ACT:
+                                    doc = {
+                                        'wayback_timestamp': start_time_plus_duration[:14],
+                                        'landing_page_url': via,
+                                        'document_url': url,
+                                        'filename': os.path.basename(urlparse(url).path),
+                                        'size': int(content_length),
+                                        # Add some more metadata to the output so we can work out where this came from:
+                                        'job_name': self.job,
+                                        'launch_id': self.launch_id,
+                                        'source': source
+                                    }
+                                    logger.info("Found document: %s" % doc)
+                                    # And write out to the result file:
+                                    out_file.write('{}\t{}'.format(url, json.dumps(doc)))
 
     def load_watched_surts(self):
         # First find the watched seeds list:
