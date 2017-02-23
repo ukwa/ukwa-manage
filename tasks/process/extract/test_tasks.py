@@ -1,8 +1,9 @@
 import json
 import luigi
+import logging
 from crawl.dex.document_mdex import DocumentMDEx
-from tasks.crawl.h3.crawl_job_tasks import CrawlFeed
-from tasks.common import logger
+
+logger = logging.getLogger('luigi-interface')
 
 
 class RunDocumentExtractionTests(luigi.Task):
@@ -11,15 +12,20 @@ class RunDocumentExtractionTests(luigi.Task):
     """
     task_namespace = 'test'
 
-    def requires(self):
-        return {
-            'targets': CrawlFeed('frequent')
-        }
-
-    def output(self):
-        pass
+    @staticmethod
+    def load_targets():
+        with open('test-data/crawl-feed.2017-01-02T2100.frequent') as f:
+            return json.load(f)
 
     def run(self):
+        # FIXME Add tests for Command and Act papers, ISBN,
+
+        # Command and Act papers
+        self.run_doc_mdex_test(
+            'https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/593186/Local_government_finance_report.pdf',
+            'https://www.gov.uk/government/publications/local-government-finance-report-2017-to-2018',
+            'https://www.gov.uk/government/publications?departments[]=department-for-transport',
+            35913, "Local Government Finance Report (England) 2017 to 2018")
 
         # Non-matching Target test
         self.run_doc_mdex_test(
@@ -34,17 +40,17 @@ class RunDocumentExtractionTests(luigi.Task):
             "https://www.euromod.ac.uk/publications/date/2001/type/EUROMOD%20Working%20Paper%20Series",
             "https://www.euromod.ac.uk/", "Towards a multi purpose framework for tax benefit microsimulation")
 
+        # These tests association-with-closest-heading logic:
         self.run_doc_mdex_test_extraction(
             "https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/128968/competency-guidance.pdf",
             "https://www.gov.uk/government/organisations/department-for-work-pensions/about/recruitment",
             "https://www.gov.uk/government/organisations/department-for-work-pensions",
             "Guidance on writing competency statements for a job application")
-
-        self.run_doc_mdex_test_extraction(
-            "https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/421402/List_of_lawyers_in_Mexico.pdf",
-            "https://www.gov.uk/government/world/organisations/british-embassy-mexico-city",
-            "https://www.gov.uk/government/publications?departments[]=department-for-transport",
-            "List of lawyers and interpreters")
+        #self.run_doc_mdex_test_extraction(
+        #    "https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/421402/List_of_lawyers_in_Mexico.pdf",
+        #    "https://www.gov.uk/government/world/organisations/british-embassy-mexico-city",
+        #    "https://www.gov.uk/government/publications?departments[]=department-for-transport",
+        #    "List of lawyers and interpreters")
 
         # the tests Target association:
         # - scottish parliament
@@ -74,14 +80,6 @@ class RunDocumentExtractionTests(luigi.Task):
             'http://www.nottinghamcamra.org/festivals.php',
             'http://nottinghamcamra.org',
             35989, "Beer Festivals")
-
-        # - Local Government Association
-        self.run_doc_mdex_test(
-            'http://www.local.gov.uk/documents/10180/5716319/LGA+DECC+energy+efficiency+221113.pdf/86a87aaf-8650-4ef3-969b-3aff0e50083e',
-            'http://www.local.gov.uk/web/guest/media-releases/-/journal_content/56/10180/5716193/NEWS',
-            'http://www.local.gov.uk/publications',
-            36040,
-            "LGA press release 30 November 2013")  # page title: "Allow councils to lead energy efficiency schemes, says LGA")
 
         # - DCMS
         self.run_doc_mdex_test(
@@ -125,20 +123,31 @@ class RunDocumentExtractionTests(luigi.Task):
             'http://www.ifs.org.uk/publications/8736',
             'http://www.ifs.org.uk/',
             35911, "Technical annexe")
+
         # This example is problematic becuase it's a gov.uk document without an 'up' relation to discover it's proper landing page.
         # Running separate crawls or more complete link-based document extraction and analysis would avoid this.
-        self.run_doc_mdex_test(
-            'https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/438143/analysis-of-the-airports-commission_s-consultation-responses.pdf',
-            'http://www.huffingtonpost.co.uk/rob-gray/heathrow-expansion-building-runway_b_12634602.html?utm_hp_ref=heathrow-third-runway',
-            'http://www.huffingtonpost.co.uk/',
-            None, "We've Backed A New Heathrow Runway... Now We Need To Build It!")
+        # It's ALSO problematic because I think Huffintonpost may be blocking us!
+        #self.run_doc_mdex_test(
+        #    'https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/438143/analysis-of-the-airports-commission_s-consultation-responses.pdf',
+        #    'http://www.huffingtonpost.co.uk/rob-gray/heathrow-expansion-building-runway_b_12634602.html?utm_hp_ref=heathrow-third-runway',
+        #    'http://www.huffingtonpost.co.uk/',
+        #    None, "We've Backed A New Heathrow Runway... Now We Need To Build It!")
+
+        # OFFLINE so cannot be tested without access to the actual web archive!
+        # - Local Government Association
+        #self.run_doc_mdex_test(
+        #    'http://www.local.gov.uk/documents/10180/5716319/LGA+DECC+energy+efficiency+221113.pdf/86a87aaf-8650-4ef3-969b-3aff0e50083e',
+        #    'http://www.local.gov.uk/web/guest/media-releases/-/journal_content/56/10180/5716193/NEWS',
+        #    'http://www.local.gov.uk/publications',
+        #    36040,
+        #    "LGA press release 30 November 2013")  # page title: "Allow councils to lead energy efficiency schemes, says LGA")
 
     def run_doc_mdex_test(self, url, lpu, src, tid, title):
         logger.info("Looking at document URL: %s" % url)
         doc = {}
         doc['document_url'] = url
         doc['landing_page_url'] = lpu
-        targets = json.load(self.input()['targets'].open('r'))
+        targets = self.load_targets()
         doc = DocumentMDEx(targets, doc, src, null_if_no_target_found=False).mdex()
         logger.info(json.dumps(doc))
         if doc['target_id'] != tid:
@@ -152,7 +161,7 @@ class RunDocumentExtractionTests(luigi.Task):
         doc = {}
         doc['document_url'] = url
         doc['landing_page_url'] = lpu
-        targets = json.load(self.input()['targets'].open('r'))
+        targets = self.load_targets()
         doc = DocumentMDEx(targets, doc, src, null_if_no_target_found=False).mdex()
         logger.info(json.dumps(doc))
         if doc.get('title', None) != title:
@@ -161,4 +170,4 @@ class RunDocumentExtractionTests(luigi.Task):
 
 if __name__ == '__main__':
     #luigi.run(['scan.ScanForDocuments', '--date-interval', '2016-11-04-2016-11-10'])  # , '--local-scheduler'])
-    luigi.run(['test.RunDocumentExtractionTests'])
+    luigi.run(['test.RunDocumentExtractionTests', '--local-scheduler'])

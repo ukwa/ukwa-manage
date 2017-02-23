@@ -10,11 +10,13 @@ Created on 8 Feb 2016
 '''
 
 import json
+import logging
 import requests
-from urlparse import urljoin
+from urlparse import urljoin, urlparse
 from lxml import html
 from crawl.h3.utils import url_to_surt
-from tasks.common import logger, systems
+
+logger = logging.getLogger('luigi-interface')
 
 
 class DocumentMDEx(object):
@@ -38,7 +40,8 @@ class DocumentMDEx(object):
         return wb_url
 
     def doc_wb_url(self):
-        wb_url = "%s/%s/%s" % ( systems().wayback, self.doc['wayback_timestamp'], self.doc['document_url'])
+        #wb_url = "%s/%s/%s" % ( os.environ.get('WAYBACK_PREFIX','http://openwayback:8080/wayback'), self.doc['wayback_timestamp'], self.doc['document_url'])
+        wb_url =  self.doc['document_url']
         return wb_url
 
     def find_watched_target_for(self, url, source, publishers):
@@ -147,7 +150,8 @@ class DocumentMDEx(object):
     def mdex_default(self):
         ''' Default extractor uses landing page for title etc.'''
         # Grab the landing page URL as HTML
-        r = requests.get(self.lp_wb_url())
+        logger.info("Getting %s" % self.lp_wb_url())
+        r = requests.get(self.lp_wb_url(), stream=True)
         h = html.fromstring(r.content)
         h.make_links_absolute(self.doc["landing_page_url"])
         logger.info("Looking for links...")
@@ -185,38 +189,46 @@ class DocumentMDEx(object):
         if r.links.has_key('up'):
             lpu = r.links['up']
             self.doc["landing_page_url"] = lpu['url']
-        # Grab the landing page URL as HTML
-        logger.debug("Downloading and parsing: %s" % self.doc['landing_page_url'])
-        r = requests.get(self.lp_wb_url())
-        h = html.fromstring(r.content)
-        # Extract the metadata:
-        logger.debug('xpath/title %s' % h.xpath('//header//h1/text()') )
-        self.doc['title'] = self._get0(h.xpath('//header//h1/text()'))
-        self.doc['publication_date'] = self._get0(h.xpath("//aside[contains(@class, 'meta')]//time/@datetime"))[0:10]
-        if self.doc['publication_date'] == '':
-            self.doc.pop('publication_date')
-        self.doc['publishers'] = h.xpath("//aside[contains(@class, 'meta')]//a[contains(@class, 'organisation-link')]/text()")
-        # Look through landing page for links, find metadata section corresponding to the document:
-        for a in h.xpath("//a"):
-            if self.doc["document_url"] in urljoin(self.doc["landing_page_url"], a.attrib["href"]):
-                if ("class" in a.getparent().getparent().attrib) and \
-                                a.getparent().getparent().attrib["class"] == "attachment-details":
-                    div = a.getparent().getparent()
-                    # Process title, allowing document title metadata to override:
-                    lp_title = self._get0(div.xpath("./h2[@class='title']/a/text()"))
-                    if len(lp_title) > 0:
-                        self.doc['title'] = lp_title
-                    # Process references
-                    refs = div.xpath("./p/span[@class='references']")
-                    # We also need to look out for Command and Act papers and match them by modifying the publisher list
-                    for ref in refs:
-                        isbn = self._get0(ref.xpath("./span[@class='isbn']/text()"))
-                        if len(isbn) > 0:
-                            self.doc['isbn'] = isbn
-                        if len(ref.xpath("./span[starts-with(text(), 'HC') or starts-with(text(), 'Cm') or starts-with(text(), 'CM')]")) > 0:
-                            self.doc['publishers'] = ["Command and Act Papers"]
-        if not self.doc['title']:
-            raise Exception('Title extraction failed! Metadata extraction for this target should be reviewed.')
+        # Grab JSON for the landing page:
+        if "www.gov.uk/" in self.doc["landing_page_url"]:
+            api_json_url = urlparse(self.doc["landing_page_url"])
+            api_json_url = api_json_url._replace( path="/api/content%s" % api_json_url.path)
+            api_json_url = api_json_url.geturl()
+            r = requests.get(api_json_url)
+            md = json.loads(r.content)
+            self.doc['title'] = md['title']
+            self.doc['publication_date'] = md['first_published_at']
+            self.doc['publishers'] = []
+            for org in md['links']['organisations']:
+                self.doc['publishers'].append(org['title'])
+
+            # Grab the landing page URL as HTML
+            logger.debug("Downloading and parsing: %s" % self.doc['landing_page_url'])
+            r = requests.get(self.lp_wb_url())
+            h = html.fromstring(r.content)
+            # Extract the metadata:
+            # Look through landing page for links, find metadata section corresponding to the document:
+            for a in h.xpath("//a"):
+                if self.doc["document_url"] in urljoin(self.doc["landing_page_url"], a.attrib["href"]):
+                    if ("class" in a.getparent().getparent().attrib) and \
+                                    a.getparent().getparent().attrib["class"] == "attachment-details":
+                        div = a.getparent().getparent()
+                        # Process title, allowing document title metadata to override:
+                        lp_title = self._get0(div.xpath("./h2[@class='title']/a/text()"))
+                        if len(lp_title) > 0:
+                            self.doc['title'] = lp_title
+                        # Process references
+                        refs = div.xpath("./p/span[@class='references']")
+                        # We also need to look out for Command and Act papers and match them by modifying the publisher list
+                        for ref in refs:
+                            isbn = self._get0(ref.xpath("./span[@class='isbn']/text()"))
+                            if len(isbn) > 0:
+                                self.doc['isbn'] = isbn
+                            if len(ref.xpath("./span[starts-with(text(), 'HC') or starts-with(text(), 'Cm') or starts-with(text(), 'CM')]")) > 0:
+                                self.doc['publishers'] = ["Command and Act Papers"]
+
+            if not self.doc.has_key('title') or self.doc['title']:
+                raise Exception('Title extraction failed! Metadata extraction for this target should be reviewed.')
     
         
     def mdex_ifs_reports(self):
