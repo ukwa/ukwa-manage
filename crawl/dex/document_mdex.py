@@ -65,9 +65,10 @@ class DocumentMDEx(object):
             logger.error("No match found for url %s" % url)
             return None
         # raise Exception("No matching target for url "+url)
-        # If one match, assume that is the right Target:
-        if len(matches) == 1:
+        # If one match, assume that is the right Target, unless this is a known multi-stream publisher:
+        if len(matches) == 1 and "://www.gov.uk/" not in url:
             return int(matches[0]['id'])
+
         #
         # Else multiple matches, so need to disambiguate.
         #
