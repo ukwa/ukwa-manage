@@ -75,7 +75,7 @@ class DocumentMDEx(object):
         if source is not None:
             for t in matches:
                 for seed in t['seeds']:
-                    logger.info("Looking for source match '%s' against '%s' " % (source, seed))
+                    #logger.info("Looking for source match '%s' against '%s' " % (source, seed))
                     if seed == source:
                         # return int(t['id'])
                         logger.info("Found match source+seed but this is not enough to disambiguate longer crawls.")
@@ -85,8 +85,9 @@ class DocumentMDEx(object):
         title_matches = []
         for t in matches:
             for publisher in publishers:
-                logger.info("Looking for publisher match '%s' in title '%s' " % (publisher, t['title']))
+                #logger.debug("Looking for publisher match '%s' in title '%s' " % (publisher, t['title']))
                 if publisher and publisher.lower() in t['title'].lower():
+                    logger.info("Found publisher match '%s' in title '%s' " % (publisher, t['title']))
                     title_matches.append(t)
                     break
         if len(title_matches) == 0:
@@ -189,24 +190,27 @@ class DocumentMDEx(object):
         if r.links.has_key('up'):
             lpu = r.links['up']
             self.doc["landing_page_url"] = lpu['url']
-        # Grab JSON for the landing page:
-        if "www.gov.uk/" in self.doc["landing_page_url"]:
-            api_json_url = urlparse(self.doc["landing_page_url"])
-            api_json_url = api_json_url._replace( path="/api/content%s" % api_json_url.path)
-            api_json_url = api_json_url.geturl()
-            r = requests.get(api_json_url)
-            md = json.loads(r.content)
-            self.doc['title'] = md['title']
-            self.doc['publication_date'] = md['first_published_at']
-            self.doc['publishers'] = []
-            for org in md['links']['organisations']:
-                self.doc['publishers'].append(org['title'])
+        # Grab data from the landing page:
+        lp_url = urlparse(self.doc["landing_page_url"])
+        if "www.gov.uk" == lp_url.hostname:
+            # The JSON extractor does not make sense to use with organisation landing pages:
+            if not lp_url.path.startswith('/government/organisations/'):
+                api_json_url = lp_url._replace( path="/api/content%s" % lp_url.path)
+                api_json_url = api_json_url.geturl()
+                logger.debug("Downloading and parsing from API: %s" % api_json_url)
+                r = requests.get(api_json_url)
+                md = json.loads(r.content)
+                self.doc['title'] = md['title']
+                self.doc['publication_date'] = md['first_published_at']
+                self.doc['publishers'] = []
+                for org in md['links']['organisations']:
+                    self.doc['publishers'].append(org['title'])
 
             # Grab the landing page URL as HTML
             logger.debug("Downloading and parsing: %s" % self.doc['landing_page_url'])
             r = requests.get(self.lp_wb_url())
             h = html.fromstring(r.content)
-            # Extract the metadata:
+            # Attempt to extract resourse-level metadata (overriding publication-level metadata):
             # Look through landing page for links, find metadata section corresponding to the document:
             for a in h.xpath("//a"):
                 if self.doc["document_url"] in urljoin(self.doc["landing_page_url"], a.attrib["href"]):
@@ -226,9 +230,9 @@ class DocumentMDEx(object):
                                 self.doc['isbn'] = isbn
                             if len(ref.xpath("./span[starts-with(text(), 'HC') or starts-with(text(), 'Cm') or starts-with(text(), 'CM')]")) > 0:
                                 self.doc['publishers'] = ["Command and Act Papers"]
-
-            if not self.doc.has_key('title') or self.doc['title']:
-                raise Exception('Title extraction failed! Metadata extraction for this target should be reviewed.')
+            # This is allowed to be empty if we are deferring to the default, and majot problems should throw errors earlier.
+            #if not self.doc.has_key('title') or self.doc['title']:
+            #    raise Exception('Title extraction failed! Metadata extraction for this target should be reviewed.')
     
         
     def mdex_ifs_reports(self):

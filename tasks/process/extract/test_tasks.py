@@ -20,6 +20,13 @@ class RunDocumentExtractionTests(luigi.Task):
     def run(self):
         # FIXME Add tests for Command and Act papers, ISBN,
 
+        # Example of a non-publication
+        self.run_doc_mdex_test(
+            "https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/397042/Agenda_and_papers_for_29_January_2015_board_meeting.pdf",
+            "https://www.gov.uk/government/organisations/environment-agency/about/our-governance",
+            'https://www.gov.uk/government/publications?departments[]=department-for-transport',
+            None, "2015 board meetings")
+
         # Command and Act papers
         self.run_doc_mdex_test(
             'https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/593186/Local_government_finance_report.pdf',
@@ -143,7 +150,7 @@ class RunDocumentExtractionTests(luigi.Task):
         #    "LGA press release 30 November 2013")  # page title: "Allow councils to lead energy efficiency schemes, says LGA")
 
     def run_doc_mdex_test(self, url, lpu, src, tid, title):
-        logger.info("Looking at document URL: %s" % url)
+        logger.info("\n\nLooking at document URL: %s" % url)
         doc = {}
         doc['document_url'] = url
         doc['landing_page_url'] = lpu
@@ -157,7 +164,7 @@ class RunDocumentExtractionTests(luigi.Task):
 
     def run_doc_mdex_test_extraction(self, url, lpu, src, title):
 
-        logger.info("Looking at document URL: %s" % url)
+        logger.info("\n\nLooking at document URL: %s" % url)
         doc = {}
         doc['document_url'] = url
         doc['landing_page_url'] = lpu
