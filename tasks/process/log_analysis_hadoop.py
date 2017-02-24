@@ -24,7 +24,7 @@ class CrawlLogLine(object):
             self.mime, self.thread, self.start_time_plus_duration, self.hash, self.source,
             self.annotation_string) = re.split(" +", line.strip(), maxsplit=11)
         # Account for any JSON 'extra info' ending:
-        if ' {"' in self.annotation_string and self.annotation_string.endswith('"}'):
+        if ' {"' in self.annotation_string and self.annotation_string.endswith('}'):
             self.annotation_string, self.extra_json = re.split(re.escape(' {"'), self.annotation_string, maxsplit=1)
             self.extra_json = '{"%s' % self.extra_json
         # And split out the annotations:
@@ -310,7 +310,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
 
 if __name__ == '__main__':
     luigi.run(['analyse.AnalyseLogFile', '--job', 'weekly', '--launch-id', '20170220090024',
-               '--log-path', '/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20130605082749',
+               '--log-path', '/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20170211224931',
                '--targets-path', '/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl-feed.2017-01-02T2100.frequent',
                '--local-scheduler'])
     #luigi.run(['analyse.AnalyseLogFiles', '--date-interval', '2017-02-10-2017-02-12', '--local-scheduler'])
