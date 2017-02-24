@@ -2,6 +2,7 @@ import os
 import json
 import hashlib
 import logging
+import threading
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 
@@ -72,8 +73,10 @@ class SyncToHdfs(luigi.Task):
             logger.info("LOCAL HASH: %s" % local_hash)
         # Read from HDFS
         hdfs = self.output()
-        with hdfs.open('r') as reader:
-            hdfs_hash = hashlib.sha512(reader).hexdigest()
+        client = luigi.contrib.hdfs.get_autoconfig_client(threading.local())
+        # Having to side-step the first client as it seems to be buggy/use an old API - note also confused put()
+        with client.client.read(str(hdfs.path)) as reader:
+            hdfs_hash = hashlib.sha512(reader.read()).hexdigest()
             logger.info("HDFS HASH: %s" % hdfs_hash)
 
         # If they match, we are good:
@@ -83,7 +86,7 @@ class SyncToHdfs(luigi.Task):
         return luigi.contrib.hdfs.HdfsTarget(path=self.target_path, format=Plain)
 
     def run(self):
-        client = luigi.contrib.hdfs.get_autoconfig_client()
+        client = luigi.contrib.hdfs.get_autoconfig_client(threading.local())
         client.upload(hdfs_path=self.output().path, local_path=self.source_path, overwrite=self.overwrite)
 
 
