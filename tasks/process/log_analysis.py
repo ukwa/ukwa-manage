@@ -69,7 +69,7 @@ class SyncToHdfs(luigi.Task):
         # Read local:
         local = luigi.LocalTarget(path=self.source_path)
         with local.open('r') as reader:
-            local_hash = hashlib.sha512(reader).hexdigest()
+            local_hash = hashlib.sha512(reader.read()).hexdigest()
             logger.info("LOCAL HASH: %s" % local_hash)
         # Read from HDFS
         hdfs = self.output()
