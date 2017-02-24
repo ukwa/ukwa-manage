@@ -252,7 +252,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
         return InputFile(self.log_path, self.from_hdfs)
 
     def output(self):
-        out_name = "task-state/%s/%s/%s.analysis.tsv" % (self.job, self.launch_id, os.path.basename(self.log_path))
+        out_name = "task-state/%s/%s/%s.analysis.tsjson" % (self.job, self.launch_id, os.path.basename(self.log_path))
         if self.from_hdfs:
             return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=PlainDir)
         else:
