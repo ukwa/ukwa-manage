@@ -72,11 +72,10 @@ class SyncToHdfs(luigi.Task):
             local_hash = hashlib.sha512(reader.read()).hexdigest()
             logger.info("LOCAL HASH: %s" % local_hash)
         # Read from HDFS
-        hdfs = self.output()
         client = luigi.contrib.hdfs.get_autoconfig_client(threading.local())
-        if not client.exists(hdfs.path):
+        if not client.exists(self.target_path):
             return False
-        with client.client.read(str(hdfs.path)) as reader:
+        with client.client.read(self.target_path) as reader:
             hdfs_hash = hashlib.sha512(reader.read()).hexdigest()
             logger.info("HDFS HASH: %s" % hdfs_hash)
 
