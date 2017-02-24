@@ -1,22 +1,14 @@
-import re
 import os
 import json
 import hashlib
 import logging
-from urlparse import urlparse
-import requests
-from requests.utils import quote
-import xml.dom.minidom
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 
-from crawl.h3.utils import url_to_surt
 from tasks.crawl.h3.crawl_job_tasks import CrawlFeed
 from tasks.process.hadoop.crawl_summary import ScanForOutputs
 from tasks.process.log_analysis_hadoop import AnalyseLogFile
 from tasks.process.extract.documents import ExtractDocumentAndPost
-from tasks.ingest.copy_to_hdfs import MoveToHdfs
-from tasks.common import target_name
 from luigi.contrib.hdfs.format import Plain, PlainDir
 
 logger = logging.getLogger('luigi-interface')
