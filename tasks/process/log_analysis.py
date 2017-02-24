@@ -150,7 +150,7 @@ class GenerateCrawlLogReports(luigi.Task):
         logs_count = len(self.input())
 
         # Cache targets in an appropriately unique filename (as unique as this task):
-        hdfs_targets = yield SyncToHdfs(feed.path, '/tmp/crawl-feed-%s-%s-%i.json' % (self.job, self.launch_id, logs_count), overwrite=True)
+        hdfs_targets = yield SyncToHdfs(feed.path, '/tmp/cache/crawl-feed-%s-%s-%i.json' % (self.job, self.launch_id, logs_count), overwrite=True)
 
         # Yield tasks, one for each log file:
         for log_file in self.input():
