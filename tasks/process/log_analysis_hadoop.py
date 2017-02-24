@@ -23,8 +23,10 @@ class CrawlLogLine(object):
         (self.timestamp, self.status_code, self.content_length, self.url, self.hop_path, self.via,
             self.mime, self.thread, self.start_time_plus_duration, self.hash, self.source,
             self.annotation_string) = re.split(" +", line.strip(), maxsplit=11)
-        # Account for any JSON 'extra info' ending:
-        if ' {"' in self.annotation_string and self.annotation_string.endswith('}'):
+        # Account for any JSON 'extra info' ending, strip or split:
+        if self.annotation_string.endswith(' {}'):
+            self.annotation_string = self.annotation_string[-3:]
+        elif ' {"' in self.annotation_string and self.annotation_string.endswith('}'):
             self.annotation_string, self.extra_json = re.split(re.escape(' {"'), self.annotation_string, maxsplit=1)
             self.extra_json = '{"%s' % self.extra_json
         # And split out the annotations:
