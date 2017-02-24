@@ -42,9 +42,10 @@ class CrawlLogLine(object):
         :return:
         """
         stats = {
+            'lines' : '', # This will count the lines under each split
             'status_code': self.status_code,
             'content_type': self.mime,
-            'last_hop': self.hop_path[-1:],
+            'hop': self.hop_path[-1:],
             'source': self.source
         }
         # Add in annotations:
@@ -234,6 +235,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
     job = luigi.Parameter()
     launch_id = luigi.Parameter()
     log_path = luigi.Parameter()
+    targets_path = luigi.Parameter()
     from_hdfs = luigi.BoolParameter(default=False)
 
     extractor = None
@@ -259,7 +261,10 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
 
     def init_mapper(self):
         # Set up...
-        targets = luigi.LocalTarget(path="/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl-feed.2017-01-02T2100.frequent")
+        if self.from_hdfs:
+            targets = luigi.contrib.hdfs.HdfsTarget(path=self.targets_path, format=Plain)
+        else:
+            targets = luigi.LocalTarget(path=self.targets_path)
         self.extractor = CrawlLogExtractors(self.job, self.launch_id, targets)
 
     def mapper(self, line):
@@ -273,7 +278,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
         # Scan for documents:
         doc = self.extractor.extract_documents(log)
         if doc:
-            yield "DOCUMENT ", doc
+            yield "DOCUMENT", doc
 
     def reducer(self, key, values):
         """
@@ -283,7 +288,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
         :param values:
         :return:
         """
-        if key.startswith("DOCUMENT "):
+        if key.startswith("DOCUMENT"):
             for value in values:
                 yield key, value
         else:
@@ -304,6 +309,9 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
 
 
 if __name__ == '__main__':
-    luigi.run(['analyse.AnalyseLogFile', '--job', 'weekly', '--launch-id', '20170220090024', '--log-path', '/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20130605082749', '--local-scheduler'])
+    luigi.run(['analyse.AnalyseLogFile', '--job', 'weekly', '--launch-id', '20170220090024',
+               '--log-path', '/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20130605082749',
+               '--targets-path', '/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl-feed.2017-01-02T2100.frequent',
+               '--local-scheduler'])
     #luigi.run(['analyse.AnalyseLogFiles', '--date-interval', '2017-02-10-2017-02-12', '--local-scheduler'])
     #luigi.run(['analyse.AnalyseLogFile', '--job', 'weekly', '--launch-id', '20170220090024', '--local-scheduler'])
