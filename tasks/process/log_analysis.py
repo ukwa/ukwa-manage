@@ -147,16 +147,20 @@ class GenerateCrawlLogReports(luigi.Task):
     def run(self):
         # Set up necessary data:
         feed = yield CrawlFeed(self.job)
-        hdfs_targets = yield SyncToHdfs(feed.path, '%s-crawl-feed.json' % self.job, overwrite=True)
+        logs_count = len(self.input())
 
-        # Build up a list of tasks, one for each log file:
-        tasks = []
+        # Cache targets in an appropriately unique filename (as unique as this task):
+        hdfs_targets = yield SyncToHdfs(feed.path, '/tmp/crawl-feed-%s-%s-%i.json' % (self.job, self.launch_id, logs_count), overwrite=True)
+
+        # Yield tasks, one for each log file:
         for log_file in self.input():
             if self.extract_documents:
-                tasks.append(AnalyseAndProcessDocuments(self.job, self.launch_id, log_file.path, hdfs_targets.path, True))
+                yield AnalyseAndProcessDocuments(self.job, self.launch_id, log_file.path, hdfs_targets.path, True)
             else:
-                tasks.append(AnalyseLogFile(self.job, self.launch_id, log_file.path, hdfs_targets.path, True))
-        yield tasks
+                yield AnalyseLogFile(self.job, self.launch_id, log_file.path, hdfs_targets.path, True)
+
+        # And clean out the file from temp:
+        hdfs_targets.remove()
 
 
 class ScanForLogs(ScanForOutputs):
