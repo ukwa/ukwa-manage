@@ -87,7 +87,8 @@ class SyncToHdfs(luigi.Task):
 
     def run(self):
         client = luigi.contrib.hdfs.get_autoconfig_client(threading.local())
-        client.upload(hdfs_path=self.output().path, local_path=self.source_path, overwrite=self.overwrite)
+        with open(str(self.source_path)) as f:
+            client.client.write(hdfs_path=self.target_path, data=f.read(), overwrite=self.overwrite)
 
 
 class AnalyseAndProcessDocuments(luigi.Task):

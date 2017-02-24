@@ -19,6 +19,12 @@ ACT_URL = os.environ['ACT_URL']
 ACT_USER = os.environ['ACT_USER']
 ACT_PASSWORD = os.environ['ACT_PASSWORD']
 
+
+def webhdfs():
+    import hdfs
+    return hdfs.InsecureClient(url=os.environ['WEBHDFS_PREFIX'], user=os.environ['WEBHDFS_USER'])
+
+
 class state(luigi.Config):
     state_folder = os.environ.get('LUIGI_STATE_FOLDER', luigi.Parameter(default='/state'))
 
