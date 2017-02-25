@@ -162,6 +162,7 @@ class GenerateCrawlLogReports(luigi.Task):
                 yield AnalyseLogFile(self.job, self.launch_id, log_file.path, hdfs_targets.path, True)
 
         # And clean out the file from temp:
+        logger.warning("Removing temporary targets cache: %s" % hdfs_targets.path)
         hdfs_targets.remove()
 
 
