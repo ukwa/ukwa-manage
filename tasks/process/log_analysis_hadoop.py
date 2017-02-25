@@ -89,6 +89,8 @@ class CrawlLogExtractors(object):
         self.job = job
         self.launch_id = launch
         # Find the unique watched seeds list:
+        logger.info("Loading: %s" % targets)
+        logger.info("Loading path: %s" % targets.path)
         targets = json.load(targets.open())
         watched = set()
         for t in targets:
