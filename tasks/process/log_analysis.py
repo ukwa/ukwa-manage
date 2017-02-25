@@ -162,12 +162,9 @@ class GenerateCrawlLogReports(luigi.Task):
         # Yield tasks, one for each log file:
         for log_file in self.input():
             if self.extract_documents:
-                task = AnalyseAndProcessDocuments(self.job, self.launch_id, log_file.path, hdfs_targets.path, True)
+                yield AnalyseAndProcessDocuments(self.job, self.launch_id, log_file.path, hdfs_targets.path, True)
             else:
-                task = AnalyseLogFile(self.job, self.launch_id, log_file.path, hdfs_targets.path, True)
-            # FIXME Manually checking here if tasks are already done is nasty and indicates I'm going against Luigi's grain.
-            if not task.complete():
-                yield task
+                yield AnalyseLogFile(self.job, self.launch_id, log_file.path, hdfs_targets.path, True)
 
         # And clean out the file from temp:
         logger.warning("Removing temporary targets cache: %s" % hdfs_targets.path)

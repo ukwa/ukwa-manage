@@ -247,9 +247,6 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
 
     n_reduce_tasks = 1 # This is set to 1 as there is intended to be one output file.
 
-    def complete(self):
-        return False
-
     def requires(self):
         logger.info("LOG FILE TO PROCESS: %s" % self.log_path)
         return InputFile(self.log_path, self.from_hdfs)
