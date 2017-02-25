@@ -48,6 +48,7 @@ class CrawlLogLine(object):
             'status_code': self.status_code,
             'content_type': self.mime,
             'hop': self.hop_path[-1:],
+            'host': self.host(),
             'source': self.source
         }
         # Add in annotations:
