@@ -89,8 +89,13 @@ class SyncToHdfs(luigi.Task):
 
     def run(self):
         client = luigi.contrib.hdfs.WebHdfsClient()
+        temp_path = "%s.temp" % self.target_path
+        logger.info("Uploading to %s" % temp_path)
         with open(str(self.source_path)) as f:
-            client.client.write(hdfs_path=self.target_path, data=f.read(), overwrite=self.overwrite)
+            client.client.write(hdfs_path=temp_path, data=f.read(), overwrite=self.overwrite)
+        # And rename
+        logger.info("Renaming to %s" % self.target_path)
+        client.rename(temp_path, self.target_path)
 
 
 class AnalyseAndProcessDocuments(luigi.Task):
