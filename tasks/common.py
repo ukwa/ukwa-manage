@@ -1,7 +1,6 @@
 import os
 import glob
-import enum
-import json
+import hdfs
 import luigi
 import luigi.contrib.esindex
 import string
@@ -21,8 +20,8 @@ ACT_PASSWORD = os.environ['ACT_PASSWORD']
 
 
 def webhdfs():
-    import hdfs
-    return hdfs.InsecureClient(url=os.environ['WEBHDFS_PREFIX'], user=os.environ['WEBHDFS_USER'])
+    client = hdfs.InsecureClient(url=os.environ['WEBHDFS_PREFIX'], user=os.environ['WEBHDFS_USER'])
+    return client
 
 
 class state(luigi.Config):

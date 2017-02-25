@@ -12,6 +12,8 @@ from tasks.process.log_analysis_hadoop import AnalyseLogFile
 from tasks.process.extract.documents import ExtractDocumentAndPost
 from luigi.contrib.hdfs.format import Plain, PlainDir
 
+from tasks.common import webhdfs
+
 logger = logging.getLogger('luigi-interface')
 
 HDFS_PREFIX = os.environ.get("HDFS_PREFIX", "")
@@ -38,7 +40,7 @@ class LogFilesForJobLaunch(luigi.ExternalTask):
     def output(self):
         outputs = []
         # Get HDFS client:
-        client = luigi.contrib.hdfs.get_autoconfig_client()
+        client = luigi.contrib.hdfs.WebHdfsClient()
         parent_path = "/heritrix/output/logs/%s/%s" % (self.job, self.launch_id)
         for listed_item in client.listdir(parent_path):
             # Oddly, depending on the implementation, the listed_path may be absolute or basename-only, so fix here:
@@ -72,7 +74,7 @@ class SyncToHdfs(luigi.Task):
             local_hash = hashlib.sha512(reader.read()).hexdigest()
             logger.info("LOCAL HASH: %s" % local_hash)
         # Read from HDFS
-        client = luigi.contrib.hdfs.get_autoconfig_client(threading.local())
+        client = luigi.contrib.hdfs.WebHdfsClient()
         if not client.exists(self.target_path):
             return False
         with client.client.read(self.target_path) as reader:
@@ -86,7 +88,7 @@ class SyncToHdfs(luigi.Task):
         return luigi.contrib.hdfs.HdfsTarget(path=self.target_path, format=Plain)
 
     def run(self):
-        client = luigi.contrib.hdfs.get_autoconfig_client(threading.local())
+        client = luigi.contrib.hdfs.WebHdfsClient()
         with open(str(self.source_path)) as f:
             client.client.write(hdfs_path=self.target_path, data=f.read(), overwrite=self.overwrite)
 

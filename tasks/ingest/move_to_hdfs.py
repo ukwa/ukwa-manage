@@ -62,7 +62,7 @@ class UploadRemoteFileToHDFS(luigi.Task):
         :return: None
         """
         # Set up the HDFS client:
-        client = luigi.contrib.hdfs.get_autoconfig_client(threading.local())
+        client = luigi.contrib.hdfs.WebHdfsClient()
 
         # Create the temporary file name:
         tmp_path = "%s.temp" % hdfs_path
@@ -114,7 +114,7 @@ class CalculateHdfsHash(luigi.Task):
 
         # get hash for local or hdfs file
         t = self.input()
-        client = luigi.contrib.hdfs.get_autoconfig_client(threading.local())
+        client = luigi.contrib.hdfs.WebHdfsClient()
         # Having to side-step the first client as it seems to be buggy/use an old API - note also confused put()
         with client.client.read(str(t.path)) as reader:
             file_hash = hashlib.sha512(reader.read()).hexdigest()

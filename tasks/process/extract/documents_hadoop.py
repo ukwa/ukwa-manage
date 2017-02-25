@@ -28,7 +28,7 @@ class LogFilesForJobLaunch(luigi.ExternalTask):
     def output(self):
         outputs = []
         # Get HDFS client:
-        client = luigi.contrib.hdfs.get_autoconfig_client()
+        client = luigi.contrib.hdfs.WebHdfsClient()
         parent_path = "/heritrix/output/logs/%s/%s" % (self.job, self.launch_id)
         for listed_item in client.listdir(parent_path):
             # Oddly, depending on the implementation, the listed_path may be absolute or basename-only, so fix here:

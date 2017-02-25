@@ -33,7 +33,7 @@ class ScanForOutputs(luigi.WrapperTask):
 
     def enumerate_launches(self):
         # Get HDFS client:
-        client = luigi.contrib.hdfs.get_autoconfig_client()
+        client = luigi.contrib.hdfs.WebHdfsClient()
         # Look for jobs that need to be processed:
         for date in self.date_interval:
             for job_item in client.listdir("%s/heritrix/output/warcs" % HDFS_PREFIX):
@@ -56,7 +56,7 @@ class GenerateWarcList(luigi.Task):
 
     def run(self):
         # Get HDFS client:
-        client = luigi.contrib.hdfs.get_autoconfig_client()
+        client = luigi.contrib.hdfs.WebHdfsClient()
         data = ""
         for warc in client.listdir("%s/warcs/%s/%s" % (HDFS_PREFIX, self.job, self.launch)):
             logger.info("Listing %s" % warc)
