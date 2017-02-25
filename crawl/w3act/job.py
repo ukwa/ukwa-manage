@@ -289,9 +289,12 @@ class W3actJob(object):
         if status != "":
             logger.info("Killing alread-running job: %s (STATUS: %s)" % (self.name, status))
             if status is "RUNNING":
+                logger.info("Requesting pause...")
                 self.heritrix.pause_job(self.name)
                 self.waitfor("PAUSED")
+            logger.info("Requesting checkpoint...")
             self.heritrix.checkpoint_job(self.name)
+            logger.info("Requesting termination...")
             self.heritrix.terminate_job(self.name)
             self.waitfor("FINISHED")
             self.heritrix.teardown_job(self.name)
