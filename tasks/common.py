@@ -141,7 +141,7 @@ class ScanForLaunches(luigi.WrapperTask):
     """
     task_namespace = 'scan'
     date_interval = luigi.DateIntervalParameter(
-        default=[datetime.date.today() - datetime.timedelta(days=1), datetime.date.today()])
+        default=[datetime.date.today() - datetime.timedelta(weeks=52), datetime.date.today()])
     timestamp = luigi.DateMinuteParameter(default=datetime.datetime.today())
 
     def requires(self):
