@@ -159,12 +159,16 @@ class GenerateCrawlLogReports(luigi.Task):
         # Cache targets in an appropriately unique filename (as unique as this task):
         hdfs_targets = yield SyncToHdfs(feed.path, '/tmp/cache/crawl-feed-%s-%s-%i.json' % (self.job, self.launch_id, logs_count), overwrite=True)
 
-        # Yield tasks, one for each log file:
+        # Turn the logs into a list:
+        log_paths = []
         for log_file in self.input():
-            if self.extract_documents:
-                yield AnalyseAndProcessDocuments(self.job, self.launch_id, log_file.path, hdfs_targets.path, True)
-            else:
-                yield AnalyseLogFile(self.job, self.launch_id, log_file.path, hdfs_targets.path, True)
+            log_paths.append(log_file.path)
+
+        # Yield a task for processing all the current logs:
+        if self.extract_documents:
+            yield AnalyseAndProcessDocuments(self.job, self.launch_id, log_paths, hdfs_targets.path, True)
+        else:
+            yield AnalyseLogFile(self.job, self.launch_id, log_paths, hdfs_targets.path, True)
 
         # And clean out the file from temp:
         logger.warning("Removing temporary targets cache: %s" % hdfs_targets.path)

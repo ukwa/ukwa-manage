@@ -94,10 +94,12 @@ class CrawlLogExtractors(object):
         logger.info("Loading path: %s" % targets.path)
         targets = json.load(targets.open())
         watched = set()
+        target_map = {}
         for t in targets:
             if t['watched']:
                 for seed in t['seeds']:
                     watched.add(seed)
+                    target_map[seed] = t['id']
 
         # Convert to SURT form:
         watched_surts = []
@@ -106,6 +108,7 @@ class CrawlLogExtractors(object):
         logger.info("WATCHED SURTS %s" % watched_surts)
 
         self.watched_surts = watched_surts
+        self.target_map = target_map
 
     def analyse_log_file(self, log_file):
         """
@@ -117,6 +120,9 @@ class CrawlLogExtractors(object):
             for line in f:
                 log = CrawlLogLine(line)
                 yield self.extract_documents(log)
+
+    def target_id(self, log):
+        return self.target_map.get(log.source, None)
 
     def extract_documents(self, log):
         """
@@ -239,7 +245,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
     task_namespace = 'analyse'
     job = luigi.Parameter()
     launch_id = luigi.Parameter()
-    log_path = luigi.Parameter()
+    log_paths = luigi.ListParameter()
     targets_path = luigi.Parameter()
     from_hdfs = luigi.BoolParameter(default=False)
 
@@ -248,11 +254,14 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
     n_reduce_tasks = 1 # This is set to 1 as there is intended to be one output file.
 
     def requires(self):
-        logger.info("LOG FILE TO PROCESS: %s" % self.log_path)
-        return InputFile(self.log_path, self.from_hdfs)
+        reqs = []
+        for log_path in self.log_paths:
+            logger.info("LOG FILE TO PROCESS: %s" % log_path)
+            reqs.append(InputFile(log_path, self.from_hdfs))
+        return reqs
 
     def output(self):
-        out_name = "task-state/%s/%s/%s.analysis.tsjson" % (self.job, self.launch_id, os.path.basename(self.log_path))
+        out_name = "task-state/%s/%s/crawl-logs-%i.analysis.tsjson" % (self.job, self.launch_id, len(self.log_paths))
         if self.from_hdfs:
             return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=PlainDir)
         else:
@@ -277,6 +286,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
         yield "BY-HOUR %s" % log.hour(), json.dumps(log.stats())
         yield "BY-HOST %s" % log.host(), json.dumps(log.stats())
         yield "BY-SOURCE %s" % log.source, json.dumps(log.stats())
+        yield "BY-TARGET %s" % self.extractor.target_id(log), json.dumps(log.stats())
         # Scan for documents:
         doc = self.extractor.extract_documents(log)
         if doc:
@@ -312,7 +322,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
 
 if __name__ == '__main__':
     luigi.run(['analyse.AnalyseLogFile', '--job', 'weekly', '--launch-id', '20170220090024',
-               '--log-path', '/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20170211224931',
+               '--log-paths', '[ "/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20170211224931" ]',
                '--targets-path', '/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl-feed.2017-01-02T2100.frequent',
                '--local-scheduler'])
     #luigi.run(['analyse.AnalyseLogFiles', '--date-interval', '2017-02-10-2017-02-12', '--local-scheduler'])
