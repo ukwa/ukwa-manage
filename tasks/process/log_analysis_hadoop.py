@@ -93,13 +93,15 @@ class CrawlLogExtractors(object):
         logger.info("Loading: %s" % targets)
         logger.info("Loading path: %s" % targets.path)
         targets = json.load(targets.open())
-        watched = set()
         target_map = {}
+        watched = set()
         for t in targets:
-            if t['watched']:
-                for seed in t['seeds']:
+            # Build-up reverse mapping
+            for seed in t['seeds']:
+                target_map[seed] = t['id']
+                # And not any watched seeds:
+                if t['watched']:
                     watched.add(seed)
-                    target_map[seed] = t['id']
 
         # Convert to SURT form:
         watched_surts = []
@@ -322,7 +324,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
 
 if __name__ == '__main__':
     luigi.run(['analyse.AnalyseLogFile', '--job', 'weekly', '--launch-id', '20170220090024',
-               '--log-paths', '[ "/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20170211224931" ]',
+               '--log-paths', '[ "/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20170211224931", "/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20130605082749" ]',
                '--targets-path', '/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl-feed.2017-01-02T2100.frequent',
                '--local-scheduler'])
     #luigi.run(['analyse.AnalyseLogFiles', '--date-interval', '2017-02-10-2017-02-12', '--local-scheduler'])
