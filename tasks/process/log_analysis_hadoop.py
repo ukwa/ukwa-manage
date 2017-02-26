@@ -253,7 +253,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
 
     extractor = None
 
-    n_reduce_tasks = 1 # This is set to 1 as there is intended to be one output file.
+    #n_reduce_tasks = 1 # This can be set to 1 if there is intended to be one output file. Default is 25.
 
     def requires(self):
         reqs = []
