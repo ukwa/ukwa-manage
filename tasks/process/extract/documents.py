@@ -220,11 +220,19 @@ class ExtractDocuments(luigi.Task):
         for log_file in log_files:
             docfile = yield ScanLogFileForDocs(self.job, self.launch_id, watched, log_file.path)
             # Loop over documents discovered, and attempt to post to W3ACT:
+            batch = []
             with docfile.open() as in_file:
                 for line in in_file:
                     url, docjson = line.strip().split("\t", 1)
                     doc = json.loads(docjson)
-                    yield ExtractDocumentAndPost(self.job, self.launch_id, doc, doc["source"])
+                    batch.append(ExtractDocumentAndPost(self.job, self.launch_id, doc, doc["source"]))
+                    # When we have a small batch, yield them for parallel processing:
+                    if len(batch) == 5:
+                        yield batch
+                        batch = []
+
+            # Catch any remaining items
+            yield batch
 
     def get_watched_surts(self, feed):
         # First find the unique watched seeds list:
