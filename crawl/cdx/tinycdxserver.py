@@ -1,11 +1,16 @@
 
-import json
+import os
+import logging
 import requests
+from requests.utils import quote
+import xml.dom.minidom
+from pywb.warc.recordloader import ArcWarcRecordLoader
+from pywb.utils.bufferedreaders import DecompressingBufferedReader
 
-from crawl.celery import HERITRIX_HDFS_ROOT
+logger = logging.getLogger(__name__)
 
-from celery.utils.log import get_task_logger
-logger = get_task_logger(__name__)
+HDFS_ROOT = os.environ.get('HDFS_ROOT','')
+CDX_SERVER = os.environ['CDX_SERVER']
 
 # Should we skip duplicate records?
 # It seems OWB cope with them.
@@ -29,7 +34,10 @@ session = requests.Session()
 
 def  send_uri_to_tinycdxserver(cdxserver_url, cl):
     """Passed a crawl log entry, it turns it into a CDX line and posts it to the index."""
-    logger.debug("Message received: %s." % cl)
+    if not cdxserver_url:
+        cdxserver_url = CDX_SERVER
+    # Compose suitable record:
+    logger.debug("To post: %s." % cl)
     url = cl["url"]
     # Skip non http(s) records (?)
     if (not url[:4] == "http"):
@@ -57,7 +65,7 @@ def  send_uri_to_tinycdxserver(cdxserver_url, cl):
         logger.critical("Dropping message because WARC filename is unset! Message: %s" % cl)
         return
     # Make up the full path:
-    warc_path = "%s/output/warcs/%s/%s/%s" % (HERITRIX_HDFS_ROOT, cl['job_name'], cl['launch_id'], cl['warc_filename'])
+    warc_path = "%s/output/warcs/%s/%s/%s" % (HDFS_ROOT, cl['job_name'], cl['launch_id'], cl['warc_filename'])
     # Build CDX line:
     cdx_11 = "- %s %s %s %s %s %s - - %s %s\n" % (
         cl["start_time_plus_duration"][:14],
@@ -80,3 +88,76 @@ def  send_uri_to_tinycdxserver(cdxserver_url, cl):
         logger.error("Failed submission was: %s" % cdx_11.encode('utf-8'))
         logger.error("Failed source message was: %s" % cl)
         raise Exception("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
+
+
+
+def get_rendered_original(url, type='screenshot'):
+    """
+    Grabs a rendered resource.
+
+    Only reason Wayback can't do this is that it does not like the extended URIs
+    i.e. 'screenshot:http://' and replaces them with 'http://screenshot:http://'
+    """
+    # Query URL
+    qurl = "%s:%s" % (type, url)
+    # Query CDX Server for the item
+    #logger.info("Querying CDX for prefix...")
+    warc_filename, warc_offset, compressedendoffset = lookup_in_cdx(qurl)
+
+    # If not found, say so:
+    if warc_filename is None:
+        return None
+
+    # Grab the payload from the WARC and return it.
+    WEBHDFS_PREFIX = os.environ['WEBHDFS_PREFIX']
+    WEBHDFS_USER = os.environ['WEBHDFS_USER']
+    url = "%s%s?op=OPEN&user.name=%s&offset=%s" % (WEBHDFS_PREFIX, warc_filename, WEBHDFS_USER, warc_offset)
+    if compressedendoffset:
+        url = "%s&length=%s" % (url, compressedendoffset)
+    #logger.info("Requesting copy from HDFS: %s " % url)
+    r = requests.get(url, stream=True)
+    #logger.info("Loading from: %s" % r.url)
+    r.raw.decode_content = False
+    rl = ArcWarcRecordLoader()
+    #logger.info("Passing response to parser...")
+    record = rl.parse_record_stream(DecompressingBufferedReader(stream=r.raw))
+    #logger.info("RESULT:")
+    #logger.info(record)
+
+    #logger.info("Returning stream...")
+    return (record.stream, record.content_type)
+
+    #return "Test %s@%s" % (warc_filename, warc_offset)
+
+
+def lookup_in_cdx(qurl):
+    """
+    Checks if a resource is in the CDX index.
+    :return:
+    """
+    query = "%s?q=type:urlquery+url:%s" % (CDX_SERVER, quote(qurl))
+    r = requests.get(query)
+    print(r.url)
+    logger.debug("Availability response: %d" % r.status_code)
+    print(r.status_code, r.text)
+    # Is it known, with a matching timestamp?
+    if r.status_code == 200:
+        try:
+            dom = xml.dom.minidom.parseString(r.text)
+            for result in dom.getElementsByTagName('result'):
+                file = result.getElementsByTagName('file')[0].firstChild.nodeValue
+                compressedoffset = result.getElementsByTagName('compressedoffset')[0].firstChild.nodeValue
+                # Support compressed record length if present:
+                if( len(result.getElementsByTagName('compressedendoffset')) > 0):
+                    compressedendoffset = result.getElementsByTagName('compressedendoffset')[0].firstChild.nodeValue
+                else:
+                    compressedendoffset = None
+                return file, compressedoffset, compressedendoffset
+        except Exception as e:
+            logger.error("Lookup failed for %s!" % qurl)
+            logger.exception(e)
+        #for de in dom.getElementsByTagName('capturedate'):
+        #    if de.firstChild.nodeValue == self.ts:
+        #        # Excellent, it's been found:
+        #        return
+    return None, None, None

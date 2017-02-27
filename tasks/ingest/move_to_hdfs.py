@@ -8,7 +8,7 @@ import datetime
 import threading
 import luigi.contrib.hdfs
 import luigi.contrib.ssh
-from tasks.common import check_hash
+from tasks.common import check_hash, get_large_interval
 
 logger = logging.getLogger('luigi-interface')
 
@@ -225,8 +225,7 @@ class ScanForFilesToMove(luigi.WrapperTask):
     host = luigi.Parameter()
     remote_prefix = luigi.Parameter(default="/zfspool")
     delete_local = luigi.BoolParameter(default=False)
-    date_interval = luigi.DateIntervalParameter(
-        default=[datetime.date.today() - datetime.timedelta(days=1), datetime.date.today()])
+    date_interval = luigi.DateIntervalParameter(default=get_large_interval())
 
     def requires(self):
         """

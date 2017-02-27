@@ -14,6 +14,13 @@ logger = logging.getLogger('luigi-interface')
 HDFS_PREFIX = ""
 HDFS_TASK_PREFIX = "/tasks"
 
+
+def get_modest_interval():
+    return luigi.date_interval.Custom(
+        datetime.date.today() - datetime.timedelta(days=7),
+        datetime.date.today() + datetime.timedelta(days=1))
+
+
 class ScanForOutputs(luigi.WrapperTask):
     """
     This task scans the output folder for jobs and instances of those jobs, looking for crawled content to process.
@@ -21,8 +28,7 @@ class ScanForOutputs(luigi.WrapperTask):
     Sub-class this and override the scan_job_launch method as needed.
     """
     task_namespace = 'scan'
-    date_interval = luigi.DateIntervalParameter(
-        default=luigi.date_interval.Custom(datetime.date.today() - datetime.timedelta(days=5), datetime.date.today() + datetime.timedelta(days=1)))
+    date_interval = luigi.DateIntervalParameter(default=get_modest_interval())
     timestamp = luigi.DateMinuteParameter(default=datetime.datetime.today())
 
     def requires(self):

@@ -2,6 +2,7 @@ import os
 import glob
 import hdfs
 import luigi
+import luigi.date_interval
 import luigi.contrib.esindex
 import string
 import logging
@@ -145,6 +146,18 @@ def jtarget(job, launch_id, status):
     return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('01.jobs', job, launch_id, status)))
 
 
+def get_large_interval():
+    """
+    This sets up a default, large window for operations.
+
+    :return:
+    """
+    interval = luigi.date_interval.Custom(
+        datetime.date.today() - datetime.timedelta(weeks=52),
+        datetime.date.today())
+    return interval
+
+
 class ScanForLaunches(luigi.WrapperTask):
     """
     This task scans the output folder for jobs and instances of those jobs, looking for crawled content to process.
@@ -152,8 +165,7 @@ class ScanForLaunches(luigi.WrapperTask):
     Sub-class this and override the scan_job_launch method as needed.
     """
     task_namespace = 'scan'
-    date_interval = luigi.DateIntervalParameter(
-        default=[datetime.date.today() - datetime.timedelta(days=1), datetime.date.today()])
+    date_interval = luigi.DateIntervalParameter(default=get_large_interval())
     timestamp = luigi.DateMinuteParameter(default=datetime.datetime.today())
 
     def requires(self):
