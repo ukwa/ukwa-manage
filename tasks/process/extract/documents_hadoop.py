@@ -42,7 +42,7 @@ class LogFilesForJobLaunch(luigi.ExternalTask):
                 logger.debug("Including %s" % item)
             else:
                 pass
-                logger.debug("Skipping %s" % item)
+                #logger.debug("Skipping %s" % item)
         # Return the logs to be processed:
         return outputs
 
