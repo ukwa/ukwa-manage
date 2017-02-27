@@ -376,7 +376,7 @@ class ScanForFilesToMove(ScanForLaunches):
 
 
 if __name__ == '__main__':
-    luigi.run(['scan.ScanForFilesToMove', '--date-interval', '2016-11-01-2016-11-10'])
+    luigi.run(['scan.ScanForFilesToMove', '--local-scheduler'])#, '--date-interval', '2016-11-01-2016-11-10'])
     #luigi.run(['file.ForceUploadFileToHDFS', '--path', '/Users/andy/Documents/workspace/pulse/testing/output/logs/daily/20161029192642/progress-statistics.log'])
 #    luigi.run(['file.ScanForFiles', '--date-interval', '2016-10-26-2016-10-30'])  # , '--local-scheduler'])
 #    luigi.run(['file.MoveToHdfs', '--path', '/Users/andy/Documents/workspace/pulse/python-shepherd/MANIFEST.in'])  # , '--local-scheduler'])

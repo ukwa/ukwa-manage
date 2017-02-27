@@ -3,6 +3,7 @@ import glob
 import enum
 import json
 import luigi
+import luigi.date_interval
 import luigi.contrib.esindex
 import logging
 import datetime
@@ -133,6 +134,18 @@ def jtarget(job, launch_id, status):
     return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('01.jobs', job, launch_id, status)))
 
 
+def get_large_interval():
+    """
+    This sets up a default, large window for operations.
+
+    :return:
+    """
+    interval = luigi.date_interval.Custom(
+        datetime.date.today() - datetime.timedelta(weeks=52),
+        datetime.date.today())
+    return interval
+
+
 class ScanForLaunches(luigi.WrapperTask):
     """
     This task scans the output folder for jobs and instances of those jobs, looking for crawled content to process.
@@ -140,8 +153,7 @@ class ScanForLaunches(luigi.WrapperTask):
     Sub-class this and override the scan_job_launch method as needed.
     """
     task_namespace = 'scan'
-    date_interval = luigi.DateIntervalParameter(
-        default=[datetime.date.today() - datetime.timedelta(weeks=52), datetime.date.today()])
+    date_interval = luigi.DateIntervalParameter(default=get_large_interval())
     timestamp = luigi.DateMinuteParameter(default=datetime.datetime.today())
 
     def requires(self):
@@ -153,6 +165,7 @@ class ScanForLaunches(luigi.WrapperTask):
     def enumerate_launches(self):
         # Look for jobs that need to be processed:
         for date in self.date_interval:
+            logger.info("Looking at date %s" % date)
             for job_item in glob.glob("%s/*" % h3().local_job_folder):
                 job = Jobs[os.path.basename(job_item)]
                 if os.path.isdir(job_item):
