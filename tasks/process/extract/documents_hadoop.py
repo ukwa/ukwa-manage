@@ -39,10 +39,10 @@ class LogFilesForJobLaunch(luigi.ExternalTask):
                 pass
             elif item.startswith("crawl.log"):
                 outputs.append(luigi.contrib.hdfs.HdfsTarget(path=item_path, format=Plain))
-                #logger.debug("Including %s" % item)
+                logger.debug("Including %s" % item)
             else:
                 pass
-                #logger.debug("Skipping %s" % item)
+                logger.debug("Skipping %s" % item)
         # Return the logs to be processed:
         return outputs
 
