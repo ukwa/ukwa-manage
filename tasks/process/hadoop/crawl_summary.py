@@ -17,7 +17,7 @@ HDFS_TASK_PREFIX = "/tasks"
 
 def get_modest_interval():
     return luigi.date_interval.Custom(
-        datetime.date.today() - datetime.timedelta(days=7),
+        datetime.date.today() - datetime.timedelta(days=14),
         datetime.date.today() + datetime.timedelta(days=1))
 
 
@@ -42,6 +42,7 @@ class ScanForOutputs(luigi.WrapperTask):
         client = luigi.contrib.hdfs.WebHdfsClient()
         # Look for jobs that need to be processed:
         for date in self.date_interval:
+            logger.info("Scanning date %s..." % date)
             for job_item in client.listdir("%s/heritrix/output/warcs" % HDFS_PREFIX):
                 job = os.path.basename(job_item)
                 launch_glob = date.strftime('%Y%m%d')
