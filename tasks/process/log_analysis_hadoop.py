@@ -48,6 +48,7 @@ class CrawlLogLine(object):
             'status_code': self.status_code,
             'content_type': self.mime,
             'hop': self.hop_path[-1:],
+            'sum:content_length': self.content_length,
             'host': self.host(),
             'source': self.source
         }
@@ -302,23 +303,29 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
         :param values:
         :return:
         """
+        # Just pass documents through:
         if key.startswith("DOCUMENT"):
             for value in values:
                 yield key, value
         else:
+            # Build up summaries of other statistics:
             summaries = {}
             for value in values:
                 properties = json.loads(value)
                 for pkey in properties:
-                    # Build a composite key:
+                    # For 'sum:XXX' properties, sum the values:
+                    if pkey.startswith('sum:') and properties[pkey] != '-':
+                        summaries[pkey] = summaries.get(pkey, 0) + int(properties[pkey])
+                        continue
+                    # Otherwise, efault behaviour is to count occurrences of key-value pairs.
                     if properties[pkey]:
+                        # Build a composite key for keys that have non-empty values:
                         prop = "%s:%s" % (pkey, properties[pkey])
                     else:
                         prop = pkey
                     # Aggregate:
-                    if not summaries.has_key(prop):
-                        summaries[prop] = 0
-                    summaries[prop] += 1
+                    summaries[prop] = summaries.get(prop, 0) + 1
+
             yield key, json.dumps(summaries)
 
 

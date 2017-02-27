@@ -91,7 +91,7 @@ def  send_uri_to_tinycdxserver(cdxserver_url, cl):
 
 
 
-def get_rendered_original(url, type='screenshot'):
+def get_rendered_original(url, type='screenshot', target_timestamp=30001201235900):
     """
     Grabs a rendered resource.
 
@@ -102,7 +102,7 @@ def get_rendered_original(url, type='screenshot'):
     qurl = "%s:%s" % (type, url)
     # Query CDX Server for the item
     #logger.info("Querying CDX for prefix...")
-    warc_filename, warc_offset, compressedendoffset = lookup_in_cdx(qurl)
+    warc_filename, warc_offset, compressedendoffset = lookup_in_cdx(qurl, target_timestamp)
 
     # If not found, say so:
     if warc_filename is None:
@@ -130,9 +130,9 @@ def get_rendered_original(url, type='screenshot'):
     #return "Test %s@%s" % (warc_filename, warc_offset)
 
 
-def lookup_in_cdx(qurl):
+def lookup_in_cdx(qurl, target_timestamp=30001201235900):
     """
-    Checks if a resource is in the CDX index.
+    Checks if a resource is in the CDX index. Defaults to trying to get the most recent entry.
     :return:
     """
     query = "%s?q=type:urlquery+url:%s" % (CDX_SERVER, quote(qurl))
@@ -144,15 +144,22 @@ def lookup_in_cdx(qurl):
     if r.status_code == 200:
         try:
             dom = xml.dom.minidom.parseString(r.text)
+            warcfile = None
+            compressedoffset = None
+            compressedendoffset = None
             for result in dom.getElementsByTagName('result'):
-                file = result.getElementsByTagName('file')[0].firstChild.nodeValue
+                warcfile = result.getElementsByTagName('file')[0].firstChild.nodeValue
                 compressedoffset = result.getElementsByTagName('compressedoffset')[0].firstChild.nodeValue
                 # Support compressed record length if present:
                 if( len(result.getElementsByTagName('compressedendoffset')) > 0):
                     compressedendoffset = result.getElementsByTagName('compressedendoffset')[0].firstChild.nodeValue
-                else:
-                    compressedendoffset = None
-                return file, compressedoffset, compressedendoffset
+                # Timestamp check:
+                timestamp = int(result.getElementsByTagName('capturedate')[0].firstChild.nodeValue)
+                if timestamp >= target_timestamp:
+                    break
+            # return what we found:
+            return warcfile, compressedoffset, compressedendoffset
+
         except Exception as e:
             logger.error("Lookup failed for %s!" % qurl)
             logger.exception(e)
