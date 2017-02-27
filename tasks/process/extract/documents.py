@@ -83,6 +83,7 @@ class AvailableInWayback(luigi.ExternalTask):
         try:
             # Check if the item+timestamp is known:
             known = self.check_if_known()
+            logger.info("")
             if self.check_available:
                 if known:
                     # Check if the actual resource is available:
@@ -114,8 +115,9 @@ class AvailableInWayback(luigi.ExternalTask):
                 if de.firstChild.nodeValue == self.ts:
                     # Excellent, it's been found:
                     return True
-        else:
-            return False
+
+        # Otherwise, not found:
+        return False
 
     def check_if_available(self):
         """
