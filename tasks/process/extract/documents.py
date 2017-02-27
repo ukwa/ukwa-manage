@@ -210,9 +210,9 @@ class ProcessDocumentsFromLog(luigi.Task):
         return ScanLogFileForDocs(self.job, self.launch_id, self.watched, self.log_file_path)
 
     def output(self):
-        logs_count = len(self.input())
         return luigi.LocalTarget(
-            '{}/documents/extracted-hadoop-{}-{}-{}'.format(LUIGI_STATE_FOLDER, self.job, self.launch_id, self.log_file_path))
+            '{}/documents/extracted-hadoop-{}-{}-{}'.format(LUIGI_STATE_FOLDER, self.job,
+                                                            self.launch_id, self.log_file_path))
 
     def run(self):
         doc_file = self.input()
