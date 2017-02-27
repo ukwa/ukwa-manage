@@ -7,7 +7,7 @@ import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 
 from tasks.crawl.h3.crawl_job_tasks import CrawlFeed
-from tasks.process.hadoop.crawl_summary import ScanForOutputs
+from tasks.process.scan_hdfs import ScanForOutputs
 from tasks.process.log_analysis_hadoop import AnalyseLogFile
 from tasks.process.extract.documents import ExtractDocumentAndPost
 from luigi.contrib.hdfs.format import Plain, PlainDir

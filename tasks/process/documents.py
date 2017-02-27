@@ -14,7 +14,7 @@ from crawl.w3act.w3act import w3act
 from crawl.h3.utils import url_to_surt
 from crawl.dex.document_mdex import DocumentMDEx
 from tasks.crawl.h3.crawl_job_tasks import CrawlFeed
-from tasks.process.hadoop.crawl_summary import ScanForOutputs
+from tasks.process.scan_hdfs import ScanForOutputs
 from tasks.process.extract.documents_hadoop import ScanLogFileForDocs, LogFilesForJobLaunch
 from tasks.common import target_name
 
