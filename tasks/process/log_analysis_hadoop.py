@@ -35,6 +35,7 @@ class CrawlLogLine(object):
         # Some regexes:
         self.re_ip = re.compile('^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$')
         self.re_tries = re.compile('^\d+t$')
+        self.re_dol = re.compile('^dol:\d+') # Discarded out-links - make a total?
 
     def stats(self):
         """

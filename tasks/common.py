@@ -152,10 +152,9 @@ def get_large_interval():
 
     :return:
     """
-    interval = luigi.date_interval.Custom(
+    return luigi.date_interval.Custom(
         datetime.date.today() - datetime.timedelta(weeks=52),
-        datetime.date.today())
-    return interval
+        datetime.date.today() + datetime.timedelta(days=1))
 
 
 class ScanForLaunches(luigi.WrapperTask):

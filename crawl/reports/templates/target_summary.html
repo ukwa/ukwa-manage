@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <style lang="text/css">
+body {
+  font-family: Helvetica, Arial, Sans-Serif;
+}
+.threes {
+  width: 33%;
+  float: left;
+}
+.twos {
+  width: 50%;
+  float: left;
+}
+    </style>
+</head>
+<body>
+
+<h1>{{ title }}</h1>
+
+<h2>Seeds</h2>
+
+<ul>
+{% for seed in seeds %}
+<li><a href="{{ seed }}">{{ seed }}</a>
+{% endfor %}
+</ul>
+
+<h2>Summary</h2>
+
+<div class="threes">
+{{ status_codes }}
+</div>
+
+<div class="threes">
+{{ hops }}
+</div>
+
+<div class="threes">
+{{ tries }}
+</div>
+
+
+<h2>Servers</h2>
+
+<div class="twos">
+{{ hosts }}
+</div>
+
+<div class="twos">
+{{ ips }}
+</div>
+
+<h2>Content Types</h2>
+
+{{ types }}
+
+</body>
+</html>

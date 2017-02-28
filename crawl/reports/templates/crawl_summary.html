@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.13/css/jquery.dataTables.css">
+    <script src="https://code.jquery.com/jquery-1.11.3.js"></script>
+    <script type="text/javascript" charset="utf8" src="http://cdn.datatables.net/1.10.13/js/jquery.dataTables.js"></script>
+    <style lang="text/css">
+body {
+  font-family: Helvetica, Arial, Sans-Serif;
+}
+    </style>
+</head>
+<body>
+
+<h1>{{ title }}</h1>
+
+<h2>Crawl Timelines</h2>
+
+{{ timelines }}
+
+<h2>Summary By Target</h2>
+
+<table id="table_id" class="display" data-order='[[ 2, "desc" ]]' data-page-length='25'>
+    <thead>
+        <tr>
+            <th>Crawl summary</th>
+            <th>ACT link</th>
+            <th>Seeds</th>
+            <th>Crawl events</th>
+            <th>Found (200)</th>
+            <th>Unauthorised (401)</th>
+            <th>Forbidden (403)</th>
+            <th>Not found (404)</th>
+            <th>Blocked by robots.txt</th>
+            <th>Bytes downloaded</th>
+            <th>Caps hit</th>
+            <th>Deduplicated</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for target in target_stats %}
+        <tr>
+            <td>
+                <a href="targets/{{ target }}.html">{{ target }}</a>
+            </td>
+            <td>
+                <a href="https://www.webarchive.org.uk/act/targets/{{ target }}">{{ target }}</a>
+            </td>
+            <td>
+                {% for seed in target_seeds[target] %}
+                <a href="{{ seed }}">{{ seed }}</a><br/>
+                {% endfor %}
+            </td>
+            <td data-class-name="priority">{{ target_stats[target]['lines'] }}</td>
+            <td>{{ target_stats[target]['status_code:200'] }}</td>
+            <td>{{ target_stats[target]['status_code:401'] }}</td>
+            <td>{{ target_stats[target]['status_code:403'] }}</td>
+            <td>{{ target_stats[target]['status_code:404'] }}</td>
+            <td>{{ target_stats[target]['status_code:-9998'] }}</td>
+            <td>{{ target_stats[target]['sum:content_length'] }}</td>
+            <td>{{ target_stats[target]['Q:serverMaxSuccessKb'] }}</td>
+            <td>{{ target_stats[target]['duplicate:digest'] }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+
+<script type="text/javascript">
+$(document).ready( function () {
+    $('#table_id').DataTable();
+} );
+</script>
+</body>
+</html>
