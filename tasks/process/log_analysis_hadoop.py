@@ -282,6 +282,17 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
             targets = luigi.LocalTarget(path=self.targets_path)
         self.extractor = CrawlLogExtractors(self.job, self.launch_id, targets)
 
+    def jobconfs(self):
+        """
+        Also override number of mappers.
+
+        :return:
+        """
+        jcs = super(AnalyseLogFile).jobconfs()
+        jcs.append('mapred.map.tasks', 100)
+        #jcs.append('mapred.min.split.size', ) mapred.max.split.size, in bytes. e.g. 256*1024*1024 = 256M
+        return jcs
+
     def mapper(self, line):
         # Parse:
         log = CrawlLogLine(line)
