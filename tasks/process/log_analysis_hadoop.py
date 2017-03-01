@@ -288,7 +288,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
 
         :return:
         """
-        jcs = super(AnalyseLogFile).jobconfs()
+        jcs = super(AnalyseLogFile, self).jobconfs()
         jcs.append('mapred.map.tasks', 100)
         #jcs.append('mapred.min.split.size', ) mapred.max.split.size, in bytes. e.g. 256*1024*1024 = 256M
         return jcs
