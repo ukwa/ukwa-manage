@@ -183,7 +183,7 @@ class MoveToHdfs(luigi.Task):
         with self.output().open('w') as f:
             f.write(hdfs_hash)
 
-# FIXME We must take care to make this atomic as move can be copy if the systems are presented as different drives.
+
 class MoveRemoteWrenWarcFile(luigi.Task):
     """
     Moves closed 'WREN' WARCs to the appropriate WARC folder.
@@ -211,6 +211,7 @@ class MoveRemoteWrenWarcFile(luigi.Task):
             return "none"
 
     # When run, just move the file:
+    # We must take care to make this atomic as move can be copy if the systems are presented as different drives.
     def run(self):
         rf = luigi.contrib.ssh.RemoteFileSystem(self.host)
         rf.move(self.input().path, self.output().path)
