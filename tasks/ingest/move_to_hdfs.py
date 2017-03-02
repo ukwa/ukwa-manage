@@ -241,6 +241,7 @@ class ScanForFilesToMove(luigi.WrapperTask):
         rf = luigi.contrib.ssh.RemoteFileSystem(self.host)
 
         # Look in /heritrix/output/wren files and move closed WARCs to the /warcs/ folder:
+
         for wren_source in self.listdir_in_date_range(rf, local_wren_folder, "*.warc.gz"):
             logger.debug("WREN MOVE: %s" % wren_source)
             yield MoveRemoteWrenWarcFile(self.host, wren_source)
