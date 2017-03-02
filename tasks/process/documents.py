@@ -191,19 +191,3 @@ class ExtractDocumentAndPost(luigi.Task):
         # And write out to the status file
         with self.output().open('w') as out_file:
             out_file.write('{}'.format(json.dumps(doc, indent=4)))
-
-
-class ScanForDocuments(ScanForOutputs):
-    """
-    This task scans the output folder for jobs and instances of those jobs, looking for crawls logs.
-    """
-    task_namespace = 'scan'
-    scan_name = 'docs'
-
-    def process_output(self, job, launch):
-        yield GenerateCrawlLogReports(job, launch, True)
-
-
-if __name__ == '__main__':
-    luigi.run(['doc.ExtractDocuments', '--job', 'weekly', '--launch-id', '20170220090024', '--local-scheduler'])
-    #luigi.run(['scan.ScanForDocuments', '--date-interval', '2017-02-10-2017-02-12', '--local-scheduler'])
