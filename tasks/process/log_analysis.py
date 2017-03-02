@@ -107,7 +107,7 @@ class AnalyseAndProcessDocuments(luigi.Task):
     from_hdfs = luigi.BoolParameter(default=False)
 
     def requires(self):
-        return AnalyseLogFile(self.job, self.launch_id, self.log_paths, self.hdfs_targets, True)
+        return AnalyseLogFile(self.job, self.launch_id, self.log_paths, self.targets_path, True)
 
     def output(self):
         return luigi.LocalTarget(
