@@ -111,7 +111,7 @@ class AnalyseAndProcessDocuments(luigi.Task):
 
     def output(self):
         return luigi.LocalTarget(
-            '{}/documents/posted-{}-{}-{}'.format(LUIGI_STATE_FOLDER, self.job, self.launch_id, os.path.basename(len(self.log_paths))))
+            '{}/documents/posted-{}-{}-{}'.format(LUIGI_STATE_FOLDER, self.job, self.launch_id, len(self.log_paths)))
 
     def run(self):
         # Loop over documents discovered, and attempt to post to W3ACT:
