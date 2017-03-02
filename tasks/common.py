@@ -142,7 +142,7 @@ def get_large_interval():
     """
     interval = luigi.date_interval.Custom(
         datetime.date.today() - datetime.timedelta(weeks=52),
-        datetime.date.today())
+        datetime.date.today() + datetime.timedelta(days=1))
     return interval
 
 
