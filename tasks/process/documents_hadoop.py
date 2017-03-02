@@ -146,6 +146,17 @@ class ScanLogFileForDocs(luigi.contrib.hadoop.JobTask):
     def extra_modules(self):
         return [crawl]
 
+    def jobconfs(self):
+        """
+        Also override number of mappers.
+
+        :return:
+        """
+        jcs = super(ScanLogFileForDocs, self).jobconfs()
+        jcs.append('mapred.map.tasks=%s' % 100)
+        #jcs.append('mapred.min.split.size', ) mapred.max.split.size, in bytes. e.g. 256*1024*1024 = 256M
+        return jcs
+
     def mapper(self, line):
         (timestamp, status_code, content_length, url, hop_path, via, mime,
          thread, start_time_plus_duration, hash, source, annotations) = re.split(" +", line, maxsplit=11)

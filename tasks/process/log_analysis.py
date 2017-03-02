@@ -17,7 +17,7 @@ from tasks.common import webhdfs
 logger = logging.getLogger('luigi-interface')
 
 HDFS_PREFIX = os.environ.get("HDFS_PREFIX", "")
-WAYBACK_PREFIX = os.environ.get("WAYBACK_PREFIX", "http://localhost:9080/wayback")
+WAYBACK_PREFIX = os.environ["WAYBACK_PREFIX"]
 
 LUIGI_STATE_FOLDER = os.environ['LUIGI_STATE_FOLDER']
 ACT_URL = os.environ['ACT_URL']
@@ -102,16 +102,16 @@ class AnalyseAndProcessDocuments(luigi.Task):
     task_namespace = 'analyse'
     job = luigi.Parameter()
     launch_id = luigi.Parameter()
-    log_path = luigi.Parameter()
+    log_paths = luigi.ListParameter()
     targets_path = luigi.Parameter()
     from_hdfs = luigi.BoolParameter(default=False)
 
     def requires(self):
-        return AnalyseLogFile(self.job, self.launch_id, self.log_file, self.hdfs_targets, True)
+        return AnalyseLogFile(self.job, self.launch_id, self.log_paths, self.hdfs_targets, True)
 
     def output(self):
         return luigi.LocalTarget(
-            '{}/documents/posted-{}-{}-{}'.format(LUIGI_STATE_FOLDER, self.job, self.launch_id, os.path.basename(self.log_path)))
+            '{}/documents/posted-{}-{}-{}'.format(LUIGI_STATE_FOLDER, self.job, self.launch_id, os.path.basename(len(self.log_paths))))
 
     def run(self):
         # Loop over documents discovered, and attempt to post to W3ACT:

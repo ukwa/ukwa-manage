@@ -11,11 +11,10 @@ import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 
 from crawl.w3act.w3act import w3act
-from crawl.h3.utils import url_to_surt
 from crawl.dex.document_mdex import DocumentMDEx
 from tasks.crawl.h3.crawl_job_tasks import CrawlFeed
 from tasks.process.scan_hdfs import ScanForOutputs
-from tasks.process.extract.documents_hadoop import ScanLogFileForDocs, LogFilesForJobLaunch
+from tasks.process.log_analysis import GenerateCrawlLogReports
 from tasks.common import target_name
 
 logger = logging.getLogger('luigi-interface')
@@ -194,92 +193,6 @@ class ExtractDocumentAndPost(luigi.Task):
             out_file.write('{}'.format(json.dumps(doc, indent=4)))
 
 
-class ProcessDocumentsFromLog(luigi.Task):
-    """
-    Via required tasks, launched M-R job to process crawl logs.
-
-    Then runs through output documents and attempts to post them to W3ACT.
-    """
-    task_namespace = 'doc'
-    job = luigi.Parameter()
-    launch_id = luigi.Parameter()
-    watched = luigi.ListParameter()
-    log_file_path = luigi.Parameter()
-
-    def requires(self):
-        return ScanLogFileForDocs(self.job, self.launch_id, self.watched, self.log_file_path)
-
-    def output(self):
-        return luigi.LocalTarget(
-            '{}/documents/extracted-hadoop-{}-{}-{}'.format(LUIGI_STATE_FOLDER, self.job,
-                                                            self.launch_id, self.log_file_path))
-
-    def run(self):
-        doc_file = self.input()
-        logger.info("Scanning %s..." % doc_file.path)
-        # Loop over documents discovered, and attempt to post to W3ACT:
-        batch = []
-        with doc_file.open() as in_file:
-            for line in in_file:
-                url, docjson = line.strip().split("\t", 1)
-                doc = json.loads(docjson)
-                batch.append(ExtractDocumentAndPost(self.job, self.launch_id, doc, doc["source"]))
-                # When we have a small batch, yield them for parallel processing:
-                if len(batch) == 5:
-                    yield batch
-                    batch = []
-
-        # Catch any remaining items
-        yield batch
-
-
-class ExtractDocuments(luigi.Task):
-    """
-    Via required tasks, launched M-R job to process crawl logs.
-
-    Then runs through output documents and attempts to post them to W3ACT.
-    """
-    task_namespace = 'doc'
-    job = luigi.Parameter()
-    launch_id = luigi.Parameter()
-
-    def requires(self):
-        return {'feed': CrawlFeed(self.job), 'logs': LogFilesForJobLaunch(self.job, self.launch_id)}
-
-    def output(self):
-        logs_count = len(self.input())
-        return luigi.LocalTarget(
-            '{}/documents/extracted-hadoop-{}-{}-{}'.format(LUIGI_STATE_FOLDER, self.job, self.launch_id, logs_count))
-
-    def run(self):
-        # Set up:
-        feed = self.input()['feed']
-        watched = self.get_watched_surts(feed)
-        log_files = self.input()['logs']
-        tasks = []
-        for log_file in log_files:
-            logger.info("Yielding %s..." % log_file.path)
-            tasks.append(ProcessDocumentsFromLog(self.job, self.launch_id, watched, log_file.path))
-        yield tasks
-
-    def get_watched_surts(self, feed):
-        # First find the unique watched seeds list:
-        targets = json.load(feed.open())
-        watched = set()
-        for t in targets:
-            if t['watched']:
-                for seed in t['seeds']:
-                    watched.add(seed)
-
-        # Convert to SURT form:
-        watched_surts = []
-        for url in watched:
-            watched_surts.append(url_to_surt(url))
-        logger.info("WATCHED SURTS %s" % watched_surts)
-
-        return watched_surts
-
-
 class ScanForDocuments(ScanForOutputs):
     """
     This task scans the output folder for jobs and instances of those jobs, looking for crawls logs.
@@ -288,7 +201,7 @@ class ScanForDocuments(ScanForOutputs):
     scan_name = 'docs'
 
     def process_output(self, job, launch):
-        yield ExtractDocuments(job, launch)
+        yield GenerateCrawlLogReports(job, launch, True)
 
 
 if __name__ == '__main__':
