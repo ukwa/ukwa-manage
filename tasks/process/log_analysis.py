@@ -95,7 +95,7 @@ class SyncToHdfs(luigi.Task):
         if self.overwrite:
             if client.exists(self.target_path):
                 logger.info("Removing %s..." % self.target_path)
-                client.remove(self.target_path)
+                client.remove(self.target_path, skip_trash=True)
         # Upload to temp file:
         temp_path = "%s.temp" % self.target_path
         logger.info("Uploading to %s" % temp_path)
