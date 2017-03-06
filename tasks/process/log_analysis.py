@@ -91,6 +91,12 @@ class SyncToHdfs(luigi.Task):
 
     def run(self):
         client = luigi.contrib.hdfs.WebHdfsClient()
+        # Remove any existing file, if we're allowed to:
+        if self.overwrite:
+            if client.exists(self.target_path):
+                logger.info("Removing %s..." % self.target_path)
+                client.remove(self.target_path)
+        # Upload to temp file:
         temp_path = "%s.temp" % self.target_path
         logger.info("Uploading to %s" % temp_path)
         with open(str(self.source_path)) as f:
