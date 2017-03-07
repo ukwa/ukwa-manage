@@ -19,15 +19,14 @@ BYTES = 'Bytes downloaded'
 def load_timeline(summary_file):
     hours = []
     statistics = []
-    with summary_file.open() as f:
-        for line in f:
-            key, json_str = re.split('\t', line, maxsplit=1)
-            if key.startswith("BY-HOUR"):
-                tag, time = re.split(' ', key, maxsplit=1)
-                stats = json.loads(json_str)
-                # Store
-                hours.append(time)
-                statistics.append(stats)
+    for line in summary_file:
+        key, json_str = re.split('\t', line, maxsplit=1)
+        if key.startswith("BY-HOUR"):
+            tag, time = re.split(' ', key, maxsplit=1)
+            stats = json.loads(json_str)
+            # Store
+            hours.append(time)
+            statistics.append(stats)
 
     # And return the two lists:
     return hours, statistics
@@ -40,13 +39,12 @@ def load_targets(summary_file):
     :return:
     """
     targets = {}
-    with summary_file.open() as f:
-        for line in f:
-            key, json_str = re.split('\t', line, maxsplit=1)
-            if key.startswith("BY-TARGET"):
-                tag, tid = re.split(' ', key, maxsplit=1)
-                stats = json.loads(json_str)
-                targets[tid] = stats
+    for line in summary_file:
+        key, json_str = re.split('\t', line, maxsplit=1)
+        if key.startswith("BY-TARGET"):
+            tag, tid = re.split(' ', key, maxsplit=1)
+            stats = json.loads(json_str)
+            targets[tid] = stats
 
     return targets
 
@@ -168,9 +166,16 @@ def generate_crawl_summary(job, launch, summary_file, reports_folder):
     # Basic properties:
     job_name = job.capitalize()
     launch_date = datetime.datetime.strptime( launch, "%Y%m%d%H%M%S" )
-    # Load in data:
-    hours, stats = load_timeline(summary_file)
-    target_stats = load_targets(summary_file)
+    # Load and sort
+    if type(summary_file) is str:
+        with open(summary_file) as f:
+            sorted_file = sorted(f)
+    else:
+        with summary_file.open() as f:
+            sorted_file = sorted(f)
+    # Process data:
+    hours, stats = load_timeline(sorted_file)
+    target_stats = load_targets(sorted_file)
     # Build up mapping to seeds:
     target_seeds = {}
     for target in target_stats:
@@ -196,9 +201,10 @@ def generate_crawl_summary(job, launch, summary_file, reports_folder):
         timelines=timeline
     )
 
-    #pprint.pprint(target_stats['21959'])
-
-    report_folder = os.path.join(reports_folder.path, job, launch)
+    if type(summary_file) is str:
+        report_folder = os.path.join(reports_folder, job, launch)
+    else:
+        report_folder = os.path.join(reports_folder.path, job, launch)
     if not os.path.isdir(report_folder):
         os.makedirs(report_folder)
     output_file = os.path.join(report_folder, 'index.html')

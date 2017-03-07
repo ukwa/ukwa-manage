@@ -186,6 +186,7 @@ class GenerateCrawlLogReports(luigi.Task):
         hdfs_targets.remove()
 
         # And generate the crawl reports:
+        # FIXME log stats need sorting first!
         generate_crawl_summary(self.job, self.launch_id, log_stats , self.output())
 
 
