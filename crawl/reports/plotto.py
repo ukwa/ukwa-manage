@@ -160,8 +160,8 @@ def pie_for(stats, prefix, title, label_max_length=40, max_slices=20):
 TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),'templates')
 
 
-def get_plot_div(figure):
-    return py.plot(figure, output_type='div', include_plotlyjs=True, auto_open=False, show_link=False)
+def get_plot_div(figure, include_plotlyjs=True):
+    return py.plot(figure, output_type='div', include_plotlyjs=include_plotlyjs, auto_open=False, show_link=False)
 
 
 def generate_crawl_summary(job, launch, summary_file, reports_folder):
@@ -215,11 +215,11 @@ def generate_crawl_summary(job, launch, summary_file, reports_folder):
         output_file = os.path.join(target_report_folder, '%s.html' % tid)
         print(output_file)
         status_codes_pie = get_plot_div(pie_for(target_stats[tid], 'status_code:', 'Status Codes'))
-        tries_pie = get_plot_div(pie_for(target_stats[tid], 'tries:', 'Retries'))
-        hops_pie = get_plot_div(pie_for(target_stats[tid], 'hop:', 'Crawl Hops'))
-        hosts_pie =get_plot_div(pie_for(target_stats[tid], 'host:', 'Hosts'))
-        ip_pie = get_plot_div(pie_for(target_stats[tid], 'ip:', 'IP Addresses'))
-        mime_pie = get_plot_div(pie_for(target_stats[tid], 'content_type:', 'Content Types'))
+        tries_pie = get_plot_div(pie_for(target_stats[tid], 'tries:', 'Retries'), include_plotlyjs=False)
+        hops_pie = get_plot_div(pie_for(target_stats[tid], 'hop:', 'Crawl Hops'), include_plotlyjs=False)
+        hosts_pie =get_plot_div(pie_for(target_stats[tid], 'host:', 'Hosts'), include_plotlyjs=False)
+        ip_pie = get_plot_div(pie_for(target_stats[tid], 'ip:', 'IP Addresses'), include_plotlyjs=False)
+        mime_pie = get_plot_div(pie_for(target_stats[tid], 'content_type:', 'Content Types'), include_plotlyjs=False)
 
         out = target_template.render(
             title='Target Summary For %s from %s Crawl Launched %s' % (tid, job_name, launch_date),

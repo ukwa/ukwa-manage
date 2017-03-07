@@ -91,16 +91,16 @@ class SyncToHdfs(luigi.Task):
 
     def run(self):
         client = luigi.contrib.hdfs.WebHdfsClient()
-        # Remove any existing file, if we're allowed to:
-        if self.overwrite:
-            if client.exists(self.target_path):
-                logger.info("Removing %s..." % self.target_path)
-                client.remove(self.target_path, skip_trash=True)
         # Upload to temp file:
         temp_path = "%s.temp" % self.target_path
         logger.info("Uploading to %s" % temp_path)
         with open(str(self.source_path)) as f:
             client.client.write(hdfs_path=temp_path, data=f.read(), overwrite=self.overwrite)
+        # Remove any existing file, if we're allowed to:
+        if self.overwrite:
+            if client.exists(self.target_path):
+                logger.info("Removing %s..." % self.target_path)
+                client.remove(self.target_path, skip_trash=True)
         # And rename
         logger.info("Renaming to %s" % self.target_path)
         client.rename(temp_path, self.target_path)
@@ -156,8 +156,12 @@ class GenerateCrawlLogReports(luigi.Task):
 
     def output(self):
         logs_count = len(self.input())
-        return luigi.LocalTarget(
-            '{}/crawl-log-report-{}-{}-{}'.format(LUIGI_STATE_FOLDER, self.job, self.launch_id, logs_count))
+        if self.extract_documents:
+            return luigi.LocalTarget(
+                '{}/crawl-log-documents-{}-{}-{}'.format(LUIGI_STATE_FOLDER, self.job, self.launch_id, logs_count))
+        else:
+            return luigi.LocalTarget(
+                '{}/crawl-log-report-{}-{}-{}'.format(LUIGI_STATE_FOLDER, self.job, self.launch_id, logs_count))
 
     def run(self):
         # Set up necessary data:

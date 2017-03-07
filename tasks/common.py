@@ -55,9 +55,9 @@ class systems(luigi.Config):
     webhdfs = os.environ.get('WEBHDFS_PREFIX', luigi.Parameter(default='http://hadoop:50070/webhdfs/v1'))
     amqp_host = os.environ.get('AMQP_HOST', luigi.Parameter(default='amqp'))
     clamd_host = os.environ.get('CLAMD_HOST', luigi.Parameter(default='clamd'))
-    clamd_port = os.environ.get('CLAMD_PORT', luigi.Parameter(default=3310))
+    clamd_port = os.environ.get('CLAMD_PORT', luigi.IntParameter(default=3310))
     elasticsearch_host = os.environ.get('ELASTICSEARCH_HOST', luigi.Parameter(default='monitrix'))
-    elasticsearch_port = os.environ.get('ELASTICSEARCH_PORT', luigi.Parameter(default=9200))
+    elasticsearch_port = os.environ.get('ELASTICSEARCH_PORT', luigi.IntParameter(default=9200))
     elasticsearch_index_prefix = os.environ.get('ELASTICSEARCH_INDEX_PREFIX', luigi.Parameter(default='pulse'))
     servers = luigi.Parameter(default='/shepherd/tasks/servers.json')
     services = luigi.Parameter(default='/shepherd/tasks/services.json')
@@ -177,7 +177,7 @@ class ScanForLaunches(luigi.WrapperTask):
         # Look for jobs that need to be processed:
         for date in self.date_interval:
             for job_item in glob.glob("%s/*" % h3().local_job_folder):
-                job = Jobs[os.path.basename(job_item)]
+                job = os.path.basename(job_item)
                 if os.path.isdir(job_item):
                     launch_glob = "%s/%s*" % (job_item, date.strftime('%Y%m%d'))
                     logger.info("Looking for job launch folders matching %s" % launch_glob)
