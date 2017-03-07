@@ -186,8 +186,7 @@ class GenerateCrawlLogReports(luigi.Task):
         hdfs_targets.remove()
 
         # And generate the crawl reports:
-        with self.output().temporary_path() as temp_path:
-            generate_crawl_summary(self.job, self.launch_id, log_stats , temp_path)
+        generate_crawl_summary(self.job, self.launch_id, log_stats , self.output())
 
 
 class ScanForLogs(ScanForOutputs):

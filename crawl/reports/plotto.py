@@ -19,7 +19,7 @@ BYTES = 'Bytes downloaded'
 def load_timeline(summary_file):
     hours = []
     statistics = []
-    with open(summary_file) as f:
+    with summary_file.open() as f:
         for line in f:
             key, json_str = re.split('\t', line, maxsplit=1)
             if key.startswith("BY-HOUR"):
@@ -40,7 +40,7 @@ def load_targets(summary_file):
     :return:
     """
     targets = {}
-    with open(summary_file) as f:
+    with summary_file.open() as f:
         for line in f:
             key, json_str = re.split('\t', line, maxsplit=1)
             if key.startswith("BY-TARGET"):
@@ -198,7 +198,7 @@ def generate_crawl_summary(job, launch, summary_file, reports_folder):
 
     #pprint.pprint(target_stats['21959'])
 
-    report_folder = os.path.join(reports_folder, job, launch)
+    report_folder = os.path.join(reports_folder.path, job, launch)
     if not os.path.isdir(report_folder):
         os.makedirs(report_folder)
     output_file = os.path.join(report_folder, 'index.html')
