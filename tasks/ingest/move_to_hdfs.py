@@ -34,7 +34,7 @@ class AwaitUploadRemoteFileToHDFS(luigi.ExternalTask):
 
     def output(self):
         t = luigi.contrib.hdfs.HdfsTarget(self.target_path)
-        logger.info("Output is %s" % t.path)
+        logger.info("Target on HDFS is %s" % t.path)
         return t
 
 

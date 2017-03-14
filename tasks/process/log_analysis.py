@@ -6,8 +6,6 @@ import threading
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 
-from crawl.reports.plotto import generate_crawl_summary
-
 from tasks.crawl.h3.crawl_job_tasks import CrawlFeed
 from tasks.process.scan_hdfs import ScanForOutputs
 from tasks.process.log_analysis_hadoop import AnalyseLogFile
@@ -184,9 +182,6 @@ class GenerateCrawlLogReports(luigi.Task):
         # And clean out the file from temp:
         logger.warning("Removing temporary targets cache: %s" % hdfs_targets.path)
         hdfs_targets.remove()
-
-        # And generate the crawl reports:
-        generate_crawl_summary(self.job, self.launch_id, log_stats , self.output())
 
 
 class ScanForLogs(ScanForOutputs):
