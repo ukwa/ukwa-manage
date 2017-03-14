@@ -19,13 +19,26 @@ WEBHDFS_PREFIX = os.environ['WEBHDFS_PREFIX']
 CRAWL_JOB_FOLDER = os.environ.get('local_job_folder','/heritrix/jobs')
 CRAWL_OUTPUT_FOLDER = os.environ.get('local_output_folder','/heritrix/output')
 WREN_FOLDER =  os.environ.get('local_wren_folder','/heritrix/wren')
+SIPS_FOLDER =  os.environ.get('local_sips_folder','/heritrix/sips')
 
 
 def hash_target(path):
     return luigi.LocalTarget('{}/files/hash/{}'.format(LUIGI_STATE_FOLDER, os.path.basename(path)))
 
 
-class UploadRemoteFileToHDFS(luigi.Task):
+class AwaitUploadRemoteFileToHDFS(luigi.ExternalTask):
+    task_namespace = 'file'
+    host = luigi.Parameter()
+    source_path = luigi.Parameter()
+    target_path = luigi.Parameter()
+
+    def output(self):
+        t = luigi.contrib.hdfs.HdfsTarget(self.target_path)
+        logger.info("Output is %s" % t.path)
+        return t
+
+
+class DISABLEDUploadRemoteFileToHDFS(luigi.Task):
     """
     This copies up to HDFS but uses a temporary filename (via a suffix) to avoid downstream tasks
     thinking the work is already done.
@@ -104,7 +117,7 @@ class CalculateHdfsHash(luigi.Task):
     resources = { 'hdfs': 1 }
 
     def requires(self):
-        return UploadRemoteFileToHDFS(self.host, self.source_path, self.target_path)
+        return AwaitUploadRemoteFileToHDFS(self.host, self.source_path, self.target_path)
 
     def output(self):
         return hash_target("%s.hdfs.sha512" % self.target_path)
@@ -224,7 +237,7 @@ class ScanForFilesToMove(luigi.WrapperTask):
     """
     task_namespace = 'move'
     host = luigi.Parameter()
-    remote_prefix = luigi.Parameter(default="/zfspool")
+    remote_prefix = luigi.Parameter(default="")
     delete_local = luigi.BoolParameter(default=False)
     date_interval = luigi.DateIntervalParameter(default=get_large_interval())
 
@@ -238,10 +251,10 @@ class ScanForFilesToMove(luigi.WrapperTask):
         local_job_folder = "%s%s" %( self.remote_prefix, CRAWL_JOB_FOLDER)
         local_output_folder = "%s%s" %( self.remote_prefix, CRAWL_OUTPUT_FOLDER )
         local_wren_folder = "%s%s" %( self.remote_prefix, WREN_FOLDER)
+        local_sip_folder = "%s%s" %( self.remote_prefix, SIPS_FOLDER)
         rf = luigi.contrib.ssh.RemoteFileSystem(self.host)
 
         # Look in /heritrix/output/wren files and move closed WARCs to the /warcs/ folder:
-
         for wren_source in self.listdir_in_date_range(rf, local_wren_folder, "*.warc.gz"):
             logger.debug("WREN MOVE: %s" % wren_source)
             yield MoveRemoteWrenWarcFile(self.host, wren_source)
@@ -328,6 +341,74 @@ class ScanForFilesToMove(luigi.WrapperTask):
             return []
 
         listing = rf.remote_context.check_output(["find", "-L", parent, '-maxdepth', '1', '-name', '"%s"' % glob]).splitlines()
+        return [v.decode('utf-8') for v in listing]
+
+
+class ScanForSIPsToMove(luigi.WrapperTask):
+    """
+    Look for files ready to be moved up to HDFS.  First moves any closed WREN WARCS, then attempts to move the
+    important crawl files, mostly WARCs and logs.
+    """
+    task_namespace = 'move'
+    host = luigi.Parameter()
+    remote_prefix = luigi.Parameter(default="")
+    delete_local = luigi.BoolParameter(default=False)
+    date_interval = luigi.DateIntervalParameter(default=get_large_interval())
+
+    def requires(self):
+        """
+        This yields all the moves to be done.
+
+        :return:
+        """
+        # Set up base paths:
+        local_sip_folder = "%s%s" % (self.remote_prefix, SIPS_FOLDER)
+        rf = luigi.contrib.ssh.RemoteFileSystem(self.host)
+
+        # Look in warcs and viral for WARCs e.g in /heritrix/output/{warcs|viral}/**/*.warc.gz
+        for item in rf.listdir("%s/*/*.tar.gz" % local_sip_folder):
+            logger.debug("SIP: %s" % item)
+            yield self.request_move(item)
+
+    def request_move(self, item):
+        logger.info("Requesting Move to HDFS for:%s" % item)
+        return MoveToHdfs(self.host, item, self.hdfs_path(item), self.delete_local)
+
+    def hdfs_path(self, path):
+        # Chop out any local prefix:
+        hdfs_path = path[len(self.remote_prefix):]
+        # Prefix this path with the HDFS root folder, stripping any leading '/' so the path is considered relative
+        if hdfs_path:
+            hdfs_path = os.path.join(HDFS_PREFIX, hdfs_path.lstrip("/"))
+        return hdfs_path
+
+    def listdir_in_date_range(self, rf, path, match):
+        """
+        Based on RemoteFileSystem.listdir but date-range limited.
+
+        # find . -type f -newermt "2010-01-01" ! -newermt "2010-06-01"
+
+        :param rf:
+        :param path:
+        :return:
+        """
+        logger.info("Looking in %s %s" % (path, match))
+        while path.endswith('/'):
+            path = path[:-1]
+
+        path = path or '.'
+
+        # If the parent folder does not exists, there are no matches:
+        if not rf.exists(path):
+            return []
+
+        # Construct an appropriate `find` command:
+        cmd = ["find", "-L", path, "-type", "f", "-newermt",
+               self.date_interval.date_a.strftime('"%Y-%m-%d"'), "!", "-newermt",
+               self.date_interval.date_b.strftime('"%Y-%m-%d"'), "-name", '"%s"' % match]
+        # logger.debug(": %s" % " ".join(cmd))
+
+        listing = rf.remote_context.check_output(cmd).splitlines()
         return [v.decode('utf-8') for v in listing]
 
 

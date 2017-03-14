@@ -34,10 +34,12 @@ logger.setLevel( logging.INFO )
 logger.info("INFO LOGGING ENABLED")
 logger.debug("DEBUG LOGGING ENABLED")
 
+
 def get_warc_identifiers(sip):
     for item in get_all_identifiers(sip):
         if item['mimetype'] == "application/warc":
             yield item
+
 
 def get_all_identifiers(sip):
     """Parses the SIP in HDFS and retrieves FILE/ARK tuples."""
