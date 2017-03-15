@@ -367,7 +367,7 @@ class ScanForSIPsToMove(luigi.WrapperTask):
 
 
 if __name__ == '__main__':
-    luigi.run(['move.ScanForSIPsToMove', '--host' , 'crawler03', '--local-scheduler'])
+    luigi.run(['move.ScanForSIPsToMove', '--workers', '5', '--host' , 'crawler03'])
     #luigi.run(['move.ScanForFilesToMove', '--date-interval', '2017-02-11-2017-02-12', '--host' , 'localhost',
     #           '--remote-prefix', '/Users/andy/Documents/workspace/pulse/testing' , '--local-scheduler'])
     #luigi.run(['file.ForceUploadFileToHDFS', '--path', '/Users/andy/Documents/workspace/pulse/testing/output/logs/daily/20161029192642/progress-statistics.log'])
