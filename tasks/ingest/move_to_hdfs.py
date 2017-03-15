@@ -109,13 +109,13 @@ class UploadRemoteFileToHDFS(luigi.Task):
         logger.info("Upload completed for %s" % hdfs_path)
 
 
-class CalculateHdfsHash(luigi.Task):
+class MoveToHdfs(luigi.Task):
     task_namespace = 'file'
     host = luigi.Parameter()
     source_path = luigi.Parameter()
     target_path = luigi.Parameter()
+    delete_local = luigi.BoolParameter(default=False)
     await_transfer = luigi.BoolParameter(default=True)
-    resources = { 'hdfs': 1 }
 
     def requires(self):
         if self.await_transfer:
@@ -124,78 +124,54 @@ class CalculateHdfsHash(luigi.Task):
             return UploadRemoteFileToHDFS(self.host, self.source_path, self.target_path)
 
     def output(self):
-        return hash_target("%s.hdfs.sha512" % self.target_path)
+        return hash_target("%s.transferred" % self.target_path)
 
-    def run(self):
+    def calculate_remote_hash(self):
+        logger.debug("Remote file %s to hash" % self.source_path)
+
+        t = luigi.contrib.ssh.RemoteTarget(path=self.source_path,host=self.host)#, **SSH_KWARGS)
+        with t.open('r') as reader:
+            file_hash = hashlib.sha512(reader.read()).hexdigest()
+
+        # test hash is sane:
+        check_hash(self.source_path, file_hash)
+
+        # And return it:
+        return file_hash
+
+    def calculate_hdfs_hash(self):
         logger.debug("HDFS file %s to hash" % (self.target_path))
 
         # get hash for local or hdfs file
-        t = self.input()
         client = luigi.contrib.hdfs.WebHdfsClient()
         # Having to side-step the first client as it seems to be buggy/use an old API - note also confused put()
-        with client.client.read(str(t.path)) as reader:
+        with client.client.read(str(self.target_path)) as reader:
             file_hash = hashlib.sha512(reader.read()).hexdigest()
 
         # test hash is sane
         check_hash(self.target_path, file_hash)
 
-        with self.output().open('w') as f:
-            f.write(file_hash)
-
-
-class CalculateRemoteHash(luigi.Task):
-    task_namespace = 'output'
-    host = luigi.Parameter()
-    path = luigi.Parameter()
-
-    def output(self):
-        return hash_target("%s.%s.sha512" % (self.path, self.host))
+        # And return it:
+        return file_hash
 
     def run(self):
-        logger.debug("Remote file %s to hash" % self.path)
+        # Calculate SHA512 of remote file:
+        remote_hash = self.calculate_remote_hash()
+        logger.info("Got remote hash %s" % remote_hash)
 
-        t = luigi.contrib.ssh.RemoteTarget(path=self.path,host=self.host)#, **SSH_KWARGS)
-        with t.open('r') as reader:
-            file_hash = hashlib.sha512(reader.read()).hexdigest()
-
-        # test hash is sane
-        check_hash(self.path, file_hash)
-
-        with self.output().open('w') as f:
-            f.write(file_hash)
-
-
-class MoveToHdfs(luigi.Task):
-    task_namespace = 'file'
-    host = luigi.Parameter()
-    source_path = luigi.Parameter()
-    target_path = luigi.Parameter()
-    delete_local = luigi.BoolParameter(default=False)
-
-    def requires(self):
-        return [ CalculateRemoteHash(self.host, self.source_path),
-                 CalculateHdfsHash(self.host, self.source_path, self.target_path) ]
-
-    def output(self):
-        return hash_target("%s.transferred" % self.target_path)
-
-    def run(self):
-        # Read in sha512
-        with self.input()[0].open('r') as f:
-            local_hash = f.readline()
-        logger.info("Got local hash %s" % local_hash)
-        # Re-download and get the hash
-        with self.input()[1].open('r') as f:
-            hdfs_hash = f.readline()
+        # Re-download and get the hash from HDFS:
+        hdfs_hash = self.calculate_hdfs_hash()
         logger.info("Got HDFS hash %s" % hdfs_hash)
 
-        if local_hash != hdfs_hash:
-            raise Exception("Local & HDFS hashes do not match for %s > %s" % (self.source_path, self.target_path))
+        # Compare them:
+        if remote_hash != hdfs_hash:
+            raise Exception("Remote & HDFS hashes do not match for %s > %s" % (self.source_path, self.target_path))
 
         # Otherwise, move to hdfs was good, so delete:
         if self.delete_local:
             logger.error("DELETE NOT IMPLEMENTED!")
             # os.remove(str(self.path))
+
         # and write out success
         with self.output().open('w') as f:
             f.write(hdfs_hash)
@@ -369,9 +345,13 @@ class ScanForSIPsToMove(luigi.WrapperTask):
         rf = luigi.contrib.ssh.RemoteFileSystem(self.host)
 
         # Look in warcs and viral for WARCs e.g in /heritrix/output/{warcs|viral}/**/*.warc.gz
+        tasks = []
         for item in rf.listdir("%s/*/*.tar.gz" % local_sip_folder):
             logger.debug("SIP: %s" % item)
-            yield self.request_move(item)
+            tasks.append(self.request_move(item))
+
+        # Yield all together:
+        yield tasks
 
     def request_move(self, item):
         logger.info("Requesting Move to HDFS for:%s" % item)
@@ -384,35 +364,6 @@ class ScanForSIPsToMove(luigi.WrapperTask):
         if hdfs_path:
             hdfs_path = os.path.join(HDFS_PREFIX, hdfs_path.lstrip("/"))
         return hdfs_path
-
-    def listdir_in_date_range(self, rf, path, match):
-        """
-        Based on RemoteFileSystem.listdir but date-range limited.
-
-        # find . -type f -newermt "2010-01-01" ! -newermt "2010-06-01"
-
-        :param rf:
-        :param path:
-        :return:
-        """
-        logger.info("Looking in %s %s" % (path, match))
-        while path.endswith('/'):
-            path = path[:-1]
-
-        path = path or '.'
-
-        # If the parent folder does not exists, there are no matches:
-        if not rf.exists(path):
-            return []
-
-        # Construct an appropriate `find` command:
-        cmd = ["find", "-L", path, "-type", "f", "-newermt",
-               self.date_interval.date_a.strftime('"%Y-%m-%d"'), "!", "-newermt",
-               self.date_interval.date_b.strftime('"%Y-%m-%d"'), "-name", '"%s"' % match]
-        # logger.debug(": %s" % " ".join(cmd))
-
-        listing = rf.remote_context.check_output(cmd).splitlines()
-        return [v.decode('utf-8') for v in listing]
 
 
 if __name__ == '__main__':

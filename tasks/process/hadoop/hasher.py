@@ -63,6 +63,27 @@ class ListAllFilesOnHDFS(luigi.Task):
                         f.write(json.dumps(info)+'\n')
 
 
+class ListEmptyFilesOnHDFS(luigi.Task):
+    """
+    Takes the full file list and extracts the empty files, as these should be checked.
+    """
+    date = luigi.DateParameter(default=datetime.date.today())
+
+    def requires(self):
+        return ListAllFilesOnHDFS(self.date)
+
+    def output(self):
+        return state_file(self.date, 'hdfs', 'empty-files-list.jsonl')
+
+    def run(self):
+        with self.output().open('w') as f:
+            for line in self.input().open('r'):
+                item = json.loads(line.strip())
+                # Archive file names:
+                if item['permissions'].startswith('d') and item['filesize'] == "0":
+                    f.write(json.dumps(item) + '\n')
+
+
 class ListWebArchiveFilesOnHDFS(luigi.Task):
     """
     Takes the full file list and strips it down to just the WARCs and ARCs
@@ -175,4 +196,5 @@ class GenerateWarcHashes(luigi.contrib.hadoop_jar.HadoopJarJobTask):
 if __name__ == '__main__':
     #luigi.run(['ListUKWAWebArchiveFilesOnHDFS', '--local-scheduler'])
     luigi.run(['ListDuplicateWebArchiveFilesOnHDFS', '--local-scheduler'])
+    luigi.run(['ListEmptyFilesOnHDFS', '--local-scheduler'])
 #    luigi.run(['GenerateWarcHashes', 'daily-warcs-test.txt'])
