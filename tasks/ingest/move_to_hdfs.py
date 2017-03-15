@@ -23,7 +23,7 @@ SIPS_FOLDER =  os.environ.get('local_sips_folder','/heritrix/sips')
 
 
 def hash_target(path):
-    return luigi.LocalTarget('{}/files/hash/{}'.format(LUIGI_STATE_FOLDER, os.path.basename(path)))
+    return luigi.LocalTarget('{}/files/hash/{}'.format(LUIGI_STATE_FOLDER, path.replace('/','_')))
 
 
 class AwaitUploadRemoteFileToHDFS(luigi.ExternalTask):
@@ -38,7 +38,7 @@ class AwaitUploadRemoteFileToHDFS(luigi.ExternalTask):
         return t
 
 
-class DISABLEDUploadRemoteFileToHDFS(luigi.Task):
+class UploadRemoteFileToHDFS(luigi.Task):
     """
     This copies up to HDFS but uses a temporary filename (via a suffix) to avoid downstream tasks
     thinking the work is already done.
@@ -114,10 +114,14 @@ class CalculateHdfsHash(luigi.Task):
     host = luigi.Parameter()
     source_path = luigi.Parameter()
     target_path = luigi.Parameter()
+    await_transfer = luigi.BoolParameter(default=True)
     resources = { 'hdfs': 1 }
 
     def requires(self):
-        return AwaitUploadRemoteFileToHDFS(self.host, self.source_path, self.target_path)
+        if self.await_transfer:
+            return AwaitUploadRemoteFileToHDFS(self.host, self.source_path, self.target_path)
+        else:
+            return UploadRemoteFileToHDFS(self.host, self.source_path, self.target_path)
 
     def output(self):
         return hash_target("%s.hdfs.sha512" % self.target_path)
