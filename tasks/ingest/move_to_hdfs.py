@@ -111,17 +111,18 @@ class UploadRemoteFileToHDFS(luigi.Task):
 
 class MoveToHdfs(luigi.Task):
     task_namespace = 'file'
+
     host = luigi.Parameter()
     source_path = luigi.Parameter()
     target_path = luigi.Parameter()
     delete_local = luigi.BoolParameter(default=False)
-    await_transfer = luigi.BoolParameter(default=True)
+    upload = luigi.BoolParameter(default=False)
 
     def requires(self):
-        if self.await_transfer:
-            return AwaitUploadRemoteFileToHDFS(self.host, self.source_path, self.target_path)
-        else:
+        if self.upload:
             return UploadRemoteFileToHDFS(self.host, self.source_path, self.target_path)
+        else:
+            return AwaitUploadRemoteFileToHDFS(self.host, self.source_path, self.target_path)
 
     def output(self):
         return hash_target("%s.transferred" % self.target_path)
@@ -220,7 +221,7 @@ class ScanForFilesToMove(luigi.WrapperTask):
     remote_prefix = luigi.Parameter(default="")
     delete_local = luigi.BoolParameter(default=False)
     date_interval = luigi.DateIntervalParameter(default=get_large_interval())
-    await_transfer = luigi.BoolParameter(default=True)
+    upload = luigi.BoolParameter(default=False)
 
     def requires(self):
         """
@@ -262,7 +263,7 @@ class ScanForFilesToMove(luigi.WrapperTask):
 
     def request_move(self, item):
         logger.info("Requesting Move to HDFS for:%s" % item)
-        return MoveToHdfs(self.host, item, self.hdfs_path(item), self.delete_local, self.await_transfer)
+        return MoveToHdfs(self.host, item, self.hdfs_path(item), self.delete_local, self.upload)
 
     def hdfs_path(self, path):
         # Chop out any local prefix:
@@ -334,7 +335,7 @@ class ScanForSIPsToMove(luigi.WrapperTask):
     host = luigi.Parameter()
     remote_prefix = luigi.Parameter(default="")
     delete_local = luigi.BoolParameter(default=False)
-    await_transfer = luigi.BoolParameter(default=True)
+    upload = luigi.BoolParameter(default=False)
 
     def requires(self):
         """
@@ -357,7 +358,7 @@ class ScanForSIPsToMove(luigi.WrapperTask):
 
     def request_move(self, item):
         logger.info("Requesting Move to HDFS for:%s" % item)
-        return MoveToHdfs(self.host, item, self.hdfs_path(item), self.delete_local, self.await_transfer)
+        return MoveToHdfs(self.host, item, self.hdfs_path(item), self.delete_local, self.upload)
 
     def hdfs_path(self, path):
         # Chop out any local prefix:
