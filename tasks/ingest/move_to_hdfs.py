@@ -66,7 +66,7 @@ class UploadRemoteFileToHDFS(luigi.Task):
         self.uploader(self.host, self.source_path, self.output().path)
 
     @staticmethod
-    def uploader(host, local_path, hdfs_path, username="heritrix"):
+    def uploader(host, local_path, hdfs_path, username="root"):
         """
         Copy up to HDFS, making it suitably atomic by using a temporary filename during upload.
 
@@ -88,7 +88,7 @@ class UploadRemoteFileToHDFS(luigi.Task):
         #one = 'curl -L -i -X PUT -T local_file "http://:50075/webhdfs/v1/?op=CREATE..."'
         #two = 'curl -X PUT -L "http://host:port/webhdfs/v1/tmp/myLargeFile.zip?op=CREATE&data=true" --header "Content-Type:application/octet-stream" --header "Transfer-Encoding:chunked" -T "/myLargeFile.zip"'
         rc = luigi.contrib.ssh.RemoteContext(host)
-        cmd = ['curl', '-X', 'PUT', '-L', '-T', '"%s"' % local_path,
+        cmd = ['curl', '-X', 'PUT', '-H', 'Content-Type: application/octet-stream', '-L', '-T', '"%s"' % local_path,
                '"%s%s?op=CREATE&user.name=%s&data=true"' % (WEBHDFS_PREFIX, tmp_path, username) ]
         logger.debug("UPLOADER: %s" % " ".join(cmd))
         rc.check_output(cmd)
@@ -350,7 +350,6 @@ class ScanForSIPsToMove(luigi.WrapperTask):
         # Look in warcs and viral for WARCs e.g in /heritrix/output/{warcs|viral}/**/*.warc.gz
         tasks = []
         for item in rf.listdir("%s/*/*.tar.gz" % local_sip_folder):
-            logger.debug("SIP: %s" % item)
             tasks.append(self.request_move(item))
 
         # Yield all together:
