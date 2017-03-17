@@ -49,7 +49,7 @@ class UploadRemoteFileToHDFS(luigi.Task):
     host = luigi.Parameter()
     source_path = luigi.Parameter()
     target_path = luigi.Parameter()
-    resources = {'hdfs': 1}
+    resources = {'webhdfs': 1}
 
     def output(self):
         t = luigi.contrib.hdfs.HdfsTarget(self.target_path)
@@ -66,7 +66,7 @@ class UploadRemoteFileToHDFS(luigi.Task):
         self.uploader(self.host, self.source_path, self.output().path)
 
     @staticmethod
-    def uploader(host, local_path, hdfs_path):
+    def uploader(host, local_path, hdfs_path, username="heritrix"):
         """
         Copy up to HDFS, making it suitably atomic by using a temporary filename during upload.
 
@@ -89,7 +89,7 @@ class UploadRemoteFileToHDFS(luigi.Task):
         #two = 'curl -X PUT -L "http://host:port/webhdfs/v1/tmp/myLargeFile.zip?op=CREATE&data=true" --header "Content-Type:application/octet-stream" --header "Transfer-Encoding:chunked" -T "/myLargeFile.zip"'
         rc = luigi.contrib.ssh.RemoteContext(host)
         cmd = ['curl', '-X', 'PUT', '-L', '-T', '"%s"' % local_path,
-               '"%s%s?op=CREATE&user.name=root&data=true"' % (WEBHDFS_PREFIX, tmp_path) ]
+               '"%s%s?op=CREATE&user.name=%s&data=true"' % (WEBHDFS_PREFIX, tmp_path, username) ]
         logger.debug("UPLOADER: %s" % " ".join(cmd))
         rc.check_output(cmd)
 
@@ -220,6 +220,7 @@ class ScanForFilesToMove(luigi.WrapperTask):
     remote_prefix = luigi.Parameter(default="")
     delete_local = luigi.BoolParameter(default=False)
     date_interval = luigi.DateIntervalParameter(default=get_large_interval())
+    await_transfer = luigi.BoolParameter(default=True)
 
     def requires(self):
         """
@@ -261,7 +262,7 @@ class ScanForFilesToMove(luigi.WrapperTask):
 
     def request_move(self, item):
         logger.info("Requesting Move to HDFS for:%s" % item)
-        return MoveToHdfs(self.host, item, self.hdfs_path(item), self.delete_local)
+        return MoveToHdfs(self.host, item, self.hdfs_path(item), self.delete_local, self.await_transfer)
 
     def hdfs_path(self, path):
         # Chop out any local prefix:
