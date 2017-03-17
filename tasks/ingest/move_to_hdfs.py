@@ -88,7 +88,7 @@ class UploadRemoteFileToHDFS(luigi.Task):
         #one = 'curl -L -i -X PUT -T local_file "http://:50075/webhdfs/v1/?op=CREATE..."'
         #two = 'curl -X PUT -L "http://host:port/webhdfs/v1/tmp/myLargeFile.zip?op=CREATE&data=true" --header "Content-Type:application/octet-stream" --header "Transfer-Encoding:chunked" -T "/myLargeFile.zip"'
         rc = luigi.contrib.ssh.RemoteContext(host)
-        cmd = ['curl', '-X', 'PUT', '-H', 'Content-Type: application/octet-stream', '-L', '-T', '"%s"' % local_path,
+        cmd = ['curl', '-X', 'PUT', '-H', '"Content-Type: application/octet-stream"', '-L', '-T', '"%s"' % local_path,
                '"%s%s?op=CREATE&user.name=%s&data=true"' % (WEBHDFS_PREFIX, tmp_path, username) ]
         logger.debug("UPLOADER: %s" % " ".join(cmd))
         rc.check_output(cmd)
