@@ -80,7 +80,7 @@ class ListEmptyFilesOnHDFS(luigi.Task):
             for line in self.input().open('r'):
                 item = json.loads(line.strip())
                 # Archive file names:
-                if item['permissions'].startswith('d') and item['filesize'] == "0":
+                if not item['permissions'].startswith('d') and item['filesize'] == "0":
                     f.write(json.dumps(item) + '\n')
 
 
@@ -195,6 +195,6 @@ class GenerateWarcHashes(luigi.contrib.hadoop_jar.HadoopJarJobTask):
 
 if __name__ == '__main__':
     #luigi.run(['ListUKWAWebArchiveFilesOnHDFS', '--local-scheduler'])
-    luigi.run(['ListDuplicateWebArchiveFilesOnHDFS', '--local-scheduler'])
+    #luigi.run(['ListDuplicateWebArchiveFilesOnHDFS', '--local-scheduler'])
     luigi.run(['ListEmptyFilesOnHDFS', '--local-scheduler'])
 #    luigi.run(['GenerateWarcHashes', 'daily-warcs-test.txt'])
