@@ -66,7 +66,7 @@ class UploadRemoteFileToHDFS(luigi.Task):
         self.uploader(self.host, self.source_path, self.output().path)
 
     @staticmethod
-    def uploader(host, local_path, hdfs_path, username="root"):
+    def uploader(host, local_path, hdfs_path, username="heritrix"):
         """
         Copy up to HDFS, making it suitably atomic by using a temporary filename during upload.
 
@@ -75,7 +75,7 @@ class UploadRemoteFileToHDFS(luigi.Task):
         :return: None
         """
         # Set up the HDFS client:
-        client = luigi.contrib.hdfs.WebHdfsClient()
+        client = luigi.contrib.hdfs.WebHdfsClient(user=username)
 
         # Create the temporary file name:
         tmp_path = "%s.temp" % hdfs_path
