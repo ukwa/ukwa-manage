@@ -127,30 +127,48 @@ class MoveToHdfs(luigi.Task):
     def output(self):
         return hash_target("%s.transferred" % self.target_path)
 
+    @staticmethod
+    def calculate_reader_hash(reader, path="unknown-path"):
+        """
+        Reads a file-like object in chunks, building up the SHA512 hash.
+
+        :param reader: A file-like object that allows the data to be read
+        :param path: The path of this file-like object, for reporting purposes
+        :return:
+        """
+        sha = hashlib.sha512()
+        while True:
+            data = reader.read(10485760)
+            if not data:
+                reader.close()
+                break
+            sha.update(data)
+        path_hash = sha.hexdigest()
+
+        # test hash is sane:
+        check_hash(path, path_hash)
+
+        # return it:
+        return path_hash
+
     def calculate_remote_hash(self):
         logger.debug("Remote file %s to hash" % self.source_path)
 
-        t = luigi.contrib.ssh.RemoteTarget(path=self.source_path,host=self.host)#, **SSH_KWARGS)
+        t = luigi.contrib.ssh.RemoteTarget(path=self.source_path,host=self.host)
         with t.open('r') as reader:
-            file_hash = hashlib.sha512(reader.read()).hexdigest()
-
-        # test hash is sane:
-        check_hash(self.source_path, file_hash)
+            file_hash = self.calculate_reader_hash(reader, path=str(self.source_path))
 
         # And return it:
         return file_hash
 
     def calculate_hdfs_hash(self):
-        logger.debug("HDFS file %s to hash" % (self.target_path))
+        logger.debug("HDFS file %s to hash" % self.target_path)
 
         # get hash for local or hdfs file
         client = luigi.contrib.hdfs.WebHdfsClient()
         # Having to side-step the first client as it seems to be buggy/use an old API - note also confused put()
         with client.client.read(str(self.target_path)) as reader:
-            file_hash = hashlib.sha512(reader.read()).hexdigest()
-
-        # test hash is sane
-        check_hash(self.target_path, file_hash)
+            file_hash = self.calculate_reader_hash(reader, path=str(self.target_path))
 
         # And return it:
         return file_hash
