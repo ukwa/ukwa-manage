@@ -277,8 +277,10 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
     def init_mapper(self):
         # Set up...
         if self.from_hdfs:
+            logger.warning("Loading targets from HDFS: %s" % self.targets_path)
             targets = luigi.contrib.hdfs.HdfsTarget(path=self.targets_path, format=Plain)
         else:
+            logger.warning("Loading targets from local FS: %s" % self.targets_path)
             targets = luigi.LocalTarget(path=self.targets_path)
         self.extractor = CrawlLogExtractors(self.job, self.launch_id, targets)
 

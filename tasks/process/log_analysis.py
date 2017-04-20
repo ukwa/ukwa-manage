@@ -106,7 +106,7 @@ class SyncToHdfs(luigi.Task):
 
         # Give the namenode a moment to catch-up with itself and then check it's there:
         # FIXME I suspect this is only needed for our ancient HDFS
-        time.sleep(30)
+        time.sleep(10)
         status = client.client.status(self.target_path)
 
 
@@ -120,7 +120,7 @@ class AnalyseAndProcessDocuments(luigi.Task):
     from_hdfs = luigi.BoolParameter(default=False)
 
     def requires(self):
-        return AnalyseLogFile(self.job, self.launch_id, self.log_paths, self.targets_path, True)
+        return AnalyseLogFile(self.job, self.launch_id, self.log_paths, self.targets_path, self.from_hdfs)
 
     def output(self):
         return luigi.LocalTarget(
