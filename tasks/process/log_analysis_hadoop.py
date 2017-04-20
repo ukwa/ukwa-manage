@@ -88,12 +88,19 @@ class CrawlLogLine(object):
 
 class CrawlLogExtractors(object):
 
-    def __init__(self, job, launch, targets):
+    def __init__(self, job, launch, targets_path, from_hdfs):
         self.job = job
         self.launch_id = launch
+        # Setup targets:
+        if from_hdfs:
+            logger.warning("Loading targets from HDFS: %s" % targets_path)
+            targets = luigi.contrib.hdfs.HdfsTarget(path=targets_path, format=Plain)
+        else:
+            logger.warning("Loading targets from local FS: %s" % targets_path)
+            targets = luigi.LocalTarget(path=targets_path)
         # Find the unique watched seeds list:
-        logger.info("Loading: %s" % targets)
-        logger.info("Loading path: %s" % targets.path)
+        logger.warning("Loading: %s" % targets)
+        logger.warning("Loading path: %s" % targets.path)
         targets = json.load(targets.open())
         target_map = {}
         watched = set()
@@ -276,13 +283,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
 
     def init_mapper(self):
         # Set up...
-        if self.from_hdfs:
-            logger.warning("Loading targets from HDFS: %s" % self.targets_path)
-            targets = luigi.contrib.hdfs.HdfsTarget(path=self.targets_path, format=Plain)
-        else:
-            logger.warning("Loading targets from local FS: %s" % self.targets_path)
-            targets = luigi.LocalTarget(path=self.targets_path)
-        self.extractor = CrawlLogExtractors(self.job, self.launch_id, targets)
+        self.extractor = CrawlLogExtractors(self.job, self.launch_id, self.targets_path, self.from_hdfs)
 
     def jobconfs(self):
         """
