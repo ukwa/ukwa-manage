@@ -94,7 +94,8 @@ class CrawlLogExtractors(object):
         # Setup targets:
         if from_hdfs:
             logger.warning("Loading targets from HDFS: %s" % targets_path)
-            targets = luigi.contrib.hdfs.HdfsTarget(path=targets_path, format=Plain)
+            hdfs_client = luigi.contrib.hdfs.WebHdfsClient(host='hdfs', port='14000', user='hdfs')
+            targets = luigi.contrib.hdfs.HdfsTarget(path=targets_path, format=Plain, fs=hdfs_client)
         else:
             logger.warning("Loading targets from local FS: %s" % targets_path)
             targets = luigi.LocalTarget(path=targets_path)
