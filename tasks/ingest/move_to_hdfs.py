@@ -268,7 +268,8 @@ class ScanForFilesToMove(luigi.WrapperTask):
         # And look for /heritrix/output/logs/**/*.log*:
         for log_item in self.listdir_in_date_range(rf, "%s/logs/" % local_output_folder, "*.log*"):
             logger.debug("WARC: %s" % log_item)
-            if os.path.splitext(log_item)[1] == '.lck':
+            last_ext = os.path.splitext(log_item)[1]
+            if last_ext == '.lck' or last_ext == '.sha512':
                 continue
             elif os.path.splitext(log_item)[1] == '.log':
                 # Only move files with the '.log' suffix if this job is no-longer running (based on .lck file):

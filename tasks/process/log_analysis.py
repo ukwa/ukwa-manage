@@ -1,4 +1,5 @@
 import os
+import time
 import json
 import hashlib
 import logging
@@ -102,6 +103,12 @@ class SyncToHdfs(luigi.Task):
         # And rename
         logger.info("Renaming to %s" % self.target_path)
         client.rename(temp_path, self.target_path)
+
+        # Give the namenode a moment to catch-up with itself and then check it's there:
+        # FIXME I suspect this is only needed for our ancient HDFS
+        time.sleep(30)
+        status = client.client.status(self.target_path)
+
 
 
 class AnalyseAndProcessDocuments(luigi.Task):
