@@ -152,9 +152,10 @@ def get_large_interval():
 
     :return:
     """
-    return luigi.date_interval.Custom(
+    interval = luigi.date_interval.Custom(
         datetime.date.today() - datetime.timedelta(weeks=52),
         datetime.date.today() + datetime.timedelta(days=1))
+    return interval
 
 
 class ScanForLaunches(luigi.WrapperTask):
@@ -176,6 +177,7 @@ class ScanForLaunches(luigi.WrapperTask):
     def enumerate_launches(self):
         # Look for jobs that need to be processed:
         for date in self.date_interval:
+            logger.info("Looking at date %s" % date)
             for job_item in glob.glob("%s/*" % h3().local_job_folder):
                 job = os.path.basename(job_item)
                 if os.path.isdir(job_item):

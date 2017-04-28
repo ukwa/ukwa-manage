@@ -322,7 +322,9 @@ class MoveFilesForLaunch(luigi.Task):
         logger.info("Looking in %s %s" % ( self.job, self.launch_id))
         # Look in /heritrix/output/wren files and move them to the /warcs/ folder:
         tasks = []
-        for wren_item in glob.glob("%s/*-%s-%s-*.warc.gz" % (h3().local_wren_folder,self. job.name, self.launch_id)):
+        warc_glob = "%s/*-%s-%s-*.warc.gz" % (h3().local_wren_folder,self.job.name, self.launch_id)
+        logger.info("Looking for WREN outputs: %s" % warc_glob)
+        for wren_item in glob.glob(warc_glob):
             tasks.append(MoveToWarcsFolder(self.job, self.launch_id, wren_item))
         yield tasks
 
