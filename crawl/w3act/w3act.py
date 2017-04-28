@@ -104,6 +104,15 @@ class w3act():
     def get_by_target_list(self, frequency):
         return self._get_json("%s/targets/export/by/%s" % (self.url, frequency))
 
+    def get_subjects(self):
+        return self._get_json("%s/api/subjects" % (self.url))
+
+    def get_collection_tree(self):
+        return self._get_json("%s/api/collections" % (self.url))
+
+    def get_collection(self, cid):
+        return self._get_json("%s/api/collections/%i" % (self.url, cid))
+
     def post_document(self, doc):
         ''' See https://github.com/ukwa/w3act/wiki/Document-REST-Endpoint '''
         r = requests.post("%s/documents" % self.url, headers=self.up_headers, data=json.dumps([doc]))
