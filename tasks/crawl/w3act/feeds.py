@@ -238,6 +238,8 @@ RE_NONCHARS = re.compile(r"""
 %
 +
 @
+,
+;
 ]
 """, re.VERBOSE)
 RE_SCHEME = re.compile('https?://')
@@ -251,7 +253,7 @@ class GenerateAccessWhitelist(luigi.Task):
     """
     task_namespace = 'w3act'
     date = luigi.DateParameter(default=datetime.date.today())
-    wct_url_file = luigi.Parameter(default="/home/tomcat/oukwa-wayback-whitelist/wct_urls.txt")
+    wct_url_file = luigi.Parameter(default=os.path.join(os.path.dirname(__file__), "wct_urls.txt"))
 
     all_surts = set()
 
@@ -290,10 +292,6 @@ class GenerateAccessWhitelist(luigi.Task):
 
     def surts_from_wct(self):
         count = 0
-        # Check if it exists:
-        if not os.path.exists(self.wct_url_file):
-            logger.error("WCT URL file %s not found! " % self.wct_url_file)
-            return
         # process every URL from WCT
         with open(self.wct_url_file, 'r') as wcturls:
             # strip any whitespace from beginning or end of line
