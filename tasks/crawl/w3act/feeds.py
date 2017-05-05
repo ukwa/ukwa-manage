@@ -429,5 +429,90 @@ class GenerateAnnotationsAndWhitelist(luigi.WrapperTask):
     def requires(self):
         return [ GenerateAccessWhitelist(), GenerateIndexAnnotations() ]
 
+
+import pysolr
+
+
+class UpdateCollectionsSolr(luigi.Task):
+    task_namespace = 'discovery'
+    date = luigi.DateParameter(default=datetime.date.today())
+    solr_endpoint = luigi.Parameter(default='http://localhost:8983/solr/collections')
+
+    def requires(self):
+        return [TargetList(self.date), CollectionList(self.date), SubjectList(self.date)]
+
+    @staticmethod
+    def add_collection(s, targets_by_id, col, parent_id):
+        if col['field_publish']:
+            print("Publishing...", col['name'])
+
+            # add a document to the Solr index
+            s.add([
+                {
+                    "id": col["id"],
+                    "type": "collection",
+                    "name": col["name"],
+                    "description": col["description"],
+                    "parentId": parent_id
+                }
+            ], commit=False)
+
+            # Look up all Targets within this Collection and add them.
+            for tid in col['targetIds']:
+                target = targets_by_id.get(tid, None)
+                if not target:
+                    logger.error("Warning! Could not find target %i" % tid)
+                    continue
+
+                # add a document to the Solr index
+                s.add([{
+                    "id": target["id"],
+                    "type": "target",
+                    "parentId": col['id'],
+                    "title": target["title"],
+                    "description": target["description"],
+                    "url": target["fieldUrls"][0]["url"],
+                    "additionalUrl": [t["url"] for t in target["fieldUrls"] if t["position"] > 0],
+                    "language": target["language"],
+                    "startDate": target["crawlStartDateISO"],
+                    "endDate": target["crawlEndDateISO"],
+                    "licenses": [l["id"] for l in target["licenses"]]
+                }], commit=False)
+
+            # Add child collections
+            for cc in col["children"]:
+                UpdateCollectionsSolr.add_collection(s, targets_by_id, cc, col['id'])
+        else:
+            print("Skipping...", col['name'])
+
+        return
+
+    def run(self):
+        targets = json.load(self.input()[0].open())
+        collections = json.load(self.input()[1].open())
+        subjects = json.load(self.input()[2].open())
+
+        # build look-up table for Target IDs
+        targets_by_id = {}
+        target_count = 0
+        for target in targets:
+            tid = target['id']
+            targets_by_id[tid] = target
+            target_count += 1
+        logger.info("Found %i targets..." % target_count)
+
+        s = pysolr.Solr(self.solr_endpoint, timeout=30)
+
+        # First, we delete everything (!)
+        s.delete(q="*:*", commit=False)
+
+        # Update the collections:
+        for col in collections:
+            UpdateCollectionsSolr.add_collection(s, targets_by_id, col, None)
+
+        # Now commit all changes:
+        s.commit()
+
+
 if __name__ == '__main__':
-    luigi.run(['w3act.GenerateAnnotationsAndWhitelist', '--local-scheduler'])
+    luigi.run(['discovery.UpdateCollectionsSolr',  '--local-scheduler'])
