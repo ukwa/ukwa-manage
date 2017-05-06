@@ -6,8 +6,8 @@ import subprocess
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
-from tasks.settings import state
-from tasks.common import logger
+from shepherd.tasks.settings import state
+from shepherd.tasks.common import logger
 
 LUIGI_STATE_FOLDER = state().folder
 
@@ -184,7 +184,7 @@ class GenerateWarcHashes(luigi.contrib.hadoop_jar.HadoopJarJobTask):
     #    return tasks.report.crawl_summary.GenerateWarcList(self.input_file)
 
     def jar(self):
-        return "../jars/warc-hadoop-recordreaders-2.2.0-BETA-7-SNAPSHOT-job.jar"
+        return "../../jars/warc-hadoop-recordreaders-2.2.0-BETA-7-SNAPSHOT-job.jar"
 
     def main(self):
         return "uk.bl.wa.hadoop.mapreduce.hash.HdfsFileHasher"

@@ -8,11 +8,8 @@ import luigi.date_interval
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 import luigi.contrib.hadoop_jar
-from tasks.settings import state, h3
-from tasks.common import logger
-
-logger = logging.getLogger('luigi-interface')
-
+from shepherd.tasks.settings import state, h3
+from shepherd.tasks.common import logger
 
 def get_modest_interval():
     return luigi.date_interval.Custom(

@@ -29,7 +29,7 @@ class GenerateWarcStats(luigi.contrib.hadoop_jar.HadoopJarJobTask):
         return GenerateWarcList(self.job, self.launch)
 
     def jar(self):
-        return "../jars/warc-hadoop-recordreaders-2.2.0-BETA-7-SNAPSHOT-job.jar"
+        return "../../jars/warc-hadoop-recordreaders-2.2.0-BETA-7-SNAPSHOT-job.jar"
 
     def main(self):
         return "uk.bl.wa.hadoop.mapreduce.warcstats.WARCStatsTool"

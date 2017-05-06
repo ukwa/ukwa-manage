@@ -8,8 +8,8 @@ import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 from luigi.contrib.hdfs.format import Plain, PlainDir
 
-import crawl # Imported so extra_modules MR-bundle can access the following:
-from crawl.h3.utils import url_to_surt
+import shepherd # Imported so extra_modules MR-bundle can access the following:
+from shepherd.lib.h3.utils import url_to_surt
 
 logger = logging.getLogger('luigi-interface')
 
