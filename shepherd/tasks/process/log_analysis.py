@@ -123,7 +123,7 @@ class AnalyseAndProcessDocuments(luigi.Task):
                 tasks = []
                 for line in in_file:
                     prefix, docjson = line.strip().split("\t", 1)
-                    if prefix == "DOCUMENT":
+                    if prefix.startswith("DOCUMENT"):
                         doc = json.loads(docjson)
                         out_file.write("%s\n" % json.dumps(doc))
                         tasks.append(ExtractDocumentAndPost(self.job, self.launch_id, doc, doc["source"]))

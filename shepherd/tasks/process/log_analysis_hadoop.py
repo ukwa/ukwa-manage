@@ -281,7 +281,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
             return luigi.LocalTarget(path=out_name)
 
     def extra_modules(self):
-        return [crawl]
+        return [shepherd]
 
     def init_mapper(self):
         # Set up...
@@ -307,10 +307,10 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
         yield "BY-HOST %s" % log.host(), json.dumps(log.stats())
         yield "BY-SOURCE %s" % log.source, json.dumps(log.stats())
         yield "BY-TARGET %s" % self.extractor.target_id(log), json.dumps(log.stats())
-        # Scan for documents:
+        # Scan for documents, yield sorted in crawl order:
         doc = self.extractor.extract_documents(log)
         if doc:
-            yield "DOCUMENT", doc
+            yield "DOCUMENT-%i" % doc.get("wayback_timestamp", 0), doc
 
     def reducer(self, key, values):
         """
