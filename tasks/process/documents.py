@@ -1,8 +1,5 @@
-import re
-import os
 import json
 import hashlib
-import logging
 from urlparse import urlparse
 import requests
 from requests.utils import quote
@@ -13,21 +10,12 @@ import luigi.contrib.hadoop
 from crawl.w3act.w3act import w3act
 from crawl.dex.document_mdex import DocumentMDEx
 from tasks.crawl.h3.crawl_job_tasks import CrawlFeed
-from tasks.common import target_name
-
-logger = logging.getLogger('luigi-interface')
-
-HDFS_PREFIX = os.environ.get("HDFS_PREFIX", "")
-WAYBACK_PREFIX = os.environ.get("WAYBACK_PREFIX", "http://localhost:9080/wayback")
-
-LUIGI_STATE_FOLDER = os.environ['LUIGI_STATE_FOLDER']
-ACT_URL = os.environ['ACT_URL']
-ACT_USER = os.environ['ACT_USER']
-ACT_PASSWORD = os.environ['ACT_PASSWORD']
+from tasks.common import logger, target_name
+from tasks.settings import state, systems, act
 
 
 def dtarget(job, launch_id, status):
-    return luigi.LocalTarget('{}/{}'.format(LUIGI_STATE_FOLDER, target_name('logs/documents', job, launch_id, status)))
+    return luigi.LocalTarget('{}/{}'.format(state().folder, target_name('logs/documents', job, launch_id, status)))
 
 
 class AvailableInWayback(luigi.ExternalTask):
@@ -101,7 +89,7 @@ class AvailableInWayback(luigi.ExternalTask):
         Checks if a resource with a particular timestamp is available in the index:
         :return:
         """
-        wburl = '%s/xmlquery.jsp?type=urlquery&url=%s' % (WAYBACK_PREFIX, quote(self.url))
+        wburl = '%s/xmlquery.jsp?type=urlquery&url=%s' % (systems().wayback, quote(self.url))
         logger.debug("Checking availability %s" % wburl)
         r = requests.get(wburl)
         logger.debug("Availability response: %d" % r.status_code)
@@ -123,7 +111,7 @@ class AvailableInWayback(luigi.ExternalTask):
         This is done separately, as using this alone may accidentally get an older version.
         :return:
         """
-        wburl = '%s/%s/%s' % (WAYBACK_PREFIX, self.ts, self.url)
+        wburl = '%s/%s/%s' % (systems().wayback, self.ts, self.url)
         logger.debug("Checking download %s" % wburl)
         r = requests.head(wburl)
         logger.debug("Download HEAD response: %d" % r.status_code)
@@ -158,7 +146,7 @@ class ExtractDocumentAndPost(luigi.Task):
 
     @staticmethod
     def document_target(host, hash):
-        return luigi.LocalTarget('{}/documents/{}/{}'.format(LUIGI_STATE_FOLDER, host, hash))
+        return luigi.LocalTarget('{}/documents/{}/{}'.format(state().folder, host, hash))
 
     def output(self):
         hasher = hashlib.md5()
@@ -178,7 +166,7 @@ class ExtractDocumentAndPost(luigi.Task):
             # Inform W3ACT it's available:
             doc['status'] = 'ACCEPTED'
             logger.debug("Sending doc: %s" % doc)
-            w = w3act(ACT_URL, ACT_USER, ACT_PASSWORD)
+            w = w3act(act().url, act().username, act().password)
             r = w.post_document(doc)
             if r.status_code == 200:
                 logger.info("Document POSTed to W3ACT: %s" % doc['document_url'])

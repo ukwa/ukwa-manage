@@ -25,7 +25,7 @@ setup(
             'create-sip=crawl.sip.creator:main',
             'movetohdfs=crawl.hdfs.movetohdfs:main',
             'h3cc=crawl.h3.h3cc:main',
-            'w3act=crawl.w3act.w3act_cli:main',
+            'w3act=w3act.w3act_cli:main',
             'pulse=tasks.pulse:main',
             'generate-luigi-config=tasks.generate_config:main'
         ],

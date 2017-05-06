@@ -4,15 +4,14 @@ import glob
 import time
 import luigi
 import string
-import datetime
 import hashlib
 import threading
-import subprocess
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
 import shutil
-from common import *
-from crawl_job_tasks import CheckJobStopped
+from tasks.crawl.h3.crawl_job_tasks import CheckJobStopped
+from tasks.settings import h3
+from tasks.common import hash_target, logger
 
 
 def get_hdfs_path(path):

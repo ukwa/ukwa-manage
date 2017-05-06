@@ -6,10 +6,10 @@ import subprocess
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
+from tasks.settings import state
+from tasks.common import logger
 
-logger = logging.getLogger('luigi-interface')
-
-LUIGI_STATE_FOLDER = os.environ.get('LUIGI_STATE_FOLDER','./state')
+LUIGI_STATE_FOLDER = state().folder
 
 
 def state_file(date, tag, suffix, on_hdfs=False):

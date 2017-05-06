@@ -5,22 +5,7 @@ import json
 import luigi
 import datetime
 import glob
-import gzip
-import time
-from dateutil.parser import parse
-import zipfile
-import logging
-from slackclient import SlackClient
-from crawl.w3act.w3act import w3act
-import crawl.h3.hapyx as hapyx
-from crawl.w3act.job import W3actJob
-from crawl.w3act.job import remove_action_files
-from tasks.common import *
-from tasks.crawl.h3.crawl_job_tasks import CheckJobStopped
-from assembler import AssembleOutput
-
-
-
+from tasks.settings import logger, LUIGI_STATE_FOLDER
 
 class ScanForPackages(luigi.WrapperTask):
     """
@@ -33,8 +18,8 @@ class ScanForPackages(luigi.WrapperTask):
     def requires(self):
         # Look for jobs that need to be processed:
         for date in self.date_interval:
-            for job_item in glob.glob("%s/*/*" % state().state_folder):
-                job = Jobs[os.path.basename(job_item)]
+            for job_item in glob.glob("%s/*/*" % LUIGI_STATE_FOLDER):
+                job = os.path.basename(job_item)
                 if os.path.isdir(job_item):
                     launch_glob = "%s/%s*" % (job_item, date.strftime('%Y%m%d'))
                     # self.set_status_message("Looking for job launch folders matching %s" % launch_glob)

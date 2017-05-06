@@ -8,11 +8,10 @@ import luigi.date_interval
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 import luigi.contrib.hadoop_jar
+from tasks.settings import state, h3
+from tasks.common import logger
 
 logger = logging.getLogger('luigi-interface')
-
-HDFS_PREFIX = ""
-HDFS_TASK_PREFIX = ""
 
 
 def get_modest_interval():
@@ -43,11 +42,11 @@ class ScanForOutputs(luigi.WrapperTask):
         # Look for jobs that need to be processed:
         for date in self.date_interval:
             logger.info("Scanning date %s..." % date)
-            for job_item in client.listdir("%s/heritrix/output/warcs" % HDFS_PREFIX):
+            for job_item in client.listdir("%s/heritrix/output/warcs" % h3().hdfs_prefix):
                 job = os.path.basename(job_item)
                 launch_glob = date.strftime('%Y%m%d')
                 #logger.debug("Looking for job launch folders matching %s" % launch_glob)
-                for launch_item in client.listdir("%s/heritrix/output/warcs/%s" % (HDFS_PREFIX, job)):
+                for launch_item in client.listdir("%s/heritrix/output/warcs/%s" % (h3.hdfs_prefix, job)):
                     if launch_item.startswith(launch_glob):
                         launch = os.path.basename(launch_item)
                         yield (job, launch)
@@ -58,7 +57,7 @@ class GenerateWarcList(luigi.Task):
     launch = luigi.Parameter()
 
     def output(self):
-        target = luigi.contrib.hdfs.HdfsTarget(os.path.join(HDFS_TASK_PREFIX,
+        target = luigi.contrib.hdfs.HdfsTarget(os.path.join(state().hdfs_folder,
                                                             "%s-%s-warclist.txt" % (self.job, self.launch)))
         return target
 
@@ -66,7 +65,7 @@ class GenerateWarcList(luigi.Task):
         # Get HDFS client:
         client = luigi.contrib.hdfs.WebHdfsClient()
         data = ""
-        for warc in client.listdir("%s/warcs/%s/%s" % (HDFS_PREFIX, self.job, self.launch)):
+        for warc in client.listdir("%s/warcs/%s/%s" % (h3.hdfs_prefix, self.job, self.launch)):
             logger.info("Listing %s" % warc)
             data += "%s\n" % warc
         temp_path = '%s.temp-%s' % (self.output().path, int(time.time()))

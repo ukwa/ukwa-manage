@@ -3,13 +3,11 @@
 
 import sys
 import json
-import logging
 import requests
 import traceback
 import time
 import dateutil.parser
-
-logger = logging.getLogger('luigi-interface')
+from tasks.settings import logger
 
 
 class CachedItem(object):

@@ -10,7 +10,7 @@ from luigi.contrib.hdfs.format import Plain, PlainDir
 import crawl # Imported so extra_modules MR-bundle can access the following:
 from crawl.h3.utils import url_to_surt
 
-logger = logging.getLogger('luigi-interface')
+logger = logging.getLogger(__name__)
 
 
 class LogFilesForJobLaunch(luigi.ExternalTask):

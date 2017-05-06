@@ -11,11 +11,11 @@ from urlparse import urlparse
 from collections import Counter
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
-from tasks.crawl.w3act.feeds import TargetListForFrequency
+from tasks.w3act.feeds import TargetListForFrequency
+from tasks.settings import state
+from tasks.common import logger
 
-logger = logging.getLogger('luigi-interface')
-
-LUIGI_STATE_FOLDER = os.environ['LUIGI_STATE_FOLDER']
+LUIGI_STATE_FOLDER = state().folder
 
 
 class GenerateMonthlyReport(luigi.Task):

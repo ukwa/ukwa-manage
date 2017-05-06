@@ -1,78 +1,20 @@
 import os
 import glob
 import hdfs
-import luigi
-import luigi.date_interval
-import luigi.contrib.esindex
 import string
 import logging
 import datetime
-from slackclient import SlackClient
+import luigi
+import luigi.date_interval
+import luigi.contrib.esindex
+import settings
 
 logger = logging.getLogger('luigi-interface')
-
-HDFS_PREFIX = os.environ.get("HDFS_PREFIX", "")
-WAYBACK_PREFIX = os.environ.get("WAYBACK_PREFIX", "http://localhost:9080/wayback")
-
-LUIGI_STATE_FOLDER = os.environ['LUIGI_STATE_FOLDER']
-ACT_URL = os.environ['ACT_URL']
-ACT_USER = os.environ['ACT_USER']
-ACT_PASSWORD = os.environ['ACT_PASSWORD']
 
 
 def webhdfs():
     client = hdfs.InsecureClient(url=os.environ['WEBHDFS_PREFIX'], user=os.environ['WEBHDFS_USER'])
     return client
-
-
-class state(luigi.Config):
-    state_folder = os.environ.get('LUIGI_STATE_FOLDER', luigi.Parameter(default='/state'))
-
-
-class act(luigi.Config):
-    url = os.environ.get('W3ACT_URL', luigi.Parameter(default='http://w3act:9000/act'))
-    username = os.environ.get('W3ACT_USER', luigi.Parameter(default='wa-sysadm@bl.uk'))
-    password = os.environ.get('W3ACT_PW', luigi.Parameter(default='sysAdmin'))
-
-
-class h3(luigi.Config):
-    host = luigi.Parameter(default='ukwa-heritrix')
-    port = luigi.IntParameter(default=8443)
-    username = os.environ.get('HERITRIX_USER', luigi.Parameter(default='heritrix'))
-    password = os.environ.get('HERITRIX_PASSWORD', luigi.Parameter(default='heritrix'))
-    local_root_folder = luigi.Parameter(default='/heritrix')
-    local_job_folder = luigi.Parameter(default='/jobs')
-    local_wren_folder = luigi.Parameter(default='/heritrix/wren')
-    hdfs_root_folder = os.environ.get('HDFS_PREFIX', luigi.Parameter('/1_data/pulse'))
-
-
-class systems(luigi.Config):
-    cdxserver = os.environ.get('CDXSERVER_URL', luigi.Parameter(default='http://cdxserver:8080/fc'))
-    wayback = os.environ.get('WAYBACK_URL', luigi.Parameter(default='http://openwayback:8080/wayback'))
-    wrender = os.environ.get('WRENDER_URL', luigi.Parameter(default='http://webrender:8010/render'))
-    # Prefix for webhdfs queries, separate from general Luigi HDFS configuration.
-    # e.g. http://localhost:50070/webhdfs/v1
-    webhdfs = os.environ.get('WEBHDFS_PREFIX', luigi.Parameter(default='http://hadoop:50070/webhdfs/v1'))
-    amqp_host = os.environ.get('AMQP_HOST', luigi.Parameter(default='amqp'))
-    clamd_host = os.environ.get('CLAMD_HOST', luigi.Parameter(default='clamd'))
-    clamd_port = os.environ.get('CLAMD_PORT', luigi.IntParameter(default=3310))
-    elasticsearch_host = os.environ.get('ELASTICSEARCH_HOST', luigi.Parameter(default='monitrix'))
-    elasticsearch_port = os.environ.get('ELASTICSEARCH_PORT', luigi.IntParameter(default=9200))
-    elasticsearch_index_prefix = os.environ.get('ELASTICSEARCH_INDEX_PREFIX', luigi.Parameter(default='pulse'))
-    servers = luigi.Parameter(default='/shepherd/tasks/servers.json')
-    services = luigi.Parameter(default='/shepherd/tasks/services.json')
-
-
-class slack(luigi.Config):
-    token = os.environ.get('SLACK_TOKEN', luigi.Parameter())
-
-LOCAL_ROOT = h3().local_root_folder
-LOCAL_JOBS_ROOT = h3().local_job_folder
-WARC_ROOT = "%s/output/warcs" % h3().local_root_folder
-VIRAL_ROOT = "%s/output/viral" % h3().local_root_folder
-IMAGE_ROOT = "%s/output/images" % h3().local_root_folder
-LOG_ROOT = "%s/output/logs" % h3().local_root_folder
-LOCAL_LOG_ROOT = "%s/output/logs" % h3().local_root_folder
 
 
 def check_hash(path, file_hash):
@@ -98,33 +40,33 @@ def short_target_name(state_class, job, launch_id, tail):
 
 
 def hash_target(job, launch_id, file):
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, short_target_name('files/hash', job, launch_id,
+    return luigi.LocalTarget('{}/{}'.format(settings.state().state_folder, short_target_name('files/hash', job, launch_id,
                                                                               os.path.basename(file))))
 
 
 def stats_target(job, launch_id, warc):
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, short_target_name('warc/stats', job, launch_id,
+    return luigi.LocalTarget('{}/{}'.format(settings.state().state_folder, short_target_name('warc/stats', job, launch_id,
                                                                               os.path.basename(warc))))
 
 
 def dtarget(job, launch_id, status):
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('logs/documents', job, launch_id, status)))
+    return luigi.LocalTarget('{}/{}'.format(settings.state().state_folder, target_name('logs/documents', job, launch_id, status)))
 
 
 def vtarget(job, launch_id, status):
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('07.verified', job, launch_id, status)))
+    return luigi.LocalTarget('{}/{}'.format(settings.state().state_folder, target_name('07.verified', job, launch_id, status)))
 
 
 def starget(job, launch_id, status):
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('06.submitted', job, launch_id, status)))
+    return luigi.LocalTarget('{}/{}'.format(settings.state().state_folder, target_name('06.submitted', job, launch_id, status)))
 
 
 def ptarget(job, launch_id, status):
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('05.packaged', job, launch_id, status)))
+    return luigi.LocalTarget('{}/{}'.format(settings.state().state_folder, target_name('05.packaged', job, launch_id, status)))
 
 
 def atarget(job, launch_id, status):
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('04.assembled', job, launch_id, status)))
+    return luigi.LocalTarget('{}/{}'.format(settings.state().state_folder, target_name('04.assembled', job, launch_id, status)))
 
 
 def otarget(job, launch_id, status):
@@ -135,15 +77,15 @@ def otarget(job, launch_id, status):
     :param state:
     :return:
     """
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('03.outputs', job, launch_id, status)))
+    return luigi.LocalTarget('{}/{}'.format(settings.state().state_folder, target_name('03.outputs', job, launch_id, status)))
 
 
 def ltarget(job, launch_id, status):
-    return luigi.LocalTarget('{}/{}.zip'.format(state().state_folder, target_name('02.logs', job, launch_id, status)))
+    return luigi.LocalTarget('{}/{}.zip'.format(settings.state().state_folder, target_name('02.logs', job, launch_id, status)))
 
 
 def jtarget(job, launch_id, status):
-    return luigi.LocalTarget('{}/{}'.format(state().state_folder, target_name('01.jobs', job, launch_id, status)))
+    return luigi.LocalTarget('{}/{}'.format(settings.state().state_folder, target_name('01.jobs', job, launch_id, status)))
 
 
 def get_large_interval():
@@ -178,7 +120,7 @@ class ScanForLaunches(luigi.WrapperTask):
         # Look for jobs that need to be processed:
         for date in self.date_interval:
             logger.info("Looking at date %s" % date)
-            for job_item in glob.glob("%s/*" % h3().local_job_folder):
+            for job_item in glob.glob("%s/*" % settings.h3().local_job_folder):
                 job = os.path.basename(job_item)
                 if os.path.isdir(job_item):
                     launch_glob = "%s/%s*" % (job_item, date.strftime('%Y%m%d'))
@@ -201,12 +143,12 @@ class RecordEvent(luigi.contrib.esindex.CopyToIndex):
     source = luigi.Parameter()
     event_type = luigi.Parameter()
 
-    host = systems().elasticsearch_host
-    port = systems().elasticsearch_port
+    host = settings.systems().elasticsearch_host
+    port = settings.systems().elasticsearch_port
     doc_type = 'default'
     #mapping = { "content": { "type": "text" } }
     purge_existing_index = False
-    index =  "{}-{}".format(systems().elasticsearch_index_prefix,
+    index =  "{}-{}".format(settings.systems().elasticsearch_index_prefix,
                              datetime.datetime.now().strftime('%Y-%m-%d'))
 
     def docs(self):
@@ -229,7 +171,7 @@ def notify_any_failure(task, exception):
        of `run` on any JobTask subclass
     """
 
-    if os.environ.get("ELASTICSEARCH_HOST", None):
+    if settings.systems().elasticsearch_host:
         doc = { 'content' : "Job %s failed: %s" % (task, exception) }
         source = 'luigi'
         esrm = RecordEvent("unknown_job", "unknown_launch_id", doc, source, "task-failure")
@@ -237,23 +179,13 @@ def notify_any_failure(task, exception):
     else:
         logger.warning("No Elasticsearch host set, no failure message sent.")
 
-    if os.environ.get("SLACK_TOKEN", None):
-        sc = SlackClient(slack().token)
-        print(sc.api_call(
-            "chat.postMessage", channel="#crawls", text=":scream: Job _%s_ failed:\n> %s" % (task, exception),
-            username='crawljobbot'))  # , icon_emoji=':robot_face:'))
-    else:
-        logger.error("No Slack auth token set, no message sent.")
-        logger.error(task)
-        logger.exception(exception)
-
 
 @luigi.Task.event_handler(luigi.Event.SUCCESS)
 def celebrate_any_success(task):
     """Will be called directly after a successful execution
        of `run` on any Task subclass (i.e. all luigi Tasks)
     """
-    if os.environ.get("ELASTICSEARCH_HOST", None):
+    if settings.systems().elasticsearch_host:
         doc = { 'content' : "Job %s succeeded." % task }
         source = 'luigi'
         esrm = RecordEvent("unknown_job", "unknown_launch_id", doc, source, "task-success")

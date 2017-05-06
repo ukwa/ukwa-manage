@@ -2,8 +2,6 @@ import os
 import time
 import json
 import hashlib
-import logging
-import threading
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 
@@ -13,17 +11,8 @@ from tasks.process.log_analysis_hadoop import AnalyseLogFile
 from tasks.process.documents import ExtractDocumentAndPost
 from luigi.contrib.hdfs.format import Plain, PlainDir
 
-from tasks.common import webhdfs
-
-logger = logging.getLogger('luigi-interface')
-
-HDFS_PREFIX = os.environ.get("HDFS_PREFIX", "")
-WAYBACK_PREFIX = os.environ["WAYBACK_PREFIX"]
-
-LUIGI_STATE_FOLDER = os.environ['LUIGI_STATE_FOLDER']
-ACT_URL = os.environ['ACT_URL']
-ACT_USER = os.environ['ACT_USER']
-ACT_PASSWORD = os.environ['ACT_PASSWORD']
+from tasks.common import logger
+from tasks.settings import state
 
 
 class LogFilesForJobLaunch(luigi.ExternalTask):
@@ -124,7 +113,7 @@ class AnalyseAndProcessDocuments(luigi.Task):
 
     def output(self):
         return luigi.LocalTarget(
-            '{}/documents/posted-{}-{}-{}.jsonl'.format(LUIGI_STATE_FOLDER, self.job, self.launch_id, len(self.log_paths)))
+            '{}/documents/posted-{}-{}-{}.jsonl'.format(state().folder, self.job, self.launch_id, len(self.log_paths)))
 
     def run(self):
         # Loop over documents discovered, and attempt to post to W3ACT:
@@ -163,10 +152,10 @@ class GenerateCrawlLogReports(luigi.Task):
         logs_count = len(self.input())
         if self.extract_documents:
             return luigi.LocalTarget(
-                '{}/crawl-log-documents-{}-{}-{}'.format(LUIGI_STATE_FOLDER, self.job, self.launch_id, logs_count))
+                '{}/crawl-log-documents-{}-{}-{}'.format(state().folder, self.job, self.launch_id, logs_count))
         else:
             return luigi.LocalTarget(
-                '{}/crawl-log-report-{}-{}-{}'.format(LUIGI_STATE_FOLDER, self.job, self.launch_id, logs_count))
+                '{}/crawl-log-report-{}-{}-{}'.format(state().folder, self.job, self.launch_id, logs_count))
 
     def run(self):
         # Set up necessary data:

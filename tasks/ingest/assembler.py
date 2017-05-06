@@ -9,21 +9,12 @@ import luigi.contrib.hdfs
 import luigi.contrib.hdfs.error
 import datetime
 import gzip
-import string
-import hashlib
 from dateutil.parser import parse
 import zipfile
-import logging
 import tempfile
-
-logger = logging.getLogger('luigi-interface')
-
-LUIGI_STATE_FOLDER = os.environ['LUIGI_STATE_FOLDER']
-HDFS_PREFIX = os.environ['HDFS_PREFIX']
-LOCAL_PREFIX = os.environ['LOCAL_PREFIX']
-LOCAL_JOB_FOLDER = "%s%s" %( LOCAL_PREFIX, os.environ.get('LOCAL_JOB_FOLDER','/heritrix/jobs'))
-LOCAL_OUTPUT_FOLDER = "%s%s" %( LOCAL_PREFIX, os.environ.get('LOCAL_OUTPUT_FOLDER','/heritrix/output') )
-LOCAL_WREN_FOLDER = "%s%s" %( LOCAL_PREFIX, os.environ.get('LOCAL_WREN_FOLDER','/heritrix/wren') )
+from tasks.settings import state, h3
+from tasks.common import logger
+from tasks.crawl.h3.crawl_job_tasks import CheckJobStopped
 
 
 def target_name(state_class, job, launch_id, status):
@@ -31,7 +22,7 @@ def target_name(state_class, job, launch_id, status):
 
 
 def jtarget(job, launch_id, status):
-    return luigi.LocalTarget('{}/{}'.format(LUIGI_STATE_FOLDER, target_name('01.jobs', job, launch_id, status)))
+    return luigi.LocalTarget('{}/{}'.format(state().folder, target_name('01.jobs', job, launch_id, status)))
 
 def get_stage_suffix(stage):
     """
@@ -60,7 +51,7 @@ class PackageLogs(luigi.Task):
             return CheckJobStopped(self.host, self.job, self.launch_id)
 
     def output(self):
-        return luigi.LocalTarget('{}/{}.zip'.format(LUIGI_STATE_FOLDER,
+        return luigi.LocalTarget('{}/{}.zip'.format(state().folder,
                                                     target_name('02.logs', self.job, self.launch_id, self.stage)))
 
     def run(self):
@@ -73,11 +64,11 @@ class PackageLogs(luigi.Task):
             f.write('')
         self.output().remove()
         # What to remove from the paths:
-        chop = len(str(LOCAL_PREFIX))
+        chop = len(str(h3().local_prefix))
         with zipfile.ZipFile(self.output().path, 'w', allowZip64=True) as zipout:
             # Crawl log:
             for crawl_log in remote_ls(
-                            "%s/logs/%s/%s" % (LOCAL_OUTPUT_FOLDER, self.job, self.launch_id),
+                            "%s/logs/%s/%s" % (h3.local_output_folder, self.job, self.launch_id),
                             "/crawl.log%s" % get_stage_suffix(self.stage), rf):
                 logger.info("Found %s..." % os.path.basename(crawl_log))
                 self.add_remote_file(zipout, crawl_log[chop:], crawl_log, rf)
@@ -136,7 +127,7 @@ class AssembleOutput(luigi.Task):
     #    luigi.LocalTarget("%s/%s/%s/logs-%s.zip" % (self.LOCAL_LOG_ROOT, self.job, self.launch_id, self.stage))
     def output(self):
         return luigi.LocalTarget(
-            '{}/{}'.format(LUIGI_STATE_FOLDER, target_name('03.outputs', self.job, self.launch_id, self.stage)))
+            '{}/{}'.format(state().folder, target_name('03.outputs', self.job, self.launch_id, self.stage)))
 
     def run(self):
         # Set up remote connection:
@@ -339,7 +330,7 @@ class AggregateOutputs(luigi.Task):
 
     def output(self):
         return luigi.LocalTarget(
-                '{}/{}'.format(LUIGI_STATE_FOLDER, target_name('04.assembled', self.job, self.launch_id,
+                '{}/{}'.format(state().folder, target_name('04.assembled', self.job, self.launch_id,
                                                                "%s.%s" %(len(self.outputs), self.state))))
 
     def run(self):
@@ -411,7 +402,7 @@ class ProcessOutputs(luigi.Task):
 
     def output(self):
         return luigi.LocalTarget(
-                '{}/{}'.format(LUIGI_STATE_FOLDER, target_name('04.assembled', self.job, self.launch_id, "list")))
+                '{}/{}'.format(state().folder, target_name('04.assembled', self.job, self.launch_id, "list")))
 
     def run(self):
         logger.info(self.launch_id)

@@ -6,8 +6,7 @@ import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 import luigi.contrib.hadoop_jar
 from tasks.process.scan_hdfs import ScanForOutputs, GenerateWarcList
-
-logger = logging.getLogger('luigi-interface')
+from tasks.common import logger
 
 
 class GenerateWarcStats(luigi.contrib.hadoop_jar.HadoopJarJobTask):

@@ -1,9 +1,6 @@
-import os
-import logging
 import luigi
 from tasks.process.log_analysis import GenerateCrawlLogReports
-
-logger = logging.getLogger('luigi-interface')
+from tasks.common import logger
 
 
 class GenerateCrawlReport(luigi.Task):
