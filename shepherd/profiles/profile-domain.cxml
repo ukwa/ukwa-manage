@@ -78,7 +78,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
         <bean class="org.archive.modules.deciderules.surt.SurtPrefixedDecideRule">
           <property name="seedsAsSurtPrefixes" value="false"/>
           <property name="alsoCheckVia" value="false"/>
-          <property name="surtsSourceFile" value="surts.txt"/>
+          <property name="surtsSourceFile" value="surts-dc.txt"/>
           <property name="surtsDumpFile" value="surts.dump"/>
         </bean>
 <!-- ...and ACCEPT associated/helper files... -->
