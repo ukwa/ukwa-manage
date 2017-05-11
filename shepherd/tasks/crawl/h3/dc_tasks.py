@@ -72,7 +72,7 @@ class CreateDomainCrawlJobs(luigi.Task):
     amqp_host = luigi.Parameter(default="amqp.wa.bl.uk")
 
     def requires(self):
-        return SyncLocalToRemote( task=DownloadGeolite2Database(), host=self.host, remote_path="/dev/shm/geoip-city.mmdb")
+        return SyncLocalToRemote( input_task=DownloadGeolite2Database(), host=self.host, remote_path="/dev/shm/geoip-city.mmdb")
 
     def create_profile(self, job_name, job_id):
         """Creates the CXML content for a H3 job."""
