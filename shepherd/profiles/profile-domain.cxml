@@ -1,0 +1,758 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+  HERITRIX 3 CRAWL JOB CONFIGURATION FILE
+  
+   This is a relatively minimal configuration suitable for many crawls.
+   
+   Commented-out beans and properties are provided as an example; values
+   shown in comments reflect the actual defaults which are in effect
+   if not otherwise specified specification. (To change from the default 
+   behavior, uncomment AND alter the shown values.)   
+ -->
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xi="http://www.w3.org/2003/XInclude" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context" xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd            http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd            http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd            http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+  <context:annotation-config/>
+<!-- 
+  OVERRIDES
+   Values elsewhere in the configuration may be replaced ('overridden') 
+   by a Properties map declared in a PropertiesOverrideConfigurer, 
+   using a dotted-bean-path to address individual bean properties. 
+   This allows us to collect a few of the most-often changed values
+   in an easy-to-edit format here at the beginning of the model
+   configuration.    
+ -->
+<!-- overrides from a text property list -->
+  <bean id="simpleOverrides" class="org.springframework.beans.factory.config.PropertyOverrideConfigurer">
+    <property name="properties">
+      <value>
+# This Properties map is specified in the Java 'property list' text format
+# http://java.sun.com/javase/6/docs/api/java/util/Properties.html#load%28java.io.Reader%29
+
+metadata.operatorContactUrl=http://www.bl.uk/aboutus/legaldeposit/websites/websites/faqswebmaster/index.html
+metadata.jobName=REPLACE_JOB_NAME
+metadata.description=UK Legal Deposit Domain Crawl.
+
+##..more?..##
+   </value>
+    </property>
+  </bean>
+<!-- CRAWL METADATA: including identification of crawler/operator -->
+  <bean id="metadata" class="org.archive.modules.CrawlMetadata" autowire="byName">
+    <property name="operatorContactUrl" value="[see override above]"/>
+    <property name="jobName" value="[see override above]"/>
+    <property name="description" value="[see override above]"/>
+<!-- <property name="robotsPolicyName" value="obey"/> -->
+<!-- <property name="operator" value=""/> -->
+<!-- <property name="operatorFrom" value=""/> -->
+    <property name="organization" value="The British Library"/>
+<!-- <property name="audience" value=""/> -->
+    <property name="userAgentTemplate"
+         value="bl.uk_lddc_bot/@VERSION@ (+@OPERATOR_CONTACT_URL@)"/>
+  </bean>
+<!-- SEEDS ALTERNATE APPROACH: specifying external seeds.txt file in
+      the job directory, similar to the H1 approach. 
+      Use either the above, or this, but not both. -->
+  <bean id="seeds" class="org.archive.modules.seeds.TextSeedModule">
+    <property name="textSource">
+      <bean class="org.archive.spring.ConfigFile">
+        <property name="path" value="seeds.txt"/>
+      </bean>
+    </property>
+    <property name="sourceTagSeeds" value="false"/>
+    <property name="blockAwaitingSeedLines" value="-1"/>
+  </bean>
+<!-- GEO-LOOKUP: specifying location of external database. -->
+  <bean id="externalGeoLookup" class="uk.bl.wap.modules.deciderules.ExternalGeoLookup">
+    <property name="database" value="/dev/shm/geoip-city.mmdb"/>
+  </bean>
+
+<!-- SCOPE: rules for which discovered URIs to crawl; order is very 
+      important because last decision returned other than 'NONE' wins. -->
+  <bean id="scope" class="org.archive.modules.deciderules.DecideRuleSequence">
+    <property name="logToFile" value="false" />
+    <property name="rules">
+      <list>
+<!-- Begin by REJECTing all... -->
+        <bean class="org.archive.modules.deciderules.RejectDecideRule">
+				</bean>
+<!-- ...then ACCEPT those with +uk SURT prefixes... -->
+        <bean class="org.archive.modules.deciderules.surt.SurtPrefixedDecideRule">
+          <property name="seedsAsSurtPrefixes" value="false"/>
+          <property name="alsoCheckVia" value="false"/>
+          <property name="surtsSourceFile" value="surts.txt"/>
+          <property name="surtsDumpFile" value="surts.dump"/>
+        </bean>
+<!-- ...and ACCEPT associated/helper files... -->
+        <bean class="org.archive.modules.deciderules.MatchesRegexDecideRule">
+          <property name="regex" value="^https?://[^/]+/.+(?i)(\.(js|css|bmp|gif|jpe?g|[pm]ng|svg|tiff?|ico|web[pm]|aac|aiff?|m3u|m4[av]|midi?|mp[1234acu]|og[agm]|ra?m?|cda|alac|ac3|flac|wav|wm[av]|as[fx]|avi|flv|mov|mpe?g|qt|smil|swf))\b.*$"/>
+          <property name="decision" value="ACCEPT"/>
+        </bean>
+        <bean class="org.archive.modules.deciderules.HopsPathMatchesRegexDecideRule">
+          <property name="decision" value="ACCEPT"/>
+          <property name="regex" value="^E*$"/>
+        </bean>
+        <bean id="externalGeoLookupRule" class="uk.bl.wap.modules.deciderules.ExternalGeoLocationDecideRule">
+          <property name="lookup">
+            <ref bean="externalGeoLookup"/>
+          </property>
+          <property name="countryCodes">
+            <list>
+              <value>GB</value>
+            </list>
+          </property>
+          <property name="lookupEveryUri" value="true"/>
+        </bean>
+<!-- ...  ACCEPT those on the same Domain... -->
+        <ref bean="onDomainAccept"/>
+<!-- ... ACCEPT redirects... -->
+        <ref bean="redirectAccept"/>
+<!-- ...and REJECT highly compressible URIs... -->
+          <!--
+        <bean class="uk.bl.wap.modules.deciderules.CompressibilityDecideRule">
+          <property name="min" value="0.28"/>
+          <property name="max" value="1.6"/>
+        </bean>
+        -->
+<!-- ...but REJECT those more than a configured link-hop-count from start... -->
+        <ref bean="hopsCountReject"/>
+<!-- ...and REJECT those from a configurable (initially empty) set of URI regexes... -->
+        <ref bean="listRegexFilterOut"/>
+<!-- ...and REJECT those with suspicious repeating path-segments... -->
+        <bean class="org.archive.modules.deciderules.PathologicalPathDecideRule">
+          <property name="maxRepetitions" value="3"/>
+        </bean>
+<!-- ...and REJECT those with more than threshold number of path-segments... -->
+        <bean class="org.archive.modules.deciderules.TooManyPathSegmentsDecideRule">
+          <property name="maxPathDepth" value="15"/>
+        </bean>
+<!-- ...but ACCEPT URL-shortening services -->
+        <bean class="org.archive.modules.deciderules.surt.SurtPrefixedDecideRule">
+          <property name="decision" value="ACCEPT"/>
+          <property name="seedsAsSurtPrefixes" value="false"/>
+          <property name="surtsDumpFile" value="url.shorteners.dump"/>
+          <property name="surtsSourceFile" value="url.shorteners.txt"/>
+        </bean>
+<!-- ...but REJECT those from a configurable set of REJECT SURTs... -->
+        <bean class="org.archive.modules.deciderules.surt.SurtPrefixedDecideRule">
+          <property name="decision" value="REJECT"/>
+          <property name="seedsAsSurtPrefixes" value="false"/>
+          <property name="surtsDumpFile" value="exclude.dump"/>
+          <property name="surtsSourceFile" value="exclude.txt"/>
+        </bean>
+<!-- ...but always ACCEPT those marked as prerequisitee for another URI... -->
+        <bean class="org.archive.modules.deciderules.PrerequisiteAcceptDecideRule">
+        </bean>
+      </list>
+    </property>
+  </bean>
+<!-- ...but REJECT those more than a configured link-hop-count from start... -->
+  <bean id="hopsCountReject" class="org.archive.modules.deciderules.TooManyHopsDecideRule">
+    <property name="maxHops" value="20"/>
+  </bean>
+<!-- ...and REJECT those from a configurable (initially empty) set of URI regexes... -->
+  <bean id="listRegexFilterOut" class="org.archive.modules.deciderules.MatchesListRegexDecideRule">
+    <property name="decision" value="REJECT"/>
+    <property name="listLogicalOr" value="true"/>
+    <property name="regexList">
+      <xi:include href="includes.xml" xpointer="xpointer(//includes/excludes/list)" />
+    </property>
+  </bean>
+<!-- ... ACCEPT those on the same Domain ... -->
+  <bean id="onDomainAccept" class="org.archive.modules.deciderules.surt.OnDomainsDecideRule">
+    <property name="decision" value="ACCEPT"/>
+    <property name="enabled" value="false"/>
+  </bean>
+<!-- ... ACCEPT redirects ... -->
+  <bean id="redirectAccept" class="org.archive.modules.deciderules.HopsPathMatchesRegexDecideRule">
+    <property name="decision" value="ACCEPT"/>
+    <property name="regex" value="^R+$"/>
+    <property name="enabled" value="false"/>
+  </bean>
+<!-- 
+   PROCESSING CHAINS
+    Much of the crawler's work is specified by the sequential 
+    application of swappable Processor modules. These Processors
+    are collected into three 'chains'. The CandidateChain is applied 
+    to URIs being considered for inclusion, before a URI is enqueued
+    for collection. The FetchChain is applied to URIs when their 
+    turn for collection comes up. The DispositionChain is applied 
+    after a URI is fetched and analyzed/link-extracted.
+  -->
+<!-- CANDIDATE CHAIN -->
+<!-- first, processors are declared as top-level named beans -->
+  <bean id="candidateScoper" class="org.archive.crawler.prefetch.CandidateScoper">
+ </bean>
+  <bean id="preparer" class="org.archive.crawler.prefetch.FrontierPreparer">
+<!-- <property name="preferenceDepthHops" value="-1" /> -->
+<!-- <property name="preferenceEmbedHops" value="1" /> -->
+<!-- <property name="canonicalizationPolicy"> 
+        <ref bean="canonicalizationPolicy" />
+       </property> -->
+<!-- <property name="queueAssignmentPolicy"> 
+        <ref bean="queueAssignmentPolicy" />
+       </property> -->
+<!-- <property name="uriPrecedencePolicy"> 
+        <ref bean="uriPrecedencePolicy" />
+       </property> -->
+<!-- <property name="costAssignmentPolicy"> 
+        <ref bean="costAssignmentPolicy" />
+       </property> -->
+  </bean>
+  <bean id="hashCrawlMapper" class="org.archive.crawler.processor.HashCrawlMapper">
+   <!-- Specifiy this crawler's name (i.e. 0, 1, 2, etc.) -->
+    <property name="localName" value="REPLACE_LOCAL_NAME" />
+   <!-- Specifiy the number of crawlers in this job (i.e. 4 usually) -->
+    <property name="crawlerCount" value="REPLACE_CRAWLER_COUNT" />
+  </bean>
+  <bean id="quotaEnforcer" class="org.archive.crawler.prefetch.QuotaEnforcer">
+    <property name="serverMaxSuccessKb" value="524288"/>
+  </bean>
+<!-- now, processors are assembled into ordered CandidateChain bean -->
+  <bean id="candidateProcessors" class="org.archive.modules.CandidateChain">
+    <property name="processors">
+      <list>
+<!-- apply scoping rules to each individual candidate URI... -->
+        <ref bean="candidateScoper"/>
+<!-- Check URIs for crawler assignment -->
+        <ref bean="hashCrawlMapper"/>
+<!-- ...then prepare those ACCEPTed to be enqueued to frontier. -->
+        <ref bean="preparer"/>
+      </list>
+    </property>
+  </bean>
+<!-- FETCH CHAIN -->
+<!-- first, processors are declared as top-level named beans -->
+  <bean id="preselector" class="org.archive.crawler.prefetch.Preselector">
+<!-- <property name="recheckScope" value="false" /> -->
+<!-- <property name="blockAll" value="false" /> -->
+<!-- <property name="blockByRegex" value="" /> -->
+<!-- <property name="allowByRegex" value="" /> -->
+  </bean>
+  <bean id="preconditions" class="org.archive.crawler.prefetch.PreconditionEnforcer">
+<!-- <property name="ipValidityDurationSeconds" value="21600" /> -->
+<!-- <property name="robotsValidityDurationSeconds" value="86400" /> -->
+<!-- <property name="calculateRobotsOnly" value="false" /> -->
+  </bean>
+  <bean id="fetchDns" class="org.archive.modules.fetcher.FetchDNS">
+<!-- <property name="acceptNonDnsResolves" value="false" /> -->
+<!-- <property name="digestContent" value="true" /> -->
+<!-- <property name="digestAlgorithm" value="sha1" /> -->
+  </bean>
+<!-- <bean id="fetchWhois" class="org.archive.modules.fetcher.FetchWhois">
+       <property name="specialQueryTemplates">
+        <map>
+         <entry key="whois.verisign-grs.com" value="domain %s" />
+         <entry key="whois.arin.net" value="z + %s" />
+         <entry key="whois.denic.de" value="-T dn %s" />
+        </map>
+       </property> 
+      </bean> -->
+  <bean id="fetchHttp" class="org.archive.modules.fetcher.FetchHTTP">
+<!-- <property name="useHTTP11" value="false" /> -->
+<!-- <property name="maxLengthBytes" value="0" /> -->
+<!-- <property name="timeoutSeconds" value="1200" /> -->
+<!-- <property name="maxFetchKBSec" value="0" /> -->
+<!-- <property name="defaultEncoding" value="ISO-8859-1" /> -->
+<!-- <property name="shouldFetchBodyRule"> 
+        <bean class="org.archive.modules.deciderules.AcceptDecideRule"/>
+       </property> -->
+<!-- <property name="soTimeoutMs" value="20000" /> -->
+     <property name="sendIfModifiedSince" value="false" />
+     <property name="sendIfNoneMatch" value="false" />
+<!-- <property name="sendConnectionClose" value="true" /> -->
+<!-- <property name="sendReferer" value="true" /> -->
+<!-- <property name="sendRange" value="false" /> -->
+<!-- <property name="ignoreCookies" value="false" /> -->
+<!-- <property name="sslTrustLevel" value="OPEN" /> -->
+<!-- <property name="acceptHeaders"> 
+        <list>
+         <value>Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8</value>
+        </list>
+       </property>
+  -->
+<!-- <property name="httpBindAddress" value="" /> -->
+<!-- <property name="httpProxyHost" value="" /> -->
+<!-- <property name="httpProxyPort" value="0" /> -->
+<!-- <property name="httpProxyUser" value="" /> -->
+<!-- <property name="httpProxyPassword" value="" /> -->
+<!-- <property name="digestContent" value="true" /> -->
+<!-- <property name="digestAlgorithm" value="sha1" /> -->
+  </bean>
+  <bean id="extractorHttp" class="org.archive.modules.extractor.ExtractorHTTP">
+  </bean>
+  <bean id="extractorHtml" class="org.archive.modules.extractor.ExtractorHTML">
+    <property name="extractJavascript" value="false" />
+<!-- <property name="extractValueAttributes" value="true" /> -->
+<!-- <property name="ignoreFormActionUrls" value="false" /> -->
+<!-- <property name="extractOnlyFormGets" value="true" /> -->
+<!-- <property name="treatFramesAsEmbedLinks" value="true" /> -->
+<!-- <property name="ignoreUnexpectedHtml" value="true" /> -->
+<!-- <property name="maxElementLength" value="1024" /> -->
+<!-- <property name="maxAttributeNameLength" value="1024" /> -->
+<!-- <property name="maxAttributeValueLength" value="16384" /> -->
+  </bean>
+  <bean id="extractorCss" class="org.archive.modules.extractor.ExtractorCSS">
+  </bean>
+  <bean id="extractorJs" class="org.archive.modules.extractor.ExtractorJS">
+  </bean>
+  <bean id="extractorSwf" class="org.archive.modules.extractor.ExtractorSWF">
+  </bean>
+  <bean id="extractorJson" class="uk.bl.wap.modules.extractor.ExtractorJson">
+  </bean>
+  <bean id="extractorMq" class="org.archive.modules.AMQPPublishProcessor">
+    <property name="clientId" value="REPLACE_JOB_NAME" />
+    <property name="routingKey" value="webrender-domain" />
+    <property name="exchange" value="heritrix" />
+    <property name="amqpUri" value="amqp://guest:guest@REPLACE_AMQP_HOST:5672/%2f" />
+    <property name="shouldProcessRule">
+        <bean class="org.archive.modules.deciderules.DecideRuleSequence">
+            <property name="rules">
+                <list>
+                    <!-- Begin by REJECTing all... -->
+                    <bean class="org.archive.modules.deciderules.RejectDecideRule"/>
+                    <!-- ...then ACCEPT those with viral annotations... -->
+                    <bean class="org.archive.modules.deciderules.SeedAcceptDecideRule"/>
+                    <bean class="org.archive.modules.deciderules.MatchesRegexDecideRule">
+                        <property name="regex" value="^https?://[^/]+/$"/>
+                        <property name="decision" value="ACCEPT"/>
+                    </bean>
+                    <bean class="org.archive.modules.deciderules.ExpressionDecideRule">
+                        <property name="decision" value="REJECT"/>
+                        <property name="groovyExpression" value="(curi.getFetchStatus() &lt; 200 || curi.getFetchStatus() &gt;= 300)"/>
+                    </bean>
+                </list>
+            </property>
+        </bean>
+    </property>
+  </bean>
+  <bean class="uk.bl.wap.crawler.frontier.AMQPUrlReceiver">
+    <property name="amqpUri" value="amqp://guest:guest@REPLACE_AMQP_HOST:5672/%2f" />
+    <property name="exchange" value="heritrix" />
+    <property name="queueName" value="REPLACE_JOB_NAME" />
+    <property name="durable" value="true"/>
+    <property name="autoDelete" value="false"/>
+  </bean>
+  <bean id="viralContent" class="uk.bl.wap.crawler.processor.ViralContentProcessor">
+    <property name="clamdHost" value="REPLACE_CLAMD_HOST"/>
+    <property name="clamdPort" value="REPLACE_CLAMD_PORT"/>
+    <property name="clamdTimeout" value="60000"/>
+    <property name="streamMaxLength" value="94371840"/>
+  </bean>
+  <!-- Configure persistent URI history storage -->
+  <bean id="persistStoreProcessor" class="org.archive.modules.recrawl.PersistStoreProcessor">
+    <property name="bdbModule" ref="bdbPersistBdb"/>
+  </bean>
+  <bean id="fetchHistoryProcessor" class="org.archive.modules.recrawl.FetchHistoryProcessor">
+    <property name="historyLength" value="2"/>
+  </bean>
+  <!-- Configure persistent URI history loading for subsequent crawls -->
+  <bean id="persistLoadProcessor" class="org.archive.modules.recrawl.PersistLoadProcessor">
+    <property name="bdbModule" ref="bdbPersistBdb"/>
+  </bean>
+<!-- now, processors are assembled into ordered FetchChain bean -->
+  <bean id="fetchProcessors" class="org.archive.modules.FetchChain">
+    <property name="processors">
+      <list>
+<!-- enforce per-host quotas... -->
+        <ref bean="quotaEnforcer"/>
+<!-- re-check scope, if so enabled... -->
+        <ref bean="preselector"/>
+<!-- ...then verify or trigger prerequisite URIs fetched, allow crawling... -->
+        <ref bean="preconditions"/>
+        <ref bean="persistLoadProcessor"/>
+<!-- ...fetch if DNS URI... -->
+        <ref bean="fetchDns"/>
+<!-- <ref bean="fetchWhois"/> -->
+<!-- ...fetch if HTTP URI... -->
+        <ref bean="fetchHttp"/>
+        <ref bean="fetchHistoryProcessor"/>
+<!-- ...extract outlinks from HTTP headers... -->
+        <ref bean="extractorHttp"/>
+<!-- ...suppress likely crawler traps... -->
+<!--ref bean="trapSuppressExtractor" /-->
+<!-- ...extract outlinks via Asynchronous Messaging Queue... -->
+        <ref bean="extractorMq"/>
+<!-- ...extract outlinks from JSON... -->
+        <ref bean="extractorJson"/>
+<!-- ...extract outlinks from HTML content... -->
+        <ref bean="extractorHtml"/>
+<!-- ...extract outlinks from CSS content... -->
+        <ref bean="extractorCss"/>
+<!-- ...extract outlinks from Javascript content... -->
+        <!--ref bean="extractorJs"/-->
+<!-- ...extract outlinks from Flash content... -->
+        <ref bean="extractorSwf"/>
+<!-- ...add IPs to crawl.log... -->
+        <bean class="uk.bl.wap.crawler.processor.IpAnnotator">
+        </bean>
+<!-- ...add country-codes to crawl.log... -->
+        <bean class="uk.bl.wap.crawler.processor.CountryCodeAnnotator">
+        </bean>
+<!-- ...scan for viruses... -->
+        <ref bean="viralContent"/>
+      </list>
+    </property>
+  </bean>
+<!-- DISPOSITION CHAIN -->
+<!-- first, processors are declared as top-level named beans  -->
+  <bean id="warcWriterViral" class="uk.bl.wap.modules.writer.WARCViralWriterProcessor">
+    <property name="shouldProcessRule">
+      <bean class="org.archive.modules.deciderules.DecideRuleSequence">
+        <property name="rules">
+          <list>
+            <!-- Begin by REJECTing all... -->
+            <bean class="org.archive.modules.deciderules.RejectDecideRule"/>
+            <!-- ...then ACCEPT those with viral annotations... -->
+            <bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
+              <property name="decision" value="ACCEPT"/>
+              <property name="regexList">
+                <list>
+                  <value>^.*stream:.+FOUND.*$</value>
+                </list>
+              </property>
+            </bean>
+          </list>
+        </property>
+      </bean>
+    </property>
+<!-- <property name="compress" value="true" /> -->
+    <property name="prefix" value="BL"/>
+<!-- <property name="suffix" value="${HOSTNAME}" /> -->
+    <property name="maxFileSizeBytes" value="1006632959"/>
+    <property name="poolMaxActive" value="5"/>
+    <!-- <property name="MaxWaitForIdleMs" value="500" /> -->
+<!-- <property name="skipIdenticalDigests" value="false" /> -->
+<!-- <property name="maxTotalBytesToWrite" value="0" /> -->
+<!-- <property name="directory" value="${launchId}" /> -->
+    <property name="storePaths">
+      <list>
+        <value>/heritrix/output/viral/REPLACE_JOB_NAME/</value>
+      </list>
+    </property>
+<!-- <property name="template" value="${prefix}-${timestamp17}-${serialno}-${heritrix.pid}~${heritrix.hostname}~${heritrix.port}" /> -->
+<!-- <property name="writeRequests" value="true" /> -->
+<!-- <property name="writeMetadata" value="true" /> -->
+    <property name="writeRevisitForIdenticalDigests" value="false"/>
+    <property name="writeRevisitForNotModified" value="false"/>
+<!-- <property name="startNewFilesOnCheckpoint" value="true" /> -->
+  </bean>
+  <bean id="warcWriterDefault" class="org.archive.modules.writer.WARCWriterProcessor">
+    <property name="shouldProcessRule">
+      <bean class="org.archive.modules.deciderules.DecideRuleSequence">
+        <property name="rules">
+          <list>
+            <!-- Begin by ACCEPTing all... -->
+            <bean class="org.archive.modules.deciderules.AcceptDecideRule"/>
+            <!-- ...then REJECT those with viral annotations... -->
+            <bean class="uk.bl.wap.modules.deciderules.AnnotationMatchesListRegexDecideRule">
+              <property name="decision" value="REJECT"/>
+              <property name="regexList">
+                <list>
+                  <value>^.*stream:.+FOUND.*$</value>
+                </list>
+              </property>
+            </bean>
+          </list>
+        </property>
+      </bean>
+    </property>
+<!-- <property name="compress" value="true" /> -->
+    <property name="prefix" value="BL"/>
+<!-- <property name="suffix" value="${HOSTNAME}" /> -->
+    <property name="maxFileSizeBytes" value="1006632959"/>
+    <property name="poolMaxActive" value="5"/>
+<!-- <property name="MaxWaitForIdleMs" value="500" /> -->
+<!-- <property name="skipIdenticalDigests" value="false" /> -->
+<!-- <property name="maxTotalBytesToWrite" value="0" /> -->
+<!-- <property name="directory" value="${launchId}" /> -->
+    <property name="storePaths">
+      <list>
+        <value>/heritrix/output/warcs/REPLACE_JOB_NAME/</value>
+      </list>
+    </property>
+<!-- <property name="template" value="${prefix}-${timestamp17}-${serialno}-${heritrix.pid}~${heritrix.hostname}~${heritrix.port}" /> -->
+<!-- <property name="writeRequests" value="true" /> -->
+<!-- <property name="writeMetadata" value="true" /> -->
+<!-- <property name="writeRevisitForIdenticalDigests" value="true" /> -->
+    <property name="writeRevisitForNotModified" value="false"/>
+    <!-- <property name="startNewFilesOnCheckpoint" value="true" /> -->
+  </bean>
+  <bean id="candidates" class="org.archive.crawler.postprocessor.CandidatesProcessor">
+<!-- <property name="seedsRedirectNewSeeds" value="true" /> -->
+<!-- <property name="processErrorOutlinks" value="false" /> -->
+  </bean>
+  <bean id="disposition" class="org.archive.crawler.postprocessor.DispositionProcessor">
+<!-- <property name="delayFactor" value="5.0" /> -->
+     <property name="minDelayMs" value="1000" /> 
+<!-- <property name="respectCrawlDelayUpToSeconds" value="300" /> -->
+<!-- <property name="maxDelayMs" value="30000" /> -->
+<!-- <property name="maxPerHostBandwidthUsageKbSec" value="0" /> -->
+  </bean>
+<!-- <bean id="rescheduler" class="org.archive.crawler.postprocessor.ReschedulingProcessor">
+       <property name="rescheduleDelaySeconds" value="-1" />
+      </bean> -->
+<!-- now, processors are assembled into ordered DispositionChain bean -->
+  <bean id="dispositionProcessors" class="org.archive.modules.DispositionChain">
+    <property name="processors">
+      <list>
+<!-- write viral content to aggregate archival files... -->
+        <ref bean="warcWriterViral"/>
+<!-- write to aggregate archival files... -->
+        <ref bean="warcWriterDefault"/>
+        <ref bean="persistStoreProcessor"/>
+<!-- ...send each outlink candidate URI to CandidateChain, 
+         and enqueue those ACCEPTed to the frontier... -->
+        <ref bean="candidates"/>
+<!-- ...then update stats, shared-structures, frontier decisions -->
+        <ref bean="disposition"/>
+<!-- <ref bean="rescheduler" /> -->
+      </list>
+    </property>
+  </bean>
+<!-- CRAWLCONTROLLER: Control interface, unifying context -->
+  <bean id="crawlController" class="org.archive.crawler.framework.CrawlController">
+    <property name="maxToeThreads" value="200"/>
+<!-- <property name="pauseAtStart" value="true" /> -->
+    <property name="runWhileEmpty" value="true"/>
+<!-- <property name="recorderInBufferBytes" value="524288" /> -->
+<!-- <property name="recorderOutBufferBytes" value="16384" /> -->
+    <property name="scratchDir" value="/heritrix/scratch/REPLACE_JOB_NAME/"/>
+  </bean>
+<!-- FRONTIER: Record of all URIs discovered and queued-for-collection -->
+  <bean id="frontier" class="org.archive.crawler.frontier.BdbFrontier">
+    <property name="bdbModule" ref="bdbFrontierBdb"/>
+    <property name="extract404s" value="false" />
+<!-- <property name="queueTotalBudget" value="-1" /> -->
+<!-- <property name="balanceReplenishAmount" value="3000" /> -->
+<!-- <property name="errorPenaltyAmount" value="100" /> -->
+<!-- <property name="precedenceFloor" value="255" /> -->
+<!-- <property name="queuePrecedencePolicy">
+        <bean class="org.archive.crawler.frontier.precedence.BaseQueuePrecedencePolicy" />
+       </property> -->
+<!-- <property name="snoozeLongMs" value="300000" /> -->
+    <property name="retryDelaySeconds" value="300"/>
+    <property name="maxRetries" value="15"/>
+<!-- <property name="recoveryLogEnabled" value="true" /> -->
+<!-- <property name="maxOutlinks" value="6000" /> -->
+<!-- <property name="extractIndependently" value="false" /> -->
+<!-- <property name="outbound">
+        <bean class="java.util.concurrent.ArrayBlockingQueue">
+         <constructor-arg value="200"/>
+         <constructor-arg value="true"/>
+        </bean>
+       </property> -->
+<!-- <property name="inbound">
+        <bean class="java.util.concurrent.ArrayBlockingQueue">
+         <constructor-arg value="40000"/>
+         <constructor-arg value="true"/>
+        </bean>
+       </property> -->
+<!-- <property name="dumpPendingAtClose" value="false" /> -->
+  </bean>
+<!-- URI UNIQ FILTER: Used by frontier to remember already-included URIs -->
+  <bean id="uriUniqFilter" class="org.archive.crawler.util.BloomUriUniqFilter">
+ </bean>
+<!--
+   EXAMPLE SETTINGS OVERLAY SHEETS
+   Sheets allow some settings to vary by context - usually by URI context,
+   so that different sites or sections of sites can be treated differently. 
+   Here are some example Sheets for common purposes. The SheetOverlaysManager
+   (below) automatically collects all Sheet instances declared among the 
+   original beans, but others can be added during the crawl via the scripting 
+   interface.
+  -->
+  <xi:include href="includes.xml" xpointer="xpointer(//includes/sheets/bean)" />
+<!-- 
+   OPTIONAL BUT RECOMMENDED BEANS
+  -->
+<!-- ACTIONDIRECTORY: disk directory for mid-crawl operations
+      Running job will watch directory for new files with URIs, 
+      scripts, and other data to be processed during a crawl. -->
+  <bean id="actionDirectory" class="org.archive.crawler.framework.ActionDirectory">
+<!-- <property name="actionDir" value="action" /> -->
+<!-- <property name="doneDir" value="${launchId}/actions-done" /> -->
+<!-- <property name="initialDelaySeconds" value="10" /> -->
+<!-- <property name="delaySeconds" value="30" /> -->
+  </bean>
+<!--  CRAWLLIMITENFORCER: stops crawl when it reaches configured limits -->
+  <bean id="crawlLimiter" class="org.archive.crawler.framework.CrawlLimitEnforcer">
+<!-- <property name="maxBytesDownload" value="0" /> -->
+<!-- <property name="maxDocumentsDownload" value="0" /> -->
+<!-- <property name="maxTimeSeconds" value="0" /> -->
+  </bean>
+<!-- CHECKPOINTSERVICE: checkpointing assistance -->
+  <bean id="checkpointService" class="org.archive.crawler.framework.CheckpointService">
+    <property name="checkpointIntervalMinutes" value="2440"/>
+<!-- <property name="checkpointsDir" value="checkpoints"/> -->
+<!-- <property name="forgetAllButLatest" value="true"/> -->
+  </bean>
+<!-- 
+   OPTIONAL BEANS
+    Uncomment and expand as needed, or if non-default alternate 
+    implementations are preferred.
+  -->
+<!-- CANONICALIZATION POLICY -->
+<!--
+ <bean id="canonicalizationPolicy" 
+   class="org.archive.modules.canonicalize.RulesCanonicalizationPolicy">
+   <property name="rules">
+    <list>
+     <bean class="org.archive.modules.canonicalize.LowercaseRule" />
+     <bean class="org.archive.modules.canonicalize.StripUserinfoRule" />
+     <bean class="org.archive.modules.canonicalize.StripWWWNRule" />
+     <bean class="org.archive.modules.canonicalize.StripSessionIDs" />
+     <bean class="org.archive.modules.canonicalize.StripSessionCFIDs" />
+     <bean class="org.archive.modules.canonicalize.FixupQueryString" />
+    </list>
+  </property>
+ </bean>
+ -->
+<!-- QUEUE ASSIGNMENT POLICY -->
+<!--
+ <bean id="queueAssignmentPolicy" 
+   class="org.archive.crawler.frontier.SurtAuthorityQueueAssignmentPolicy">
+  <property name="forceQueueAssignment" value="" />
+  <property name="deferToPrevious" value="true" />
+  <property name="parallelQueues" value="1" />
+ </bean>
+ -->
+<!-- URI PRECEDENCE POLICY -->
+<!--
+ <bean id="uriPrecedencePolicy" 
+   class="org.archive.crawler.frontier.precedence.CostUriPrecedencePolicy">
+ </bean>
+ -->
+<!-- COST ASSIGNMENT POLICY -->
+
+ <bean id="costAssignmentPolicy" 
+   class="org.archive.crawler.frontier.UnitCostAssignmentPolicy">
+ </bean>
+
+<!-- CREDENTIAL STORE: HTTP authentication or FORM POST credentials -->
+<!-- 
+ <bean id="credentialStore" 
+   class="org.archive.modules.credential.CredentialStore">
+ </bean>
+ -->
+<!-- DISK SPACE MONITOR: 
+      Pauses the crawl if disk space at monitored paths falls below minimum threshold -->
+ <bean id="diskSpaceMonitor" class="org.archive.crawler.monitor.DiskSpaceMonitor">
+   <property name="pauseThresholdMiB" value="1048576"/>
+   <property name="monitorConfigPaths" value="false"/>
+   <property name="monitorPaths">
+     <list>
+       <value>/heritrix/output</value>
+       <value>/heritrix/state</value>
+     </list>
+   </property>
+ </bean>
+ <bean id="diskSpaceMonitorRoot" class="org.archive.crawler.monitor.DiskSpaceMonitor">
+   <property name="pauseThresholdMiB" value="1024"/>
+   <property name="monitorConfigPaths" value="true"/>
+   <property name="monitorPaths">
+     <list>
+       <value>/</value>
+     </list>
+   </property>
+ </bean>
+<!-- 
+   REQUIRED STANDARD BEANS
+    It will be very rare to replace or reconfigure the following beans.
+  -->
+  <!-- STATISTICSTRACKER: standard stats/reporting collector -->
+ <bean id="statisticsTracker"
+   class="org.archive.crawler.reporting.StatisticsTracker" autowire="byName">
+  <property name="bdbModule" ref="bdbStatisticsBdb"/>
+  <!-- disables end-of-job reporting altogether, aiming to make stopping simpler for large jobs -->
+  <property name="reports">
+    <list>
+      <bean class="org.archive.crawler.reporting.ProcessorsReport"/>
+      <bean class="org.archive.crawler.reporting.FrontierSummaryReport"/>
+      <bean class="org.archive.crawler.reporting.ToeThreadsReport"/>
+    </list>
+  </property>
+  <!-- <property name="reportsDir" value="reports" /> -->
+  <!-- <property name="liveHostReportSize" value="20" /> -->
+  <!-- <property name="intervalSeconds" value="3600" /> -->
+  <!-- 1 is sufficient for computing docs/s and KiB/s -->
+  <property name="keepSnapshotsCount" value="1" />
+  <!-- <property name="liveHostReportSize" value="20" /> -->
+ </bean>
+<!-- CRAWLERLOGGERMODULE: shared logging facility -->
+  <bean id="loggerModule" class="org.archive.crawler.reporting.CrawlerLoggerModule">
+    <property name="path" value="/heritrix/output/logs/REPLACE_JOB_NAME/"/>
+<!-- <property name="crawlLogPath" value="crawl.log" /> -->
+<!-- <property name="alertsLogPath" value="alerts.log" /> -->
+<!-- <property name="progressLogPath" value="progress-statistics.log" /> -->
+<!-- <property name="uriErrorsLogPath" value="uri-errors.log" /> -->
+<!-- <property name="runtimeErrorsLogPath" value="runtime-errors.log" /> -->
+<!-- <property name="nonfatalErrorsLogPath" value="nonfatal-errors.log" /> -->
+<!-- <property name="logExtraInfo" value="false" /> -->
+  </bean>
+<!-- SHEETOVERLAYMANAGER: manager of sheets of contextual overlays
+      Autowired to include any SheetForSurtPrefix or 
+      SheetForDecideRuled beans -->
+  <bean id="sheetOverlaysManager" autowire="byType" class="org.archive.crawler.spring.SheetOverlaysManager">
+ </bean>
+<!-- BDBMODULE: shared BDB-JE disk persistence manager -->
+<!--
+  <bean id="bdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/state/default"/>
+-->
+<!-- if neither cachePercent or cacheSize are specified (the default), bdb
+       uses its own default of 60% -->
+<!--      
+    <property name="cachePercent" value="30"/>
+-->
+<!-- <property name="cacheSize" value="0" /> -->
+<!-- <property name="useSharedCache" value="true" /> -->
+<!-- <property name="expectedConcurrency" value="25" /> -->
+<!--
+  </bean>
+-->
+  <bean id="bdbFrontierBdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/heritrix/state/#{metadata.jobName}/frontier"/>
+    <property name="cachePercent" value="30"/>
+    <property name="expectedConcurrency" value="100"/>
+  </bean>
+  <bean id="bdbPersistBdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/heritrix/state/#{metadata.jobName}/persist"/>
+    <property name="cachePercent" value="30"/>
+    <property name="expectedConcurrency" value="100"/>
+  </bean>
+  <bean id="bdbStatisticsBdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/heritrix/state/#{metadata.jobName}/statistics"/>
+    <property name="cachePercent" value="30"/>
+    <property name="expectedConcurrency" value="100"/>
+  </bean>
+  <bean id="bdbCookieStoreBdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/heritrix/state/#{metadata.jobName}/cookies"/>
+    <property name="cachePercent" value="30"/>
+    <property name="expectedConcurrency" value="100"/>
+  </bean>
+  <bean id="bdbServerCacheBdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/heritrix/state/#{metadata.jobName}/serverCache"/>
+    <property name="cachePercent" value="30"/>
+    <property name="expectedConcurrency" value="100"/>
+  </bean>
+
+<!-- BDBCOOKIESTORAGE: disk-based cookie storage for FetchHTTP -->
+  <bean id="cookieStorage" class="org.archive.modules.fetcher.BdbCookieStore">
+    <property name="bdbModule" ref="bdbCookieStoreBdb"/>
+<!-- <property name="cookiesLoadFile"><null/></property> -->
+<!-- <property name="cookiesSaveFile"><null/></property> -->
+<!-- <property name="bdb">
+        <ref bean="bdb"/>
+       </property> -->
+  </bean>
+<!-- SERVERCACHE: shared cache of server/host info -->
+  <bean id="serverCache" class="org.archive.modules.net.BdbServerCache">
+    <property name="bdbModule" ref="bdbServerCacheBdb"/>
+<!-- <property name="bdb">
+        <ref bean="bdb"/>
+       </property> -->
+  </bean>
+<!-- CONFIG PATH CONFIGURER: required helper making crawl paths relative
+      to crawler-beans.cxml file, and tracking crawl files for web UI -->
+  <bean id="configPathConfigurer" class="org.archive.spring.ConfigPathConfigurer">
+ </bean>
+</beans>
