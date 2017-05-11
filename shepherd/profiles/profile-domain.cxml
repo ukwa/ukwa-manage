@@ -68,7 +68,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
 <!-- SCOPE: rules for which discovered URIs to crawl; order is very 
       important because last decision returned other than 'NONE' wins. -->
   <bean id="scope" class="org.archive.modules.deciderules.DecideRuleSequence">
-    <property name="logToFile" value="true" />
+    <property name="logToFile" value="false" />
     <property name="rules">
       <list>
 <!-- Begin by REJECTing all... -->
@@ -106,10 +106,12 @@ metadata.description=UK Legal Deposit Domain Crawl.
 <!-- ... ACCEPT redirects... -->
         <ref bean="redirectAccept"/>
 <!-- ...and REJECT highly compressible URIs... -->
+          <!--
         <bean class="uk.bl.wap.modules.deciderules.CompressibilityDecideRule">
           <property name="min" value="0.28"/>
           <property name="max" value="1.6"/>
         </bean>
+        -->
 <!-- ...but REJECT those more than a configured link-hop-count from start... -->
         <ref bean="hopsCountReject"/>
 <!-- ...and REJECT those from a configurable (initially empty) set of URI regexes... -->
@@ -296,18 +298,11 @@ metadata.description=UK Legal Deposit Domain Crawl.
   </bean>
   <bean id="extractorJson" class="uk.bl.wap.modules.extractor.ExtractorJson">
   </bean>
-  <!--bean id="extractorMq" class="uk.bl.wap.modules.extractor.AsynchronousMQExtractor">
-    <property name="host" value="localhost"/>
-    <property name="routingKey" value="phantomjs"/>
-    <property name="queue" value="phantomjs"/>
-    <property name="durable" value="true"/>
-    <property name="outputPath" value="REPLACE_HERITRIX_JOBS/REPLACE_JOB_NAME/action/"/>
-  </bean-->
   <bean id="extractorMq" class="org.archive.modules.AMQPPublishProcessor">
     <property name="clientId" value="REPLACE_JOB_NAME" />
-    <property name="routingKey" value="phantomjs-domain" />
+    <property name="routingKey" value="webrender-domain" />
     <property name="exchange" value="heritrix" />
-    <property name="amqpUri" value="amqp://guest:guest@amqp.wa.bl.uk:5672/%2f" />
+    <property name="amqpUri" value="amqp://guest:guest@REPLACE_AMQP_HOST:5672/%2f" />
     <property name="shouldProcessRule">
         <bean class="org.archive.modules.deciderules.DecideRuleSequence">
             <property name="rules">
@@ -329,13 +324,15 @@ metadata.description=UK Legal Deposit Domain Crawl.
         </bean>
     </property>
   </bean>
-  <bean class="org.archive.crawler.frontier.AMQPUrlReceiver">
-    <property name="amqpUri" value="amqp://guest:guest@amqp.wa.bl.uk:5672/%2f" />
+  <bean class="uk.bl.wap.crawler.frontier.AMQPUrlReceiver">
+    <property name="amqpUri" value="amqp://guest:guest@REPLACE_AMQP_HOST:5672/%2f" />
     <property name="exchange" value="heritrix" />
     <property name="queueName" value="REPLACE_JOB_NAME" />
+    <property name="durable" value="true"/>
+    <property name="autoDelete" value="false"/>
   </bean>
   <bean id="viralContent" class="uk.bl.wap.crawler.processor.ViralContentProcessor">
-    <property name="clamdHost" value="localhost"/>
+    <property name="clamdHost" value="REPLACE_CLAMD_HOST"/>
     <property name="clamdPort" value="REPLACE_CLAMD_PORT"/>
     <property name="clamdTimeout" value="60000"/>
     <property name="streamMaxLength" value="94371840"/>
