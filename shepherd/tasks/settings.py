@@ -33,7 +33,7 @@ class h3(luigi.Config):
 
 class systems(luigi.Config):
     cdxserver = os.environ.get('CDXSERVER_URL', luigi.Parameter(default='http://cdxserver:8080/fc'))
-    wayback = os.environ.get('WAYBACK_URL', luigi.Parameter(default='http://openwayback:8080/wayback'))
+    wayback = os.environ.get('WAYBACK_PREFIX', luigi.Parameter(default='http://openwayback:8080/wayback'))
     wrender = os.environ.get('WRENDER_URL', luigi.Parameter(default='http://webrender:8010/render'))
     # Prefix for webhdfs queries, separate from general Luigi HDFS configuration.
     # e.g. http://localhost:50070/webhdfs/v1
