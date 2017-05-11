@@ -110,7 +110,15 @@ class CreateDomainCrawlJobs(luigi.Task):
     amqp_host = luigi.Parameter(default="amqp.wa.bl.uk")
 
     def requires(self):
-        return SyncLocalToRemote( input_task=DownloadGeolite2Database(), host=self.host, remote_path="/dev/shm/GeoLite2-Country.mmdb")
+        # Set up GeoLite2 DB:
+        yield SyncLocalToRemote( input_task=DownloadGeolite2Database(), host=self.host, remote_path="/dev/shm/GeoLite2-Country.mmdb")
+        # Generate crawl job files:
+        for i in range(self.num_jobs):
+            job_name = self.get_job_name(i)
+            cxml_task = CreateDomainCrawlerBeans(job_name=job_name, job_id=i, num_jobs=self.num_jobs)
+            yield SyncLocalToRemote(input_task=cxml_task, host=self.host,
+                              remote_path="/heritrix/jobs/%s/crawler-beans.cxml" % job_name)
+
 
     def output(self):
         return RemoteTarget(host=self.host, path="/heritrix/jobs/%s/crawler-beans.cxml" % self.get_job_name(self.num_jobs - 1))
@@ -122,9 +130,7 @@ class CreateDomainCrawlJobs(luigi.Task):
     def run(self):
         for i in range(self.num_jobs):
             job_name = self.get_job_name(i)
-            cxml_task = CreateDomainCrawlerBeans(job_name=job_name, job_id=i, num_jobs=self.num_jobs)
-            print(cxml_task)
-            yield SyncLocalToRemote( input_task=cxml_task, host=self.host, remote_path="/heritrix/jobs/%s/crawler-beans.cxml" % job_name)
+            print(job_name)
 
 
 if __name__ == '__main__':
