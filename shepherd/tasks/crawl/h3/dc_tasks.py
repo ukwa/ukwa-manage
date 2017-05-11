@@ -107,6 +107,10 @@ class CreateDomainCrawlJobs(luigi.Task):
     date = luigi.DateParameter(default=datetime.datetime.today())
     amqp_host = luigi.Parameter(default="amqp.wa.bl.uk")
 
+    def get_job_name(self, i):
+        job_name = "dc%i-%s" % (i, self.date.strftime("%Y%m%d"))
+        return job_name
+
     def requires(self):
         # Set up GeoLite2 DB:
         yield SyncLocalToRemote( input_task=DownloadGeolite2Database(), host=self.host, remote_path="/dev/shm/GeoLite2-Country.mmdb")
@@ -122,19 +126,9 @@ class CreateDomainCrawlJobs(luigi.Task):
                 add_task = StaticLocalFile(local_path=local_path)
                 yield SyncLocalToRemote(input_task=add_task, host=self.host, remote_path="/heritrix/jobs/%s/%s" % (job_name, additional))
 
-    def complete(self):
+    def output(self):
         # Avoid running if the target files already appear to be set up:
-        fs = RemoteFileSystem(host=self.host)
-        try:
-            if len(fs.listdir("/heritrix/jobs/dc*/crawler-beans.cxml")) > 0:
-                return True
-        except:
-            pass
-        return False
-
-    def get_job_name(self, i):
-        job_name = "dc%i-%s" % (i, self.date.strftime("%Y%m%d"))
-        return job_name
+        return RemoteTarget(host=self.host, path="heritrix/jobs/%s/crawler-beans.cxml" % self.get_job_name(0))
 
     def run(self):
         pass
