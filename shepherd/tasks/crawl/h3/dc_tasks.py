@@ -110,7 +110,7 @@ class CreateDomainCrawlJobs(luigi.Task):
     def run(self):
         # Set up GeoLite2 DB:
         geo_task_output = yield DownloadGeolite2Database()
-        yield SyncLocalToRemote( input_path=geo_task_output.path, host=self.host, remote_path="/dev/shm/GeoLite2-Country.mmdb")
+        yield SyncLocalToRemote( local_path=geo_task_output.path, host=self.host, remote_path="/dev/shm/GeoLite2-Country.mmdb")
         # Generate crawl job files:
         for i in range(self.num_jobs):
             job_name = self.get_job_name(i)
