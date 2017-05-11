@@ -44,7 +44,7 @@ class SyncLocalToRemote(luigi.Task):
         if not rt.exists():
             return False
         # Check hashes:
-        local_target = self.local_path
+        local_target = luigi.LocalTarget(path=self.local_path)
         with local_target.open('r') as reader:
             local_hash = hashlib.sha512(reader.read()).hexdigest()
             logger.info("LOCAL HASH: %s" % local_hash)
