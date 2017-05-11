@@ -7,11 +7,13 @@ import datetime
 from shepherd.tasks.common import logger
 
 HERITRIX_CONFIG_ROOT=os.path.realpath(os.path.join(os.path.dirname(__file__),"../../../profiles"))
-HERITRIX_PROFILE="%s/profile-domain.cxml" % HERITRIX_CONFIG_ROOT
-HERITRIX_ADDITIONAL = [ 'exclude.txt', 'url.shorteners.txt', 'surts-dc.txt']
+DC_HERITRIX_PROFILE="%s/profile-domain.cxml" % HERITRIX_CONFIG_ROOT
+DC_HERITRIX_ADDITIONAL = [ 'exclude.txt', 'url.shorteners.txt', 'surts-dc.txt']
 
-CLAMD_HOST='clamd.wa.bl.uk'
-CLAMD_PORT=3310
+DC_CLAMD_HOST='clamd.wa.bl.uk'
+DC_CLAMD_PORT=3310
+
+DC_AMQP_HOST='amqp-dc.wa.bl.uk'
 
 
 class DownloadGeolite2Database(luigi.Task):
@@ -79,24 +81,23 @@ class CreateDomainCrawlerBeans(luigi.Task):
     job_name = luigi.Parameter()
     job_id = luigi.IntParameter()
     num_jobs = luigi.IntParameter()
-    amqp_host = luigi.Parameter(default="amqp-dc.wa.bl.uk")
 
     def output(self):
         return luigi.LocalTarget("%s-%i.cxml" % (self.job_name, self.job_id))
 
     def run(self):
         """Creates the CXML content for a H3 job."""
-        profile = etree.parse(HERITRIX_PROFILE)
+        profile = etree.parse(DC_HERITRIX_PROFILE)
         profile.xinclude()
         cxml = etree.tostring(profile, pretty_print=True, xml_declaration=True, encoding="UTF-8")
-        logger.error("HERITRIX_PROFILE %s" % HERITRIX_PROFILE)
+        logger.error("HERITRIX_PROFILE %s" % DC_HERITRIX_PROFILE)
         logger.error("job_name %s" % self.job_name)
         cxml = cxml.replace("REPLACE_JOB_NAME", self.job_name)
         cxml = cxml.replace("REPLACE_LOCAL_NAME", str(self.job_id))
         cxml = cxml.replace("REPLACE_CRAWLER_COUNT", str(self.num_jobs))
-        cxml = cxml.replace("REPLACE_CLAMD_HOST", CLAMD_HOST)
-        cxml = cxml.replace("REPLACE_CLAMD_PORT", str(CLAMD_PORT))
-        cxml = cxml.replace("REPLACE_AMQP_HOST", self.amqp_host)
+        cxml = cxml.replace("REPLACE_CLAMD_HOST", DC_CLAMD_HOST)
+        cxml = cxml.replace("REPLACE_CLAMD_PORT", str(DC_CLAMD_PORT))
+        cxml = cxml.replace("REPLACE_AMQP_HOST", DC_AMQP_HOST)
 
         with self.output().open('w') as f:
             f.write(cxml)
@@ -108,7 +109,6 @@ class CreateDomainCrawlJobs(luigi.Task):
     num_jobs = luigi.IntParameter(default=4)
     host = luigi.Parameter()
     date = luigi.DateParameter(default=datetime.datetime.today())
-    amqp_host = luigi.Parameter(default="amqp.wa.bl.uk")
 
     def get_job_name(self, i):
         job_name = "dc%i-%s" % (i, self.date.strftime("%Y%m%d"))
@@ -125,7 +125,7 @@ class CreateDomainCrawlJobs(luigi.Task):
             yield SyncLocalToRemote(input_task=cxml_task, host=self.host,
                               remote_path="/heritrix/jobs/%s/crawler-beans.cxml" % job_name)
             # And ancillary files:
-            for additional in HERITRIX_ADDITIONAL:
+            for additional in DC_HERITRIX_ADDITIONAL:
                 local_path = "%s/%s" % ( HERITRIX_CONFIG_ROOT, additional )
                 print(additional, local_path)
                 add_task = StaticLocalFile(local_path=local_path)
