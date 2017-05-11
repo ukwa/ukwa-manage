@@ -8,11 +8,9 @@ from shepherd.tasks.common import logger
 
 HERITRIX_CONFIG_ROOT=os.path.realpath(os.path.join(os.path.dirname(__file__),"../../../profiles"))
 HERITRIX_PROFILE="%s/profile-domain.cxml" % HERITRIX_CONFIG_ROOT
-HERITRIX_EXCLUDE="%s/exclude.txt" % HERITRIX_CONFIG_ROOT
-HERITRIX_SHORTENERS="%s/url.shorteners.txt" % HERITRIX_CONFIG_ROOT
-HERITRIX_SURTS="%s/surts.txt" % HERITRIX_CONFIG_ROOT
+HERITRIX_ADDITIONAL = [ 'exclude.txt', 'url.shorteners.txt', 'surts.txt']
 
-CLAMD_HOST='clamd'
+CLAMD_HOST='clamd.wa.bl.uk'
 CLAMD_PORT=3310
 
 
@@ -78,7 +76,7 @@ class CreateDomainCrawlerBeans(luigi.Task):
     job_name = luigi.Parameter()
     job_id = luigi.IntParameter()
     num_jobs = luigi.IntParameter()
-    amqp_host = luigi.Parameter(default="amqp.wa.bl.uk")
+    amqp_host = luigi.Parameter(default="amqp-dc.wa.bl.uk")
 
     def output(self):
         return luigi.LocalTarget("%s-%i.cxml" % (self.job_name, self.job_id))
@@ -118,19 +116,22 @@ class CreateDomainCrawlJobs(luigi.Task):
             cxml_task = CreateDomainCrawlerBeans(job_name=job_name, job_id=i, num_jobs=self.num_jobs)
             yield SyncLocalToRemote(input_task=cxml_task, host=self.host,
                               remote_path="/heritrix/jobs/%s/crawler-beans.cxml" % job_name)
-
+            # And ancillary files:
+            for additional in HERITRIX_ADDITIONAL:
+                local_path = "%s/%s" % ( HERITRIX_CONFIG_ROOT, additional )
+                add_task = StaticLocalFile(local_path=local_path)
+                yield SyncLocalToRemote(input_task=add_task, host=self.host, remote_path="/heritrix/jobs/%s/%s" % (job_name, additional))
 
     def output(self):
-        return RemoteTarget(host=self.host, path="/heritrix/jobs/%s/crawler-beans.cxml" % self.get_job_name(self.num_jobs - 1))
+        # Avoid running if the target files already appear to be set up:
+        return RemoteTarget(host=self.host, path="/heritrix/jobs/dc*/crawler-beans.cxml")
 
     def get_job_name(self, i):
         job_name = "dc%i-%s" % (i, self.date.strftime("%Y%m%d"))
         return job_name
 
     def run(self):
-        for i in range(self.num_jobs):
-            job_name = self.get_job_name(i)
-            print(job_name)
+        pass
 
 
 if __name__ == '__main__':
