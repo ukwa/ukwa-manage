@@ -62,7 +62,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
   </bean>
 <!-- GEO-LOOKUP: specifying location of external database. -->
   <bean id="externalGeoLookup" class="uk.bl.wap.modules.deciderules.ExternalGeoLookup">
-    <property name="database" value="/dev/shm/geoip-city.mmdb"/>
+    <property name="database" value="/dev/shm/GeoLite2-Country.mmdb"/>
   </bean>
 
 <!-- SCOPE: rules for which discovered URIs to crawl; order is very 
