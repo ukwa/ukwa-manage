@@ -122,9 +122,13 @@ class CreateDomainCrawlJobs(luigi.Task):
                 add_task = StaticLocalFile(local_path=local_path)
                 yield SyncLocalToRemote(input_task=add_task, host=self.host, remote_path="/heritrix/jobs/%s/%s" % (job_name, additional))
 
-    def output(self):
+    def complete(self):
         # Avoid running if the target files already appear to be set up:
-        return RemoteTarget(host=self.host, path="/heritrix/jobs/dc*/crawler-beans.cxml")
+        fs = RemoteFileSystem(host=self.host)
+        if fs.exists("/heritrix/jobs/dc*/crawler-beans.cxml"):
+            return True
+        else:
+            return False
 
     def get_job_name(self, i):
         job_name = "dc%i-%s" % (i, self.date.strftime("%Y%m%d"))
