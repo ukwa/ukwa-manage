@@ -124,7 +124,9 @@ class CreateDomainCrawlJobs(luigi.Task):
             # And ancillary files:
             for additional in HERITRIX_ADDITIONAL:
                 local_path = "%s/%s" % ( HERITRIX_CONFIG_ROOT, additional )
+                print(additional, local_path)
                 add_task = StaticLocalFile(local_path=local_path)
+                print("ADD", add_task)
                 yield SyncLocalToRemote(input_task=add_task, host=self.host, remote_path="/heritrix/jobs/%s/%s" % (job_name, additional))
 
     def output(self):
