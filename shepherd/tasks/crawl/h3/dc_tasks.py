@@ -115,7 +115,8 @@ class CreateDomainCrawlJobs(luigi.Task):
         for i in range(self.num_jobs):
             job_name = "dc%i-%s" % (i, self.date.strftime("%Y%m%d"))
             cxml_task = CreateDomainCrawlerBeans(job_name=job_name, job_id=i, num_jobs=self.num_jobs)
-            yield SyncLocalToRemote( input_task=cxml_task, host=self.host, remote_path="/heritrix/jobs/%s/crawler-beans.cxml" % job_name)
+            print(cxml_task)
+            yield SyncLocalToRemote( input_task=CreateDomainCrawlerBeans(job_name=job_name, job_id=i, num_jobs=self.num_jobs), host=self.host, remote_path="/heritrix/jobs/%s/crawler-beans.cxml" % job_name)
 
 
 
