@@ -68,10 +68,6 @@ class CreateDomainCrawlerBeans(luigi.Task):
     job_id = luigi.IntParameter()
     num_jobs = luigi.IntParameter()
 
-    def complete(self):
-        # Always overwrite/regenerate this config:
-        return False
-
     def output(self):
         return luigi.LocalTarget("%s/dc/%s-%i.cxml" % (state().folder, self.job_name, self.job_id))
 
