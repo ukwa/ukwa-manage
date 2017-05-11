@@ -7,9 +7,9 @@ class state(luigi.Config):
 
 
 class act(luigi.Config):
-    url = os.environ.get('W3ACT_URL', luigi.Parameter(default='http://w3act:9000/act'))
-    username = os.environ.get('W3ACT_USER', luigi.Parameter(default='wa-sysadm@bl.uk'))
-    password = os.environ.get('W3ACT_PW', luigi.Parameter(default='sysAdmin'))
+    url = os.environ.get('ACT_URL', luigi.Parameter(default='http://w3act:9000/act'))
+    username = os.environ.get('ACT_USER', luigi.Parameter(default='wa-sysadm@bl.uk'))
+    password = os.environ.get('ACT_PASSWORD', luigi.Parameter(default='sysAdmin'))
 
 
 class h3(luigi.Config):
