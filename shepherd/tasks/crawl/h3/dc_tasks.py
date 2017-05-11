@@ -61,7 +61,7 @@ class SyncLocalToRemote(luigi.Task):
     def run(self):
         # Copy the local file over to the remote place
         rt = RemoteTarget(host=self.host, path=self.remote_path)
-        rt.put(self.local_path)
+        rt.put(self.input().path)
 
 
 class CreateDomainCrawlJobs(luigi.Task):
