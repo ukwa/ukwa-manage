@@ -76,7 +76,7 @@ class CreateDomainCrawlerBeans(luigi.Task):
     task_namespace = 'dc'
     job_name = luigi.Parameter()
     job_id = luigi.IntParameter()
-    num_jobs = luigi.Parameter()
+    num_jobs = luigi.IntParameter()
     amqp_host = luigi.Parameter(default="amqp.wa.bl.uk")
 
     def output(self):
@@ -103,7 +103,7 @@ class CreateDomainCrawlerBeans(luigi.Task):
 
 class CreateDomainCrawlJobs(luigi.Task):
     task_namespace = 'dc'
-    num_jobs = luigi.Parameter(default=4)
+    num_jobs = luigi.IntParameter(default=4)
     host = luigi.Parameter()
     date = luigi.DateParameter(default=datetime.datetime.today())
     amqp_host = luigi.Parameter(default="amqp.wa.bl.uk")
