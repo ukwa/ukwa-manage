@@ -64,6 +64,43 @@ class SyncLocalToRemote(luigi.Task):
         rt.put(self.input().path)
 
 
+class StaticLocalFile(luigi.ExternalTask):
+    task_namespace = "sync"
+    local_path = luigi.TaskParameter()
+
+    def output(self):
+        return luigi.LocalTarget(path=self.local_path)
+
+
+class CreateDomainCrawlerBeans(luigi.Task):
+    task_namespace = 'dc'
+    job_name = luigi.Parameter()
+    job_id = luigi.IntParameter()
+    num_jobs = luigi.Parameter()
+    amqp_host = luigi.Parameter(default="amqp.wa.bl.uk")
+
+    def output(self):
+        return luigi.LocalTarget("%s-%i.cxml" % (self.job_name, self.job_id))
+
+    def run(self):
+        """Creates the CXML content for a H3 job."""
+        profile = etree.parse(HERITRIX_PROFILE)
+        profile.xinclude()
+        cxml = etree.tostring(profile, pretty_print=True, xml_declaration=True, encoding="UTF-8")
+        logger.error("HERITRIX_PROFILE %s" % HERITRIX_PROFILE)
+        logger.error("job_name %s" % self.job_name)
+        cxml = cxml.replace("REPLACE_JOB_NAME", self.job_name)
+        cxml = cxml.replace("REPLACE_LOCAL_NAME", self.job_id)
+        cxml = cxml.replace("REPLACE_CRAWLER_COUNT", self.num_jobs)
+        cxml = cxml.replace("REPLACE_CLAMD_HOST", CLAMD_HOST)
+        cxml = cxml.replace("REPLACE_CLAMD_PORT", CLAMD_PORT)
+        cxml = cxml.replace("REPLACE_AMQP_HOST", self.amqp_host)
+
+        with self.output().open('w') as f:
+            f.write(cxml)
+
+
+
 class CreateDomainCrawlJobs(luigi.Task):
     task_namespace = 'dc'
     num_jobs = luigi.Parameter(default=4)
@@ -72,22 +109,14 @@ class CreateDomainCrawlJobs(luigi.Task):
     amqp_host = luigi.Parameter(default="amqp.wa.bl.uk")
 
     def requires(self):
-        return SyncLocalToRemote( input_task=DownloadGeolite2Database(), host=self.host, remote_path="/dev/shm/geoip-city.mmdb")
+        return SyncLocalToRemote( input_task=DownloadGeolite2Database(), host=self.host, remote_path="/dev/shm/GeoLite2-Country.mmdb")
 
-    def create_profile(self, job_name, job_id):
-        """Creates the CXML content for a H3 job."""
-        profile = etree.parse(HERITRIX_PROFILE)
-        profile.xinclude()
-        cxml = etree.tostring(profile, pretty_print=True, xml_declaration=True, encoding="UTF-8")
-        logger.error("HERITRIX_PROFILE %s" % HERITRIX_PROFILE)
-        logger.error("job_name %s" % job_name)
-        cxml = cxml.replace("REPLACE_JOB_NAME", job_name)
-        cxml = cxml.replace("REPLACE_LOCAL_NAME", job_id)
-        cxml = cxml.replace("REPLACE_CRAWLER_COUNT", self.num_jobs)
-        cxml = cxml.replace("REPLACE_CLAMD_HOST", CLAMD_HOST)
-        cxml = cxml.replace("REPLACE_CLAMD_PORT", CLAMD_PORT)
-        cxml = cxml.replace("REPLACE_AMQP_HOST", self.amqp_host)
-        return cxml
+    def run(self):
+        for i in range(self.num_jobs):
+            job_name = "dc%i-%s" % (i, self.date.strftime("%Y%m%d"))
+            cxml_task = CreateDomainCrawlerBeans(job_name=job_name, job_id=i, num_jobs=self.num_jobs)
+            yield SyncLocalToRemote( input_task=cxml_task, host=self.host, remote_path="/heritrix/jobs/%s/crawler-beans.cxml" % job_name)
+
 
 
 if __name__ == '__main__':
