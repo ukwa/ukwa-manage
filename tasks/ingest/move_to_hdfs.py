@@ -63,7 +63,7 @@ class UploadRemoteFileToHDFS(luigi.Task):
 
         :return: None
         """
-        self.uploader(self.host, self.source_path, self.output().path)
+        self.uploader(self.host, self.source_path, self.output().path, username="hdfs")
 
     @staticmethod
     def uploader(host, local_path, hdfs_path, username="heritrix"):
@@ -388,7 +388,7 @@ class ScanForSIPsToMove(luigi.WrapperTask):
 
 
 if __name__ == '__main__':
-    luigi.run(['move.ScanForFilesToMove', '--workers', '5', '--host' , 'crawler03'])
+    luigi.run(['move.ScanForFilesToMove', '--workers', '5', '--host' , 'crawler03', '--upload'])
     #luigi.run(['move.ScanForSIPsToMove', '--workers', '5', '--host' , 'crawler03', '--upload'])
     #luigi.run(['move.ScanForFilesToMove', '--date-interval', '2017-02-11-2017-02-12', '--host' , 'localhost',
     #           '--remote-prefix', '/Users/andy/Documents/workspace/pulse/testing' , '--local-scheduler'])

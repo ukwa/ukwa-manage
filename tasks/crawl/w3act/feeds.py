@@ -515,4 +515,4 @@ class UpdateCollectionsSolr(luigi.Task):
 
 
 if __name__ == '__main__':
-    luigi.run(['discovery.UpdateCollectionsSolr',  '--local-scheduler'])
+    luigi.run(['discovery.UpdateCollectionsSolr', '--solr-endpoint', "http://192.168.45.241:8983/solr/collections", '--local-scheduler'])
