@@ -4,3 +4,14 @@ http://vitaball.co.uk/
 http://www.vitaball.co.uk/
 http://ticket.vitaball.co.uk/
 http://www.swims.nhs.uk/
+http://www.nhs.uk/service-search/
++(uk,gov,nationalarchives,webarchive,
++(uk,bl,wiki,
++(uk,bl,intranet,
++(com,bsigroup,bsol,
++(uk,ac,canterbury,libportal,
++(com,galegroup,infotrac,)/itweb/blibrary
++(com,oxforddnb,
++(com,oup,global,
++(uk,org,brereton,
+
