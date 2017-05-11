@@ -66,10 +66,9 @@ class SyncLocalToRemote(luigi.Task):
 
 class CreateDomainCrawlJobs(luigi.Task):
     task_namespace = 'dc'
-    job = luigi.Parameter()
-    date = luigi.DateParameter(default=datetime.datetime.today())
     num_jobs = luigi.Parameter(default=4)
     host = luigi.Parameter()
+    date = luigi.DateParameter(default=datetime.datetime.today())
     amqp_host = luigi.Parameter(default="amqp.wa.bl.uk")
 
     def requires(self):
