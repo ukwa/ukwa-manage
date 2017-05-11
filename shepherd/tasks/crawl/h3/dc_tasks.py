@@ -8,7 +8,7 @@ from shepherd.tasks.common import logger
 
 HERITRIX_CONFIG_ROOT=os.path.realpath(os.path.join(os.path.dirname(__file__),"../../../profiles"))
 HERITRIX_PROFILE="%s/profile-domain.cxml" % HERITRIX_CONFIG_ROOT
-HERITRIX_ADDITIONAL = [ 'exclude.txt', 'url.shorteners.txt', 'surts.txt']
+HERITRIX_ADDITIONAL = [ 'exclude.txt', 'url.shorteners.txt', 'surts-dc.txt']
 
 CLAMD_HOST='clamd.wa.bl.uk'
 CLAMD_PORT=3310
