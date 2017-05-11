@@ -39,6 +39,7 @@ class SyncLocalToRemote(luigi.Task):
     remote_path = luigi.Parameter()
 
     def requires(self):
+        print("GOT ", self.input_task)
         return self.input_task
 
     def complete(self):
@@ -116,7 +117,7 @@ class CreateDomainCrawlJobs(luigi.Task):
             job_name = "dc%i-%s" % (i, self.date.strftime("%Y%m%d"))
             cxml_task = CreateDomainCrawlerBeans(job_name=job_name, job_id=i, num_jobs=self.num_jobs)
             print(cxml_task)
-            yield SyncLocalToRemote( input_task=CreateDomainCrawlerBeans(job_name=job_name, job_id=i, num_jobs=self.num_jobs), host=self.host, remote_path="/heritrix/jobs/%s/crawler-beans.cxml" % job_name)
+            yield SyncLocalToRemote( input_task=cxml_task, host=self.host, remote_path="/heritrix/jobs/%s/crawler-beans.cxml" % job_name)
 
 
 
