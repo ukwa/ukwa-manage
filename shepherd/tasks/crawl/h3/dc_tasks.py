@@ -25,7 +25,7 @@ class DownloadGeolite2Database(luigi.Task):
     match_glob = "GeoLite2-Country_*/GeoLite2-Country.mmdb"
 
     def output(self):
-        return luigi.LocalTarget("%s/GeoLite2-Country-%s.mmdb" % (state().folder, self.date) )
+        return luigi.LocalTarget("GeoLite2-Country-%s.mmdb" % self.date )
 
     def run(self):
         os.system("curl -O %s" % self.download)
