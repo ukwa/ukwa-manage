@@ -36,18 +36,15 @@ class DownloadGeolite2Database(luigi.Task):
 class SyncLocalToRemote(luigi.Task):
     task_namespace = "sync"
     host = luigi.Parameter()
-    input_task = luigi.TaskParameter()
+    local_path = luigi.Parameter()
     remote_path = luigi.Parameter()
-
-    def requires(self):
-        return self.input_task
 
     def complete(self):
         rt = RemoteTarget(host=self.host, path=self.remote_path)
         if not rt.exists():
             return False
         # Check hashes:
-        local_target = self.input()
+        local_target = self.local_path
         with local_target.open('r') as reader:
             local_hash = hashlib.sha512(reader.read()).hexdigest()
             logger.info("LOCAL HASH: %s" % local_hash)
@@ -62,18 +59,7 @@ class SyncLocalToRemote(luigi.Task):
     def run(self):
         # Copy the local file over to the remote place
         rt = RemoteTarget(host=self.host, path=self.remote_path)
-        rt.put(self.input().path)
-
-
-class StaticLocalFile(luigi.Task):
-    task_namespace = "sync"
-    local_path = luigi.Parameter()
-
-    def run(self):
-        pass
-
-    def output(self):
-        return luigi.LocalTarget(path=self.local_path)
+        rt.put(self.local_path)
 
 
 class CreateDomainCrawlerBeans(luigi.Task):
@@ -117,27 +103,24 @@ class CreateDomainCrawlJobs(luigi.Task):
         job_name = "dc%i-%s" % (i, self.date.strftime("%Y%m%d"))
         return job_name
 
-    def requires(self):
-        # Set up GeoLite2 DB:
-        yield SyncLocalToRemote( input_task=DownloadGeolite2Database(), host=self.host, remote_path="/dev/shm/GeoLite2-Country.mmdb")
-        # Generate crawl job files:
-        for i in range(self.num_jobs):
-            job_name = self.get_job_name(i)
-            cxml_task = CreateDomainCrawlerBeans(job_name=job_name, job_id=i, num_jobs=self.num_jobs)
-            yield SyncLocalToRemote(input_task=cxml_task, host=self.host,
-                              remote_path="/heritrix/jobs/%s/crawler-beans.cxml" % job_name)
-            # And ancillary files:
-            for additional in DC_HERITRIX_ADDITIONAL:
-                local_path = "%s/%s" % ( HERITRIX_CONFIG_ROOT, additional )
-                add_task = StaticLocalFile(local_path=local_path)
-                yield SyncLocalToRemote(input_task=add_task, host=self.host, remote_path="/heritrix/jobs/%s/%s" % (job_name, additional))
-
     def output(self):
         # Avoid running if the target files already appear to be set up:
         return RemoteTarget(host=self.host, path="/heritrix/jobs/%s/crawler-beans.cxml" % self.get_job_name(0))
 
     def run(self):
-        print("Requires")
+        # Set up GeoLite2 DB:
+        geo_task = yield DownloadGeolite2Database()
+        yield SyncLocalToRemote( input_path=geo_task.output().path, host=self.host, remote_path="/dev/shm/GeoLite2-Country.mmdb")
+        # Generate crawl job files:
+        for i in range(self.num_jobs):
+            job_name = self.get_job_name(i)
+            cxml_task = yield CreateDomainCrawlerBeans(job_name=job_name, job_id=i, num_jobs=self.num_jobs)
+            yield SyncLocalToRemote(local_path=cxml_task.output().path, host=self.host,
+                              remote_path="/heritrix/jobs/%s/crawler-beans.cxml" % job_name)
+            # And ancillary files:
+            for additional in DC_HERITRIX_ADDITIONAL:
+                local_path = "%s/%s" % ( HERITRIX_CONFIG_ROOT, additional )
+                yield SyncLocalToRemote(local_path=local_path, host=self.host, remote_path="/heritrix/jobs/%s/%s" % (job_name, additional))
 
 
 if __name__ == '__main__':
