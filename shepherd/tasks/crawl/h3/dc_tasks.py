@@ -5,6 +5,7 @@ import hashlib
 from luigi.contrib.ssh import RemoteTarget, RemoteFileSystem
 import datetime
 from shepherd.tasks.common import logger
+from shepherd.tasks.settings import state
 
 HERITRIX_CONFIG_ROOT=os.path.realpath(os.path.join(os.path.dirname(__file__),"../../../profiles"))
 DC_HERITRIX_PROFILE="%s/profile-domain.cxml" % HERITRIX_CONFIG_ROOT
@@ -24,7 +25,7 @@ class DownloadGeolite2Database(luigi.Task):
     match_glob = "GeoLite2-Country_*/GeoLite2-Country.mmdb"
 
     def output(self):
-        return luigi.LocalTarget("GeoLite2-Country-%s.mmdb" % self.date)
+        return luigi.LocalTarget("%s/GeoLite2-Country-%s.mmdb" % (state().folder, self.date) )
 
     def run(self):
         os.system("curl -O %s" % self.download)
@@ -39,7 +40,6 @@ class SyncLocalToRemote(luigi.Task):
     remote_path = luigi.Parameter()
 
     def requires(self):
-        print("GOT ", self.input_task)
         return self.input_task
 
     def complete(self):
@@ -82,8 +82,12 @@ class CreateDomainCrawlerBeans(luigi.Task):
     job_id = luigi.IntParameter()
     num_jobs = luigi.IntParameter()
 
+    def complete(self):
+        # Always overwrite/regenerate this config:
+        return False
+
     def output(self):
-        return luigi.LocalTarget("%s-%i.cxml" % (self.job_name, self.job_id))
+        return luigi.LocalTarget("%s/dc/%s-%i.cxml" % (state().folder, self.job_name, self.job_id))
 
     def run(self):
         """Creates the CXML content for a H3 job."""
@@ -103,7 +107,6 @@ class CreateDomainCrawlerBeans(luigi.Task):
             f.write(cxml)
 
 
-
 class CreateDomainCrawlJobs(luigi.Task):
     task_namespace = 'dc'
     num_jobs = luigi.IntParameter(default=4)
@@ -115,7 +118,6 @@ class CreateDomainCrawlJobs(luigi.Task):
         return job_name
 
     def requires(self):
-        print("REQ")
         # Set up GeoLite2 DB:
         yield SyncLocalToRemote( input_task=DownloadGeolite2Database(), host=self.host, remote_path="/dev/shm/GeoLite2-Country.mmdb")
         # Generate crawl job files:
@@ -127,18 +129,15 @@ class CreateDomainCrawlJobs(luigi.Task):
             # And ancillary files:
             for additional in DC_HERITRIX_ADDITIONAL:
                 local_path = "%s/%s" % ( HERITRIX_CONFIG_ROOT, additional )
-                print(additional, local_path)
                 add_task = StaticLocalFile(local_path=local_path)
-                print("ADD", add_task)
                 yield SyncLocalToRemote(input_task=add_task, host=self.host, remote_path="/heritrix/jobs/%s/%s" % (job_name, additional))
 
     def output(self):
-        print("OUT")
         # Avoid running if the target files already appear to be set up:
         return RemoteTarget(host=self.host, path="/heritrix/jobs/%s/crawler-beans.cxml" % self.get_job_name(0))
 
     def run(self):
-        print("HELO")
+        print("Requires")
 
 
 if __name__ == '__main__':
