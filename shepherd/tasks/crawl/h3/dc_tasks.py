@@ -91,10 +91,10 @@ class CreateDomainCrawlerBeans(luigi.Task):
         logger.error("HERITRIX_PROFILE %s" % HERITRIX_PROFILE)
         logger.error("job_name %s" % self.job_name)
         cxml = cxml.replace("REPLACE_JOB_NAME", self.job_name)
-        cxml = cxml.replace("REPLACE_LOCAL_NAME", self.job_id)
-        cxml = cxml.replace("REPLACE_CRAWLER_COUNT", self.num_jobs)
+        cxml = cxml.replace("REPLACE_LOCAL_NAME", str(self.job_id))
+        cxml = cxml.replace("REPLACE_CRAWLER_COUNT", str(self.num_jobs))
         cxml = cxml.replace("REPLACE_CLAMD_HOST", CLAMD_HOST)
-        cxml = cxml.replace("REPLACE_CLAMD_PORT", CLAMD_PORT)
+        cxml = cxml.replace("REPLACE_CLAMD_PORT", str(CLAMD_PORT))
         cxml = cxml.replace("REPLACE_AMQP_HOST", self.amqp_host)
 
         with self.output().open('w') as f:
