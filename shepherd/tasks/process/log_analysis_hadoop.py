@@ -310,7 +310,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
         # Scan for documents, yield sorted in crawl order:
         doc = self.extractor.extract_documents(log)
         if doc:
-            yield "DOCUMENT-%i" % doc.get("wayback_timestamp", 0), doc
+            yield "DOCUMENT-%s" % log.start_time_plus_duration, doc
 
     def reducer(self, key, values):
         """
