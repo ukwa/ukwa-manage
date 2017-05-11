@@ -18,7 +18,7 @@ class h3(luigi.Config):
     username = os.environ.get('HERITRIX_USER', luigi.Parameter(default='heritrix'))
     password = os.environ.get('HERITRIX_PASSWORD', luigi.Parameter(default='heritrix'))
     local_root_folder = luigi.Parameter(default='/heritrix')
-    local_job_folder = luigi.Parameter(default='/jobs')
+    local_job_folder = luigi.Parameter(default='/heritrix/jobs')
     local_wren_folder = luigi.Parameter(default='/heritrix/wren')
     hdfs_prefix = os.environ.get('HDFS_PREFIX', luigi.Parameter(''))
     local_prefix = os.environ.get('LOCAL_PREFIX', luigi.Parameter(''))

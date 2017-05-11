@@ -7,7 +7,7 @@ Date:		2016-07-26
 
 import sys
 import argparse
-import crawl.tasks
+from shepherd.tasks.crawl.h3.crawl_job_tasks import
 
 # main --------------
 def main():

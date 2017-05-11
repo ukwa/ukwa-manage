@@ -4,12 +4,12 @@ import os
 import json
 import luigi
 import datetime
-import logging
-import crawl.h3.hapyx as hapyx
-from crawl.w3act.job import W3actJob
-from crawl.w3act.job import remove_action_files
-from tasks.w3act.feeds import CrawlFeed
-from tasks.settings import logger, LOCAL_JOB_FOLDER
+import shepherd.lib.h3.hapyx as hapyx
+from shepherd.lib.w3act.job import W3actJob
+from shepherd.lib.w3act.job import remove_action_files
+from shepherd.tasks.w3act.feeds import CrawlFeed
+from shepherd.tasks.common import logger
+from shepherd.tasks.settings import h3
 
 
 def target_name(state_class, job, launch_id, status):
@@ -107,9 +107,9 @@ class StopJob(luigi.Task):
         if self.job in h.list_jobs() and h.status(self.job) != "":
             """Stops a running job, cleans up the directory, initiates job assembly."""
             launch_id = h.get_launch_id(self.job)
-            job = W3actJob.from_directory("%s/%s" % (LOCAL_JOB_FOLDER, self.job), heritrix=h)
+            job = W3actJob.from_directory("%s/%s" % (h3().local_job_folder, self.job), heritrix=h)
             job.stop()
-            remove_action_files(self.job, HERITRIX_JOBS=LOCAL_JOB_FOLDER)
+            remove_action_files(self.job, HERITRIX_JOBS=h3().local_job_folder)
 
             # Record an output file that can be use as a Target by a different task:
             mark_job_as(job, launch_id, 'stopped')
@@ -143,7 +143,7 @@ class StartJob(luigi.Task):
         targets = json.load(self.input()[1].open('r'))
         nevercrawl = json.load(self.input()[2].open('r'))
         logger.debug("Found %s Targets in date range." % len(targets))
-        job = W3actJob(targets, self.job, heritrix=h, heritrix_job_dir=LOCAL_JOB_FOLDER, nevercrawl=nevercrawl)
+        job = W3actJob(targets, self.job, heritrix=h, heritrix_job_dir=h3().local_job_folder, nevercrawl=nevercrawl)
         status = h.status(self.job)
         logger.info("Got current job status: %s" % status)
 

@@ -10,6 +10,7 @@ import argparse
 import luigi
 import tasks.crawl_job_tasks
 
+
 # main --------------
 def main():
     parser = argparse.ArgumentParser('Control crawl jobs and workflows')
@@ -50,6 +51,10 @@ def main():
     bs.add_argument(**job_id_args)
     bs.add_argument(**launch_id_args)
 
+    # Create Domain Crawl Job Definitions
+    dc = subparsers.add_parser('create_dc_jobs', help="Build a set of job suitable for a domain crawl.")
+    dc.add_argument(dest="dc_num_crawlers", help="Number of crawl jobs to use.")
+    dc.add_argument(dest='dc_crawler', help="Host that will run the crawl.")
 
     # Print help if no arg specified:
     if len(sys.argv) < 2:
@@ -74,6 +79,10 @@ def main():
     elif parsed.command == "build_sip":
         print("Building SIP for %s/%s" % (parsed.job_id, parsed.launch_id))
         luigi.run(['package.BuildSip', '--job', parsed.job_id, '--launch', parsed.launch_id])
+
+    elif parsed.command == "create_dc_jobs":
+        print("Creating Domain Crawl job definitions for %i jobs." % parsed.dc_num_crawlers)
+        luigi.run(['dc.CreateDomainCrawlJobs' ,'--num-jobs', parsed.dc_num_crawlers, '--host', parsed.dc_crawler])
 
 
 

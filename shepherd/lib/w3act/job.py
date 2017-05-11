@@ -13,12 +13,12 @@ import requests
 from glob import glob
 from lxml import etree
 from urlparse import urlparse
-from crawl.h3 import hapyx
-from crawl.w3act.util import unique_list
-from crawl.w3act import credentials
+from shepherd.lib.h3 import hapyx
+from shepherd.lib.w3act.util import unique_list
+from shepherd.lib.w3act import credentials
 from xml.etree.ElementTree import ParseError
 from celery.utils.log import get_task_logger
-from tasks.common import systems
+from shepherd.tasks.common import systems
 logger = get_task_logger(__name__)
 
 requests.packages.urllib3.disable_warnings()
@@ -29,7 +29,7 @@ scope_sheets = {"resource": "resourceScope", "plus1": "plus1Scope", "subdomains"
 
 W3ACT_FIELDS=["id", "title", "schedules", "depth", "scope", "ignoreRobotsTxt"]
 
-HERITRIX_CONFIG_ROOT=os.path.realpath(os.path.join(os.path.dirname(__file__),"../profiles"))
+HERITRIX_CONFIG_ROOT=os.path.realpath(os.path.join(os.path.dirname(__file__),"../../profiles"))
 HERITRIX_PROFILE="%s/profile-pulse.cxml" % HERITRIX_CONFIG_ROOT
 HERITRIX_EXCLUDE="%s/exclude.txt" % HERITRIX_CONFIG_ROOT
 HERITRIX_SHORTENERS="%s/url.shorteners.txt" % HERITRIX_CONFIG_ROOT

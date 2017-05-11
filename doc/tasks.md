@@ -12,18 +12,19 @@ Crawler Tasks
 |------|-------------|
 
 Current inside Docker we run:
+
 - Pulse start/stop (Currently hard-hooked into W3ACT feeds - maybe cache those feeds on HDFS and use that from crawler engine)
+- Moving WREN files into the job launch folder.
 - ScanForFilesToMove (i.e. move-to-HDFS but no delete right now)
 
-- Update GeoIP databases
-- Moving WREN files into the job launch folder.
+We should also consider running:
+
 - Closing open WARCs and removing .lck files for old/dead jobs.
 - Scan remote and upload (manually run but not production)
 - Scan Crawler03 and make sure we have the old SIPs.
+- Update GeoIP databases
 - Make move-to-hdfs work for DC
 - FTP of Nominet data to HDFS
-
-
 - The task that gets log files and pushes them up to HDFS (hdfssync).
 
 
@@ -32,11 +33,13 @@ Processing Tasks
 
 
 But soon, e.g. before we run our of disk space on crawler01, we need:
+
 - ScanRemoteAndUpload
 - Assemble
 - DeleteRemote
 
 To submit to DLS we need
+
 - Package
 - Generate incremental packages for all crawls.
 - Submit
@@ -52,10 +55,11 @@ Discovery Tasks
 
 | Name | Description |
 |------|-------------|
-| - [ ] Test | tester |
+| Test | tester |
 
 
 As the website becomes stable, we will need
+
 - Update OUKWA Whitelist
 - Update Index Annotations
 - Update Collections Solr
