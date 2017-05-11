@@ -65,7 +65,7 @@ class SyncLocalToRemote(luigi.Task):
 
 class StaticLocalFile(luigi.Task):
     task_namespace = "sync"
-    local_path = luigi.TaskParameter()
+    local_path = luigi.Parameter()
 
     def run(self):
         pass
