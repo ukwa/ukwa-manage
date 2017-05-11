@@ -125,7 +125,7 @@ class CreateDomainCrawlJobs(luigi.Task):
     def complete(self):
         # Avoid running if the target files already appear to be set up:
         fs = RemoteFileSystem(host=self.host)
-        if fs.exists("/heritrix/jobs/dc*/crawler-beans.cxml"):
+        if len(fs.listdir("/heritrix/jobs/dc*/crawler-beans.cxml")) > 0:
             return True
         else:
             return False
