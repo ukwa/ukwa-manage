@@ -112,13 +112,19 @@ class CreateDomainCrawlJobs(luigi.Task):
     def requires(self):
         return SyncLocalToRemote( input_task=DownloadGeolite2Database(), host=self.host, remote_path="/dev/shm/GeoLite2-Country.mmdb")
 
+    def output(self):
+        return RemoteTarget(host=self.host, path="/heritrix/jobs/%s/crawler-beans.cxml" % self.get_job_name(self.num_jobs - 1))
+
+    def get_job_name(self, i):
+        job_name = "dc%i-%s" % (i, self.date.strftime("%Y%m%d"))
+        return job_name
+
     def run(self):
         for i in range(self.num_jobs):
-            job_name = "dc%i-%s" % (i, self.date.strftime("%Y%m%d"))
+            job_name = self.get_job_name(i)
             cxml_task = CreateDomainCrawlerBeans(job_name=job_name, job_id=i, num_jobs=self.num_jobs)
             print(cxml_task)
             yield SyncLocalToRemote( input_task=cxml_task, host=self.host, remote_path="/heritrix/jobs/%s/crawler-beans.cxml" % job_name)
-
 
 
 if __name__ == '__main__':
