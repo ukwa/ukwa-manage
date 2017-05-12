@@ -551,6 +551,11 @@ metadata.description=UK Legal Deposit Domain Crawl.
 <!-- URI UNIQ FILTER: Used by frontier to remember already-included URIs -->
   <bean id="uriUniqFilter" class="org.archive.crawler.util.BloomUriUniqFilter">
  </bean>
+    <!--
+  <bean id="uriUniqFilter" class="org.archive.crawler.util.BdbUriUniqFilter">
+    <property name="bdbModule" ref="bdbUriUniqFilterBdb"/>
+ </bean>
+ -->
 <!--
    EXAMPLE SETTINGS OVERLAY SHEETS
    Sheets allow some settings to vary by context - usually by URI context,
@@ -687,6 +692,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
 <!-- <property name="runtimeErrorsLogPath" value="runtime-errors.log" /> -->
 <!-- <property name="nonfatalErrorsLogPath" value="nonfatal-errors.log" /> -->
 <!-- <property name="logExtraInfo" value="false" /> -->
+      <property name="logExtraInfo" value="true" />
   </bean>
 <!-- SHEETOVERLAYMANAGER: manager of sheets of contextual overlays
       Autowired to include any SheetForSurtPrefix or 
@@ -731,6 +737,11 @@ metadata.description=UK Legal Deposit Domain Crawl.
   </bean>
   <bean id="bdbServerCacheBdb" class="org.archive.bdb.BdbModule">
     <property name="dir" value="/heritrix/state/#{metadata.jobName}/serverCache"/>
+    <property name="cachePercent" value="30"/>
+    <property name="expectedConcurrency" value="100"/>
+  </bean>
+  <bean id="bdbUriUniqFilterBdb" class="org.archive.bdb.BdbModule">
+    <property name="dir" value="/heritrix/state/#{metadata.jobName}/uriUniqFilter"/>
     <property name="cachePercent" value="30"/>
     <property name="expectedConcurrency" value="100"/>
   </bean>
