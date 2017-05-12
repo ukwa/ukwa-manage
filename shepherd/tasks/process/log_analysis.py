@@ -99,7 +99,6 @@ class SyncToHdfs(luigi.Task):
         status = client.client.status(self.target_path)
 
 
-
 class AnalyseAndProcessDocuments(luigi.Task):
     task_namespace = 'analyse'
     job = luigi.Parameter()
@@ -107,6 +106,9 @@ class AnalyseAndProcessDocuments(luigi.Task):
     log_paths = luigi.ListParameter()
     targets_path = luigi.Parameter()
     from_hdfs = luigi.BoolParameter(default=False)
+
+    # Size of bunches of jobs to yield
+    bunch_size = 10
 
     def requires(self):
         return AnalyseLogFile(self.job, self.launch_id, self.log_paths, self.targets_path, self.from_hdfs)
@@ -128,8 +130,8 @@ class AnalyseAndProcessDocuments(luigi.Task):
                         out_file.write("%s\n" % json.dumps(doc))
                         tasks.append(ExtractDocumentAndPost(self.job, self.launch_id, doc, doc["source"]))
                         counter += 1
-                        # Group tasks into bunches of five:
-                        if counter%5 == 0:
+                        # Group tasks into bunches:
+                        if counter%self.bunch_size == 0:
                             yield tasks
                             tasks = []
 
