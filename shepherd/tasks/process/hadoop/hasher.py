@@ -192,9 +192,14 @@ class GenerateWarcHashes(luigi.contrib.hadoop_jar.HadoopJarJobTask):
     def args(self):
         return [self.input_file, self.output()]
 
+class GenerateHDFSSummaries(luigi.WrapperTask):
+
+    def requires(self):
+        return [ ListUKWAWebArchiveFilesOnHDFS(), ListDuplicateWebArchiveFilesOnHDFS(), ListEmptyFilesOnHDFS() ]
+
 
 if __name__ == '__main__':
     #luigi.run(['ListUKWAWebArchiveFilesOnHDFS', '--local-scheduler'])
-    luigi.run(['ListDuplicateWebArchiveFilesOnHDFS', '--local-scheduler'])
+    luigi.run(['GenerateHDFSSummaries', '--local-scheduler'])
     #luigi.run(['ListEmptyFilesOnHDFS', '--local-scheduler'])
 #    luigi.run(['GenerateWarcHashes', 'daily-warcs-test.txt'])
