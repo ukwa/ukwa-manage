@@ -77,7 +77,6 @@ class launcher(object):
 			curim['parentUrl'] = uri
 			curim['parentUrlMetadata'] = {}
 			curim['parentUrlMetadata']['pathFromSeed'] = ""
-			curim['parentUrlMetadata']['hop'] = ""
 			curim['parentUrlMetadata']['heritableData'] = {}
 			curim['parentUrlMetadata']['heritableData']['source'] = source
 			curim['parentUrlMetadata']['heritableData']['heritable'] = ['source','heritable']
@@ -85,6 +84,7 @@ class launcher(object):
 			if not isSeed:
 				curim['forceFetch'] = forceFetch
 			curim['url'] = uri
+			curim['hop'] = ""
 		elif destination == "har":
 			curim['clientId']= clientId
 			curim['metadata'] = {}
