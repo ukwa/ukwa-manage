@@ -96,7 +96,8 @@ if __name__ == "__main__":
                 sent = False
                 while not sent:
                     try:
-                        sender(launcher, args, line)
+                        uri = line.strip()
+                        sender(launcher, args, uri)
                         sent = True
                     except Exception as e:
                         logger.error("Exception while submitting: %s" % line)
