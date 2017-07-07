@@ -19,11 +19,11 @@ class UploadToAzure(luigi.Task):
 
     def complete(self):
         source = luigi.contrib.hdfs.HdfsTarget(path=self.path)
-        status = source.fs.status(source.path)
+        size = source.fs.count(source.path)
         # Check the path exists and is the right size:
         if self.block_blob_service.exists(self.container, self.path):
             props = self.block_blob_service.get_blob_properties(self.container, self.path)
-            if props.properties.content_length == status['length']:
+            if props.properties.content_length == size:
                 return True
         # Wrong...
         return False
