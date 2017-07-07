@@ -200,6 +200,6 @@ class GenerateHDFSSummaries(luigi.WrapperTask):
 
 if __name__ == '__main__':
     #luigi.run(['ListUKWAWebArchiveFilesOnHDFS', '--local-scheduler'])
-    luigi.run(['GenerateHDFSSummaries', '--local-scheduler'])
+    luigi.run(['GenerateHDFSSummaries'])
     #luigi.run(['ListEmptyFilesOnHDFS', '--local-scheduler'])
 #    luigi.run(['GenerateWarcHashes', 'daily-warcs-test.txt'])

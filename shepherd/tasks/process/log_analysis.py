@@ -108,7 +108,7 @@ class AnalyseAndProcessDocuments(luigi.Task):
     from_hdfs = luigi.BoolParameter(default=False)
 
     # Size of bunches of jobs to yield
-    bunch_size = 200
+    bunch_size = 1000
 
     def requires(self):
         return AnalyseLogFile(self.job, self.launch_id, self.log_paths, self.targets_path, self.from_hdfs)
