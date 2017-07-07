@@ -261,6 +261,7 @@ metadata.description=UK Legal Deposit Domain Crawl.
 <!-- <property name="sendConnectionClose" value="true" /> -->
 <!-- <property name="sendReferer" value="true" /> -->
 <!-- <property name="sendRange" value="false" /> -->
+    <property name="ignoreCookies" value="true" />
 <!-- <property name="ignoreCookies" value="false" /> -->
 <!-- <property name="sslTrustLevel" value="OPEN" /> -->
 <!-- <property name="acceptHeaders"> 

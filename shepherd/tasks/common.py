@@ -7,9 +7,24 @@ import datetime
 import luigi
 import luigi.date_interval
 import luigi.contrib.esindex
+import luigi.contrib.hdfs
 import settings
 
 logger = logging.getLogger('luigi-interface')
+
+
+LUIGI_STATE_FOLDER = settings.state().folder
+
+
+def state_file(date, tag, suffix, on_hdfs=False):
+    path = os.path.join( LUIGI_STATE_FOLDER,
+                         date.strftime("%Y-%m"),
+                         tag,
+                         '%s-%s' % (date.strftime("%Y-%m-%d"), suffix))
+    if on_hdfs:
+        return luigi.contrib.hdfs.HdfsTarget(path=path)
+    else:
+        return luigi.LocalTarget(path=path)
 
 
 def webhdfs():

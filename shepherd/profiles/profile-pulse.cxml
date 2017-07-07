@@ -49,7 +49,7 @@
 		<!-- <property name="operatorFrom" value=""/> -->
 		<property name="organization" value="The British Library"/>
 		<!-- <property name="audience" value=""/> -->
-		<property name="userAgentTemplate" value="bl.uk_lddc_bot/@VERSION@ (+@OPERATOR_CONTACT_URL@)"/>
+		<property name="userAgentTemplate" value="bl.uk_ldfc_bot/@VERSION@ (+@OPERATOR_CONTACT_URL@)"/>
 		<property name="robotsPolicyName" value="classic" />
 		<!-- <property name="robotsPolicyName" value="obey"/> -->
 		<!--

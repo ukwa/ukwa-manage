@@ -1,26 +1,12 @@
 import os
 import json
 import datetime
-import logging
 import subprocess
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
-from shepherd.tasks.settings import state
+from shepherd.tasks.common import state_file
 from shepherd.tasks.common import logger
-
-LUIGI_STATE_FOLDER = state().folder
-
-
-def state_file(date, tag, suffix, on_hdfs=False):
-    path = os.path.join( LUIGI_STATE_FOLDER,
-                         date.strftime("%Y-%m"),
-                         tag,
-                         '%s-%s' % (date.strftime("%Y-%m-%d"), suffix))
-    if on_hdfs:
-        return luigi.contrib.hdfs.HdfsTarget(path=path)
-    else:
-        return luigi.LocalTarget(path=path)
 
 
 class ListAllFilesOnHDFS(luigi.Task):
@@ -191,6 +177,7 @@ class GenerateWarcHashes(luigi.contrib.hadoop_jar.HadoopJarJobTask):
 
     def args(self):
         return [self.input_file, self.output()]
+
 
 class GenerateHDFSSummaries(luigi.WrapperTask):
 
