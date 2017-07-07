@@ -14,10 +14,12 @@ from lxml import etree
 from StringIO import StringIO
 
 # import the Celery app context
-from crawl.celery import app
-from crawl.celery import cfg
+#from crawl.celery import app
+#from crawl.celery import cfg
+HDFS_URL='http://hdfs:14000'
+HDFS_USER='hdfs'
 
-SIP_ROOT="/heritrix/sips"
+SIP_ROOT="/heritrix/sips/2015-domain-crawl"
 NS={"mets": "http://www.loc.gov/METS/", "premis": "info:lc/xmlns/premis-v2"}
 XLINK="{http://www.w3.org/1999/xlink}"
 
@@ -43,7 +45,8 @@ def get_warc_identifiers(sip):
 
 def get_all_identifiers(sip):
     """Parses the SIP in HDFS and retrieves FILE/ARK tuples."""
-    client = hdfs.InsecureClient(cfg.get('hdfs', 'url'), user=cfg.get('hdfs', 'user'))
+#    client = hdfs.InsecureClient(cfg.get('hdfs', 'url'), user=cfg.get('hdfs', 'user'))
+    client = hdfs.InsecureClient(HDFS_URL, HDFS_USER)
     tar = "%s/%s.tar.gz" % (SIP_ROOT, sip)
     status = client.status(tar,strict=False)
     if status:
@@ -101,7 +104,8 @@ def get_all_identifiers(sip):
 
 def find_identifiers(output_file):
     with open(output_file, 'w') as f:
-        client = hdfs.InsecureClient(cfg.get('hdfs', 'url'), user=cfg.get('hdfs', 'user'))
+#        client = hdfs.InsecureClient(cfg.get('hdfs', 'url'), user=cfg.get('hdfs', 'user'))
+        client = hdfs.InsecureClient(HDFS_URL, HDFS_USER)
         for (path, dirs, files) in client.walk(SIP_ROOT):
             logger.info("Looking at path "+path)
             for file in files:
