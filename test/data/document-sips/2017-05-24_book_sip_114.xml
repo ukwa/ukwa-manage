@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mets:mets TYPE="eBooks"
+    xmlns:mets="http://www.loc.gov/METS/"
+    xmlns:premis="info:lc/xmlns/premis-v2"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    xmlns:mods="http://www.loc.gov/mods/v3"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd
+        info:lc/xmlns/premis-v2 http://www.loc.gov/standards/premis/premis.xsd
+        http://www.loc.gov/mods/v3 http://www.loc.gov/mods/v3/mods-3-4.xsd
+        http://bl.uk/namespaces/blmodsextension.xsd">
+  <mets:metsHdr CREATEDATE="2017-05-24T00:30:43Z">
+    <mets:agent ROLE="CREATOR" TYPE="OTHER" OTHERTYPE="SOFTWARE">
+      <mets:name>ACT;2.0.6</mets:name>
+    </mets:agent>
+    <mets:metsDocumentID>ark:/81055/tvdc_100002279598.0x000002</mets:metsDocumentID>
+  </mets:metsHdr>
+  <mets:dmdSec ID="dmd0001">
+    <mets:mdRef LOCTYPE="ARK" MDTYPE="MARC" OTHERMDTYPE="ALEPH" xlink:href="ark:/81055/tvdc_100002279598.0x000004" />
+  </mets:dmdSec>
+  <mets:dmdSec ID="dmd0002">
+    <mets:mdWrap MDTYPE="MARC">
+      <mets:xmlData>
+        <collection xmlns="http://www.loc.gov/MARC21/slim">
+          <record>
+            <leader>     nam a22     5i 4500</leader>
+         	<datafield tag="ITM" ind1="" ind2="">
+              <subfield code="a">tvdc_100002279598.0x000004</subfield>
+			</datafield>
+            <datafield tag="245" ind1="0" ind2="0">
+                <subfield code="a">The UK fire &amp; resilience offer</subfield>
+                
+                
+                
+            </datafield>
+              
+                  
+
+                  
+                  
+
+                  
+                  <datafield tag="264" ind1=" " ind2="1">
+                      
+                      <subfield code="b">Department for International Trade</subfield>
+                      
+                      <subfield code="c">2017</subfield>
+                  </datafield>
+                  
+
+                  
+                  
+                  
+
+                  
+                  
+                  
+
+                  
+                  <datafield tag="710" ind1="1" ind2=" ">
+                      <subfield code="a">Great Britain.</subfield>
+                      
+                      <subfield code="b">Home Office.</subfield>
+                      
+                  </datafield>
+                  
+                  
+                  <datafield tag="710" ind1="1" ind2=" ">
+                      <subfield code="a">Great Britain.</subfield>
+                      
+                      <subfield code="b">Department for International Trade.</subfield>
+                      
+                  </datafield>
+                  
+                  
+
+
+                  
+                      <datafield tag="690" ind1="7" ind2=" ">
+                          <subfield code="a">Management and Business Studies</subfield>
+                          <subfield code="2">blcoll</subfield>
+                      </datafield>
+                  
+                  
+                  <datafield tag="650" ind1=" " ind2="7">
+                      <subfield code="a">International trade</subfield>
+                      <subfield code="2">fast</subfield>
+                      <subfield code="0">(OCoLC)fst00977128</subfield>
+                  </datafield>
+                  
+                  
+            
+          </record>
+        </collection>
+      </mets:xmlData>
+    </mets:mdWrap>
+  </mets:dmdSec>
+  <mets:amdSec ID="amd0001">
+    <mets:digiprovMD ID="amd0001-object">
+      <mets:mdWrap MDTYPE="PREMIS:OBJECT">
+        <mets:xmlData>
+          <premis:object xsi:type="premis:file">
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>ARK</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>ark:/81055/tvdc_100002279598.0x000003</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel>0</premis:compositionLevel>
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-256</premis:messageDigestAlgorithm>
+                <premis:messageDigest>e4fea1faafb7bb3b975acf3a7805cfefb0f2aa04f27fe8c4f12092dd631e840f</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>3005261</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>application/pdf</premis:formatName>
+                </premis:formatDesignation>
+              </premis:format>
+            </premis:objectCharacteristics>
+            <premis:originalName>https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/583950/Fire_and_Resilience_Jan_2017_PDF.pdf</premis:originalName>
+          </premis:object>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:digiprovMD>
+  </mets:amdSec>
+
+  <mets:fileSec>
+    <mets:fileGrp USE="Original">
+      <mets:file ADMID="amd0001-object" ID="file0001">
+        <mets:FLocat LOCTYPE="OTHER" OTHERLOCTYPE="EXTERNALCONTENT" xlink:href="https://www.webarchive.org.uk/access/resolve/20170221104412/https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/583950/Fire_and_Resilience_Jan_2017_PDF.pdf"/>
+      </mets:file>
+    </mets:fileGrp>
+  </mets:fileSec>
+  <mets:structMap TYPE="LOGICAL">
+    <mets:div CONTENTIDS="ark:/81055/tvdc_100002279598.0x000001" DMDID="dmd0001 dmd0002" ID="log0001" TYPE="Monograph">
+      <mets:fptr FILEID="file0001"/>
+    </mets:div>
+  </mets:structMap>
+
+</mets:mets>

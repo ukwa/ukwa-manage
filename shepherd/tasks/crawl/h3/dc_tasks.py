@@ -17,7 +17,7 @@ DC_CLAMD_PORT=3310
 DC_AMQP_HOST='amqp-dc.wa.bl.uk'
 
 
-class DownloadGeolite2Database(luigi.Task):
+class DownloadGeolite2CountryDatabase(luigi.Task):
     task_namespace = "dc"
     date = luigi.MonthParameter(default=datetime.datetime.today())
 
@@ -30,6 +30,22 @@ class DownloadGeolite2Database(luigi.Task):
     def run(self):
         os.system("curl -O %s" % self.download)
         os.system("tar xvfz GeoLite2-Country.tar.gz")
+        os.system("cp %s %s" % ( self.match_glob, self.output().path))
+
+
+class DownloadGeolite2CityDatabase(luigi.Task):
+    task_namespace = "dc"
+    date = luigi.MonthParameter(default=datetime.datetime.today())
+
+    download = "http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz"
+    match_glob = "GeoLite2-Country_*/GeoLite2-City.mmdb"
+
+    def output(self):
+        return luigi.LocalTarget("GeoLite2-City-%s.mmdb" % self.date )
+
+    def run(self):
+        os.system("curl -O %s" % self.download)
+        os.system("tar xvfz GeoLite2-City.tar.gz")
         os.system("cp %s %s" % ( self.match_glob, self.output().path))
 
 
@@ -108,11 +124,11 @@ class CreateDomainCrawlJobs(luigi.Task):
 
     def run(self):
         # Set up GeoLite2 DB:
-        geo_task_output = yield DownloadGeolite2Database()
+        geo_task_output = yield DownloadGeolite2CityDatabase()
         yield SyncLocalToRemote( local_path=geo_task_output.path,
                                  host=self.host,
                                  user=self.user,
-                                 remote_path="/dev/shm/GeoLite2-Country.mmdb")
+                                 remote_path="/dev/shm/geoip-city.mmdb")
         # Generate crawl job files:
         for i in range(self.num_jobs):
             job_name = self.get_job_name(i)

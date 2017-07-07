@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mets:mets TYPE="eBooks"
+    xmlns:mets="http://www.loc.gov/METS/"
+    xmlns:premis="info:lc/xmlns/premis-v2"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    xmlns:mods="http://www.loc.gov/mods/v3"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd
+        info:lc/xmlns/premis-v2 http://www.loc.gov/standards/premis/premis.xsd
+        http://www.loc.gov/mods/v3 http://www.loc.gov/mods/v3/mods-3-4.xsd
+        http://bl.uk/namespaces/blmodsextension.xsd">
+  <mets:metsHdr CREATEDATE="2017-04-21T14:20:14Z">
+    <mets:agent ROLE="CREATOR" TYPE="OTHER" OTHERTYPE="SOFTWARE">
+      <mets:name>ACT;2.0.6</mets:name>
+    </mets:agent>
+    <mets:metsDocumentID>ark:/81055/tvdc_100002273660.0x000002</mets:metsDocumentID>
+  </mets:metsHdr>
+  <mets:dmdSec ID="dmd0001">
+    <mets:mdRef LOCTYPE="ARK" MDTYPE="MARC" OTHERMDTYPE="ALEPH" xlink:href="ark:/81055/tvdc_100002273660.0x000004" />
+  </mets:dmdSec>
+  <mets:dmdSec ID="dmd0002">
+    <mets:mdWrap MDTYPE="MARC">
+      <mets:xmlData>
+        <collection xmlns="http://www.loc.gov/MARC21/slim">
+          <record>
+            <leader>     nam a22     5i 4500</leader>
+         	<datafield tag="ITM" ind1="" ind2="">
+              <subfield code="a">tvdc_100002273660.0x000004</subfield>
+			</datafield>
+            <datafield tag="245" ind1="0" ind2="0">
+                <subfield code="a">Draft Equipment Interference Code of Practice</subfield>
+                
+                    <subfield code="b">Pursuant to Schedule 7 to the Investigatory Powers Act 2016.</subfield>
+                
+                
+                
+            </datafield>
+              
+                  
+
+                  
+                  
+
+                  
+                  <datafield tag="264" ind1=" " ind2="1">
+                      
+                      <subfield code="b">Home Office</subfield>
+                      
+                      <subfield code="c">2017</subfield>
+                  </datafield>
+                  
+
+                  
+                  
+                  
+
+                  
+                  
+                  
+
+                  
+                  <datafield tag="710" ind1="1" ind2=" ">
+                      <subfield code="a">Great Britain.</subfield>
+                      
+                      <subfield code="b">Home Office.</subfield>
+                      
+                  </datafield>
+                  
+                  
+                  
+
+
+                  
+                      <datafield tag="690" ind1="7" ind2=" ">
+                          <subfield code="a">Social Welfare</subfield>
+                          <subfield code="2">blcoll</subfield>
+                      </datafield>
+                  
+                  
+                  <datafield tag="650" ind1=" " ind2="7">
+                      <subfield code="a">Police</subfield>
+                      <subfield code="2">fast</subfield>
+                      <subfield code="0">(OCoLC)fst01068398</subfield>
+                  </datafield>
+                  
+                  <datafield tag="650" ind1=" " ind2="7">
+                      <subfield code="a">Human rights</subfield>
+                      <subfield code="2">fast</subfield>
+                      <subfield code="0">(OCoLC)fst00963285</subfield>
+                  </datafield>
+                  
+                  
+            
+          </record>
+        </collection>
+      </mets:xmlData>
+    </mets:mdWrap>
+  </mets:dmdSec>
+  <mets:amdSec ID="amd0001">
+    <mets:digiprovMD ID="amd0001-object">
+      <mets:mdWrap MDTYPE="PREMIS:OBJECT">
+        <mets:xmlData>
+          <premis:object xsi:type="premis:file">
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>ARK</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>ark:/81055/tvdc_100002273660.0x000003</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel>0</premis:compositionLevel>
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-256</premis:messageDigestAlgorithm>
+                <premis:messageDigest>012dbcb6b06880d9001407070e6592f6dc3b60c29b1e3cf1cb3d0cf85a30146b</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>1688181</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>application/pdf</premis:formatName>
+                </premis:formatDesignation>
+              </premis:format>
+            </premis:objectCharacteristics>
+            <premis:originalName>https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/593753/IP_Act_-_Draft_EI_code_of_practice_Feb2017_FINAL_WEB.pdf</premis:originalName>
+          </premis:object>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:digiprovMD>
+  </mets:amdSec>
+
+  <mets:fileSec>
+    <mets:fileGrp USE="Original">
+      <mets:file ADMID="amd0001-object" ID="file0001">
+        <mets:FLocat LOCTYPE="OTHER" OTHERLOCTYPE="EXTERNALCONTENT" xlink:href="https://www.webarchive.org.uk/access/resolve/20170306141442/https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/593753/IP_Act_-_Draft_EI_code_of_practice_Feb2017_FINAL_WEB.pdf"/>
+      </mets:file>
+    </mets:fileGrp>
+  </mets:fileSec>
+  <mets:structMap TYPE="LOGICAL">
+    <mets:div CONTENTIDS="ark:/81055/tvdc_100002273660.0x000001" DMDID="dmd0001 dmd0002" ID="log0001" TYPE="Monograph">
+      <mets:fptr FILEID="file0001"/>
+    </mets:div>
+  </mets:structMap>
+
+</mets:mets>

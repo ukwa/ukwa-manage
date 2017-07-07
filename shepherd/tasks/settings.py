@@ -50,4 +50,3 @@ class systems(luigi.Config):
 
 class slack(luigi.Config):
     token = os.environ.get('SLACK_TOKEN', luigi.Parameter())
-

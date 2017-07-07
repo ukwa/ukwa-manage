@@ -84,6 +84,7 @@ class launcher(object):
 			if not isSeed:
 				curim['forceFetch'] = forceFetch
 			curim['url'] = uri
+			curim['hop'] = ""
 		elif destination == "har":
 			curim['clientId']= clientId
 			curim['metadata'] = {}
