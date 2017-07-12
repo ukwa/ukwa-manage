@@ -11,7 +11,7 @@ from shepherd.tasks.common import state_file
 from shepherd.tasks.common import logger
 
 
-class ListAllFilesOnHDFS(luigi.Task):
+class ListAllFilesOnHDFSToLocalFile(luigi.Task):
     """
     This task lists all files on HDFS (skipping directories).
 
@@ -24,36 +24,56 @@ class ListAllFilesOnHDFS(luigi.Task):
     date = luigi.DateParameter(default=datetime.date.today())
 
     def output(self):
-        return state_file(self.date,'hdfs','all-files-list.jsonl.gz', on_hdfs=True)
+        return state_file(self.date,'hdfs','all-files-list.jsonl.gz', on_hdfs=False)
 
     def run(self):
         command = luigi.contrib.hdfs.load_hadoop_cmd()
         command += ['fs', '-lsr', '/']
-        temp = tempfile.TemporaryFile()
-        with gzip.GzipFile( fileobj=temp, mode='w' ) as f:
-            process = subprocess.Popen(command, stdout=subprocess.PIPE)
-            for line in iter(process.stdout.readline, ''):
-                if "lsr: DEPRECATED: Please use 'ls -R' instead." in line:
-                    logger.warning(line)
-                else:
-                    permissions, number_of_replicas, userid, groupid, filesize, modification_date, modification_time, filename = line.split()
-                    timestamp = datetime.datetime.strptime('%s %s' % (modification_date, modification_time), '%Y-%m-%d %H:%M')
-                    info = {
-                        'permissions' : permissions,
-                        'number_of_replicas': number_of_replicas,
-                        'userid': userid,
-                        'groupid': groupid,
-                        'filesize': filesize,
-                        'modified_at': timestamp.isoformat(),
-                        'filename': filename
-                    }
-                    # Skip directories:
-                    if permissions[0] != 'd':
-                        f.write(json.dumps(info)+'\n')
+        with self.output().open('w') as fout:
+            with gzip.GzipFile( fileobj=fout, mode='w' ) as f:
+                process = subprocess.Popen(command, stdout=subprocess.PIPE)
+                for line in iter(process.stdout.readline, ''):
+                    if "lsr: DEPRECATED: Please use 'ls -R' instead." in line:
+                        logger.warning(line)
+                    else:
+                        permissions, number_of_replicas, userid, groupid, filesize, modification_date, modification_time, filename = line.split()
+                        timestamp = datetime.datetime.strptime('%s %s' % (modification_date, modification_time), '%Y-%m-%d %H:%M')
+                        info = {
+                            'permissions' : permissions,
+                            'number_of_replicas': number_of_replicas,
+                            'userid': userid,
+                           'groupid': groupid,
+                            'filesize': filesize,
+                            'modified_at': timestamp.isoformat(),
+                            'filename': filename
+                        }
+                        # Skip directories:
+                        if permissions[0] != 'd':
+                            f.write(json.dumps(info)+'\n')
 
+
+class ListAllFilesOnHDFS(luigi.Task):
+    """
+    This task lists all files on HDFS (skipping directories).
+
+    As this can be a very large list, it avoids reading it all into memory. It
+    parses each line, and creates a JSON item for each, outputting the result in
+    [JSON Lines format](http://jsonlines.org/).
+
+    It set up to run once a day, as input to downstream reporting or analysis processes.
+    """
+    date = luigi.DateParameter(default=datetime.date.today())
+
+    def requires(self):
+        return ListAllFilesOnHDFSToLocalFile(self.date)
+
+    def output(self):
+        return state_file(self.date,'hdfs','all-files-list.jsonl.gz', on_hdfs=True)
+
+    def run(self):
         # Push to HDFS:
         with self.output().open('w') as fout:
-            with open(temp, 'rb') as gzin:
+            with self.input().open('rb') as gzin:
                 fout.write(gzin.read())
 
 
