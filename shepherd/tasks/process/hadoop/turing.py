@@ -44,14 +44,13 @@ class ListFilesToUploadToAzure(luigi.Task):
     Takes the full WARC list and filters UKWA content by folder:
     """
     date = luigi.DateParameter(default=datetime.date.today())
-    collection = luigi.Parameter()
     path_match = luigi.Parameter()
 
     def requires(self):
         return ListAllFilesOnHDFS(self.date)
 
     def output(self):
-        return state_file(self.date, 'hdfs', 'turing-%s-uploaded-file-list.jsonl' % self.collection)
+        return state_file(self.date, 'hdfs', 'turing-uploaded-file-list.jsonl')
 
     def run(self):
         filenames = {}
