@@ -34,7 +34,7 @@ class NominetDomainListFTP(luigi.ExternalTask):
         return luigi.contrib.ftp.RemoteTarget(filename, NOM_HOST, username=NOM_USER, password=NOM_PWD, sftp=True)
 
 
-class NominateDomainListToHDFS(luigi.ExternalTask):
+class NominateDomainListToHDFS(luigi.Task):
     """
     """
     date = luigi.MonthParameter(default=datetime.date.today())
@@ -55,3 +55,7 @@ class NominateDomainListToHDFS(luigi.ExternalTask):
                     if not chunk:
                         break
                     writer.write(chunk)
+
+
+if __name__ == '__main__':
+    luigi.run(['NominateDomainListToHDFS'])
