@@ -11,7 +11,8 @@ from shepherd.tasks.common import logger
 
 class UploadToAzure(luigi.Task):
     path = luigi.Parameter()
-    container = luigi.Parameter(default='BL Data')
+    container = luigi.Parameter(default='ukwebarchive')
+    prefix = luigi.Parameter(default='jisc-uk-web-domain-dataset-1996-2013')
 
     block_blob_service = BlockBlobService(
         account_name=os.environ.get('AZURE_ACCOUNT_NAME'),
@@ -31,7 +32,7 @@ class UploadToAzure(luigi.Task):
     def run(self):
         source = luigi.contrib.hdfs.HdfsTarget(path=self.path)
         with source.open() as inf:
-            self.block_blob_service.create_blob_from_stream(self.container, self.path, inf)
+            self.block_blob_service.create_blob_from_stream(self.container, "%s/%s" % (self.prefix, self.path.lstrip('/')), inf, max_connections=1)
 
 
 class ListDuplicateWebArchiveFilesOnHDFS(luigi.Task):
@@ -72,4 +73,4 @@ class ListDuplicateWebArchiveFilesOnHDFS(luigi.Task):
 
 if __name__ == '__main__':
     #luigi.run(['ListUKWAWebArchiveFilesOnHDFS', '--local-scheduler'])
-    luigi.run(['UploadToAzure', '--local-scheduler', '--path', '/ia/md5.txt'])
+    luigi.run(['UploadToAzure', '--local-scheduler', '--path', '/ia/2011-201304/part-01/warcs/DOTUK-HISTORICAL-2011-201304-WARCS-PART-00044-601503-000000.warc.gz'])
