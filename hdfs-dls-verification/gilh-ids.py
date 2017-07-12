@@ -18,8 +18,7 @@ from lxml import etree
 # globals -----------------------------
 HDFS_URL='http://hdfs:14000'
 HDFS_USER='hdfs'
-#SIP_ROOT="/heritrix/sips"
-SIP_ROOT="/heritrix/sips/2015-domain-crawl"
+SIP_ROOT="/heritrix/sips"
 NS={"mets": "http://www.loc.gov/METS/", "premis": "info:lc/xmlns/premis-v2"}
 XLINK="{http://www.w3.org/1999/xlink}"
 
