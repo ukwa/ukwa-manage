@@ -35,7 +35,7 @@ functools32==3.2.3.post2
 futures==3.0.5
 gunicorn==19.6.0
 hapy-heritrix==0.1.1
-hdfs==2.0.12
+hdfs==2.0.16
 html5lib==0.9999999
 idna==2.1
 imagesize==0.7.1
@@ -53,7 +53,7 @@ jupyter-console==5.1.0
 jupyter-core==4.3.0
 kombu==3.0.35
 lockfile==0.12.2
-luigi==2.5.0
+luigi==2.6.2
 lxml==3.6.0
 MarkupSafe==0.23
 mechanize==0.2.5

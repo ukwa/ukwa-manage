@@ -1,6 +1,6 @@
 import os
 import json
-import gzip
+import zlib
 import luigi
 import luigi.contrib.hdfs
 import datetime
@@ -44,7 +44,7 @@ class ListFilesToUploadToAzure(luigi.Task):
     Takes the full WARC list and filters UKWA content by folder:
     """
     date = luigi.DateParameter(default=datetime.date.today())
-    path_match = luigi.Parameter()
+    path_match = luigi.Parameter(default='/ia/2011-201304/')
 
     def requires(self):
         return ListAllFilesOnHDFS(self.date)
@@ -54,8 +54,11 @@ class ListFilesToUploadToAzure(luigi.Task):
 
     def run(self):
         filenames = {}
-        for line in gzip.GzipFile(fileobj=self.input(), mode='r'):
+        print("GAH",self.input(),self.input().fs)
+        with self.input().fs.client.read(self.input().path).read() as fin:
+          for line in zlib.decompress(fin, zlib.MAX_WBITS|16):
             item = json.loads(line.strip())
+            print(item)
             # Archive file names:
             basename = os.path.basename(item['filename'])
             if basename not in filenames:

@@ -73,7 +73,7 @@ class ListAllFilesOnHDFS(luigi.Task):
         temp = state_file(self.date,'hdfs','all-files-list.jsonl.gz', on_hdfs=True)
         logger.info("NAME %s" % temp.path)
         filename = temp.path
-        return luigi.contrib.hdfs.HdfsTarget(path=filename, format=luigi.contrib.hdfs.PlainFormat())
+        return luigi.contrib.hdfs.HdfsTarget(path=filename)
 
     def run(self):
         # Read the file in and write it to HDFS
