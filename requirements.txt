@@ -78,6 +78,7 @@ pyasn1==0.1.9
 pycparser==2.14
 Pygments==2.2.0
 pyOpenSSL==16.0.0
+pysftp==0.2.8
 pysolr==3.5.0
 python-daemon==2.1.2
 python-dateutil==2.5.3
