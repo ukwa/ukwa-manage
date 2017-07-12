@@ -210,7 +210,7 @@ class GenerateWarcHashes(luigi.contrib.hadoop_jar.HadoopJarJobTask):
 class GenerateHDFSSummaries(luigi.WrapperTask):
 
     def requires(self):
-        return [ ListUKWAWebArchiveFilesOnHDFS(), ListDuplicateWebArchiveFilesOnHDFS(), ListEmptyFilesOnHDFS() ]
+        return [ ListAllFilesOnHDFS(), ListUKWAWebArchiveFilesOnHDFS(), ListDuplicateWebArchiveFilesOnHDFS(), ListEmptyFilesOnHDFS() ]
 
 
 if __name__ == '__main__':
