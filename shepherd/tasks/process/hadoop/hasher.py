@@ -10,6 +10,8 @@ import luigi.contrib.hadoop_jar
 from shepherd.tasks.common import state_file
 from shepherd.tasks.common import logger
 
+DEFAULT_BUFFER_SIZE = 1024*1000
+
 
 class ListAllFilesOnHDFSToLocalFile(luigi.Task):
     """
@@ -68,13 +70,20 @@ class ListAllFilesOnHDFS(luigi.Task):
         return ListAllFilesOnHDFSToLocalFile(self.date)
 
     def output(self):
-        return state_file(self.date,'hdfs','all-files-list.jsonl.gz', on_hdfs=True)
+        temp = state_file(self.date,'hdfs','all-files-list.jsonl.gz', on_hdfs=True)
+        logger.info("NAME %s" % temp.path)
+        filename = temp.path
+        return luigi.contrib.hdfs.HdfsTarget(path=filename, format=luigi.contrib.hdfs.PlainFormat)
 
     def run(self):
-        # Push to HDFS:
-        with self.output().open('w') as fout:
-            with self.input().open('rb') as gzin:
-                fout.write(gzin.read())
+        # Read the file in and write it to HDFS
+        with self.input().open() as reader:
+            with self.output().open('w') as writer:
+                while True:
+                    chunk = reader.read(DEFAULT_BUFFER_SIZE)
+                    if not chunk:
+                        break
+                    writer.write(chunk)
 
 
 class ListEmptyFilesOnHDFS(luigi.Task):
