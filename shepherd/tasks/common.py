@@ -14,10 +14,15 @@ logger = logging.getLogger('luigi-interface')
 
 
 LUIGI_STATE_FOLDER = settings.state().folder
+LUIGI_HDFS_STATE_FOLDER = "/9_processing/access-task-state/"
 
 
 def state_file(date, tag, suffix, on_hdfs=False):
-    path = os.path.join( LUIGI_STATE_FOLDER,
+    state_folder = settings.state().folder
+    if on_hdfs:
+        state_folder = LUIGI_HDFS_STATE_FOLDER
+    # build the full path:
+    path = os.path.join( state_folder,
                          date.strftime("%Y-%m"),
                          tag,
                          '%s-%s' % (date.strftime("%Y-%m-%d"), suffix))

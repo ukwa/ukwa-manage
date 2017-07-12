@@ -1,6 +1,8 @@
 import os
 import json
+import gzip
 import datetime
+import tempfile
 import subprocess
 import luigi
 import luigi.contrib.hdfs
@@ -22,12 +24,13 @@ class ListAllFilesOnHDFS(luigi.Task):
     date = luigi.DateParameter(default=datetime.date.today())
 
     def output(self):
-        return state_file(self.date,'hdfs','all-files-list.jsonl')
+        return state_file(self.date,'hdfs','all-files-list.jsonl.gz', on_hdfs=True)
 
     def run(self):
         command = luigi.contrib.hdfs.load_hadoop_cmd()
         command += ['fs', '-lsr', '/']
-        with self.output().open('w') as f:
+        temp = tempfile.TemporaryFile()
+        with gzip.GzipFile( fileobj=temp, mode='w' ) as f:
             process = subprocess.Popen(command, stdout=subprocess.PIPE)
             for line in iter(process.stdout.readline, ''):
                 if "lsr: DEPRECATED: Please use 'ls -R' instead." in line:
@@ -47,6 +50,11 @@ class ListAllFilesOnHDFS(luigi.Task):
                     # Skip directories:
                     if permissions[0] != 'd':
                         f.write(json.dumps(info)+'\n')
+
+        # Push to HDFS:
+        with self.output().open('w') as fout:
+            with open(temp, 'rb') as gzin:
+                fout.write(gzin.read())
 
 
 class ListEmptyFilesOnHDFS(luigi.Task):
