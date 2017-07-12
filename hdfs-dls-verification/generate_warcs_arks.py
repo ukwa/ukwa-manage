@@ -41,7 +41,7 @@ def script_die(msg):
 
 def get_args():
     parser = argparse.ArgumentParser('Extract ARKs and WARC details from HDFS')
-    parser.add_argument('-o --outputfile', dest='outputFile', default='arks_warcs.txt', help='Output file')
+    parser.add_argument('-o --outputfile', dest='outputFile', default='npld_warcs_arks.txt', help='Output file')
     global args
     args = parser.parse_args()
     if os.path.isfile(args.outputFile):
