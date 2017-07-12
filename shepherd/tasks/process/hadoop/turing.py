@@ -18,12 +18,15 @@ class UploadToAzure(luigi.Task):
         account_name=os.environ.get('AZURE_ACCOUNT_NAME'),
         account_key=os.environ.get('AZURE_ACCOUNT_KEY'))
 
+    def full_path(self):
+        return "%s/%s" % (self.prefix, self.path.lstrip('/'))
+
     def complete(self):
         source = luigi.contrib.hdfs.HdfsTarget(path=self.path)
-        size = source.fs.count(source.path)
+        size = source.fs.client.status(source.path)['length']
         # Check the path exists and is the right size:
-        if self.block_blob_service.exists(self.container, self.path):
-            props = self.block_blob_service.get_blob_properties(self.container, self.path)
+        if self.block_blob_service.exists(self.container, self.full_path()):
+            props = self.block_blob_service.get_blob_properties(self.container, self.full_path())
             if props.properties.content_length == size:
                 return True
         # Wrong...
@@ -31,8 +34,8 @@ class UploadToAzure(luigi.Task):
 
     def run(self):
         source = luigi.contrib.hdfs.HdfsTarget(path=self.path)
-        with source.open() as inf:
-            self.block_blob_service.create_blob_from_stream(self.container, "%s/%s" % (self.prefix, self.path.lstrip('/')), inf, max_connections=1)
+        with source.fs.client.read(source.path) as inf:
+            self.block_blob_service.create_blob_from_stream(self.container, self.full_path(), inf, max_connections=1)
 
 
 class ListDuplicateWebArchiveFilesOnHDFS(luigi.Task):
@@ -73,4 +76,4 @@ class ListDuplicateWebArchiveFilesOnHDFS(luigi.Task):
 
 if __name__ == '__main__':
     #luigi.run(['ListUKWAWebArchiveFilesOnHDFS', '--local-scheduler'])
-    luigi.run(['UploadToAzure', '--local-scheduler', '--path', '/ia/2011-201304/part-01/warcs/DOTUK-HISTORICAL-2011-201304-WARCS-PART-00044-601503-000000.warc.gz'])
+    luigi.run(['UploadToAzure', '--path', '/ia/2011-201304/part-01/warcs/DOTUK-HISTORICAL-2011-201304-WARCS-PART-00044-601503-000001.warc.gz'])
