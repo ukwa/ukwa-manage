@@ -1,5 +1,6 @@
 import os
 import json
+import gzip
 import luigi
 import luigi.contrib.hdfs
 import datetime
@@ -38,7 +39,7 @@ class UploadToAzure(luigi.Task):
             self.block_blob_service.create_blob_from_stream(self.container, self.full_path(), inf, max_connections=1)
 
 
-class ListDuplicateWebArchiveFilesOnHDFS(luigi.Task):
+class ListFilesToUploadToAzure(luigi.Task):
     """
     Takes the full WARC list and filters UKWA content by folder:
     """
@@ -54,7 +55,7 @@ class ListDuplicateWebArchiveFilesOnHDFS(luigi.Task):
 
     def run(self):
         filenames = {}
-        for line in self.input().open('r'):
+        for line in gzip.GzipFile(fileobj=self.input(), mode='r'):
             item = json.loads(line.strip())
             # Archive file names:
             basename = os.path.basename(item['filename'])
@@ -75,5 +76,5 @@ class ListDuplicateWebArchiveFilesOnHDFS(luigi.Task):
 
 
 if __name__ == '__main__':
-    #luigi.run(['ListUKWAWebArchiveFilesOnHDFS', '--local-scheduler'])
-    luigi.run(['UploadToAzure', '--path', '/ia/2011-201304/part-01/warcs/DOTUK-HISTORICAL-2011-201304-WARCS-PART-00044-601503-000001.warc.gz'])
+    luigi.run(['ListFilesToUploadToAzure'])
+    #luigi.run(['UploadToAzure', '--path', '/ia/2011-201304/part-01/warcs/DOTUK-HISTORICAL-2011-201304-WARCS-PART-00044-601503-000001.warc.gz'])
