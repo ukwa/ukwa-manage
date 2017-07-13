@@ -2,7 +2,9 @@ import os
 import json
 import zlib
 import luigi
+import luigi.format
 import luigi.contrib.hdfs
+import StringIO
 import datetime
 from azure.storage.blob import BlockBlobService
 from hasher import ListAllFilesOnHDFS
@@ -53,28 +55,15 @@ class ListFilesToUploadToAzure(luigi.Task):
     def output(self):
         return state_file(self.date, 'hdfs', 'turing-uploaded-file-list.jsonl')
 
-    def decompress_stream(self):
-        d = zlib.decompressobj(16 + zlib.MAX_WBITS)
-        with self.input().open('r') as reader:
-            for chunk in reader:
-                if not chunk:
-                    break
-                yield d.decompress(chunk)
-
     def run(self):
         filenames = {}
-        for line in self.decompress_stream():
-                print(line)
         with self.input().open('r') as reader:
-            for chunk in reader:
-                print("BYTE", chunk)
-                for line in d.decompress(chunk):
-                    print("LINE",line)
-                    item = json.loads(line.strip())
-                    #if item:
-                    #    print(item)
+            for line in reader:
+                item = json.loads(line.strip())
+                if item['filename'].startswith(self.path_match):
+                    logger.info("Found matching item: '%s'" % item['filename'])
 
 
 if __name__ == '__main__':
-    luigi.run(['ListFilesToUploadToAzure', '--local-scheduler'])
+    luigi.run(['ListFilesToUploadToAzure', '--local-scheduler' , '--path-match' , '/user/root/input/hadoop'])
     #luigi.run(['UploadToAzure', '--path', '/ia/2011-201304/part-01/warcs/DOTUK-HISTORICAL-2011-201304-WARCS-PART-00044-601503-000001.warc.gz'])

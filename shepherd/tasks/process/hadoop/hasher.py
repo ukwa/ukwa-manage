@@ -1,8 +1,6 @@
 import os
 import json
-import gzip
 import datetime
-import tempfile
 import subprocess
 import luigi
 import luigi.contrib.hdfs
@@ -27,35 +25,34 @@ class ListAllFilesOnHDFSToLocalFile(luigi.Task):
     date = luigi.DateParameter(default=datetime.date.today())
 
     def output(self):
-        return state_file(self.date,'hdfs','all-files-list.jsonl.gz', on_hdfs=False)
+        return state_file(self.date,'hdfs','all-files-list.jsonl', on_hdfs=False)
 
     def run(self):
         command = luigi.contrib.hdfs.load_hadoop_cmd()
         command += ['fs', '-lsr', '/']
         with self.output().open('w') as fout:
-            with gzip.GzipFile( fileobj=fout, mode='w' ) as f:
-                process = subprocess.Popen(command, stdout=subprocess.PIPE)
-                for line in iter(process.stdout.readline, ''):
-                    if "lsr: DEPRECATED: Please use 'ls -R' instead." in line:
-                        logger.warning(line)
-                    else:
-                        permissions, number_of_replicas, userid, groupid, filesize, modification_date, modification_time, filename = line.split()
-                        timestamp = datetime.datetime.strptime('%s %s' % (modification_date, modification_time), '%Y-%m-%d %H:%M')
-                        info = {
-                            'permissions' : permissions,
-                            'number_of_replicas': number_of_replicas,
-                            'userid': userid,
-                           'groupid': groupid,
-                            'filesize': filesize,
-                            'modified_at': timestamp.isoformat(),
-                            'filename': filename
-                        }
-                        # Skip directories:
-                        if permissions[0] != 'd':
-                            f.write(json.dumps(info)+'\n')
+            process = subprocess.Popen(command, stdout=subprocess.PIPE)
+            for line in iter(process.stdout.readline, ''):
+                if "lsr: DEPRECATED: Please use 'ls -R' instead." in line:
+                    logger.warning(line)
+                else:
+                    permissions, number_of_replicas, userid, groupid, filesize, modification_date, modification_time, filename = line.split()
+                    timestamp = datetime.datetime.strptime('%s %s' % (modification_date, modification_time), '%Y-%m-%d %H:%M')
+                    info = {
+                        'permissions' : permissions,
+                        'number_of_replicas': number_of_replicas,
+                        'userid': userid,
+                       'groupid': groupid,
+                        'filesize': filesize,
+                        'modified_at': timestamp.isoformat(),
+                        'filename': filename
+                    }
+                    # Skip directories:
+                    if permissions[0] != 'd':
+                        fout.write(json.dumps(info)+'\n')
 
 
-class   ListAllFilesOnHDFS(luigi.Task):
+class ListAllFilesOnHDFS(luigi.Task):
     """
     This task lists all files on HDFS (skipping directories).
 
@@ -71,23 +68,14 @@ class   ListAllFilesOnHDFS(luigi.Task):
         return ListAllFilesOnHDFSToLocalFile(self.date)
 
     def output(self):
-        temp = state_file(self.date,'hdfs','all-files-list.jsonl.gz', on_hdfs=True)
-        logger.info("NAME %s" % temp.path)
-        filename = temp.path
-        return luigi.contrib.hdfs.HdfsTarget(path=filename, format=luigi.contrib.hdfs.Plain)
+        return state_file(self.date,'hdfs','all-files-list.jsonl.gz', on_hdfs=True, use_gzip=True)
 
     def run(self):
         # Read the file in and write it to HDFS
         with self.input().open('r') as reader:
-            # HdfsTarget cannot write to HDFS when using the HDFS client!
-            # And WebHdfsTarget cannot be read!
-            webhdfs_target = luigi.contrib.webhdfs.WebHdfsTarget(path=self.output().path)
-            with webhdfs_target.open('w') as writer:
-                while True:
-                    chunk = reader.read(DEFAULT_BUFFER_SIZE)
-                    if not chunk:
-                        break
-                    writer.write(chunk)
+            with self.output().open('w') as writer:
+                for line in reader:
+                    writer.write(line)
 
 
 class ListEmptyFilesOnHDFS(luigi.Task):

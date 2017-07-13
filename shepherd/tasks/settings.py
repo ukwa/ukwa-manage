@@ -41,7 +41,7 @@ class systems(luigi.Config):
     amqp_host = os.environ.get('AMQP_HOST', luigi.Parameter(default='amqp'))
     clamd_host = os.environ.get('CLAMD_HOST', luigi.Parameter(default='clamd'))
     clamd_port = os.environ.get('CLAMD_PORT', luigi.IntParameter(default=3310))
-    elasticsearch_host = os.environ.get('ELASTICSEARCH_HOST', luigi.Parameter(default=None))
+    elasticsearch_host = os.environ.get('ELASTICSEARCH_HOST', luigi.Parameter(default=''))
     elasticsearch_port = os.environ.get('ELASTICSEARCH_PORT', luigi.IntParameter(default=9200))
     elasticsearch_index_prefix = os.environ.get('ELASTICSEARCH_INDEX_PREFIX', luigi.Parameter(default='pulse'))
     servers = luigi.Parameter(default='/shepherd/tasks/servers.json')
