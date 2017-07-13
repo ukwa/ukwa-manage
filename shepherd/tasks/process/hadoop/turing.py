@@ -55,10 +55,7 @@ class ListFilesToUploadToAzure(luigi.Task):
 
     def decompress_stream(self):
         d = zlib.decompressobj(16 + zlib.MAX_WBITS)
-        print(self.input())
-        nin = luigi.contrib.hdfs.HdfsTarget(path=self.input().path, format=luigi.contrib.hdfs.Plain)
-        print(nin, nin.fs)
-        with nin.open('r') as reader:
+        with self.input().open('r') as reader:
             for chunk in reader:
                 if not chunk:
                     break
