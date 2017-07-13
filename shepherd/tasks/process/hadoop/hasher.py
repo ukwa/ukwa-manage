@@ -6,6 +6,7 @@ import tempfile
 import subprocess
 import luigi
 import luigi.contrib.hdfs
+import luigi.contrib.webhdfs
 import luigi.contrib.hadoop_jar
 from shepherd.tasks.common import state_file
 from shepherd.tasks.common import logger
@@ -54,7 +55,7 @@ class ListAllFilesOnHDFSToLocalFile(luigi.Task):
                             f.write(json.dumps(info)+'\n')
 
 
-class ListAllFilesOnHDFS(luigi.Task):
+class   ListAllFilesOnHDFS(luigi.Task):
     """
     This task lists all files on HDFS (skipping directories).
 
@@ -73,11 +74,11 @@ class ListAllFilesOnHDFS(luigi.Task):
         temp = state_file(self.date,'hdfs','all-files-list.jsonl.gz', on_hdfs=True)
         logger.info("NAME %s" % temp.path)
         filename = temp.path
-        return luigi.contrib.hdfs.HdfsTarget(path=filename)
+        return luigi.contrib.webhdfs.WebHdfsTarget(path=filename)
 
     def run(self):
         # Read the file in and write it to HDFS
-        with self.input().open('rb') as reader:
+        with self.input().open('r') as reader:
             with self.output().open('w') as writer:
                 while True:
                     chunk = reader.read(DEFAULT_BUFFER_SIZE)

@@ -17,7 +17,8 @@ class UploadToAzure(luigi.Task):
 
     block_blob_service = BlockBlobService(
         account_name=os.environ.get('AZURE_ACCOUNT_NAME'),
-        account_key=os.environ.get('AZURE_ACCOUNT_KEY'))
+        account_key=os.environ.get('AZURE_ACCOUNT_KEY')
+    )
 
     def full_path(self):
         return "%s/%s" % (self.prefix, self.path.lstrip('/'))
@@ -52,31 +53,31 @@ class ListFilesToUploadToAzure(luigi.Task):
     def output(self):
         return state_file(self.date, 'hdfs', 'turing-uploaded-file-list.jsonl')
 
+    def decompress_stream(self):
+        d = zlib.decompressobj(16 + zlib.MAX_WBITS)
+        print(self.input())
+        nin = luigi.contrib.hdfs.HdfsTarget(path=self.input().path, format=luigi.contrib.hdfs.Plain)
+        print(nin, nin.fs)
+        with nin.open('r') as reader:
+            for chunk in reader:
+                if not chunk:
+                    break
+                yield d.decompress(chunk)
+
     def run(self):
         filenames = {}
-        print("GAH",self.input(),self.input().fs)
-        with self.input().fs.client.read(self.input().path).read() as fin:
-          for line in zlib.decompress(fin, zlib.MAX_WBITS|16):
-            item = json.loads(line.strip())
-            print(item)
-            # Archive file names:
-            basename = os.path.basename(item['filename'])
-            if basename not in filenames:
-                filenames[basename] = [item['filename']]
-            else:
-                filenames[basename].append(item['filename'])
-
-        # And emit duplicates:
-        unduplicated = 0
-        with self.output().open('w') as f:
-            for basename in filenames:
-                if len(filenames[basename]) > 1:
-                    f.write("%s\t%i\t%s\n" % (basename, len(filenames[basename]), json.dumps(filenames[basename])))
-                else:
-                    unduplicated += 1
-        logger.info("Of %i WARC filenames, %i are stored in a single HDFS location." % (len(filenames), unduplicated))
+        for line in self.decompress_stream():
+                print(line)
+        with self.input().open('r') as reader:
+            for chunk in reader:
+                print("BYTE", chunk)
+                for line in d.decompress(chunk):
+                    print("LINE",line)
+                    item = json.loads(line.strip())
+                    #if item:
+                    #    print(item)
 
 
 if __name__ == '__main__':
-    luigi.run(['ListFilesToUploadToAzure'])
+    luigi.run(['ListFilesToUploadToAzure', '--local-scheduler'])
     #luigi.run(['UploadToAzure', '--path', '/ia/2011-201304/part-01/warcs/DOTUK-HISTORICAL-2011-201304-WARCS-PART-00044-601503-000001.warc.gz'])
