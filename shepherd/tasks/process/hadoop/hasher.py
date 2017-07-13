@@ -74,12 +74,15 @@ class   ListAllFilesOnHDFS(luigi.Task):
         temp = state_file(self.date,'hdfs','all-files-list.jsonl.gz', on_hdfs=True)
         logger.info("NAME %s" % temp.path)
         filename = temp.path
-        return luigi.contrib.webhdfs.WebHdfsTarget(path=filename)
+        return luigi.contrib.hdfs.HdfsTarget(path=filename, format=luigi.contrib.hdfs.Plain)
 
     def run(self):
         # Read the file in and write it to HDFS
         with self.input().open('r') as reader:
-            with self.output().open('w') as writer:
+            # HdfsTarget cannot write to HDFS when using the HDFS client!
+            # And WebHdfsTarget cannot be read!
+            webhdfs_target = luigi.contrib.webhdfs.WebHdfsTarget(path=self.output().path)
+            with webhdfs_target.open('w') as writer:
                 while True:
                     chunk = reader.read(DEFAULT_BUFFER_SIZE)
                     if not chunk:
