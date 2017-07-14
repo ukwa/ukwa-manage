@@ -1,6 +1,8 @@
 import os
 import luigi
 import luigi.contrib.ssh
+import luigi.contrib.hdfs
+from luigi.contrib.hdfs import PlainFormat
 import datetime
 
 
@@ -8,6 +10,7 @@ class BackupRemoteDockerPostgres(luigi.Task):
     """
     """
     task_namespace = 'backup'
+
     host = luigi.Parameter()
     service = luigi.Parameter()
     remote_host_backup_folder = luigi.Parameter()
@@ -43,10 +46,29 @@ class BackupRemoteDockerPostgres(luigi.Task):
             rt.get(temp_path)
 
 
+class BackupProductionW3ACTPostgres(luigi.Task):
+    """
+    """
+    task_namespace = 'backup'
+
+    date = luigi.DateParameter(default=datetime.date.today())
+
+    def requires(self):
+        return BackupRemoteDockerPostgres(host='crawler01', service='pulsefeprod_postgres_1',
+                                          db='w3act', remote_host_backup_folder='/data/prod/postgresql',
+                                          date=self.date)
+
+    def output(self):
+        bkp_path = os.path.join("/2_backups","%s/%s/%s.pgdump-%s" %
+                            (self.host, self.service, self.db, self.date.strftime('%Y%m%d')))
+        return luigi.contrib.hdfs.HdfsTarget(path=bkp_path, format=PlainFormat())
+
+    def run(self):
+        with self.input().open('rb') as reader:
+            with self.output().open('wb') as writer:
+                for chunk in reader:
+                    writer.write(reader)
+
+
 if __name__ == '__main__':
-    luigi.run(['backup.BackupRemoteDockerPostgres', '--local-scheduler',
-                '--host', 'crawler07', '--service', 'pulsedeploy_postgres_1', '--db', 'w3act',
-                '--remote-host-backup-folder', '/zfspool/test/postgresql'])
-#    luigi.run(['backup.BackupRemoteDockerPostgres',
-#                '--host', 'crawler07', '--service', 'pulse_prod_postgres_1' '--db', 'w3act',
-#                '--remote-host-backup-folder', '/zfspool/prod/postgresql'])
+    luigi.run(['backup.BackupProductionW3ACTPostgres', '--local-scheduler'])
