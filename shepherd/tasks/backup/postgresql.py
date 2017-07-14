@@ -51,11 +51,16 @@ class BackupProductionW3ACTPostgres(luigi.Task):
     """
     task_namespace = 'backup'
 
+    host = 'crawler01'
+    service = 'pulsefeprod_postgres_1'
+    db = 'w3act'
+    remote_host_backup_folder = '/data/prod/postgresql'
+
     date = luigi.DateParameter(default=datetime.date.today())
 
     def requires(self):
-        return BackupRemoteDockerPostgres(host='crawler01', service='pulsefeprod_postgres_1',
-                                          db='w3act', remote_host_backup_folder='/data/prod/postgresql',
+        return BackupRemoteDockerPostgres(host=self.host, service=self.service, db=self.db,
+                                          remote_host_backup_folder=self.remote_host_backup_folder,
                                           date=self.date)
 
     def output(self):
