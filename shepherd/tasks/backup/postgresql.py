@@ -70,10 +70,10 @@ class BackupProductionW3ACTPostgres(luigi.Task):
 
     def run(self):
         with self.input().open('rb') as reader:
-            with self.output().open('wb') as writer:
+            with self.output().open('w') as writer:
                 for chunk in reader:
-                    writer.write(reader)
+                    writer.write(chunk)
 
 
 if __name__ == '__main__':
-    luigi.run(['backup.BackupProductionW3ACTPostgres', '--local-scheduler'])
+    luigi.run(['backup.BackupProductionW3ACTPostgres'])
