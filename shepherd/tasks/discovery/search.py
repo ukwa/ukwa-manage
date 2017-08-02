@@ -2,9 +2,9 @@ import json
 import luigi
 import pysolr
 import datetime
-from tasks.w3act.feeds import TargetList, SubjectList, CollectionList
-from tasks.discovery.access import GenerateAccessWhitelist
-from tasks.settings import LUIGI_STATE_FOLDER, logger
+from shepherd.tasks.w3act.feeds import TargetList, SubjectList, CollectionList
+from shepherd.tasks.discovery.access import GenerateAccessWhitelist
+from shepherd.tasks.common import LUIGI_STATE_FOLDER, logger
 
 
 class GenerateIndexAnnotations(luigi.Task):
@@ -192,5 +192,13 @@ class GenerateAnnotationsAndWhitelist(luigi.WrapperTask):
         return [ GenerateAccessWhitelist(), GenerateIndexAnnotations() ]
 
 
+class PopulateBetaCollectionsSolr(luigi.WrapperTask):
+    task_namespace = 'discovery'
+
+    def requires(self):
+        return UpdateCollectionsSolr(solr_endpoint='http://ukwadev2:8983/solr/collections')
+
+
 if __name__ == '__main__':
     luigi.run(['discovery.UpdateCollectionsSolr',  '--date', '2017-04-28', '--local-scheduler'])
+    #luigi.run(['discovery.PopulateBetaCollectionsSolr', '--local-scheduler'])

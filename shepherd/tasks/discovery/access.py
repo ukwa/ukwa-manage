@@ -4,8 +4,8 @@ import json
 import luigi
 import datetime
 from surt import surt
-from tasks.w3act.feeds import CrawlFeed
-from tasks.settings import LUIGI_STATE_FOLDER, logger
+from shepherd.tasks.w3act.feeds import CrawlFeed
+from shepherd.tasks.common import LUIGI_STATE_FOLDER, logger
 
 RE_NONCHARS = re.compile(r"""
 [^	# search for any characters that aren't those below

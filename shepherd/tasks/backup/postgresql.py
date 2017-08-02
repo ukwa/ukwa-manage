@@ -8,6 +8,8 @@ import datetime
 
 class BackupRemoteDockerPostgres(luigi.Task):
     """
+    This task is designed to create a PostgreSQL dump for a database running under Docker,
+    and copy it back to the local filesystem.
     """
     task_namespace = 'backup'
 
@@ -15,8 +17,8 @@ class BackupRemoteDockerPostgres(luigi.Task):
     service = luigi.Parameter()
     remote_host_backup_folder = luigi.Parameter()
     db = luigi.Parameter()
-    date = luigi.DateParameter(default=datetime.date.today())
     backup_folder = luigi.Parameter(default='/backups/psql/')
+    date = luigi.DateParameter(default=datetime.date.today())
 
     def output(self):
         path = os.path.join(self.backup_folder,"%s-%s-%s.pgdump-%s" %
@@ -48,14 +50,16 @@ class BackupRemoteDockerPostgres(luigi.Task):
 
 class BackupProductionW3ACTPostgres(luigi.Task):
     """
+    This task runs a Docker PostgreSQL backup task for a specific system (production W3ACT)
+    and then pushes the backup file up to HDFS.
     """
     task_namespace = 'backup'
 
-    host = 'crawler01'
-    service = 'pulsefeprod_postgres_1'
-    db = 'w3act'
-    remote_host_backup_folder = '/data/prod/postgresql'
-
+    host = luigi.Parameter(default='crawler01')
+    service = luigi.Parameter(default='pulsefeprod_postgres_1')
+    db = luigi.Parameter(default='w3act')
+    remote_host_backup_folder = luigi.Parameter(default='/data/prod/postgresql')
+    hdfs_backup_folder = luigi.Parameter(default='/2_backups/')
     date = luigi.DateParameter(default=datetime.date.today())
 
     def requires(self):
@@ -64,7 +68,7 @@ class BackupProductionW3ACTPostgres(luigi.Task):
                                           date=self.date)
 
     def output(self):
-        bkp_path = os.path.join("/2_backups","%s/%s/%s.pgdump-%s" %
+        bkp_path = os.path.join(self.hdfs_backup_folder,"%s/%s/%s.pgdump-%s" %
                             (self.host, self.service, self.db, self.date.strftime('%Y%m%d')))
         return luigi.contrib.hdfs.HdfsTarget(path=bkp_path, format=PlainFormat())
 
