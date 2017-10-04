@@ -3,7 +3,7 @@ import luigi
 
 class state(luigi.Config):
     folder = os.environ.get('LUIGI_STATE_FOLDER', luigi.Parameter(default='./state'))
-    hdfs_folder = os.environ.get('HDFS_STATE_FOLDER', luigi.Parameter(default='state'))
+    hdfs_folder = os.environ.get('HDFS_STATE_FOLDER', luigi.Parameter(default='/9_processing/access-task-state/'))
 
 
 class act(luigi.Config):
@@ -50,3 +50,8 @@ class systems(luigi.Config):
 
 class slack(luigi.Config):
     token = os.environ.get('SLACK_TOKEN', luigi.Parameter())
+
+
+class azure(luigi.Config):
+    account_name = os.environ.get('AZURE_ACCOUNT_NAME', luigi.Parameter())
+    account_key = os.environ.get('AZURE_ACCOUNT_KEY', luigi.Parameter())

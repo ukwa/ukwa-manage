@@ -18,7 +18,7 @@ logger = logging.getLogger('luigi-interface')
 
 
 LUIGI_STATE_FOLDER = settings.state().folder
-LUIGI_HDFS_STATE_FOLDER = "/9_processing/access-task-state/"
+LUIGI_HDFS_STATE_FOLDER = settings.state.hdfs_folder
 
 
 def state_file(date, tag, suffix, on_hdfs=False, use_gzip=False, use_webhdfs=True):

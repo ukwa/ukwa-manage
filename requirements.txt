@@ -85,7 +85,6 @@ pysolr==3.5.0
 python-daemon==2.1.2
 python-dateutil==2.5.3
 pytz==2016.4
-pywb==0.33.0
 PyYAML==3.12
 pyzmq==16.0.2
 qtconsole==4.2.1
@@ -111,6 +110,7 @@ traitlets==4.3.2
 typing==3.6.1
 urllib3==1.19
 warctools==4.9.0
+warcio=1.4.0
 watchdog==0.8.3
 wcwidth==0.1.7
 webencodings==0.5

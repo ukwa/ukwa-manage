@@ -1,6 +1,7 @@
 import luigi
 from shepherd.tasks.process.hadoop.hasher import GenerateHDFSSummaries
 from shepherd.tasks.process.hadoop.turing import ListFilesToUploadToAzure
+from shepherd.tasks.backup.postgresql import BackupProductionW3ACTPostgres
 
 
 class DailyIngestTasks(luigi.WrapperTask):
@@ -8,7 +9,7 @@ class DailyIngestTasks(luigi.WrapperTask):
     Daily ingest tasks, should generally be a few hours ahead of the access-side tasks (below):
     """
     def requires(self):
-        return [ GenerateHDFSSummaries() ]
+        return [ BackupProductionW3ACTPostgres(), GenerateHDFSSummaries() ]
 
 
 class DailyAccessTasks(luigi.WrapperTask):
