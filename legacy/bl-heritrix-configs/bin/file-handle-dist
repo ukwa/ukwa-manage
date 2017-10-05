@@ -1,6 +1,0 @@
-#!/bin/bash
-# Submit PID to this script to discover number of open files in mounts.
-
-[[ -z $1 ]] && exit
-
-lsof | grep -E "\b$1\b" | sed -rn 's@^.+\s+(/.+/)[^/]+$@\1@p' | sort -T /dev/shm | uniq -c | sort -T /dev/shm -rn

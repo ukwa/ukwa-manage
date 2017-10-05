@@ -1,2 +1,0 @@
-warc-mgmt
-hdfs>=2.0.3
