@@ -22,7 +22,7 @@ import requests
 from lxml import html
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from shepherd.lib.launch import launcher
+from shepherd.lib.launch import KafkaLauncher
 
 # Set up a logging handler:
 handler = logging.StreamHandler()
@@ -34,11 +34,12 @@ handler.setFormatter(formatter)
 logging.root.addHandler(handler)
 
 # Set default logging output for all modules.
-logging.root.setLevel(logging.ERROR)
+logging.root.setLevel(logging.WARNING)
 
 # Set logging for this module and keep the reference handy:
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
 
 def sender(launcher, args, uri):
     # Ensure a http:// or https:// at the front:
@@ -64,14 +65,14 @@ def sender(launcher, args, uri):
                                 forceFetch=args.forceFetch)
 
 
-if __name__ == "__main__":
+def main(argv=None):
     parser = argparse.ArgumentParser('(Re)Launch URIs into crawl queues.')
     parser.add_argument('-a', '--amqp-url', dest='amqp_url', type=str, default="amqp://guest:guest@127.0.0.1:5672/%2f",
                         help="AMQP endpoint to use [default: %(default)s]")
     parser.add_argument('-e', '--exchange', dest='exchange',
                         type=str, default="heritrix",
                         help="Name of the exchange to use (defaults to heritrix).")
-    parser.add_argument("-d", "--destination", dest="destination", type=str, default='har',
+    parser.add_argument("-d", "--destination", dest="destination", type=str, default='h3',
                         help="Destination, implying message format to use: 'har' or 'h3'. [default: %(default)s]")
     parser.add_argument("-s", "--source", dest="source", type=str, default='',
                         help="Source tag to attach to this URI, if any. [default: %(default)s]")
@@ -87,7 +88,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Set up launcher:
-    launcher = launcher(args)
+    launcher = KafkaLauncher(args)
 
     # Read from a file:
     if os.path.isfile(args.uri_or_filename):
@@ -107,3 +108,10 @@ if __name__ == "__main__":
     else:
         # Or send one URI
         sender(launcher, args, args.uri_or_filename)
+
+    # Wait for send to complete:
+    launcher.flush()
+
+
+if __name__ == "__main__":
+    sys.exit(main())
