@@ -17,12 +17,12 @@ billiard==3.3.0.23
 bleach==1.5.0
 brotlipy==0.6.0
 celery==3.1.23
-certifi==2016.9.26
+certifi==2017.7.27.1
 cffi==1.7.0
-chardet==2.3.0
+chardet==3.0.4
 click==6.6
 configparser==3.5.0
-coverage==3.7
+coverage==4.4.1
 cryptography==1.4
 decorator==4.0.11
 docker==2.4.2
@@ -36,10 +36,10 @@ Flask==0.11.1
 functools32==3.2.3.post2
 futures==3.0.5
 gunicorn==19.6.0
--e git+https://github.com/ukwa/hapy.git@998ee41be12a0b5e9999f5aaec2cd5996663aa0b#egg=hapy_heritrix
+git+https://github.com/ukwa/hapy.git
 hdfs==2.0.16
 html5lib==0.9999999
-idna==2.1
+idna==2.6
 imagesize==0.7.1
 ipaddress==1.0.16
 ipykernel==4.5.2
@@ -61,11 +61,11 @@ lxml==3.6.0
 MarkupSafe==1.0
 mechanize==0.2.5
 mistune==0.7.3
-mock==1.0.1
+mock==2.0.0
 nbconvert==5.1.1
 nbformat==4.3.0
 ndg-httpsclient==0.4.1
-nose==1.3.0
+nose==1.3.7
 notebook==4.4.1
 numpy==1.12.0
 pandocfilters==1.4.1
@@ -93,12 +93,12 @@ PyYAML==3.12
 pyzmq==16.0.2
 qtconsole==4.2.1
 redis==2.10.5
-requests==2.0.1
+requests==2.18.4
 requests-file==1.4.1
 scandir==1.5
 simplegeneric==0.8.1
 singledispatch==3.4.0.3
-six==1.10.0
+six==1.11.0
 slackclient==1.0.2
 snakebite==2.11.0
 snowballstemmer==1.2.1
@@ -112,7 +112,7 @@ tldextract==2.0.2
 tornado==4.4.2
 traitlets==4.3.2
 typing==3.6.1
-urllib3==1.19
+urllib3==1.22
 warcio==1.4.0
 warctools==4.9.0
 watchdog==0.8.3
