@@ -8,14 +8,14 @@ RUN \
 RUN yum install -y cronie
 
 # Install the Shepherd package:
-COPY . /shepherd
-RUN cd /shepherd/ && pip install --no-cache-dir -r requirements.txt && python setup.py install
+COPY . /ukwa-monitor
+RUN cd /ukwa-monitor && pip install --no-cache-dir -r requirements.txt && python setup.py install
 
 # Set up configuration for supervisor:
 ADD supervisord.conf.docker /etc/supervisor/conf.d/supervisord.conf
 
 # Add the crontab:
-RUN crontab /shepherd/crontab.root.docker
+RUN crontab /ukwa-monitor/crontab.root.docker
 
 # And add the luigi configuration:
 ADD luigi.cfg.template /etc/luigi/luigi.cfg.template

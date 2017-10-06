@@ -1,5 +1,5 @@
 import subprocess
-from setuptools import setup, find_packages
+from setuptools import setup
 
 with open('requirements.txt') as f:
     requirements = f.read().splitlines()
@@ -13,8 +13,8 @@ def get_version():
 setup(
     name='ukwa-manage',
     version=get_version(),
-    packages=find_packages(),
-    install_requires=requirements,
+    packages=['shepherd'],
+    #install_requires=requirements, --Seems not to work well with remotes
     include_package_data=True,
 
     license='Apache 2.0',
