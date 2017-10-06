@@ -9,8 +9,7 @@ RUN yum install -y cronie
 
 # Install the Shepherd package:
 COPY . /shepherd
-RUN cd /shepherd/ && pip install --no-cache-dir -r requirements.txt
-RUN cd /shepherd/ && python setup.py install
+RUN cd /shepherd/ && pip install --no-cache-dir -r requirements.txt && python setup.py install
 
 # Set up configuration for supervisor:
 ADD supervisord.conf.docker /etc/supervisor/conf.d/supervisord.conf
