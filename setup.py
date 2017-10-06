@@ -15,6 +15,7 @@ setup(
     version=get_version(),
     packages=['shepherd'],
     #install_requires=requirements, --Seems not to work well with remotes
+    dependency_links=['http://github.com/ukwa/hapy/tarball/master#egg=hapy-heritrix'],
     include_package_data=True,
 
     license='Apache 2.0',
