@@ -22,13 +22,15 @@ For the HAR daemon, we use:
 @author: andy
 '''
 
-from kafka import KafkaProducer
 import json
+from kafka import KafkaProducer
 from datetime import datetime
+from urlparse import urlparse
 import logging
 
 logger = logging.getLogger( __name__ )
 logger.setLevel( logging.INFO )
+
 
 class KafkaLauncher(object):
     '''
@@ -41,7 +43,7 @@ class KafkaLauncher(object):
         '''
         self.args = args
         self.producer = KafkaProducer(
-            bootstrap_servers=self.args.amqp_url,
+            bootstrap_servers=self.args.kafka_server,
             value_serializer=lambda v: json.dumps(v).encode('utf-8'))
 
     def send_message(self, key, message, queue=None):
@@ -87,9 +89,10 @@ class KafkaLauncher(object):
             logger.error("Can't handle destination type '%s'" % destination )
 
         # Determine the key
+        key = urlparse(uri).hostname
 
         # Push a 'seed' message onto the rendering queue:
-        self.send_message(host, curim)
+        self.send_message(key, curim)
         # Also push the same message to the FC-1-uris-to-check
         if sendCheckMessage:
             check_message = {}

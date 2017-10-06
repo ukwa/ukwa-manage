@@ -67,11 +67,8 @@ def sender(launcher, args, uri):
 
 def main(argv=None):
     parser = argparse.ArgumentParser('(Re)Launch URIs into crawl queues.')
-    parser.add_argument('-a', '--amqp-url', dest='amqp_url', type=str, default="amqp://guest:guest@127.0.0.1:5672/%2f",
-                        help="AMQP endpoint to use [default: %(default)s]")
-    parser.add_argument('-e', '--exchange', dest='exchange',
-                        type=str, default="heritrix",
-                        help="Name of the exchange to use (defaults to heritrix).")
+    parser.add_argument('-k', '--kafka-bootstrap-server', dest='kafka_server', type=str, default="localhost:9092",
+                        help="Kafka bootstrap server(s) to use [default: %(default)s]")
     parser.add_argument("-d", "--destination", dest="destination", type=str, default='h3',
                         help="Destination, implying message format to use: 'har' or 'h3'. [default: %(default)s]")
     parser.add_argument("-s", "--source", dest="source", type=str, default='',
