@@ -36,7 +36,7 @@ Flask==0.11.1
 functools32==3.2.3.post2
 futures==3.0.5
 gunicorn==19.6.0
-hapy-heritrix===998ee41
+-e git+https://github.com/ukwa/hapy.git@998ee41be12a0b5e9999f5aaec2cd5996663aa0b#egg=hapy_heritrix
 hdfs==2.0.16
 html5lib==0.9999999
 idna==2.1
