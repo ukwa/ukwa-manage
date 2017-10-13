@@ -4,9 +4,10 @@ import requests
 import json
 import luigi.contrib.hdfs
 from urlparse import urlparse
-from pywb.warc.archiveiterator import DefaultRecordParser
-from tasks.common import *
-from tasks.crawl.h3.crawl_job_tasks import CheckJobStopped
+import warcio
+from shepherd.tasks.common import *
+from shepherd.tasks.settings import *
+from shepherd.tasks.crawl.h3.crawl_job_tasks import CheckJobStopped
 
 
 def cdx_line(entry, filename):
@@ -36,7 +37,7 @@ def cdx_line(entry, filename):
 
 class WARCToOutbackCDX(luigi.Task):
     task_namespace = 'cdx'
-    job = luigi.EnumParameter(enum=Jobs)
+    job = luigi.Parameter()
     launch_id = luigi.Parameter()
     filename = luigi.Parameter()
     path = luigi.Parameter()
@@ -53,19 +54,12 @@ class WARCToOutbackCDX(luigi.Task):
         }
         hosts_stats = {}
 
-        entry_iter = DefaultRecordParser(sort=False,
-                                         surt_ordered=True,
-                                         include_all=False,
-                                         verify_http=False,
-                                         cdx09=False,
-                                         cdxj=False,
-                                         minimal=False)(open(self.path, 'rb'))
-
         session = requests.Session()
 
         line_count = 0
 
-        for entry in entry_iter:
+        reader = warcio.ArchiveIterator(open(self.path, 'rb'))
+        for entry in reader:
             # Report progress:
             line_count += 1
             if line_count % 100 == 0:
@@ -115,7 +109,7 @@ class WARCToOutbackCDX(luigi.Task):
 
 class WARCToOutbackCDXIfStopped(luigi.Task):
     task_namespace = 'cdx'
-    job = luigi.EnumParameter(enum=Jobs)
+    job = luigi.Parameter()
     launch_id = luigi.Parameter()
     filename = luigi.Parameter()
     path = luigi.Parameter()
