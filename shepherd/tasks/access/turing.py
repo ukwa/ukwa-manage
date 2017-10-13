@@ -7,7 +7,7 @@ import luigi.contrib.hdfs
 import StringIO
 import datetime
 from azure.storage.blob import BlockBlobService
-from hasher import ListAllFilesOnHDFS
+from shepherd.tasks.hadoop.hdfs import ListAllFilesOnHDFS
 from shepherd.tasks.common import state_file
 from shepherd.tasks.common import logger
 

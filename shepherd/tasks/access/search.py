@@ -3,7 +3,7 @@ import luigi
 import pysolr
 import datetime
 from shepherd.tasks.w3act.feeds import TargetList, SubjectList, CollectionList
-from shepherd.tasks.discovery.access import GenerateAccessWhitelist
+from shepherd.tasks.access.access import GenerateAccessWhitelist
 from shepherd.tasks.common import LUIGI_STATE_FOLDER, logger
 
 
