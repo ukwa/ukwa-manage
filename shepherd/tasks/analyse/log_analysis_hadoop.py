@@ -9,7 +9,7 @@ import luigi.contrib.hadoop
 from luigi.contrib.hdfs.format import Plain, PlainDir
 
 import shepherd # Imported so extra_modules MR-bundle can access the following:
-from shepherd.lib.h3.utils import url_to_surt
+from shepherd.lib.utils import url_to_surt
 
 logger = logging.getLogger('luigi-interface')
 
@@ -344,6 +344,106 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
                     summaries[prop] = summaries.get(prop, 0) + 1
 
             yield key, json.dumps(summaries)
+
+
+class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
+    """
+    Based on old code developed for TRAC issue 2478.
+
+    example input: /heritrix/output/logs/crawl*-2014*/crawl.log*.gz
+    """
+
+    def requires(self):
+        reqs = []
+        for log_path in self.log_paths:
+            logger.info("LOG FILE TO PROCESS: %s" % log_path)
+            reqs.append(InputFile(log_path, self.from_hdfs))
+        return reqs
+
+    def output(self):
+        out_name = "task-state/%s/%s/crawl-logs-%i.summary.tsjson" % (self.job, self.launch_id, len(self.log_paths))
+        if self.from_hdfs:
+            return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=PlainDir)
+        else:
+            return luigi.LocalTarget(path=out_name)
+
+    def extra_modules(self):
+        return [shepherd]
+
+    def mapper(self, line):
+        log_time, status, size, url, discovery_path, referrer, mime, thread, request_time, hash, ignore, annotations \
+            = line.strip().split(None, 11)
+        if status.isdigit() and 200 <= int(status) < 400:
+            parsed_url = urlparse(url)
+            host = re.sub("^(www([0-9]+)?)\.", "", parsed_url[1])
+            data = {
+                "mime": "".join([i if ord(i) < 128 else "" for i in mime]),
+            }
+
+            for anno in annotations.split(","):
+                if ":" not in anno:
+                    continue
+                key, value = anno.split(":", 1)
+                if key == "ip":
+                    data["ip"] = value
+                if key == "1":
+                    data["virus"] = value.split()[-2]
+
+            yield host, json.dumps(data)
+
+    def reducer(self, key, values):
+        sec_level_domains = ["ac", "co", "gov", "judiciary", "ltd", "me", "mod", "net", "nhs", "nic", "org",
+                             "parliament", "plc", "sch"]
+
+        current_host = None
+        current_host_data = {
+            "ip": {},
+            "mime": {},
+            "virus": {},
+        }
+
+        host = key
+        for value in values:
+            data = json.loads(value)
+
+            if current_host is None or current_host == host:
+                if data["ip"] in current_host_data["ip"].keys():
+                    current_host_data["ip"][data["ip"]] += 1
+                else:
+                    current_host_data["ip"][data["ip"]] = 1
+                if data["mime"] in current_host_data["mime"].keys():
+                    current_host_data["mime"][data["mime"]] += 1
+                else:
+                    current_host_data["mime"][data["mime"]] = 1
+                if "virus" in data.keys():
+                    if data["virus"] in current_host_data["virus"].keys():
+                        current_host_data["virus"][data["virus"]] += 1
+                    else:
+                        current_host_data["virus"][data["virus"]] = 1
+                current_host = host
+            else:
+                current_host_data["host"] = current_host
+                current_host_data["tld"] = current_host.split(".")[-1]
+                auth = current_host.split(".")
+                if len(auth) > 2:
+                    sld = current_host.split(".")[-2]
+                    if sld in sec_level_domains:
+                        current_host_data["2ld"] = sld
+                print json.dumps(current_host_data)
+                current_host = host
+                current_host_data = {
+                    "ip": {data["ip"]: 1},
+                    "mime": {data["mime"]: 1},
+                    "virus": {},
+                }
+                if "virus" in data.keys():
+                    if data["virus"] in current_host_data["virus"].keys():
+                        current_host_data["virus"][data["virus"]] += 1
+                    else:
+                        current_host_data["virus"][data["virus"]] = 1
+
+        if "host" in current_host_data.keys():
+            yield json.dumps(current_host_data, indent=4)
 
 
 if __name__ == '__main__':

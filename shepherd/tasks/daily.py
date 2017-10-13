@@ -1,6 +1,6 @@
 import luigi
 from shepherd.tasks.process.hadoop.hasher import GenerateHDFSSummaries
-from shepherd.tasks.process.hadoop.turing import ListFilesToUploadToAzure
+from shepherd.tasks.access.turing import ListFilesToUploadToAzure
 from shepherd.tasks.backup.postgresql import BackupProductionW3ACTPostgres
 
 
@@ -14,8 +14,8 @@ class DailyIngestTasks(luigi.WrapperTask):
 
 class DailyAccessTasks(luigi.WrapperTask):
     """
-    Daily access tasks. Depend on the ingest tasks, but will usually run from the access server,
-    so can't be done in the one job.
+    Daily access tasks. May depend on the ingest tasks, but will usually run from the access server,
+    so can't be done in the one job. To be run an hour or so after the :py:DailyIngestTasks.
     """
     def requires(self):
         return [ ListFilesToUploadToAzure() ]
