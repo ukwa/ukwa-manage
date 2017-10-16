@@ -35,6 +35,8 @@ This is highly recommended if your are modifying/developing this system.
 We are currently using [PyCharmCE](https://www.jetbrains.com/pycharm/) as our primary development environment, as this provides good code interpretation and navigation and can be instructed to use a virtual environment.
 
 
+chcon -Rt svirt_sandbox_file_t /root/grafana-data
+
 Workflow Orchestration Using Luigi
 ==================================
 

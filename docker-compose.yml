@@ -17,7 +17,7 @@ services:
   grafana-storage:
     image: busybox
     volumes:
-      - ./target/testing/grafana-data:/var/lib/grafana
+      - /root/grafana-data:/var/lib/grafana
     
 
   elasticsearch:
