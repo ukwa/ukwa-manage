@@ -200,5 +200,5 @@ class PopulateBetaCollectionsSolr(luigi.WrapperTask):
 
 
 if __name__ == '__main__':
-    luigi.run(['discovery.UpdateCollectionsSolr',  '--date', '2017-04-28', '--local-scheduler'])
-    #luigi.run(['discovery.PopulateBetaCollectionsSolr', '--local-scheduler'])
+    #luigi.run(['discovery.UpdateCollectionsSolr',  '--date', '2017-04-28', '--local-scheduler'])
+   luigi.run(['discovery.PopulateBetaCollectionsSolr', '--local-scheduler'])

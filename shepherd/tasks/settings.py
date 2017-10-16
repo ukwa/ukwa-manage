@@ -2,8 +2,8 @@ import os
 import luigi
 
 class state(luigi.Config):
-    folder = os.environ.get('LUIGI_STATE_FOLDER', luigi.Parameter(default='./state'))
-    hdfs_folder = os.environ.get('HDFS_STATE_FOLDER', luigi.Parameter(default='/9_processing/access-task-state/'))
+    folder = os.environ.get('LUIGI_STATE_FOLDER', './state')
+    hdfs_folder = os.environ.get('HDFS_STATE_FOLDER', '/9_processing/access-task-state/')
 
 
 class act(luigi.Config):

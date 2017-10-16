@@ -28,6 +28,10 @@ def state_file(date, tag, suffix, on_hdfs=False, use_gzip=False, use_webhdfs=Tru
         state_folder = LUIGI_HDFS_STATE_FOLDER
 
     # build the full path:
+    print( state_folder,
+                         date.strftime("%Y-%m"),
+                         tag,
+                         '%s-%s' % (date.strftime("%Y-%m-%d"), suffix))
     full_path = os.path.join( state_folder,
                          date.strftime("%Y-%m"),
                          tag,
