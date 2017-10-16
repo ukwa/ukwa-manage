@@ -48,7 +48,7 @@ class ListFilesToUploadToAzure(luigi.WrapperTask):
 
     Fixed date and path as we want to sync up a fixed set of files.
     """
-    date = luigi.DateParameter(default='2017-10-13')
+    date = luigi.DateParameter(default=datetime.datetime.strptime('2017-10-13', '%Y-%m-%d'))
     path_match = luigi.Parameter(default='/ia/2011-201304/part-02/')
 
     def requires(self):

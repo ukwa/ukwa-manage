@@ -6,8 +6,8 @@ import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.webhdfs
 import luigi.contrib.hadoop_jar
-from shepherd.tasks.common import state_file
-from shepherd.tasks.common import logger
+from ukwa.tasks.common import state_file
+from ukwa.tasks.common import logger
 
 DEFAULT_BUFFER_SIZE = 1024*1000
 
