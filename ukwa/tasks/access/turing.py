@@ -7,9 +7,9 @@ import luigi.contrib.hdfs
 import StringIO
 import datetime
 from azure.storage.blob import BlockBlobService
-from shepherd.tasks.hadoop.hdfs import ListAllFilesOnHDFS
-from shepherd.tasks.common import state_file
-from shepherd.tasks.common import logger
+from ukwa.tasks.hadoop.hdfs import ListAllFilesOnHDFS
+from ukwa.tasks.common import state_file
+from ukwa.tasks.common import logger
 
 
 class UploadToAzure(luigi.Task):
@@ -49,7 +49,7 @@ class ListFilesToUploadToAzure(luigi.WrapperTask):
     Fixed date and path as we want to sync up a fixed set of files.
     """
     date = luigi.DateParameter(default='2017-10-13')
-    path_match = luigi.Parameter(default='/ia/2011-201304/')
+    path_match = luigi.Parameter(default='/ia/2011-201304/part-02/')
 
     def requires(self):
         file_list = ListAllFilesOnHDFS(self.date).output()
