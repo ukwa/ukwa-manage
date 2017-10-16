@@ -42,29 +42,34 @@ class UploadToAzure(luigi.Task):
             self.block_blob_service.create_blob_from_stream(self.container, self.full_path(), inf, max_connections=1)
 
 
-class ListFilesToUploadToAzure(luigi.Task):
+class ListFilesToUploadToAzure(luigi.WrapperTask):
     """
-    Takes the full WARC list and filters UKWA content by folder:
+    Takes the full WARC list and filters UKWA content by folder.
+
+    Fixed date and path as we want to sync up a fixed set of files.
     """
-    date = luigi.DateParameter(default=datetime.date.today())
+    date = luigi.DateParameter(default='2017-10-13')
     path_match = luigi.Parameter(default='/ia/2011-201304/')
 
     def requires(self):
-        return ListAllFilesOnHDFS(self.date)
-
-    def output(self):
-        return state_file(self.date, 'hdfs', 'turing-uploaded-file-list.jsonl')
-
-    def run(self):
-        filenames = {}
-        with self.input().open('r') as reader:
+        file_list = ListAllFilesOnHDFS(self.date).output()
+        with file_list.open('r') as reader:
             for line in reader:
                 item = json.loads(line.strip())
                 if item['filename'].startswith(self.path_match):
                     logger.info("Found matching item: '%s'" % item['filename'])
+                    yield UploadToAzure(item['filename'])
+
+    def output(self):
+        return state_file(self.date, 'hdfs', 'turing-upload-file-list.tsv')
+
+    def run(self):
+        with self.output().open('w') as f:
+            f.write("COMPLETED\t%s" % datetime.date.today())
+
 
 
 if __name__ == '__main__':
-    luigi.run(['ListFilesToUploadToAzure'])
+    luigi.run(['ListFilesToUploadToAzure', '--workers', '10'])
     #luigi.run(['ListFilesToUploadToAzure', '--local-scheduler' , '--path-match' , '/user/root/input/hadoop'])
     #luigi.run(['UploadToAzure', '--path', '/ia/2011-201304/part-01/warcs/DOTUK-HISTORICAL-2011-201304-WARCS-PART-00044-601503-000001.warc.gz'])

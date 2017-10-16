@@ -21,13 +21,12 @@ setup(
     long_description=open('README.md').read(),
     entry_points={
         'console_scripts': [
-            'get-ids-from-hdfs=shepherd.lib.sip.ids:main',
-            'create-sip=shepherd.lib.lib.sip.creator:main',
+            'inject=ukwa.scripts.inject:main',
+            'get-ids-from-hdfs=ukwa.lib.sip.ids:main',
+            'create-sip=ukwa.lib.lib.sip.creator:main',
             'movetohdfs=crawl.hdfs.movetohdfs:main',
-            'inject=shepherd.scripts.inject:main',
-            'w3act=shepherd.lib.w3act.w3act_cli:main',
-            'pulse=shepherd.tasks.pulse:main',
-            'generate-luigi-config=shepherd.lib.tasks.generate_config:main'
+            'w3act=ukwa.lib.w3act.w3act_cli:main',
+            'pulse=ukwa.tasks.pulse:main'
         ],
     }
 )
