@@ -1,0 +1,21 @@
+version: '2'
+
+# Until Monitor is up to running Dockerized services we'll run this UI here
+services:
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    links:
+      - elasticsearch
+    environment:
+      - "GF_AUTH_ANONYMOUS_ENABLED=true"
+    volumes:
+      - ./target/testing/grafana-data:/var/lib/grafana
+
+  elasticsearch:
+    image: elasticsearch:alpine
+    ports:
+      - "9200:9200"
+
