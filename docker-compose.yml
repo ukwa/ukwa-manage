@@ -11,8 +11,14 @@ services:
       - elasticsearch
     environment:
       - "GF_AUTH_ANONYMOUS_ENABLED=true"
+    volumes_from:
+      - grafana-storage
+
+  grafana-storage:
+    image: busybox
     volumes:
       - ./target/testing/grafana-data:/var/lib/grafana
+    
 
   elasticsearch:
     image: elasticsearch:alpine

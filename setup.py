@@ -23,6 +23,7 @@ setup(
         'console_scripts': [
             'inject=ukwa.scripts.inject:main',
             'get-ids-from-hdfs=ukwa.lib.sip.ids:main',
+            'generate-luigi-config=shepherd.lib.tasks.generate_config:main',
             'create-sip=ukwa.lib.lib.sip.creator:main',
             'movetohdfs=crawl.hdfs.movetohdfs:main',
             'w3act=ukwa.lib.w3act.w3act_cli:main',
