@@ -6,6 +6,7 @@ import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 import warcio
+from warcio.recordloader import ArcWarcRecord
 import six
 from six.moves.urllib.parse import urlparse
 
@@ -201,6 +202,9 @@ class HadoopWarcReaderJob(luigi.contrib.hadoop.JobTask):
     from_local = luigi.BoolParameter(default=False)
     read_for_offset = luigi.BoolParameter(default=False)
 
+    def __init__(self):
+        super(HadoopWarcReaderJob, self).__init__()
+
     def requires(self):
         return ExternalFilesFromList(self.input_file, from_local=self.from_local)
 
@@ -257,6 +261,11 @@ class HadoopWarcReaderJob(luigi.contrib.hadoop.JobTask):
                 yield output
         self._flush_batch_incr_counter()
 
+    def mapper(self, record):
+        # type: (ArcWarcRecord) -> [(str, str)]
+        """ Override this call to implement your own ArcWarcRecord-reading mapper. """
+        yield None, record
+
 
 class GenerateWarcStats(HadoopWarcReaderJob):
     """
@@ -273,15 +282,10 @@ class GenerateWarcStats(HadoopWarcReaderJob):
             return luigi.contrib.hdfs.HdfsTarget(out_name, format=luigi.contrib.hdfs.PlainFormat)
 
     def mapper(self, record):
-        """
+        # type: (ArcWarcRecord) -> [(str, str)]
+        """ Takes the parsed WARC record and extracts some basic stats."""
 
-        Simple mapper takes the parsed WARC record and extracts some basic stats.
-
-        :param record:
-        :return:
-        """
-
-        if (record.rec_type == 'response' and record.content_type.startswith(b'application/http')):
+        if record.rec_type == 'response' and record.content_type.startswith(b'application/http'):
 
             # Extract
             record_url = record.rec_headers.get_header('WARC-Target-URI')
