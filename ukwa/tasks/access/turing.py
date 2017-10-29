@@ -116,7 +116,7 @@ class UploadDatasetToAzure(luigi.Task):
             items = []
             for line in reader:
                 item = line.strip()
-                items.append(item['filename'])
+                items.append(item)
                 if len(items) >= 100:
                     yield UploadFilesToAzure('%i' % part, items)
                     items = []
