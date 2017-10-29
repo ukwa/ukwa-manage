@@ -53,7 +53,7 @@ class UploadFilesToAzure(luigi.Task):
 
     def output(self):
         slug = "part-%s-%s" % (self.path_list, len(self.path_list))
-        return state_file(self.date, 'hdfs-%s' % slug, 'turing-upload-done.txt')
+        return state_file(None, 'hdfs-%s' % slug, 'turing-upload-done.txt')
 
     def run(self):
         # If all the required tasks worked, record success:
