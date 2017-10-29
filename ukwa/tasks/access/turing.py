@@ -52,7 +52,7 @@ class UploadFilesToAzure(luigi.Task):
             yield UploadToAzure(item)
 
     def output(self):
-        slug = "part-%s-%s" % (self.path_id, len(self.path_list))
+        slug = "part-%s-%s" % (self.part_id, len(self.path_list))
         return state_file(None, 'hdfs-%s' % slug, 'turing-upload-done.txt')
 
     def run(self):
