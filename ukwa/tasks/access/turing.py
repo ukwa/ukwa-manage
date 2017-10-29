@@ -102,11 +102,14 @@ class UploadDatasetToAzure(luigi.Task):
     date = luigi.DateParameter(default=datetime.datetime.strptime('2017-10-13', '%Y-%m-%d'))
     path_match = luigi.Parameter(default='/ia/2011-201304/part-11/')
 
+    def slug(self):
+        return str(self.path_match).replace(r'/', '-').strip('/')
+
     def requires(self):
         return ListFilesToUploadToAzure(self.date, self.path_match)
 
     def output(self):
-        slug = str(self.path_match).replace(r'/', '-').strip('/')
+        slug = self.slug()
         return state_file(self.date, 'hdfs-%s' % slug, 'turing-upload-done.txt')
 
     def run(self):
@@ -118,7 +121,8 @@ class UploadDatasetToAzure(luigi.Task):
                 item = line.strip()
                 items.append(item)
                 if len(items) >= 100:
-                    yield UploadFilesToAzure('%i' % part, items)
+                    yield UploadFilesToAzure('%s-%i' % (self.slug(), part), items)
+                    part = part + 1
                     items = []
             # Catch the last chunk:
             if len(items) > 0:
