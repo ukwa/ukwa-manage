@@ -380,7 +380,7 @@ class RecordEvent(luigi.contrib.esindex.CopyToIndex):
                              datetime.datetime.now().strftime('%Y-%m-%d'))
 
     def docs(self):
-        if isinstance(self.event, luigi.parameter.FrozenOrderedDict):
+        if isinstance(self.event, luigi.parameter._FrozenOrderedDict):
             doc = self.event.get_wrapped()
         else:
             doc = {}
