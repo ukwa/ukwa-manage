@@ -79,9 +79,9 @@ class BackupProductionW3ACTPostgres(luigi.Task):
                     writer.write(chunk)
 
     def get_backup_size(self):
-        return self.output().fs.count(self.output().path)
+        return self.output().fs.count(self.output().path).get('content_size', None)
         # WebHDFS
-        #return self.output().fs.client.status(self.output().path).get('length',None)
+        # return self.output().fs.client.status(self.output().path).get('length',None)
 
 
 @BackupProductionW3ACTPostgres.event_handler(luigi.Event.SUCCESS)
