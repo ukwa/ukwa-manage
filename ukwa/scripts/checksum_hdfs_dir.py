@@ -121,7 +121,7 @@ def checksum_dir(src, local_manifest, num_threads=10):
     for r in results:
         if r.hash:
             with open(local_manifest, 'a') as f:
-                print("%s *%s" % (r.hash, r.path), file=f)
+                print("%s *%s" % (r.hash, r.path))
 
 
 if __name__ == "__main__":

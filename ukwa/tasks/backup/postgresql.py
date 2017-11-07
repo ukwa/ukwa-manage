@@ -92,14 +92,17 @@ def update_task_metrics(task):
     from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
     registry = CollectorRegistry()
-    g = Gauge('ukwa_tasks_backup_w3act_pgdb_timestamp', 'Last time the W3ACT database was backed up', registry)
+    g = Gauge('ukwa_task_backup_w3act_pgdb_timestamp', 'Last time the W3ACT database was backed up', registry)
     g.set_to_current_time()
 
-    g2 = Gauge('ukwa_tasks_backup_w3act_pgdb_size', 'Size of the W3ACT database backup', registry)
+    g2 = Gauge('ukwa_task_backup_w3act_pgdb_size', 'Size of the W3ACT database backup', registry)
     g2.set(task.get_backup_size())
 
     push_to_gateway('dev-monitor.n45.wa.bl.uk:9091', job=task.get_task_family(), registry=registry)
 
 
 if __name__ == '__main__':
-    luigi.run(['backup.BackupProductionW3ACTPostgres'])
+    #luigi.run(['backup.BackupProductionW3ACTPostgres'])
+
+    task = BackupProductionW3ACTPostgres()
+    update_task_metrics(task)

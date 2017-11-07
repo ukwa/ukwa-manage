@@ -28,6 +28,6 @@ setup(
             'movetohdfs=crawl.hdfs.movetohdfs:main',
             'w3act=ukwa.lib.w3act.w3act_cli:main',
             'pulse=ukwa.tasks.pulse:main'
-        ],
+        ]
     }
 )
