@@ -5,10 +5,10 @@ This module summarises the tasks that are to be run daily.
 """
 
 import luigi
-from shepherd.tasks.hadoop.hdfs import GenerateHDFSSummaries
-from shepherd.tasks.backup.postgresql import BackupProductionW3ACTPostgres
-from shepherd.tasks.access.search import UpdateCollectionsSolr
-from shepherd.tasks.access.turing import ListFilesToUploadToAzure
+from ukwa.tasks.hadoop.hdfs import GenerateHDFSSummaries
+from ukwa.tasks.backup.postgresql import BackupProductionW3ACTPostgres
+from ukwa.tasks.access.search import PopulateBetaCollectionsSolr
+from ukwa.tasks.access.turing import ListFilesToUploadToAzure
 
 
 class DailyIngestTasks(luigi.WrapperTask):
@@ -26,5 +26,4 @@ class DailyAccessTasks(luigi.WrapperTask):
     so can't be done in the one job. To be run an hour or so after the :py:DailyIngestTasks.
     """
     def requires(self):
-        return [ListFilesToUploadToAzure(),
-                UpdateCollectionsSolr()]
+        return [PopulateBetaCollectionsSolr()]

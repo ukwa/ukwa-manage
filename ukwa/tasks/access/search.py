@@ -2,9 +2,9 @@ import json
 import luigi
 import pysolr
 import datetime
-from shepherd.tasks.w3act.feeds import TargetList, SubjectList, CollectionList
-from shepherd.tasks.access.access import GenerateAccessWhitelist
-from shepherd.tasks.common import LUIGI_STATE_FOLDER, logger
+from ukwa.tasks.w3act.feeds import TargetList, SubjectList, CollectionList
+from ukwa.tasks.access.access import GenerateAccessWhitelist
+from ukwa.tasks.common import LUIGI_STATE_FOLDER, logger
 
 
 class GenerateIndexAnnotations(luigi.Task):

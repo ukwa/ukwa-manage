@@ -100,7 +100,7 @@ class UploadDatasetToAzure(luigi.Task):
     So this dynamically yields the tasks in chunks.
     """
     date = luigi.DateParameter(default=datetime.datetime.strptime('2017-10-13', '%Y-%m-%d'))
-    path_match = luigi.Parameter(default='/ia/2011-201304/part-10/')
+    path_match = luigi.Parameter(default='/ia/2011-201304/part-09/')
 
     def slug(self):
         return str(self.path_match).replace(r'/', '-').strip('/')

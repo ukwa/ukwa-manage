@@ -175,6 +175,9 @@ class TargetList(luigi.Task):
             for t in tpage:
                targets.append(t)
             page += 1
+        # Catch problems:
+        if len(targets) == 0:
+          raise Exception("No target data downloaded!")
 
         # Persist to disk:
         with self.output().open('w') as f:
