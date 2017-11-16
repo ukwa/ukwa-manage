@@ -22,7 +22,7 @@ class CrawlFeed(luigi.Task):
     date = luigi.DateHourParameter(default=datetime.datetime.today())
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateMinuteParameter.date_format)
+        datetime_string = self.date.strftime(self.date.date_format)
         return luigi.LocalTarget('%s/%s/w3act/crawl-feed-%s.%s.%s.json' % (
             LUIGI_STATE_FOLDER, datetime_string[0:7], self.feed, datetime_string, self.frequency))
 
@@ -50,7 +50,7 @@ class GetTargetIDs(luigi.Task):
     date = luigi.DateParameter(default=datetime.date.today())
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
+        datetime_string = self.date.strftime(self.date.date_format)
         return luigi.LocalTarget('%s/%s/w3act/target-%s-ids.%s.json' % (
             LUIGI_STATE_FOLDER, datetime_string[0:7], self.frequency, datetime_string))
 
@@ -79,7 +79,7 @@ class GetTarget(luigi.Task):
 
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
+        datetime_string = self.date.strftime(self.date.date_format)
         return luigi.LocalTarget('%s/%s/w3act/targets/target-%i.%s.json' % (
             LUIGI_STATE_FOLDER, datetime_string[0:7], self.id, datetime_string))
 
@@ -100,10 +100,10 @@ class CollectionList(luigi.Task):
     Only generated once per day as this is rather heavy going.
     """
     task_namespace = 'w3act'
-    date = luigi.DateParameter(default=datetime.date.today())
+    date = luigi.DateMinuteParameter(default=datetime.datetime.now())
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
+        datetime_string = self.date.strftime(self.date.date_format)
         return luigi.LocalTarget('%s/%s/w3act/collection-list.%s.json' % (
             LUIGI_STATE_FOLDER, datetime_string[0:7], datetime_string))
 
@@ -132,10 +132,10 @@ class SubjectList(luigi.Task):
     Only generated once per day as this is rather heavy going.
     """
     task_namespace = 'w3act'
-    date = luigi.DateParameter(default=datetime.date.today())
+    date = luigi.DateMinuteParameter(default=datetime.datetime.now())
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
+        datetime_string = self.date.strftime(self.date.date_format)
         return luigi.LocalTarget('%s/%s/w3act/subject-list.%s.json' % (
             LUIGI_STATE_FOLDER, datetime_string[0:7], datetime_string))
 
@@ -159,7 +159,7 @@ class TargetList(luigi.Task):
     date = luigi.DateParameter(default=datetime.date.today())
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
+        datetime_string = self.date.strftime(self.date.date_format)
         return luigi.LocalTarget('%s/%s/w3act/target-list.%s.json' % (
             LUIGI_STATE_FOLDER, datetime_string[0:7], datetime_string))
 
@@ -169,6 +169,8 @@ class TargetList(luigi.Task):
         page = 0
         targets = []
         while True:
+            # This raises an exception if there's an error, but returns
+            # an empty value on the 404 when the end of the list is reached:
             tpage = w.get_targets(page=page, page_length=1000)
             if not tpage:
                 break
@@ -198,7 +200,7 @@ class TargetListForFrequency(luigi.Task):
         return TargetList()
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
+        datetime_string = self.date.strftime(self.date.date_format)
         return luigi.LocalTarget('%s/%s/w3act/target-list.%s.%s.json' % (
             LUIGI_STATE_FOLDER, datetime_string[0:7], self.frequency, datetime_string))
 

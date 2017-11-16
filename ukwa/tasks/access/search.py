@@ -15,7 +15,7 @@ class GenerateIndexAnnotations(luigi.Task):
     date = luigi.DateParameter(default=datetime.date.today())
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
+        datetime_string = self.date.strftime(self.date.date_format)
         return luigi.LocalTarget('%s/%s/w3act/indexer-annotations.%s.json' % (
             LUIGI_STATE_FOLDER, datetime_string[0:7], datetime_string))
 
@@ -106,11 +106,16 @@ class GenerateIndexAnnotations(luigi.Task):
 
 class UpdateCollectionsSolr(luigi.Task):
     task_namespace = 'discovery'
-    date = luigi.DateParameter(default=datetime.date.today())
+    date = luigi.DateMinuteParameter(default=datetime.datetime.now())
     solr_endpoint = luigi.Parameter(default='http://localhost:8983/solr/collections')
 
     def requires(self):
         return [TargetList(self.date), CollectionList(self.date), SubjectList(self.date)]
+
+    def output(self):
+        datetime_string = self.date.strftime(self.date.date_format)
+        return luigi.LocalTarget('%s/%s/w3act/updated-collections-solr.%s.json' % (
+            LUIGI_STATE_FOLDER, datetime_string[0:7], datetime_string))
 
     @staticmethod
     def add_collection(s, targets_by_id, col, parent_id):
@@ -184,6 +189,10 @@ class UpdateCollectionsSolr(luigi.Task):
         # Now commit all changes:
         s.commit()
 
+        # Record that we have completed this task successfully:
+        with self.output().open('w') as f:
+            f.write('{}'.format(json.dumps(collections, indent=4)))
+
 
 class GenerateAnnotationsAndWhitelist(luigi.WrapperTask):
     task_namespace = 'discovery'
@@ -200,5 +209,4 @@ class PopulateBetaCollectionsSolr(luigi.WrapperTask):
 
 
 if __name__ == '__main__':
-    luigi.run(['discovery.UpdateCollectionsSolr',  '--date', '2017-04-28', '--local-scheduler'])
-    #luigi.run(['discovery.PopulateBetaCollectionsSolr', '--local-scheduler'])
+    luigi.run(['discovery.PopulateBetaCollectionsSolr', '--local-scheduler'])
