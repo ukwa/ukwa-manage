@@ -15,7 +15,7 @@ class GenerateIndexAnnotations(luigi.Task):
     date = luigi.DateParameter(default=datetime.date.today())
 
     def output(self):
-        datetime_string = self.date.strftime(self.date.date_format)
+        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
         return luigi.LocalTarget('%s/%s/w3act/indexer-annotations.%s.json' % (
             LUIGI_STATE_FOLDER, datetime_string[0:7], datetime_string))
 
@@ -113,7 +113,7 @@ class UpdateCollectionsSolr(luigi.Task):
         return [TargetList(self.date), CollectionList(self.date), SubjectList(self.date)]
 
     def output(self):
-        datetime_string = self.date.strftime(self.date.date_format)
+        datetime_string = self.date.strftime(luigi.DateMinuteParameter.date_format)
         return luigi.LocalTarget('%s/%s/w3act/updated-collections-solr.%s.json' % (
             LUIGI_STATE_FOLDER, datetime_string[0:7], datetime_string))
 
