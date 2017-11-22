@@ -3,6 +3,7 @@ import luigi
 import luigi.contrib.ssh
 import luigi.contrib.hdfs
 from luigi.contrib.hdfs import PlainFormat
+from ukwa.tasks.settings import systems
 import datetime
 
 
@@ -94,13 +95,14 @@ def update_task_metrics(task):
     from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
     registry = CollectorRegistry()
-    g = Gauge('ukwa_task_backup_w3act_pgdb_timestamp', 'Last time the W3ACT database was backed up', registry=registry)
-    g.set_to_current_time()
+    # This isn't really needed as Prometheus records the timestamp when the bytes metric gets updated.
+    #g = Gauge('ukwa_task_database_backup_timestamp', 'Last time the W3ACT database was backed up', registry=registry)
+    #g.set_to_current_time()
 
-    g2 = Gauge('ukwa_task_backup_w3act_pgdb_size_bytes', 'Size of the W3ACT database backup', registry=registry)
-    g2.set(task.get_backup_size())
+    g2 = Gauge('ukwa_task_database_backup_size_bytes', 'Size of a database backup', labelnames=['db'], registry=registry)
+    g2.labels(db='w3act').set(task.get_backup_size())
 
-    push_to_gateway('dev-monitor.n45.wa.bl.uk:9091', job=task.get_task_family(), registry=registry)
+    push_to_gateway(systems().prometheus_push_gateway, job=task.get_task_family(), registry=registry)
 
 
 if __name__ == '__main__':

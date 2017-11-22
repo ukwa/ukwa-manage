@@ -46,7 +46,7 @@ def state_file(date, tag, suffix, on_hdfs=False, use_gzip=False, use_webhdfs=Tru
 
 
 def webhdfs():
-    client = hdfs.InsecureClient(url=os.environ['WEBHDFS_PREFIX'], user=os.environ['WEBHDFS_USER'])
+    client = hdfs.InsecureClient(url=settings.systems().webhdfs, user=settings.systems().webhdfs_user)
     return client
 
 

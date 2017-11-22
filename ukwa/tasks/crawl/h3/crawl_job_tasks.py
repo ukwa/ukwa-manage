@@ -1,15 +1,13 @@
-from __future__ import absolute_import
-
 import os
 import json
 import luigi
 import datetime
-import shepherd.lib.h3.hapyx as hapyx
-from shepherd.lib.w3act.job import W3actJob
-from shepherd.lib.w3act.job import remove_action_files
-from shepherd.tasks.w3act.feeds import CrawlFeed
-from shepherd.tasks.common import logger
-from shepherd.tasks.settings import h3
+import ukwa.lib.h3.hapyx as hapyx
+from ukwa.lib.w3act.job import W3actJob
+from ukwa.lib.w3act.job import remove_action_files
+from ukwa.tasks.w3act.feeds import CrawlFeed
+from ukwa.tasks.common import logger
+from ukwa.tasks.settings import h3, state
 
 
 def target_name(state_class, job, launch_id, status):
@@ -17,10 +15,10 @@ def target_name(state_class, job, launch_id, status):
 
 
 def jtarget(job, launch_id, status):
-    return luigi.LocalTarget('{}/{}'.format(os.environ['LUIGI_STATE_FOLDER'], target_name('01.jobs', job, launch_id, status)))
+    return luigi.LocalTarget('{}/{}'.format(state().folder, target_name('01.jobs', job, launch_id, status)))
 
 
-def get_hapy_for_job(job, host, port=8443, username="admin", password=os.environ['HERITRIX_PASSWORD']):
+def get_hapy_for_job(job, host, port=8443, username="admin", password=h3().password):
     if host == 'localhost':
         url = "https://%s:%s" % (host, port)
     else:

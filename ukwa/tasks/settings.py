@@ -1,27 +1,28 @@
 import os
 import luigi
 
+
 class state(luigi.Config):
-    folder = os.environ.get('LUIGI_STATE_FOLDER', './state')
-    hdfs_folder = os.environ.get('HDFS_STATE_FOLDER', '/9_processing/access-task-state/')
+    folder = luigi.Parameter(default='/var/task-state')
+    hdfs_folder = luigi.Parameter(default='/9_processing/task-state/')
 
 
 class act(luigi.Config):
-    url = os.environ.get('ACT_URL', luigi.Parameter(default='http://w3act:9000/act'))
-    username = os.environ.get('ACT_USER', luigi.Parameter(default='wa-sysadm@bl.uk'))
-    password = os.environ.get('ACT_PASSWORD', luigi.Parameter(default='sysAdmin'))
+    url = luigi.Parameter(default='http://w3act:9000/act')
+    username = luigi.Parameter(default='wa-sysadm@bl.uk')
+    password = luigi.Parameter(default='sysAdmin')
 
 
 class h3(luigi.Config):
     host = luigi.Parameter(default='ukwa-heritrix')
     port = luigi.IntParameter(default=8443)
-    username = os.environ.get('HERITRIX_USER', luigi.Parameter(default='heritrix'))
-    password = os.environ.get('HERITRIX_PASSWORD', luigi.Parameter(default='heritrix'))
+    username = luigi.Parameter(default='heritrix')
+    password = luigi.Parameter(default='heritrix')
     local_root_folder = luigi.Parameter(default='/heritrix')
     local_job_folder = luigi.Parameter(default='/heritrix/jobs')
     local_wren_folder = luigi.Parameter(default='/heritrix/wren')
-    hdfs_prefix = os.environ.get('HDFS_PREFIX', luigi.Parameter(''))
-    local_prefix = os.environ.get('LOCAL_PREFIX', luigi.Parameter(''))
+    hdfs_prefix = luigi.Parameter(default='')
+    local_prefix = luigi.Parameter(default='')
 
 
 # WARC_ROOT = "%s/output/warcs" % h3().local_root_folder
@@ -32,26 +33,17 @@ class h3(luigi.Config):
 
 
 class systems(luigi.Config):
-    cdxserver = os.environ.get('CDXSERVER_URL', luigi.Parameter(default='http://cdxserver:8080/fc'))
-    wayback = os.environ.get('WAYBACK_PREFIX', luigi.Parameter(default='http://openwayback:8080/wayback'))
-    wrender = os.environ.get('WRENDER_URL', luigi.Parameter(default='http://webrender:8010/render'))
     # Prefix for webhdfs queries, separate from general Luigi HDFS configuration.
     # e.g. http://localhost:50070/webhdfs/v1
-    webhdfs = os.environ.get('WEBHDFS_PREFIX', luigi.Parameter(default='http://hadoop:50070/webhdfs/v1'))
-    amqp_host = os.environ.get('AMQP_HOST', luigi.Parameter(default='amqp'))
-    clamd_host = os.environ.get('CLAMD_HOST', luigi.Parameter(default='clamd'))
-    clamd_port = os.environ.get('CLAMD_PORT', luigi.IntParameter(default=3310))
-    elasticsearch_host = os.environ.get('ELASTICSEARCH_HOST', luigi.Parameter(default=''))
-    elasticsearch_port = os.environ.get('ELASTICSEARCH_PORT', luigi.IntParameter(default=9200))
-    elasticsearch_index_prefix = os.environ.get('ELASTICSEARCH_INDEX_PREFIX', luigi.Parameter(default='pulse'))
-    servers = luigi.Parameter(default='/shepherd/tasks/servers.json')
-    services = luigi.Parameter(default='/shepherd/tasks/services.json')
-
-
-class slack(luigi.Config):
-    token = os.environ.get('SLACK_TOKEN', luigi.Parameter())
-
-
-class azure(luigi.Config):
-    account_name = os.environ.get('AZURE_ACCOUNT_NAME', luigi.Parameter())
-    account_key = os.environ.get('AZURE_ACCOUNT_KEY', luigi.Parameter())
+    webhdfs = luigi.Parameter(default='http://hadoop:50070/webhdfs/v1')
+    webhdfs_user = luigi.Parameter(default='hdfs')
+    # Other UKWA systems:
+    cdxserver = luigi.Parameter(default='http://cdxserver:8080/fc')
+    wayback = luigi.Parameter(default='http://openwayback:8080/wayback')
+    wrender = luigi.Parameter(default='http://webrender:8010/render')
+    # For metrics:
+    prometheus_push_gateway = luigi.Parameter(default='dev-monitor.n45.wa.bl.uk:9091')
+    # For tracking some task outputs
+    elasticsearch_host = luigi.Parameter(default='')
+    elasticsearch_port = luigi.IntParameter(default=9200)
+    elasticsearch_index_prefix = luigi.Parameter(default='ukwa-manage-tasks')
