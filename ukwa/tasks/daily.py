@@ -8,7 +8,7 @@ import luigi
 from ukwa.tasks.hadoop.hdfs import GenerateHDFSSummaries
 from ukwa.tasks.backup.postgresql import BackupProductionW3ACTPostgres
 from ukwa.tasks.access.search import PopulateBetaCollectionsSolr
-from ukwa.tasks.access.turing import ListFilesToUploadToAzure
+#from ukwa.tasks.access.turing import ListFilesToUploadToAzure
 
 
 class DailyIngestTasks(luigi.WrapperTask):

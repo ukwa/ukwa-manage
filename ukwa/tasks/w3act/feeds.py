@@ -1,9 +1,9 @@
 import json
 import luigi
 import datetime
-from shepherd.lib.w3act.w3act import w3act
-from shepherd.tasks.settings import state, act
-from shepherd.tasks.common import logger
+from ukwa.lib.w3act.w3act import w3act
+from ukwa.tasks.settings import state, act
+from ukwa.tasks.common import logger
 
 LUIGI_STATE_FOLDER = state().folder
 

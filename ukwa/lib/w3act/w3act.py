@@ -7,7 +7,7 @@ import requests
 import traceback
 import time
 import dateutil.parser
-from shepherd.tasks.common import logger
+from ukwa.tasks.common import logger
 
 
 class CachedItem(object):
