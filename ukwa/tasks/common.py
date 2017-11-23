@@ -1,6 +1,8 @@
 import os
+import posixpath
 import glob
 import zlib
+import hdfs
 import gzip
 import string
 import logging
@@ -15,7 +17,6 @@ import settings
 
 logger = logging.getLogger(__name__)
 
-
 LUIGI_STATE_FOLDER = settings.state().folder
 LUIGI_HDFS_STATE_FOLDER = settings.state.hdfs_folder
 
@@ -23,18 +24,19 @@ LUIGI_HDFS_STATE_FOLDER = settings.state.hdfs_folder
 def state_file(date, tag, suffix, on_hdfs=False, use_gzip=False, use_webhdfs=True):
     # Set up the state folder:
     state_folder = settings.state().folder
+    pather = os.path
     if on_hdfs:
-        state_folder = LUIGI_HDFS_STATE_FOLDER
+        pather = posixpath
+        state_folder = settings.state().hdfs_folder
 
     # build the full path:
     if date:
-        print(state_folder)
-        full_path = os.path.join( str(state_folder),
+        full_path = pather.join( str(state_folder),
                          date.strftime("%Y-%m"),
                          tag,
                          '%s-%s' % (date.strftime("%Y-%m-%d"), suffix))
     else:
-        full_path = os.path.join( str(state_folder), tag, suffix)
+        full_path = pather.join( str(state_folder), tag, suffix)
 
     if on_hdfs:
         if use_webhdfs:

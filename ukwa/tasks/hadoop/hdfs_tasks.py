@@ -235,6 +235,9 @@ class PrintSomeLines(luigi.Task):
 
 
 if __name__ == '__main__':
+    import logging
+
+    logging.getLogger().setLevel(logging.INFO)
     #luigi.run(['ListUKWAWebArchiveFilesOnHDFS', '--local-scheduler'])
     luigi.run(['PrintSomeLines', '--local-scheduler'])
     #luigi.run(['ListEmptyFilesOnHDFS', '--local-scheduler'])
