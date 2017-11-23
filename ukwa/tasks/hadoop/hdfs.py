@@ -214,8 +214,28 @@ class GenerateHDFSSummaries(luigi.WrapperTask):
         return [ ListAllFilesOnHDFS(), ListUKWAWebArchiveFilesOnHDFS(), ListDuplicateWebArchiveFilesOnHDFS(), ListEmptyFilesOnHDFS() ]
 
 
+class PrintSomeLines(luigi.Task):
+    """
+    An example to try to get things working:
+    """
+    date = luigi.DateParameter(default=datetime.date(2017,11,22))
+
+    def requires(self):
+        return ListAllFilesOnHDFS(self.date)
+
+    def output(self):
+        return state_file(self.date, 'hdfs', 'empty-files-list.jsonl')
+
+    def run(self):
+        for line in self.input().open('r'):
+            item = json.loads(line.strip())
+            print(item)
+            break
+
+
+
 if __name__ == '__main__':
     #luigi.run(['ListUKWAWebArchiveFilesOnHDFS', '--local-scheduler'])
-    luigi.run(['GenerateHDFSSummaries'])
+    luigi.run(['PrintSomeLines', '--local-scheduler'])
     #luigi.run(['ListEmptyFilesOnHDFS', '--local-scheduler'])
 #    luigi.run(['GenerateWarcHashes', 'daily-warcs-test.txt'])
