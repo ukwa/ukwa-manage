@@ -2,7 +2,7 @@ import os
 import json
 import luigi
 import datetime
-import ukwa.lib.h3.hapyx as hapyx
+import hapy.hapy as hapyx
 from ukwa.lib.w3act.job import W3actJob
 from ukwa.lib.w3act.job import remove_action_files
 from ukwa.tasks.w3act.feeds import CrawlFeed
@@ -23,7 +23,7 @@ def get_hapy_for_job(job, host, port=8443, username="admin", password=h3().passw
         url = "https://%s:%s" % (host, port)
     else:
         url = "https://%s-%s:%s" % (host, job, port)
-    return hapyx.HapyX(url, username=username, password=password)
+    return hapyx.Hapy(url, username=username, password=password)
 
 
 def mark_job_as(job, launch_id, mark):
