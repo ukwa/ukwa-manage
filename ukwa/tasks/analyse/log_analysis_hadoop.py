@@ -369,7 +369,7 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
     def output(self):
         out_name = "task-state/%s/%s/crawl-logs-%i.summary.tsjson" % (self.job, self.launch_id, len(self.log_paths))
         if self.on_hdfs:
-            return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=PlainDir)
+            return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=Plain)
         else:
             return luigi.LocalTarget(path=out_name)
 
