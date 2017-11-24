@@ -352,6 +352,11 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
 
     example input: /heritrix/output/logs/crawl*-2014*/crawl.log*.gz
     """
+    log_paths = luigi.ListParameter()
+    job = luigi.Parameter()
+    launch_id = luigi.Parameter()
+    from_hdfs = luigi.BoolParameter(default=True)
+    to_hdfs = luigi.BoolParameter(default=False)
 
     def requires(self):
         reqs = []
@@ -362,7 +367,7 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
 
     def output(self):
         out_name = "task-state/%s/%s/crawl-logs-%i.summary.tsjson" % (self.job, self.launch_id, len(self.log_paths))
-        if self.from_hdfs:
+        if self.to_hdfs:
             return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=PlainDir)
         else:
             return luigi.LocalTarget(path=out_name)
@@ -447,9 +452,14 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
 
 
 if __name__ == '__main__':
-    luigi.run(['analyse.AnalyseLogFile', '--job', 'weekly', '--launch-id', '20170220090024',
-               '--log-paths', '[ "/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20170211224931", "/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20130605082749" ]',
-               '--targets-path', '/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl-feed.2017-01-02T2100.frequent',
+    luigi.run(['analyse.SummariseLogFiles', '--job', 'dc', '--launch-id', '20170220090024',
+               '--log-paths', '[ "/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20170211224931" ]',
                '--local-scheduler'])
+
+    #luigi.run(['analyse.AnalyseLogFile', '--job', 'weekly', '--launch-id', '20170220090024',
+    #           '--log-paths', '[ "/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20170211224931", "/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20130605082749" ]',
+    #           '--targets-path', '/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl-feed.2017-01-02T2100.frequent',
+    #           '--local-scheduler'])
+
     #luigi.run(['analyse.AnalyseLogFiles', '--date-interval', '2017-02-10-2017-02-12', '--local-scheduler'])
     #luigi.run(['analyse.AnalyseLogFile', '--job', 'weekly', '--launch-id', '20170220090024', '--local-scheduler'])
