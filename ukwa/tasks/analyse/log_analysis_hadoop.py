@@ -355,7 +355,7 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
     log_paths = luigi.ListParameter()
     job = luigi.Parameter()
     launch_id = luigi.Parameter()
-    on_hdfs = luigi.BoolParameter(default=True)
+    on_hdfs = luigi.BoolParameter(default=False)
 
     task_namespace = 'analyse'
 
@@ -401,7 +401,6 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
         sec_level_domains = ["ac", "co", "gov", "judiciary", "ltd", "me", "mod", "net", "nhs", "nic", "org",
                              "parliament", "plc", "sch"]
 
-        current_host = None
         current_host_data = {
             "ip": {},
             "mime": {},
@@ -412,50 +411,39 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
         for value in values:
             data = json.loads(value)
 
-            if current_host is None or current_host == host:
-                if data["ip"] in current_host_data["ip"].keys():
-                    current_host_data["ip"][data["ip"]] += 1
-                else:
-                    current_host_data["ip"][data["ip"]] = 1
-                if data["mime"] in current_host_data["mime"].keys():
-                    current_host_data["mime"][data["mime"]] += 1
-                else:
-                    current_host_data["mime"][data["mime"]] = 1
-                if "virus" in data.keys():
-                    if data["virus"] in current_host_data["virus"].keys():
-                        current_host_data["virus"][data["virus"]] += 1
-                    else:
-                        current_host_data["virus"][data["virus"]] = 1
-                current_host = host
+            if data["ip"] in current_host_data["ip"].keys():
+                current_host_data["ip"][data["ip"]] += 1
             else:
-                current_host_data["host"] = current_host
-                current_host_data["tld"] = current_host.split(".")[-1]
-                auth = current_host.split(".")
-                if len(auth) > 2:
-                    sld = current_host.split(".")[-2]
-                    if sld in sec_level_domains:
-                        current_host_data["2ld"] = sld
-                print json.dumps(current_host_data)
-                current_host = host
-                current_host_data = {
-                    "ip": {data["ip"]: 1},
-                    "mime": {data["mime"]: 1},
-                    "virus": {},
-                }
-                if "virus" in data.keys():
-                    if data["virus"] in current_host_data["virus"].keys():
-                        current_host_data["virus"][data["virus"]] += 1
-                    else:
-                        current_host_data["virus"][data["virus"]] = 1
+                current_host_data["ip"][data["ip"]] = 1
+            if data["mime"] in current_host_data["mime"].keys():
+                current_host_data["mime"][data["mime"]] += 1
+            else:
+                current_host_data["mime"][data["mime"]] = 1
+            if "virus" in data.keys():
+                if data["virus"] in current_host_data["virus"].keys():
+                    current_host_data["virus"][data["virus"]] += 1
+                else:
+                    current_host_data["virus"][data["virus"]] = 1
 
-        if "host" in current_host_data.keys():
-            yield json.dumps(current_host_data, indent=4)
+        current_host_data["host"] = host
+        current_host_data["tld"] = host.split(".")[-1]
+        auth = host.split(".")
+        if len(auth) > 2:
+            sld = host.split(".")[-2]
+            if sld in sec_level_domains:
+                current_host_data["2ld"] = sld
+
+        yield host, json.dumps(current_host_data)
 
 
 if __name__ == '__main__':
+    #luigi.run(['analyse.SummariseLogFiles', '--job', 'dc', '--launch-id', '20170220090024',
+    #           '--log-paths', '[ "test/logs/fragment-of-a-crawl.log" ]',
+    #           '--local-scheduler'])
+
     luigi.run(['analyse.SummariseLogFiles', '--job', 'dc', '--launch-id', '20170220090024',
                '--log-paths', '[ "/heritrix/output/logs/dc0-20170515/crawl.log.cp00001-20170610062435" ]',
-               '--local-scheduler'])
+               '--on-hdfs', '--local-scheduler'])
 
     #luigi.run(['analyse.AnalyseLogFile', '--job', 'weekly', '--launch-id', '20170220090024',
     #           '--log-paths', '[ "/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20170211224931", "/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20130605082749" ]',
