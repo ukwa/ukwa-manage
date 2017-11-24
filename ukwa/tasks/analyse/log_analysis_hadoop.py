@@ -8,10 +8,10 @@ import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 from luigi.contrib.hdfs.format import Plain, PlainDir
 
-import shepherd # Imported so extra_modules MR-bundle can access the following:
-from shepherd.lib.utils import url_to_surt
+import ukwa # Imported so extra_modules MR-bundle can access the following:
+from ukwa.lib.utils import url_to_surt
 
-logger = logging.getLogger('luigi-interface')
+logger = logging.getLogger(__name__)
 
 
 class CrawlLogLine(object):
@@ -281,7 +281,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
             return luigi.LocalTarget(path=out_name)
 
     def extra_modules(self):
-        return [shepherd]
+        return [ukwa]
 
     def init_mapper(self):
         # Set up...
@@ -355,25 +355,26 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
     log_paths = luigi.ListParameter()
     job = luigi.Parameter()
     launch_id = luigi.Parameter()
-    from_hdfs = luigi.BoolParameter(default=True)
-    to_hdfs = luigi.BoolParameter(default=False)
+    on_hdfs = luigi.BoolParameter(default=True)
+
+    task_namespace = 'analyse'
 
     def requires(self):
         reqs = []
         for log_path in self.log_paths:
             logger.info("LOG FILE TO PROCESS: %s" % log_path)
-            reqs.append(InputFile(log_path, self.from_hdfs))
+            reqs.append(InputFile(log_path, self.on_hdfs))
         return reqs
 
     def output(self):
         out_name = "task-state/%s/%s/crawl-logs-%i.summary.tsjson" % (self.job, self.launch_id, len(self.log_paths))
-        if self.to_hdfs:
+        if self.on_hdfs:
             return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=PlainDir)
         else:
             return luigi.LocalTarget(path=out_name)
 
     def extra_modules(self):
-        return [shepherd]
+        return [ukwa]
 
     def mapper(self, line):
         log_time, status, size, url, discovery_path, referrer, mime, thread, request_time, hash, ignore, annotations \
@@ -453,7 +454,7 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
 
 if __name__ == '__main__':
     luigi.run(['analyse.SummariseLogFiles', '--job', 'dc', '--launch-id', '20170220090024',
-               '--log-paths', '[ "/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20170211224931" ]',
+               '--log-paths', '[ "/heritrix/output/logs/dc0-20170515/crawl.log.cp00001-20170610062435" ]',
                '--local-scheduler'])
 
     #luigi.run(['analyse.AnalyseLogFile', '--job', 'weekly', '--launch-id', '20170220090024',
