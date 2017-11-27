@@ -441,8 +441,8 @@ if __name__ == '__main__':
     #           '--log-paths', '[ "test/logs/fragment-of-a-crawl.log" ]',
     #           '--local-scheduler'])
 
-    luigi.run(['analyse.SummariseLogFiles', '--job', 'dc', '--launch-id', '20170220090024',
-               '--log-paths', '[ "/heritrix/output/logs/dc0-20170515/crawl.log.cp00001-20170610062435" ]',
+    luigi.run(['analyse.SummariseLogFiles', '--job', 'dc', '--launch-id', '20170515',
+              '--log-paths', '[ "/heritrix/output/logs/dc0-20170515/crawl.log.cp00001-20170610062435" ]',
                '--on-hdfs', '--local-scheduler'])
 
     #luigi.run(['analyse.AnalyseLogFile', '--job', 'weekly', '--launch-id', '20170220090024',

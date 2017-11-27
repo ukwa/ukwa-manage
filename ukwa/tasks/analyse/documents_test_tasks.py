@@ -3,7 +3,7 @@ import luigi
 import logging
 from crawl.dex.document_mdex import DocumentMDEx
 
-logger = logging.getLogger('luigi-interface')
+logger = logging.getLogger(__name__)
 
 
 class RunDocumentExtractionTests(luigi.Task):

@@ -4,7 +4,7 @@ import shutil
 import logging
 from crawl_job_tasks import CheckJobStopped
 
-logger = logging.getLogger('luigi-interface')
+logger = logging.getLogger(__name__)
 
 class CloseOpenWarcFile(luigi.Task):
     """

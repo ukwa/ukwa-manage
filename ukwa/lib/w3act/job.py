@@ -183,8 +183,8 @@ class W3actJob(object):
         profile = etree.parse(HERITRIX_PROFILE)
         profile.xinclude()
         cxml = etree.tostring(profile, pretty_print=True, xml_declaration=True, encoding="UTF-8")
-        logging.getLogger('luigi-interface').error("HERITRIX_PROFILE %s" % HERITRIX_PROFILE)
-        logging.getLogger('luigi-interface').error("self.name %s" % self.name)
+        logger.error("HERITRIX_PROFILE %s" % HERITRIX_PROFILE)
+        logger.error("self.name %s" % self.name)
         cxml = cxml.replace("REPLACE_JOB_NAME", self.name)
         if self.name in CLAMD_HOSTS.keys():
             cxml = cxml.replace("REPLACE_CLAMD_HOST", CLAMD_HOSTS[self.name])

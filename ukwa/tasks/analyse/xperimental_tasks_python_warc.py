@@ -10,7 +10,7 @@ from warcio.recordloader import ArcWarcRecord
 import six
 from six.moves.urllib.parse import urlparse
 
-logger = logging.getLogger('luigi-interface')
+logger = logging.getLogger(__name__)
 
 #
 # This is a Python-based streaming Hadoop job for performing basic processing of warcs

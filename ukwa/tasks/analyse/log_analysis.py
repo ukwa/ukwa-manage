@@ -5,14 +5,14 @@ import hashlib
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 
-from shepherd.tasks.w3act.feeds import CrawlFeed
-from shepherd.tasks.process.scan_hdfs import ScanForOutputs
-from shepherd.tasks.process.log_analysis_hadoop import AnalyseLogFile
-from shepherd.tasks.process.documents import ExtractDocumentAndPost
+from ukwa.tasks.w3act.feeds import CrawlFeed
+from ukwa.tasks.hadoop.scan_hdfs import ScanForOutputs
+from ukwa.tasks.analyse.log_analysis_hadoop import AnalyseLogFile, SummariseLogFiles
+from ukwa.tasks.analyse.documents import ExtractDocumentAndPost
 from luigi.contrib.hdfs.format import Plain, PlainDir
 
-from shepherd.tasks.common import logger
-from shepherd.tasks.settings import state
+from ukwa.tasks.common import logger, webhdfs
+from ukwa.tasks.settings import state
 
 
 class LogFilesForJobLaunch(luigi.ExternalTask):
@@ -193,5 +193,26 @@ class ScanForLogs(ScanForOutputs):
         yield GenerateCrawlLogReports(job, launch)
 
 
+class DomainCrawlSummarise(luigi.WrapperTask):
+    dc_id = luigi.Parameter(default='20170515')
+
+    task_namespace = 'analyse'
+
+    def requires(self):
+        h = webhdfs()
+        logs = []
+        for path in ["/heritrix/output/logs/dc0-%s" % self.dc_id, "/heritrix/output/logs/dc1-%s" % self.dc_id,
+                     "/heritrix/output/logs/dc2-%s" % self.dc_id, "/heritrix/output/logs/dc3-%s" % self.dc_id]:
+            for item in h.list(path):
+                if item.startswith('crawl.log'):
+                    logs.append("%s/%s" % (path,item))
+        print("Found %i log files..." % len(logs))
+        logger.info("Found %i log files..." % len(logs))
+        yield SummariseLogFiles(logs,'dc',self.dc_id,True)
+
+
 if __name__ == '__main__':
-    luigi.run(['report.GenerateCrawlLogReports', '--job', 'weekly', '--launch-id', '20170220090024', '--local-scheduler'])
+    import logging
+    logging.getLogger().setLevel(logging.INFO)
+    luigi.run(['analyse.DomainCrawlSummarise', '--local-scheduler'])
+    #luigi.run(['report.GenerateCrawlLogReports', '--job', 'weekly', '--launch-id', '20170220090024', '--local-scheduler'])

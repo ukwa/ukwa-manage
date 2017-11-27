@@ -16,6 +16,7 @@ import luigi.contrib.hdfs.format
 import settings
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 LUIGI_STATE_FOLDER = settings.state().folder
 LUIGI_HDFS_STATE_FOLDER = settings.state.hdfs_folder

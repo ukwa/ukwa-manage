@@ -8,9 +8,9 @@ import datetime
 import threading
 import luigi.contrib.hdfs
 import luigi.contrib.ssh
-from tasks.common import check_hash, get_large_interval
+from ukwa.tasks.common import check_hash, get_large_interval
 
-logger = logging.getLogger('luigi-interface')
+logger = logging.getLogger(__name__)
 
 LUIGI_STATE_FOLDER = os.environ['LUIGI_STATE_FOLDER']
 HDFS_PREFIX = os.environ['HDFS_PREFIX']

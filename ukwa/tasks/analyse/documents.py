@@ -7,11 +7,11 @@ import xml.dom.minidom
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 
-from shepherd.lib.w3act.w3act import w3act
-from shepherd.lib.dex.document_mdex import DocumentMDEx
-from shepherd.tasks.w3act.feeds import CrawlFeed
-from shepherd.tasks.common import logger, target_name
-from shepherd.tasks.settings import state, systems, act
+from ukwa.lib.w3act.w3act import w3act
+from ukwa.lib.dex.document_mdex import DocumentMDEx
+from ukwa.tasks.w3act.feeds import CrawlFeed
+from ukwa.tasks.common import logger, target_name
+from ukwa.tasks.settings import state, systems, act
 
 
 def dtarget(job, launch_id, status):

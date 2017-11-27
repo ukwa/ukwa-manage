@@ -14,9 +14,9 @@ import logging
 import requests
 from urlparse import urljoin, urlparse
 from lxml import html
-from crawl.h3.utils import url_to_surt
+from ukwa.lib.utils import url_to_surt
 
-logger = logging.getLogger('luigi-interface')
+logger = logging.getLogger(__name__)
 
 
 class DocumentMDEx(object):
