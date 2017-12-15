@@ -36,7 +36,7 @@ class ListAllFilesOnHDFSToLocalFile(luigi.Task):
                 if "lsr: DEPRECATED: Please use 'ls -R' instead." in line:
                     logger.warning(line)
                 else:
-                    permissions, number_of_replicas, userid, groupid, filesize, modification_date, modification_time, filename = line.split()
+                    permissions, number_of_replicas, userid, groupid, filesize, modification_date, modification_time, filename = line.split(None, 7)
                     timestamp = datetime.datetime.strptime('%s %s' % (modification_date, modification_time), '%Y-%m-%d %H:%M')
                     info = {
                         'permissions' : permissions,
