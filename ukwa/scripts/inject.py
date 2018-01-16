@@ -21,8 +21,7 @@ import argparse
 import requests
 from lxml import html
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from shepherd.lib.launch import KafkaLauncher
+from ukwa.lib.launch import KafkaLauncher
 
 # Set up a logging handler:
 handler = logging.StreamHandler()

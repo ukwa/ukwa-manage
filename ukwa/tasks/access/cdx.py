@@ -9,6 +9,16 @@ from shepherd.tasks.common import *
 from shepherd.tasks.settings import *
 from shepherd.tasks.crawl.h3.crawl_job_tasks import CheckJobStopped
 
+def query_cdx_opensearch():
+    from urllib import quote_plus  # python 2
+    # from urllib.parse import quote_plus # python 3
+
+    url = "http://www.qie.eoe.nhs.uk/SearchResults.aspx?tmName=EMERGENCY+MEDICAL+CARE&geocode=Q35&pubnameexact=NCHOD"
+    q = "type:urlquery url:" + quote_plus(url)
+    cdx_query_url = "http://192.168.45.21:8080/data-heritrix?q=" + quote_plus(q)
+
+    return cdx_query_url
+
 
 def cdx_line(entry, filename):
     out = StringIO.StringIO()

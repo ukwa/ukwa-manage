@@ -1,7 +1,7 @@
 import json
 import luigi
 import logging
-from crawl.dex.document_mdex import DocumentMDEx
+from ukwa.lib.dex.document_mdex import DocumentMDEx
 
 logger = logging.getLogger(__name__)
 

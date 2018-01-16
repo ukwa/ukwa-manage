@@ -41,10 +41,8 @@ import argparse
 import dateutil.parser
 from datetime import datetime
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
-#sys.path.append('/opt/python-shepherd')
-from shepherd.lib.w3act import w3act
-from shepherd.lib.launch import KafkaLauncher
+from ukwa.lib.w3act import w3act
+from ukwa.lib.launch import KafkaLauncher
 
 i_launches = 0
 
@@ -136,7 +134,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Get all the frequently-crawled items
-    act = w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
+    act = w3act.w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
     targets = act.get_ld_export(args.frequency)
     logger.info("Got %s targets" % len(targets))
     destination = args.destination # or use "h3" for message suitable for h3
