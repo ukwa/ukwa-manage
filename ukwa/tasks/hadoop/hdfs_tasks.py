@@ -1,4 +1,5 @@
 import os
+import csv
 import json
 import datetime
 import subprocess
@@ -10,6 +11,8 @@ from ukwa.tasks.common import state_file
 from ukwa.tasks.common import logger
 
 DEFAULT_BUFFER_SIZE = 1024*1000
+
+csv_fieldnames = ['permissions', 'number_of_replicas', 'userid', 'groupid', 'filesize', 'modified_at', 'filename']
 
 
 class ListAllFilesOnHDFSToLocalFile(luigi.Task):
@@ -37,6 +40,7 @@ class ListAllFilesOnHDFSToLocalFile(luigi.Task):
                     logger.warning(line)
                 else:
                     permissions, number_of_replicas, userid, groupid, filesize, modification_date, modification_time, filename = line.split(None, 7)
+                    filename = filename.strip()
                     timestamp = datetime.datetime.strptime('%s %s' % (modification_date, modification_time), '%Y-%m-%d %H:%M')
                     info = {
                         'permissions' : permissions,
@@ -109,16 +113,18 @@ class ListWebArchiveFilesOnHDFS(luigi.Task):
         return ListAllFilesOnHDFS(self.date)
 
     def output(self):
-        return state_file(self.date, 'hdfs', 'warc-files-list.jsonl')
+        return state_file(self.date, 'hdfs', 'warc-files-list.csv')
 
     def run(self):
         with self.output().open('w') as f:
+            writer = csv.DictWriter(f, fieldnames=csv_fieldnames)
+            writer.writeheader()
             for line in self.input().open('r'):
                 item = json.loads(line.strip())
                 # Archive file names:
                 if item['filename'].endswith('.warc.gz') or item['filename'].endswith('.arc.gz') \
                         or item['filename'].endswith('.warc') or item['filename'].endswith('.arc'):
-                    f.write(json.dumps(item) + '\n')
+                    writer.writerow(item)
 
 
 class ListUKWAWebArchiveFilesOnHDFS(luigi.Task):
@@ -131,15 +137,18 @@ class ListUKWAWebArchiveFilesOnHDFS(luigi.Task):
         return ListWebArchiveFilesOnHDFS(self.date)
 
     def output(self):
-        return state_file(self.date, 'hdfs', 'warc-ukwa-files-list.jsonl')
+        return state_file(self.date, 'hdfs', 'warc-ukwa-files-list.csv')
 
     def run(self):
         with self.output().open('w') as f:
-            for line in self.input().open('r'):
-                item = json.loads(line.strip())
-                # Archive file names:
-                if item['filename'].startswith('/data/') or item['filename'].startswith('/heritrix/'):
-                    f.write(json.dumps(item) + '\n')
+            writer = csv.DictWriter(f, fieldnames=csv_fieldnames)
+            writer.writeheader()
+            with self.input().open('r') as fin:
+                reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
+                for item in reader:
+                    # Archive file names:
+                    if item['filename'].startswith('/data/') or item['filename'].startswith('/heritrix/'):
+                        writer.writerow(item)
 
 
 class ListDuplicateWebArchiveFilesOnHDFS(luigi.Task):
@@ -158,18 +167,19 @@ class ListDuplicateWebArchiveFilesOnHDFS(luigi.Task):
             raise Exception("Unrecognised collection parameter! %s non known!" % self.collection)
 
     def output(self):
-        return state_file(self.date, 'hdfs', 'warc-%s-duplicate-files-list.jsonl' % self.collection)
+        return state_file(self.date, 'hdfs', 'warc-%s-duplicate-files-list.tsv' % self.collection)
 
     def run(self):
         filenames = {}
-        for line in self.input().open('r'):
-            item = json.loads(line.strip())
-            # Archive file names:
-            basename = os.path.basename(item['filename'])
-            if basename not in filenames:
-                filenames[basename] = [item['filename']]
-            else:
-                filenames[basename].append(item['filename'])
+        with self.input().open('r') as fin:
+            reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
+            for item in reader:
+                # Archive file names:
+                basename = os.path.basename(item['filename'])
+                if basename not in filenames:
+                    filenames[basename] = [item['filename']]
+                else:
+                    filenames[basename].append(item['filename'])
 
         # And emit duplicates:
         unduplicated = 0
