@@ -56,7 +56,7 @@ class ListAllFilesOnHDFSToLocalFile(luigi.Task):
                         fout.write(json.dumps(info)+'\n')
 
 
-class ListAllFilesOnHDFS(luigi.Task):
+class ListAllFilesPutOnHDFS(luigi.Task):
     """
     This task lists all files on HDFS (skipping directories).
 
@@ -82,14 +82,14 @@ class ListAllFilesOnHDFS(luigi.Task):
                     writer.write(line)
 
 
-class ListEmptyFilesOnHDFS(luigi.Task):
+class ListEmptyFiles(luigi.Task):
     """
     Takes the full file list and extracts the empty files, as these should be checked.
     """
     date = luigi.DateParameter(default=datetime.date.today())
 
     def requires(self):
-        return ListAllFilesOnHDFS(self.date)
+        return ListAllFilesOnHDFSToLocalFile(self.date)
 
     def output(self):
         return state_file(self.date, 'hdfs', 'empty-files-list.jsonl')
@@ -103,14 +103,14 @@ class ListEmptyFilesOnHDFS(luigi.Task):
                     f.write(json.dumps(item) + '\n')
 
 
-class ListWebArchiveFilesOnHDFS(luigi.Task):
+class ListWebArchiveFiles(luigi.Task):
     """
     Takes the full file list and strips it down to just the WARCs and ARCs
     """
     date = luigi.DateParameter(default=datetime.date.today())
 
     def requires(self):
-        return ListAllFilesOnHDFS(self.date)
+        return ListAllFilesOnHDFSToLocalFile(self.date)
 
     def output(self):
         return state_file(self.date, 'hdfs', 'warc-files-list.csv')
@@ -121,20 +121,21 @@ class ListWebArchiveFilesOnHDFS(luigi.Task):
             writer.writeheader()
             for line in self.input().open('r'):
                 item = json.loads(line.strip())
+                item['filename'] = item['filename'].strip()
                 # Archive file names:
                 if item['filename'].endswith('.warc.gz') or item['filename'].endswith('.arc.gz') \
                         or item['filename'].endswith('.warc') or item['filename'].endswith('.arc'):
                     writer.writerow(item)
 
 
-class ListUKWAWebArchiveFilesOnHDFS(luigi.Task):
+class ListUKWAWebArchiveFiles(luigi.Task):
     """
     Takes the full WARC list and filters UKWA content by folder:
     """
     date = luigi.DateParameter(default=datetime.date.today())
 
     def requires(self):
-        return ListWebArchiveFilesOnHDFS(self.date)
+        return ListWebArchiveFiles(self.date)
 
     def output(self):
         return state_file(self.date, 'hdfs', 'warc-ukwa-files-list.csv')
@@ -151,7 +152,7 @@ class ListUKWAWebArchiveFilesOnHDFS(luigi.Task):
                         writer.writerow(item)
 
 
-class ListDuplicateWebArchiveFilesOnHDFS(luigi.Task):
+class ListDuplicateWebArchiveFiles(luigi.Task):
     """
     Takes the full WARC list and filters UKWA content by folder:
     """
@@ -160,9 +161,9 @@ class ListDuplicateWebArchiveFilesOnHDFS(luigi.Task):
 
     def requires(self):
         if self.collection == 'ukwa':
-            return ListUKWAWebArchiveFilesOnHDFS(self.date)
+            return ListUKWAWebArchiveFiles(self.date)
         elif self.collection == 'all':
-            return ListWebArchiveFilesOnHDFS(self.date)
+            return ListWebArchiveFiles(self.date)
         else:
             raise Exception("Unrecognised collection parameter! %s non known!" % self.collection)
 
@@ -221,7 +222,7 @@ class GenerateWarcHashes(luigi.contrib.hadoop_jar.HadoopJarJobTask):
 class GenerateHDFSSummaries(luigi.WrapperTask):
 
     def requires(self):
-        return [ ListAllFilesOnHDFS(), ListUKWAWebArchiveFilesOnHDFS(), ListDuplicateWebArchiveFilesOnHDFS(), ListEmptyFilesOnHDFS() ]
+        return [ ListAllFilesPutOnHDFS(), ListUKWAWebArchiveFiles(), ListDuplicateWebArchiveFiles(), ListEmptyFiles() ]
 
 
 class PrintSomeLines(luigi.Task):
@@ -231,7 +232,7 @@ class PrintSomeLines(luigi.Task):
     date = luigi.DateParameter(default=datetime.date(2017,11,22))
 
     def requires(self):
-        return ListAllFilesOnHDFS(self.date)
+        return ListAllFilesOnHDFSToLocalFile(self.date)
 
     def output(self):
         return state_file(self.date, 'hdfs', 'empty-files-list.jsonl')
