@@ -26,6 +26,7 @@ class ListAllFilesOnHDFSToLocalFile(luigi.Task):
     It set up to run once a day, as input to downstream reporting or analysis processes.
     """
     date = luigi.DateParameter(default=datetime.date.today())
+    task_namespace = "hdfs"
 
     def output(self):
         return state_file(self.date,'hdfs','all-files-list.jsonl', on_hdfs=False)
@@ -67,6 +68,7 @@ class ListAllFilesPutOnHDFS(luigi.Task):
     It set up to run once a day, as input to downstream reporting or analysis processes.
     """
     date = luigi.DateParameter(default=datetime.date.today())
+    task_namespace = "hdfs"
 
     def requires(self):
         return ListAllFilesOnHDFSToLocalFile(self.date)
@@ -87,6 +89,7 @@ class ListEmptyFiles(luigi.Task):
     Takes the full file list and extracts the empty files, as these should be checked.
     """
     date = luigi.DateParameter(default=datetime.date.today())
+    task_namespace = "hdfs"
 
     def requires(self):
         return ListAllFilesOnHDFSToLocalFile(self.date)
@@ -108,6 +111,7 @@ class ListWebArchiveFiles(luigi.Task):
     Takes the full file list and strips it down to just the WARCs and ARCs
     """
     date = luigi.DateParameter(default=datetime.date.today())
+    task_namespace = "hdfs"
 
     def requires(self):
         return ListAllFilesOnHDFSToLocalFile(self.date)
@@ -133,6 +137,7 @@ class ListUKWAWebArchiveFiles(luigi.Task):
     Takes the full WARC list and filters UKWA content by folder:
     """
     date = luigi.DateParameter(default=datetime.date.today())
+    task_namespace = "hdfs"
 
     def requires(self):
         return ListWebArchiveFiles(self.date)
@@ -158,6 +163,7 @@ class ListDuplicateWebArchiveFiles(luigi.Task):
     """
     date = luigi.DateParameter(default=datetime.date.today())
     collection = luigi.Parameter(default='ukwa')
+    task_namespace = "hdfs"
 
     def requires(self):
         if self.collection == 'ukwa':
@@ -201,6 +207,7 @@ class GenerateWarcHashes(luigi.contrib.hadoop_jar.HadoopJarJobTask):
         input_file: A local file that contains the list of WARC files to process
     """
     input_file = luigi.Parameter()
+    task_namespace = "hdfs"
 
     def output(self):
         out_name = "%s-sha512.tsv" % os.path.splitext(self.input_file)[0]
@@ -220,6 +227,7 @@ class GenerateWarcHashes(luigi.contrib.hadoop_jar.HadoopJarJobTask):
 
 
 class GenerateHDFSSummaries(luigi.WrapperTask):
+    task_namespace = "hdfs"
 
     def requires(self):
         return [ ListAllFilesPutOnHDFS(), ListUKWAWebArchiveFiles(), ListDuplicateWebArchiveFiles(), ListEmptyFiles() ]

@@ -406,8 +406,8 @@ def send_to_prometheus(task, value):
     # type: (luigi.Task) -> None
 
     registry = CollectorRegistry()
-    g2 = Gauge('ukwa_task_failed', 'Record a 1 if a task failed', labelnames=['task_family', 'task_namespace'], registry=registry)
-    g2.labels(task_family=task.task_family, task_namespace=task.task_namespace).set(value)
+    g2 = Gauge('ukwa_task_status', 'Record a 1 if a task ran, 0 if a task failed', labelnames=['task_namespace'], registry=registry)
+    g2.labels(task_namespace=task.task_namespace).set(value)
 
     push_to_gateway(settings.systems().prometheus_push_gateway, job=task.get_task_family(), registry=registry)
 
