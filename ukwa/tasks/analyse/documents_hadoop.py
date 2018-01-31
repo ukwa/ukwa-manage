@@ -7,8 +7,8 @@ import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 from luigi.contrib.hdfs.format import Plain, PlainDir
 
-import shepherd # Imported so extra_modules MR-bundle can access the following:
-from shepherd.lib.h3.utils import url_to_surt
+import ukwa # Imported so extra_modules MR-bundle can access the following:
+from ukwa.lib.utils import url_to_surt
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +144,7 @@ class ScanLogFileForDocs(luigi.contrib.hadoop.JobTask):
         return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=PlainDir)
 
     def extra_modules(self):
-        return [shepherd]
+        return [ukwa]
 
     def jobconfs(self):
         """
