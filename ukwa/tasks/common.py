@@ -14,6 +14,7 @@ import luigi.contrib.esindex
 import luigi.contrib.hdfs
 import luigi.contrib.hdfs.format
 import settings
+from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -396,19 +397,29 @@ class RecordEvent(luigi.contrib.esindex.CopyToIndex):
         return [doc]
 
 
+# --------------------------------------------------------------------------
+# This general handler reports task failure and success, for each task
+# family (class name) and namespace.
+# --------------------------------------------------------------------------
+
+def send_to_prometheus(task, value):
+    # type: (luigi.Task) -> None
+
+    registry = CollectorRegistry()
+    g2 = Gauge('ukwa_task_failed', 'Record a 1 if a task failed', labelnames=['task_family', 'task_namespace'], registry=registry)
+    g2.labels(task_family=task.task_family, task_namespace=task.task_namespace).set(value)
+
+    push_to_gateway(settings.systems().prometheus_push_gateway, job=task.get_task_family(), registry=registry)
+
+
 @luigi.Task.event_handler(luigi.Event.FAILURE)
 def notify_any_failure(task, exception):
-    """Will be called directly after a failed execution
-       of `run` on any JobTask subclass
+    # type: (luigi.Task) -> None
     """
-
-    if settings.systems().elasticsearch_host:
-        doc = { 'content' : "Job %s failed: %s" % (task, exception) }
-        source = 'luigi'
-        esrm = RecordEvent("unknown_job", "unknown_launch_id", doc, source, "task-failure")
-        esrm.run()
-    else:
-        logger.warning("No Elasticsearch host set, no failure message sent.")
+       Will be called directly after a successful execution
+       and is used to update any relevant metrics
+    """
+    send_to_prometheus(task, 0)
 
 
 @luigi.Task.event_handler(luigi.Event.SUCCESS)
@@ -416,10 +427,4 @@ def celebrate_any_success(task):
     """Will be called directly after a successful execution
        of `run` on any Task subclass (i.e. all luigi Tasks)
     """
-    if settings.systems().elasticsearch_host:
-        doc = { 'content' : "Job %s succeeded." % task }
-        source = 'luigi'
-        esrm = RecordEvent("unknown_job", "unknown_launch_id", doc, source, "task-success")
-        esrm.run()
-    else:
-        logger.warning("No Elasticsearch host set, no success message sent.")
+    send_to_prometheus(task, 1)
