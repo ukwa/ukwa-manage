@@ -87,7 +87,7 @@ class ListFilesToUploadToAzure(luigi.Task):
                 for line in reader:
                     item = json.loads(line.strip())
                     if item['filename'].startswith(self.path_match):
-                        f.write("%s\n" % item['filename'])
+                        f.write("%s\n" % item['filename'].rstrip())
 
 
 class UploadDatasetToAzure(luigi.Task):
@@ -99,8 +99,8 @@ class UploadDatasetToAzure(luigi.Task):
     If you yield all the tasks together from `requires` then it hits the task limit.
     So this dynamically yields the tasks in chunks.
     """
-    date = luigi.DateParameter(default=datetime.datetime.strptime('2017-10-13', '%Y-%m-%d'))
-    path_match = luigi.Parameter(default='/ia/2011-201304/part-09/')
+    date = luigi.DateParameter(default=datetime.datetime.strptime('2018-01-26', '%Y-%m-%d'))
+    path_match = luigi.Parameter(default='/ia/1996-2010/')
 
     def slug(self):
         return str(self.path_match).replace(r'/', '-').strip('/')
