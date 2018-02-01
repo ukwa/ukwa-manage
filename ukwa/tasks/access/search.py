@@ -142,7 +142,7 @@ class UpdateCollectionsSolr(luigi.Task):
 
                 # add a document to the Solr index
                 s.add([{
-                    "id": target["id"],
+                    "id": "cid:%i-tid:%i" % (col['id'], target['id']),
                     "type": "target",
                     "parentId": col['id'],
                     "title": target["title"],
