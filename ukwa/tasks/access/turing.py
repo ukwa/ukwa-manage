@@ -38,8 +38,9 @@ class UploadToAzure(luigi.Task):
 
     def run(self):
         source = luigi.contrib.hdfs.HdfsTarget(path=self.path)
+        size = source.fs.client.status(source.path)['length']
         with source.fs.client.read(source.path) as inf:
-            self.block_blob_service.create_blob_from_stream(self.container, self.full_path(), inf, max_connections=1)
+            self.block_blob_service.create_blob_from_stream(self.container, self.full_path(), inf, max_connections=1, validate_content=True, count=size)
 
 
 class UploadFilesToAzure(luigi.Task):
@@ -134,6 +135,6 @@ class UploadDatasetToAzure(luigi.Task):
 
 
 if __name__ == '__main__':
-    luigi.run(['UploadDatasetToAzure', '--workers', '20'])
+    luigi.run(['UploadDatasetToAzure', '--workers', '40'])
     #luigi.run(['ListFilesToUploadToAzure', '--local-scheduler' , '--path-match' , '/user/root/input/hadoop'])
     #luigi.run(['UploadToAzure', '--path', '/ia/2011-201304/part-01/warcs/DOTUK-HISTORICAL-2011-201304-WARCS-PART-00044-601503-000001.warc.gz'])
