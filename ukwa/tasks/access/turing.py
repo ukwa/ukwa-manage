@@ -164,13 +164,15 @@ class UploadDatasetToAzure(luigi.Task):
                 items.append(item)
                 if len(items) >= 100:
                     t = UploadFilesToAzureAndRecord('%s-%i' % (self.slug(), part), items)
-                    if not t.complete():
+                    if not t.output().exists():
                         yield t
                     part = part + 1
                     items = []
             # Catch the last chunk:
             if len(items) > 0:
-                yield UploadFilesToAzure('last', items)
+                t = UploadFilesToAzure('last', items)
+                if not t.output().exists():
+                    yield t
 
         with self.output().open('w') as f:
             f.write("COMPLETED\t%s" % datetime.date.today())
