@@ -4,12 +4,24 @@ import zlib
 import luigi
 import luigi.format
 import luigi.contrib.hdfs
+from luigi.contrib.postgres import PostgresTarget
 import StringIO
 import datetime
 from azure.storage.blob import BlockBlobService
-from ukwa.tasks.hadoop.hdfs import ListAllFilesOnHDFS
+from ukwa.tasks.hadoop.hdfs_tasks import ListAllFilesPutOnHDFS
 from ukwa.tasks.common import state_file
 from ukwa.tasks.common import logger
+
+
+def taskdb_target(task_group, task_result):
+    return PostgresTarget(
+            host='access',
+            database='access_task_state',
+            user='access',
+            password='access',
+            table=task_group,
+            update_id=task_result
+        )
 
 
 class UploadToAzure(luigi.Task):
@@ -25,22 +37,29 @@ class UploadToAzure(luigi.Task):
     def full_path(self):
         return "%s/%s" % (self.prefix, self.path.lstrip('/'))
 
-    def complete(self):
-        source = luigi.contrib.hdfs.HdfsTarget(path=self.path)
-        size = source.fs.client.status(source.path)['length']
-        # Check the path exists and is the right size:
-        if self.block_blob_service.exists(self.container, self.full_path()):
-            props = self.block_blob_service.get_blob_properties(self.container, self.full_path())
-            if props.properties.content_length == size:
-                return True
-        # Wrong...
-        return False
-
     def run(self):
+        # Upload the BLOB:
         source = luigi.contrib.hdfs.HdfsTarget(path=self.path)
         size = source.fs.client.status(source.path)['length']
         with source.fs.client.read(source.path) as inf:
             self.block_blob_service.create_blob_from_stream(self.container, self.full_path(), inf, max_connections=1, validate_content=True, count=size)
+
+        # Check the BLOB looks okay - i.e. the path exists and BLOB is the right size:
+        if self.block_blob_service.exists(self.container, self.full_path()):
+            props = self.block_blob_service.get_blob_properties(self.container, self.full_path())
+            if props.properties.content_length == size:
+                # Looks good, so log this task as complete:
+                self.output().touch()
+                return
+            else:
+                raise Exception("Uploaded BLOB reported the wrong size! Expected: %s = %i but got %i" %
+                                (self.full_path(), size, props.properties.content_length))
+        else:
+            raise Exception("Could not find uploaded BLOB! Expected: %s" % self.full_path())
+
+    def output(self):
+        """If this all works, record success in the DB"""
+        return taskdb_target( 'azure_uploads', '%s UPLOADED' % self.path)
 
 
 class UploadFilesToAzure(luigi.Task):
@@ -62,6 +81,28 @@ class UploadFilesToAzure(luigi.Task):
             f.write("COMPLETED\t%s" % datetime.date.today())
 
 
+class UploadFilesToAzureAndRecord(luigi.Task):
+    """
+    Just copies the result of the parent task into the task DB
+    """
+    part_id = luigi.Parameter()
+    path_list = luigi.ListParameter()
+
+    def requires(self):
+        return UploadFilesToAzure(self.part_id, self.path_list)
+
+    def run(self):
+        # Record output in DB too:
+        for item in self.path_list:
+            tr = UploadToAzure(item).output()
+            if not tr.exists():
+                tr.touch()
+
+    def output(self):
+        """If this all works, record success in the DB"""
+        return taskdb_target( 'azure_upload_set', '%s UPLOADED' % self.part_id)
+
+
 class ListFilesToUploadToAzure(luigi.Task):
     """
     Takes the full WARC list and filters UKWA content by folder.
@@ -75,7 +116,7 @@ class ListFilesToUploadToAzure(luigi.Task):
     path_match = luigi.Parameter()
 
     def requires(self):
-        return ListAllFilesOnHDFS(self.date)
+        return ListAllFilesPutOnHDFS(self.date)
 
     def output(self):
         slug = str(self.path_match).replace(r'/', '-').strip('/')
@@ -102,6 +143,7 @@ class UploadDatasetToAzure(luigi.Task):
     """
     date = luigi.DateParameter(default=datetime.datetime.strptime('2018-01-26', '%Y-%m-%d'))
     path_match = luigi.Parameter(default='/ia/1996-2010/')
+    chunk_size = luigi.IntParameter(default=100)
 
     def slug(self):
         return str(self.path_match).replace(r'/', '-').strip('/')
@@ -121,8 +163,8 @@ class UploadDatasetToAzure(luigi.Task):
             for line in reader:
                 item = line.strip()
                 items.append(item)
-                if len(items) >= 100:
-                    yield UploadFilesToAzure('%s-%i' % (self.slug(), part), items)
+                if len(items) >= self.chunk_size:
+                    yield UploadFilesToAzureAndRecord('%s-%i' % (self.slug(), part), items)
                     part = part + 1
                     items = []
             # Catch the last chunk:
