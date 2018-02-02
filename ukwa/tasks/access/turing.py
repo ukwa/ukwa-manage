@@ -163,7 +163,9 @@ class UploadDatasetToAzure(luigi.Task):
                 item = line.strip()
                 items.append(item)
                 if len(items) >= 100:
-                    yield UploadFilesToAzureAndRecord('%s-%i' % (self.slug(), part), items)
+                    t = UploadFilesToAzureAndRecord('%s-%i' % (self.slug(), part), items)
+                    if not t.complete():
+                        yield t
                     part = part + 1
                     items = []
             # Catch the last chunk:
