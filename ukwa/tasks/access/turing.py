@@ -143,7 +143,6 @@ class UploadDatasetToAzure(luigi.Task):
     """
     date = luigi.DateParameter(default=datetime.datetime.strptime('2018-01-26', '%Y-%m-%d'))
     path_match = luigi.Parameter(default='/ia/1996-2010/')
-    chunk_size = luigi.IntParameter(default=100)
 
     def slug(self):
         return str(self.path_match).replace(r'/', '-').strip('/')
@@ -163,7 +162,7 @@ class UploadDatasetToAzure(luigi.Task):
             for line in reader:
                 item = line.strip()
                 items.append(item)
-                if len(items) >= self.chunk_size:
+                if len(items) >= 100:
                     yield UploadFilesToAzureAndRecord('%s-%i' % (self.slug(), part), items)
                     part = part + 1
                     items = []
