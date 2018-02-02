@@ -98,6 +98,10 @@ class UploadFilesToAzureAndRecord(luigi.Task):
             if not tr.exists():
                 tr.touch()
 
+        # All done, so log this task as complete:
+        self.output().touch()
+
+
     def output(self):
         """If this all works, record success in the DB"""
         return taskdb_target( 'azure_upload_set', '%s UPLOADED' % self.part_id)
@@ -163,16 +167,12 @@ class UploadDatasetToAzure(luigi.Task):
                 item = line.strip()
                 items.append(item)
                 if len(items) >= 100:
-                    t = UploadFilesToAzureAndRecord('%s-%i' % (self.slug(), part), items)
-                    if not t.output().exists():
-                        yield t
+                    yield UploadFilesToAzureAndRecord('%s-%i' % (self.slug(), part), items)
                     part = part + 1
                     items = []
             # Catch the last chunk:
             if len(items) > 0:
-                t = UploadFilesToAzure('last', items)
-                if not t.output().exists():
-                    yield t
+                yield UploadFilesToAzure('last', items)
 
         with self.output().open('w') as f:
             f.write("COMPLETED\t%s" % datetime.date.today())
