@@ -89,7 +89,7 @@ pyasn1==0.1.9
 pycparser==2.18
 Pygments==2.2.0
 PyNaCl==1.1.2
-pyOpenSSL==16.0.0
+pyOpenSSL==17.5.0
 pysftp==0.2.8
 pysolr==3.5.0
 pytest==3.3.0
