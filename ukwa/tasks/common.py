@@ -14,6 +14,8 @@ import luigi.contrib.esindex
 import luigi.contrib.hdfs
 import luigi.contrib.hdfs.format
 import settings
+from prometheus_client import CollectorRegistry, push_to_gateway
+from metrics import *
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -395,4 +397,43 @@ class RecordEvent(luigi.contrib.esindex.CopyToIndex):
         doc['event_type'] = self.event_type
         return [doc]
 
+
+# --------------------------------------------------------------------------
+# This general handler reports task failure and success, for each task
+# family (class name) and namespace.
+#
+# For some specific classes, additional metrics are computed.
+# --------------------------------------------------------------------------
+
+
+@luigi.Task.event_handler(luigi.Event.FAILURE)
+def notify_any_failure(task, exception):
+    # type: (luigi.Task) -> None
+    """
+       Will be called directly after a successful execution
+       and is used to update any relevant metrics
+    """
+    registry = CollectorRegistry()
+    record_task_outcome(registry, task, 0)
+    push_to_gateway(settings.systems().prometheus_push_gateway, job=task.get_task_family(), registry=registry)
+
+
+@luigi.Task.event_handler(luigi.Event.SUCCESS)
+def celebrate_any_success(task):
+    """Will be called directly after a successful execution
+       of `run` on any Task subclass (i.e. all luigi Tasks)
+    """
+
+    # Where to store the metrics:
+    registry = CollectorRegistry()
+
+    # Generic metrics:
+    record_task_outcome(registry, task, 1)
+
+    # Task-specific metrics:
+    if isinstance(task, BackupProductionW3ACTPostgres):
+        record_db_backup_metrics(registry,task)
+
+    # POST to prometheus:
+    push_to_gateway(settings.systems().prometheus_push_gateway, job=task.get_task_family(), registry=registry)
 
