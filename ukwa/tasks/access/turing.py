@@ -29,6 +29,8 @@ class UploadToAzure(luigi.Task):
     container = luigi.Parameter(default='ukwebarchive')
     prefix = luigi.Parameter(default='jisc-uk-web-domain-dataset-1996-2013')
 
+    task_namespace = 'azure'
+
     block_blob_service = BlockBlobService(
         account_name=os.environ.get('AZURE_ACCOUNT_NAME'),
         account_key=os.environ.get('AZURE_ACCOUNT_KEY')
@@ -66,6 +68,8 @@ class UploadFilesToAzure(luigi.Task):
     part_id = luigi.Parameter()
     path_list = luigi.ListParameter()
 
+    task_namespace = 'azure'
+
     def requires(self):
         # Attempt to upload each item in this chunk:
         for item in self.path_list:
@@ -87,6 +91,8 @@ class UploadFilesToAzureAndRecord(luigi.Task):
     """
     part_id = luigi.Parameter()
     path_list = luigi.ListParameter()
+
+    task_namespace = 'azure'
 
     def requires(self):
         return UploadFilesToAzure(self.part_id, self.path_list)
@@ -119,6 +125,8 @@ class ListFilesToUploadToAzure(luigi.Task):
     date = luigi.DateParameter()
     path_match = luigi.Parameter()
 
+    task_namespace = 'azure'
+
     def requires(self):
         return ListAllFilesPutOnHDFS(self.date)
 
@@ -147,6 +155,8 @@ class UploadDatasetToAzure(luigi.Task):
     """
     date = luigi.DateParameter(default=datetime.datetime.strptime('2018-01-26', '%Y-%m-%d'))
     path_match = luigi.Parameter(default='/ia/1996-2010/')
+
+    task_namespace = 'azure'
 
     def slug(self):
         return str(self.path_match).replace(r'/', '-').strip('/')

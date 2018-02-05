@@ -85,28 +85,3 @@ class BackupProductionW3ACTPostgres(luigi.Task):
         # return self.output().fs.client.status(self.output().path).get('length',None)
 
 
-@BackupProductionW3ACTPostgres.event_handler(luigi.Event.SUCCESS)
-def update_task_metrics(task):
-    # type: (BackupProductionW3ACTPostgres) -> None
-    """
-       Will be called directly after a successful execution
-       and is used to update any relevant metrics
-    """
-    from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
-
-    registry = CollectorRegistry()
-    # This isn't really needed as Prometheus records the timestamp when the bytes metric gets updated.
-    #g = Gauge('ukwa_task_database_backup_timestamp', 'Last time the W3ACT database was backed up', registry=registry)
-    #g.set_to_current_time()
-
-    g2 = Gauge('ukwa_task_database_backup_size_bytes', 'Size of a database backup', labelnames=['db'], registry=registry)
-    g2.labels(db='w3act').set(task.get_backup_size())
-
-    push_to_gateway(systems().prometheus_push_gateway, job=task.get_task_family(), registry=registry)
-
-
-if __name__ == '__main__':
-    #luigi.run(['backup.BackupProductionW3ACTPostgres'])
-
-    task = BackupProductionW3ACTPostgres()
-    update_task_metrics(task)

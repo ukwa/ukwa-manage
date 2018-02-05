@@ -14,7 +14,6 @@ import luigi.contrib.esindex
 import luigi.contrib.hdfs
 import luigi.contrib.hdfs.format
 import settings
-from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -397,34 +396,3 @@ class RecordEvent(luigi.contrib.esindex.CopyToIndex):
         return [doc]
 
 
-# --------------------------------------------------------------------------
-# This general handler reports task failure and success, for each task
-# family (class name) and namespace.
-# --------------------------------------------------------------------------
-
-def send_to_prometheus(task, value):
-    # type: (luigi.Task) -> None
-
-    registry = CollectorRegistry()
-    g2 = Gauge('ukwa_task_status', 'Record a 1 if a task ran, 0 if a task failed', labelnames=['task_namespace'], registry=registry)
-    g2.labels(task_namespace=task.task_namespace).set(value)
-
-    push_to_gateway(settings.systems().prometheus_push_gateway, job=task.get_task_family(), registry=registry)
-
-
-@luigi.Task.event_handler(luigi.Event.FAILURE)
-def notify_any_failure(task, exception):
-    # type: (luigi.Task) -> None
-    """
-       Will be called directly after a successful execution
-       and is used to update any relevant metrics
-    """
-    send_to_prometheus(task, 0)
-
-
-@luigi.Task.event_handler(luigi.Event.SUCCESS)
-def celebrate_any_success(task):
-    """Will be called directly after a successful execution
-       of `run` on any Task subclass (i.e. all luigi Tasks)
-    """
-    send_to_prometheus(task, 1)
