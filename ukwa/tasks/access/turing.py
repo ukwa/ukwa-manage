@@ -33,7 +33,8 @@ class UploadToAzure(luigi.Task):
 
     block_blob_service = BlockBlobService(
         account_name=os.environ.get('AZURE_ACCOUNT_NAME'),
-        account_key=os.environ.get('AZURE_ACCOUNT_KEY')
+        account_key=os.environ.get('AZURE_ACCOUNT_KEY'),
+        socket_timeout=60 # Adding 60-second socket time-out due to problems with hanging uploads.
     )
 
     def full_path(self):
