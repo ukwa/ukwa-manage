@@ -190,6 +190,6 @@ class UploadDatasetToAzure(luigi.Task):
 
 
 if __name__ == '__main__':
-    luigi.run(['azure.UploadDatasetToAzure', '--workers', '40'])
+    luigi.run(['azure.UploadDatasetToAzure', '--workers', '50'])
     #luigi.run(['ListFilesToUploadToAzure', '--local-scheduler' , '--path-match' , '/user/root/input/hadoop'])
     #luigi.run(['UploadToAzure', '--path', '/ia/2011-201304/part-01/warcs/DOTUK-HISTORICAL-2011-201304-WARCS-PART-00044-601503-000001.warc.gz'])
