@@ -1,16 +1,14 @@
 import os
 import json
-import zlib
+import socket
+import datetime
 import luigi
 import luigi.format
 import luigi.contrib.hdfs
 from luigi.contrib.postgres import PostgresTarget
-import StringIO
-import datetime
 from azure.storage.blob import BlockBlobService
 from ukwa.tasks.hadoop.hdfs_tasks import ListAllFilesPutOnHDFS
 from ukwa.tasks.common import state_file
-from ukwa.tasks.common import logger
 
 
 def taskdb_target(task_group, task_result):
@@ -45,7 +43,8 @@ class UploadToAzure(luigi.Task):
         source = luigi.contrib.hdfs.HdfsTarget(path=self.path)
         size = source.fs.client.status(source.path)['length']
         with source.fs.client.read(source.path) as inf:
-            self.block_blob_service.create_blob_from_stream(self.container, self.full_path(), inf, max_connections=1, validate_content=True, count=size)
+            self.block_blob_service.create_blob_from_stream(self.container, self.full_path(), inf, max_connections=1,
+                                                            validate_content=True, count=size, timeout=60)
 
         # Check the BLOB looks okay - i.e. the path exists and BLOB is the right size:
         if self.block_blob_service.exists(self.container, self.full_path()):
