@@ -47,7 +47,7 @@ class ListAllFilesOnHDFSToLocalFile(luigi.Task):
                         'permissions' : permissions,
                         'number_of_replicas': number_of_replicas,
                         'userid': userid,
-                       'groupid': groupid,
+                        'groupid': groupid,
                         'filesize': filesize,
                         'modified_at': timestamp.isoformat(),
                         'filename': filename
@@ -154,6 +154,33 @@ class ListUKWAWebArchiveFiles(luigi.Task):
                 for item in reader:
                     # Archive file names:
                     if item['filename'].startswith('/data/') or item['filename'].startswith('/heritrix/'):
+                        writer.writerow(item)
+
+
+class ListUKWAWebArchiveFilesByCollection(luigi.Task):
+    """
+    Takes the full WARC list and filters UKWA content by collection 'npld' or 'selective':
+    """
+    date = luigi.DateParameter(default=datetime.date.today())
+    subset = luigi.Parameter(default='npld')
+    task_namespace = "hdfs"
+
+    def requires(self):
+        return ListWebArchiveFiles(self.date)
+
+    def output(self):
+        state_file(self.date, 'hdfs', 'warc-ukwa-%s-files-list.csv' % self.subset)
+
+    def run(self):
+        with self.output().open('w') as f:
+            writer = csv.DictWriter(f, fieldnames=csv_fieldnames)
+            writer.writeheader()
+            with self.input().open('r') as fin:
+                reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
+                for item in reader:
+                    # Archive file names:
+                    if (self.subset == 'selective' and item['filename'].startswith('/data/')) \
+                            or (self.subset == 'npld' and item['filename'].startswith('/heritrix/')):
                         writer.writerow(item)
 
 
