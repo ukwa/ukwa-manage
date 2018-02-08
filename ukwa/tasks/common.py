@@ -14,7 +14,7 @@ import luigi.contrib.esindex
 import luigi.contrib.hdfs
 import luigi.contrib.hdfs.format
 import settings
-from prometheus_client import CollectorRegistry, push_to_gateway
+from prometheus_client import push_to_gateway, CollectorRegistry
 from metrics import *
 
 logger = logging.getLogger(__name__)
