@@ -1,6 +1,7 @@
 import os
 import json
 import socket
+import logging
 import datetime
 import luigi
 import luigi.format
@@ -9,6 +10,9 @@ from luigi.contrib.postgres import PostgresTarget
 from azure.storage.blob import BlockBlobService
 from ukwa.tasks.hadoop.hdfs_tasks import ListAllFilesPutOnHDFS
 from ukwa.tasks.common import state_file
+
+
+logger = logging.getLogger(__name__)
 
 
 def taskdb_target(task_group, task_result):
@@ -32,19 +36,23 @@ class UploadToAzure(luigi.Task):
     block_blob_service = BlockBlobService(
         account_name=os.environ.get('AZURE_ACCOUNT_NAME'),
         account_key=os.environ.get('AZURE_ACCOUNT_KEY'),
-        socket_timeout=60 # Adding 60-second socket time-out due to problems with hanging uploads.
+        socket_timeout=3600 # Adding 60-second socket time-out due to problems with hanging uploads.
     )
 
     def full_path(self):
         return "%s/%s" % (self.prefix, self.path.lstrip('/'))
 
     def run(self):
+        def progress_report(current,total):
+          logger.info("Upload progress = %s/%s" % (current,total))
         # Upload the BLOB:
         source = luigi.contrib.hdfs.HdfsTarget(path=self.path)
         size = source.fs.client.status(source.path)['length']
+        logger.info("Attempting to upload item %s of size %i" % ( self.path, size ))
         with source.fs.client.read(source.path) as inf:
             self.block_blob_service.create_blob_from_stream(self.container, self.full_path(), inf, max_connections=1,
-                                                            validate_content=True, count=size, timeout=60)
+                                                            validate_content=True, count=size, timeout=300, progress_callback=progress_report)
+        logger.info("Uploaded item %s." % self.path )
 
         # Check the BLOB looks okay - i.e. the path exists and BLOB is the right size:
         if self.block_blob_service.exists(self.container, self.full_path()):
@@ -190,6 +198,6 @@ class UploadDatasetToAzure(luigi.Task):
 
 
 if __name__ == '__main__':
-    luigi.run(['azure.UploadDatasetToAzure', '--workers', '50'])
+    luigi.run(['azure.UploadDatasetToAzure', '--workers', '50', '--scheduler-host', 'access'])
     #luigi.run(['ListFilesToUploadToAzure', '--local-scheduler' , '--path-match' , '/user/root/input/hadoop'])
     #luigi.run(['UploadToAzure', '--path', '/ia/2011-201304/part-01/warcs/DOTUK-HISTORICAL-2011-201304-WARCS-PART-00044-601503-000001.warc.gz'])

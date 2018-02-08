@@ -1,7 +1,6 @@
 import luigi
 from prometheus_client import CollectorRegistry, Gauge
 from ukwa.tasks.backup.postgresql import BackupProductionW3ACTPostgres
-from ukwa.tasks.common import celebrate_any_success
 
 # --------------------------------------------------------------------------
 # Metrics definitions:
@@ -28,4 +27,4 @@ def record_db_backup_metrics(registry, task):
 if __name__ == '__main__':
     # An example task to test with:
     task = BackupProductionW3ACTPostgres()
-    celebrate_any_success(task)
+    #celebrate_any_success(task)
