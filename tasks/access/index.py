@@ -226,7 +226,7 @@ class CdxIndexAndVerify(luigi.Task):
     stream = luigi.Parameter(default='npld')
 
     def requires(self):
-        return ListWarcsByDate(target_date=self.target_date, stream=self.stream)
+        return ListWarcsForDate(target_date=self.target_date, stream=self.stream)
 
     def output(self):
         logger.info("Checking is complete: %s" % self.input().path)
