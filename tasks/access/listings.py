@@ -12,7 +12,8 @@ import luigi.contrib.hdfs
 import luigi.contrib.webhdfs
 from prometheus_client import CollectorRegistry, Gauge
 from tasks.common import state_file, report_file
-from tasks.ingest.listings import csv_fieldnames
+from tasks.ingest.listings import CopyFileListToHDFS, csv_fieldnames
+from lib.webhdfs import webhdfs
 
 logger = logging.getLogger('luigi-interface')
 
@@ -25,9 +26,7 @@ class CurrentHDFSFileList(luigi.ExternalTask):
     task_namespace = 'access'
 
     def output(self):
-        # See CopyFileListToHDFS(self.date).output()
-        # Same output file, but using WebHDFS instead of assuming CLI access:
-        return state_file(self.date,'hdfs','all-files-list.csv.gz', on_hdfs=True, use_webhdfs=True, use_gzip=True)
+        return CopyFileListToHDFS(self.date).output()
 
 
 class DownloadHDFSFileList(luigi.Task):
@@ -62,7 +61,8 @@ class DownloadHDFSFileList(luigi.Task):
 
             # Download the file to the dated, compressed file (at a temporary path):
             logger.info("Downloading %s" % self.dated_state_file().path)
-            with self.input().open('r') as f_in, open(temp_output_path, 'wb') as f_out:
+            client = webhdfs()
+            with client.read(self.input().path) as f_in, open(temp_output_path, 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
             logger.info("Downloaded %s" % self.dated_state_file().path)
 
