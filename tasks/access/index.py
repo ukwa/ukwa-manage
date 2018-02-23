@@ -246,7 +246,7 @@ class CdxIndexAndVerify(luigi.Task):
         verify_task = CheckCdxIndex(input_file=self.input().path)
         yield verify_task
 
-        # If it worked, record it here.
+        # If it worked, record it here:
         if verify_task.complete():
             self.output().touch()
 
