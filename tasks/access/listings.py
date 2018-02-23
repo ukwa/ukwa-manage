@@ -185,8 +185,8 @@ class ListWarcsForDate(luigi.Task):
         return ListWarcsByDate(self.date)
 
     def output(self):
-        datestamp = self.date.strftime("%Y-%m-%d")
-        target_path = state_file(None, 'warcs-by-day', 'warcs-by-day-%s-*-warcs-for-date.txt' % datestamp).path
+        datestamp = self.target_date.strftime("%Y-%m-%d")
+        target_path = state_file(None, 'warcs-by-day', '%s-*-warcs-for-date.txt' % datestamp).path
         print(os.system("ls %s" % target_path))
         return state_file(self.target_date, 'warcs', '%s-warc-files-for-date.txt' % self.file_count )
 
