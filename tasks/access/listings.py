@@ -123,37 +123,25 @@ class ListWarcsByDate(luigi.Task):
     """
     Lists the WARCS with datestamps corresponding to a particular day. Defaults to yesterday.
     """
-    target_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
-    stream = luigi.Parameter(default='npld')
     date = luigi.DateParameter(default=datetime.date.today())
-
-    file_count = None
 
     def requires(self):
         # Get todays list:
         return DownloadHDFSFileList(self.date)
 
     def output(self):
-        return state_file(self.target_date, 'warcs', '%s-warc-files-for-date.txt' % self.file_count )
+        return state_file(self.date, 'warcs', 'warc-files-by-date.txt' )
 
-    def complete(self):
-        # Override complete so we can catch if the list has changed - i.e. always re-generate the list:
-        if self.file_count == 0:
-            return False
-        else:
-            return self.output().exists()
-
-    def generate_day_list(self):
-        # Go through the data and find the WARCs for each day:
-        target_datestamp = self.target_date.strftime("%Y-%m-%d")
-        filenames = []
+    def run(self):
+        # Build up a list of all WARCS, by day:
+        by_day = {}
         with self.input().open('r') as fin:
             reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
             for item in reader:
                 # Archive file names:
                 file_path = item['filename']
                 # Only look at a subset:
-                if self.stream == 'npld' and file_path.startswith('/heritrix/output'):
+                if file_path.startswith('/heritrix/output'):
                     # Look at WARCS:
                     if file_path.endswith('.warc.gz'):
                         m = re.search('^.*-([12][0-9]{16})-.*\.warc\.gz$', os.path.basename(file_path))
@@ -164,17 +152,42 @@ class ListWarcsByDate(luigi.Task):
                             file_timestamp = item['modified_at']
                         file_datestamp = file_timestamp[0:10]
 
-                        if file_datestamp == target_datestamp:
-                            filenames.append(file_path)
+                        if file_datestamp not in by_day:
+                            by_day[file_datestamp] = []
 
-        return filenames
+                        by_day[file_datestamp].append(item)
+        # Write them out:
+        filenames = []
+        for datestamp in by_day:
+            datestamp_output = state_file(datestamp[0:7], 'warcs-by-day', '%s-warcs-for-date.txt' % len(by_day[datestamp]))
+            with datestamp_output.open('w') as f:
+                f.write(json.dumps(by_day[datestamp], indent=2))
 
-    def run(self):
         # Emit the list of output files as the task output:
-        filenames = self.generate_day_list()
         self.file_count = len(filenames)
         with self.output().open('w') as f:
             for output_path in filenames:
                 f.write('%s\n' % output_path)
 
 
+class ListWarcsForDate(luigi.Task):
+    """
+    Lists the WARCS with datestamps corresponding to a particular day. Defaults to yesterday.
+    """
+    target_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
+    stream = luigi.Parameter(default='npld')
+    date = luigi.DateParameter(default=datetime.date.today())
+
+    file_count = None
+
+    def requires(self):
+        # Get todays list:
+        return ListWarcsByDate(self.date)
+
+    def output(self):
+        datestamp_template = state_file(self.date, 'warcs-by-day', '*-warcs-for-date.txt')
+        print(os.system("ls %s" % datestamp_template))
+        return state_file(self.target_date, 'warcs', '%s-warc-files-for-date.txt' % self.file_count )
+
+    def run(self):
+        pass
