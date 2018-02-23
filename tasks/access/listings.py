@@ -12,7 +12,7 @@ import luigi.contrib.hdfs
 import luigi.contrib.webhdfs
 from prometheus_client import CollectorRegistry, Gauge
 from tasks.common import state_file, report_file
-from tasks.hdfs.listings import CopyFileListToHDFS, csv_fieldnames
+from tasks.ingest.listings import CopyFileListToHDFS, csv_fieldnames
 
 logger = logging.getLogger('luigi-interface')
 
