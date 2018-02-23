@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import logging
 import datetime
 import xml.dom.minidom
@@ -43,8 +44,10 @@ class CopyToHDFS(luigi.Task):
         input = luigi.LocalTarget(path=self.input_file)
         with input.open('r') as reader:
             with self.output().open('w') as writer:
-                for line in reader:
-                    writer.write(line)
+                items = json.load(reader)
+                for item in items:
+                    logger.info("Found %s" % item)
+                    writer.write(item['filename'])
 
 
 class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):

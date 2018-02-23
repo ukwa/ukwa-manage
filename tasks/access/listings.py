@@ -183,7 +183,7 @@ class ListWarcsForDate(luigi.Task):
         # Get todays list:
         return ListWarcsByDate(self.date)
 
-    def output(self):
+    def find_best_path(self):
         # List all the warcs-by-date files and select the one with the highest count.
         datestamp = self.target_date.strftime("%Y-%m-%d")
         target_path = state_file(None, 'warcs-by-day', '%s-*-warcs-for-date.txt' % datestamp).path
@@ -196,8 +196,12 @@ class ListWarcsForDate(luigi.Task):
                 max_count = count
                 best_path = path
 
-        return luigi.LocalTarget(path=best_path)
+        return best_path
+
+    def output(self):
+        return luigi.LocalTarget(path=self.find_best_path())
 
     def run(self):
-        # In this case, the output computation does all the work.
+        # The output does all the work here.
         pass
+
