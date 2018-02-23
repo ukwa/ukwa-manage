@@ -5,7 +5,7 @@ This module summarises the tasks that are to be run daily.
 """
 
 import luigi
-from tasks.hdfs.listings import GenerateHDFSSummaries
+from tasks.ingest.listings import GenerateHDFSSummaries
 from tasks.backup.postgresql import BackupProductionW3ACTPostgres
 
 

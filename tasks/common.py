@@ -4,7 +4,7 @@ import posixpath
 import luigi.contrib.hdfs
 import luigi.contrib.webhdfs
 from luigi.contrib.postgres import PostgresTarget, CopyToTable
-from tasks.hdfs.webhdfs import WebHdfsPlainFormat
+from lib.webhdfs import WebHdfsPlainFormat
 from prometheus_client import CollectorRegistry, push_to_gateway
 from metrics import record_task_outcome
 
