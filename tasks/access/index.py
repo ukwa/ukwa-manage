@@ -64,7 +64,9 @@ class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
         return CopyToHDFS(input_file = self.input_file, tag="warcs2cdx")
 
     def ssh(self):
-        return { 'host': 'mapred' }
+        return { 'host': 'mapred',
+                 'key_file': '~/.ssh/id_rsa',
+                 'username': 'access' }
 
     def jar(self):
         dir_path = os.path.dirname(os.path.realpath(__file__))
