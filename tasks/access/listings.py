@@ -159,7 +159,7 @@ class ListWarcsByDate(luigi.Task):
         # Write them out:
         filenames = []
         for datestamp in by_day:
-            datestamp_output = state_file(datestamp[0:7], 'warcs-by-day', '%s-warcs-for-date.txt' % len(by_day[datestamp]))
+            datestamp_output = state_file(None, 'warcs-by-day', '%s-%s-warcs-for-date.txt' % (datestamp,len(by_day[datestamp])))
             with datestamp_output.open('w') as f:
                 f.write(json.dumps(by_day[datestamp], indent=2))
 
