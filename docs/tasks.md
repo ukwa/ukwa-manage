@@ -79,6 +79,6 @@ Backup Tasks
 
 | Name | Description |
 |------|-------------|
-| [BackupRemoteDockerPostgres](../shepherd/tasks/backup/postgresql.py) | Connects to a remote PostgreSQL instance running in a Docker container and takes a backup.|
+| [BackupRemoteDockerPostgres](../tasks/backup/postgresql.py) | Connects to a remote PostgreSQL instance running in a Docker container and takes a backup.|
 
 
