@@ -3,6 +3,7 @@ import re
 import csv
 import json
 import gzip
+import glob
 import shutil
 import logging
 import datetime
@@ -178,17 +179,25 @@ class ListWarcsForDate(luigi.Task):
     stream = luigi.Parameter(default='npld')
     date = luigi.DateParameter(default=datetime.date.today())
 
-    file_count = None
-
     def requires(self):
         # Get todays list:
         return ListWarcsByDate(self.date)
 
     def output(self):
+        # List all the warcs-by-date files and select the one with the highest count.
         datestamp = self.target_date.strftime("%Y-%m-%d")
         target_path = state_file(None, 'warcs-by-day', '%s-*-warcs-for-date.txt' % datestamp).path
-        print(os.system("ls %s" % target_path))
-        return state_file(self.target_date, 'warcs', '%s-warc-files-for-date.txt' % self.file_count )
+        max_count = 0
+        best_path = target_path
+        for path in glob.glob(target_path):
+            count = int(re.search('-([0-9]+)-warcs-for-date.txt$', path).group(1))
+            # If this has a higher file count, use it:
+            if count > max_count:
+                max_count = count
+                best_path = path
+
+        return luigi.LocalTarget(path=best_path)
 
     def run(self):
+        # In this case, the output computation does all the work.
         pass
