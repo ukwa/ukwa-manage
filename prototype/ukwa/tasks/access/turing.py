@@ -184,18 +184,26 @@ class UploadDatasetToAzure(luigi.Task):
     def run(self):
         file_list = self.input()
         part = 0
+        chunks = []
         with file_list.open('r') as reader:
             items = []
             for line in reader:
                 item = line.strip()
                 items.append(item)
                 if len(items) >= 100:
-                    yield UploadFilesToAzureAndRecord('%s-%i' % (self.slug(), part), items)
+                    chunks.append(UploadFilesToAzureAndRecord('%s-%i' % (self.slug(), part), items))
                     part = part + 1
                     items = []
+                if len(chunks) >= 50:
+                    logger.info("Yielding %i chunks" % len(chunks))
+                    yield chunks
+                    chunks = []
             # Catch the last chunk:
             if len(items) > 0:
-                yield UploadFilesToAzure('last', items)
+                chunks.append(UploadFilesToAzure('last', items))
+
+        logger.info("Yielding remaining %i chunks" % len(chunks))
+        yield chunks
 
         with self.output().open('w') as f:
             f.write("COMPLETED\t%s" % datetime.date.today())
