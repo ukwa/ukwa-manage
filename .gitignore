@@ -7,7 +7,7 @@
 crawl/ui/servers.json
 tasks/servers.json
 
-state/*
+task-state/*
 venv-*
 
 luigi.cfg
