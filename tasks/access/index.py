@@ -69,8 +69,10 @@ class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
                  'username': 'access' }
 
     def jar(self):
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        return os.path.join(dir_path, "../jars/warc-hadoop-recordreaders-3.0.0-SNAPSHOT-job.jar")
+#        dir_path = os.path.dirname(os.path.realpath(__file__))
+#        return os.path.join(dir_path, "../jars/warc-hadoop-recordreaders-3.0.0-SNAPSHOT-job.jar")
+# Note that when using ssh to submit jobs, this needs to be a JAR on the remote server:
+        return "~/github/ukwa-manage/tasks/jars/warc-hadoop-recordreaders-3.0.0-SNAPSHOT-job.jar"
 
     def main(self):
         return "uk.bl.wa.hadoop.mapreduce.cdx.ArchiveCDXGenerator"
