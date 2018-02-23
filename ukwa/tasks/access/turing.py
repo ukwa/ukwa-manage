@@ -1,6 +1,9 @@
 import os
 import json
+<<<<<<< Updated upstream
 import socket
+=======
+>>>>>>> Stashed changes
 import logging
 import datetime
 import luigi
@@ -10,6 +13,8 @@ from luigi.contrib.postgres import PostgresTarget
 from azure.storage.blob import BlockBlobService
 from ukwa.tasks.hadoop.hdfs_tasks import ListAllFilesPutOnHDFS
 from ukwa.tasks.common import state_file
+
+logger = logging.getLogger('luigi-interface')
 
 
 logger = logging.getLogger(__name__)
