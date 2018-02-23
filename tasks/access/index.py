@@ -12,8 +12,7 @@ from urllib import quote_plus  # python 2
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
-from tasks.access.hdfs_listings import ListWarcsByDate
-from tasks.hadoop.warc.warctasks import TellingReader
+from tasks.access.listings import ListWarcsByDate
 from tasks.common import state_file, report_file, CopyToTableInDB, taskdb_target
 
 logger = logging.getLogger('luigi-interface')
@@ -84,6 +83,36 @@ class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
             "-t", self.cdx_server,
             "-c", "CDX N b a m s k r M S V g"
         ]
+
+
+# Special reader to read the input stream and yield WARC records:
+class TellingReader():
+    def __init__(self, stream):
+        self.stream = stream
+        self.pos = 0
+
+    def read(self, size=None):
+        #logger.warning("read()ing from current position: %i, size=%s" % (self.pos, size))
+        chunk = self.stream.read(size)
+        #if len(bytes(chunk)) == 0:
+        #    logger.warning("read() 0 bytes, current position: %i" % self.pos)
+        #else:
+        #    logger.warning("read() %s" % binascii.hexlify(chunk[:64]))
+        self.pos += len(bytes(chunk))
+        #logger.warning("read()ing current position now: %i" % self.pos)
+        return chunk
+
+    def readline(self, size=None):
+        #logger.warning("readline()ing from current position: %i" % self.pos)
+        line = self.stream.readline(size)
+        #logger.warning("readline() %s" % line)
+        self.pos += len(bytes(line))
+        #logger.warning("readline()ing current position now: %i" % self.pos)
+        return line
+
+    def tell(self):
+        #logger.debug("tell()ing current position: %i" % self.pos)
+        return self.pos
 
 
 class CheckCdxIndexForWARC(CopyToTableInDB):

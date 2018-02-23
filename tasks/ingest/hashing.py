@@ -22,7 +22,7 @@ class GenerateWarcHashes(luigi.contrib.hadoop_jar.HadoopJarJobTask):
     #    return tasks.report.crawl_summary.GenerateWarcList(self.input_file)
 
     def jar(self):
-        return "../../jars/warc-hadoop-recordreaders-2.2.0-BETA-7-SNAPSHOT-job.jar"
+        return "../jars/warc-hadoop-recordreaders-2.2.0-BETA-7-SNAPSHOT-job.jar"
 
     def main(self):
         return "uk.bl.wa.hadoop.mapreduce.hash.HdfsFileHasher"

@@ -11,7 +11,7 @@ def get_version():
         return "?.?.?"
 
 setup(
-    name='ukwa-hadoop-tasks',
+    name='ukwa-manage',
     version=get_version(),
     packages=find_packages(),
     install_requires=requirements,
