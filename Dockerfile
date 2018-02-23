@@ -8,26 +8,16 @@ RUN \
 RUN yum install -y cronie
 
 # Install the Shepherd package:
-COPY . /shepherd
-RUN cd /shepherd/ && pip install --no-cache-dir -r requirements.txt
-RUN cd /shepherd/ && python setup.py install
-
-# Set up configuration for supervisor:
-ADD supervisord.conf.docker /etc/supervisor/conf.d/supervisord.conf
+COPY . /ukwa-monitor
+RUN cd /ukwa-monitor && pip install --no-cache-dir -r requirements.txt && python setup.py install
 
 # Add the crontab:
-RUN crontab /shepherd/crontab.root.docker
+RUN crontab /ukwa-monitor/crontab.root.docker
 
-# And add the luigi configuration:
-ADD luigi.cfg.template /etc/luigi/luigi.cfg.template
-ADD launch-luigi-docker.sh /
+ENV PYTHONUNBUFFERED="TRUE"
 
-# This is needed to force SupervisorD to run as root.
-# TODO Avoid this in future, as it should not be necessary even under Docker.
-ENV C_FORCE_ROOT TRUE
-
-# Run supervisord on launch:
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Run LuigiD directly upon launch:
+CMD ["luigid"]
 
 
 

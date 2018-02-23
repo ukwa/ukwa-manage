@@ -1,5 +1,0 @@
-ENV
-*.pyc
-*.swp
-dist
-MANIFEST
