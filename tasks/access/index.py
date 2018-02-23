@@ -63,6 +63,9 @@ class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
     def requires(self):
         return CopyToHDFS(input_file = self.input_file, tag="warcs2cdx")
 
+    def ssh(self):
+        return { 'host': 'mapred' }
+
     def jar(self):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         return os.path.join(dir_path, "../jars/warc-hadoop-recordreaders-3.0.0-SNAPSHOT-job.jar")
