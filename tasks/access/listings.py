@@ -27,7 +27,7 @@ class CurrentHDFSFileList(luigi.ExternalTask):
     def output(self):
         # See CopyFileListToHDFS(self.date).output()
         # Same output file, but using WebHDFS instead of assuming CLI access:
-        return state_file(self.date,'hdfs','all-files-list.csv.gz', on_hdfs=True, use_webhdfs=True)
+        return state_file(self.date,'hdfs','all-files-list.csv.gz', on_hdfs=True, use_webhdfs=True, use_gzip=True)
 
 
 class DownloadHDFSFileList(luigi.Task):
