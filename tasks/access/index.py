@@ -212,9 +212,11 @@ class CheckCdxIndex(luigi.WrapperTask):
 
     def requires(self):
         # For each input file, open it up and get some URLs and timestamps.
-        with open(str(self.input_file)) as flist:
-            for line in flist:
-                yield CheckCdxIndexForWARC(line.strip())
+        with open(str(self.input_file)) as f_in:
+            items = json.load(f_in)
+            for item in items:
+                logger.info("Found %s" % item)
+                yield CheckCdxIndexForWARC(item['filename'])
 
     def output(self):
         return taskdb_target("warc_set_verified","%s INDEXED OK" % self.input_file)
