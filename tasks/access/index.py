@@ -14,6 +14,7 @@ import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
 from tasks.access.listings import ListWarcsByDate
 from tasks.common import state_file, report_file, CopyToTableInDB, taskdb_target
+from lib.webhdfs import WebHdfsPlainFormat
 
 logger = logging.getLogger('luigi-interface')
 
@@ -35,7 +36,7 @@ class CopyToHDFS(luigi.Task):
 
     def output(self):
         full_path = os.path.join(self.tag, os.path.basename(self.input_file))
-        return luigi.contrib.hdfs.HdfsTarget(full_path, format=luigi.contrib.hdfs.PlainFormat())
+        return luigi.contrib.hdfs.HdfsTarget(full_path, format=WebHdfsPlainFormat(use_gzip=False))
 
     def run(self):
         # Read the file in and write it to HDFS
