@@ -141,6 +141,7 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
     count = 0
     tries = 0
     hits = 0
+    records = 0
 
     def rows(self):
         hdfs_file = luigi.contrib.hdfs.HdfsTarget(path=self.input_file, format=WebHdfsPlainFormat())
@@ -156,6 +157,7 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
             #logger.warning("Got record offset + length: %i %i" % (reader.get_record_offset(), reader.get_record_length() ))
 
             # Only look at valid response records:
+            self.records += 1
             if record.rec_type == 'response' and record.content_type.startswith(b'application/http'):
                 record_url = record.rec_headers.get_header('WARC-Target-URI')
                 # Timestamp, stripped down to Wayback form:
@@ -181,6 +183,11 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
         # Close the input stream and catch any exception due to closing it early:
         fin._abort()
 
+        # If there were not records at all, something went wrong!
+        if self.records == 0:
+            raise Exception("For %s, found %i records at all!" % (self.input_file, self.records))
+
+        # Otherwise, the hits and tries should match (n.b. can be zero if there are no indexable records in this WARC):
         if self.hits == self.tries:
             yield self.input_file, self.tries, self.hits
         else:
