@@ -38,9 +38,7 @@ class WebHdfsPlainFormat(luigi.format.Format):
         return self.pipe_reader(path)
 
     def pipe_reader(self, path):
-        with self._fs.client.read(self._path) as reader:
-            return reader
-        #return WebHdfsReadPipe(path, self._use_gzip)
+        return WebHdfsReadPipe(path, self._use_gzip)
 
     def pipe_writer(self, output_pipe):
         return WebHdfsAtomicWritePipe(output_pipe, self._use_gzip)
@@ -58,19 +56,17 @@ class WebHdfsReadPipe(object):
         self._path = path
 
         if self._use_gzip:
+            # Check the file has the right name format:
             if not self._path.endswith('.gz'):
                 raise Exception("Gzipped files should end with '.gz' and '%s' does not!" % self._path)
-        #else:
-        #    if self._path.endswith('.gz'):
-        #        raise Exception("Only gzipped files should end with '.gz' and '%s' does!" % self._path)
 
-        self._fs = fs or luigi.contrib.hdfs.hdfs_clients.hdfs_webhdfs_client.WebHdfsClient()
-
-        # Also open up the reader:
-        with self._fs.client.read(self._path) as reader:
-            self.file_reader = reader
-        if self._use_gzip:
+            # Set up GZip decompressor:
             self.d = zlib.decompressobj(16 + zlib.MAX_WBITS)
+
+        # Set up a file-system:
+        self._fs = fs or luigi.contrib.hdfs.hdfs_clients.hdfs_webhdfs_client.WebHdfsClient()
+        # Also open up the reader (working around the GeneratorContextManager):
+        self.file_reader = self._fs.client.read(self._path).gen.next()
 
     def _finish(self):
         if self.file_reader is not None:
