@@ -3,12 +3,19 @@
 .settings
 
 *.pyc
+*.egg-info
+build
+dist
+docs/_build
 
 crawl/ui/servers.json
 tasks/servers.json
+legacy/old-*
 
 task-state/*
 venv-*
+venv
+docs/venv
 
 luigi.cfg
 luigi-ddb.cfg

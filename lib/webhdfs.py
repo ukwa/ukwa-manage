@@ -57,9 +57,9 @@ class WebHdfsReadPipe(object):
         if self._use_gzip:
             if not self._path.endswith('.gz'):
                 raise Exception("Gzipped files should end with '.gz' and '%s' does not!" % self._path)
-        else:
-            if self._path.endswith('.gz'):
-                raise Exception("Only gzipped files should end with '.gz' and '%s' does!" % self._path)
+        #else:
+        #    if self._path.endswith('.gz'):
+        #        raise Exception("Only gzipped files should end with '.gz' and '%s' does!" % self._path)
 
         self._fs = fs or luigi.contrib.hdfs.hdfs_clients.hdfs_webhdfs_client.WebHdfsClient()
 

@@ -143,7 +143,7 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
     hits = 0
 
     def rows(self):
-        hdfs_file = luigi.contrib.hdfs.HdfsTarget(path=self.input_file)
+        hdfs_file = luigi.contrib.hdfs.HdfsTarget(path=self.input_file, format=WebHdfsPlainFormat())
         logger.info("Opening " + hdfs_file.path)
         fin = hdfs_file.open('r')
         reader = warcio.ArchiveIterator(TellingReader(fin))
