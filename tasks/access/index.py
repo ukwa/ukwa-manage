@@ -257,7 +257,7 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     luigi.interface.setup_interface_logging()
 
-    luigi.run(['CdxIndexAndVerify', '--local-scheduler'])
+    luigi.run(['CdxIndexAndVerify', '--workers', '10'])
 
 #    very = CdxIndexAndVerify(
 #        date=datetime.datetime.strptime("2018-02-16","%Y-%m-%d"),

@@ -122,9 +122,9 @@ class WebHdfsReadPipe(object):
 
     def read(self, size):
         if self._use_gzip:
-            yield self.d.decompress(self.reader.read(size))
+            return self.d.decompress(self.reader.read(size))
         else:
-            yield self.reader.read(size)
+            return self.reader.read(size)
 
     def readable(self):
         return True
