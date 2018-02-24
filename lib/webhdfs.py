@@ -38,7 +38,9 @@ class WebHdfsPlainFormat(luigi.format.Format):
         return self.pipe_reader(path)
 
     def pipe_reader(self, path):
-        return WebHdfsReadPipe(path, self._use_gzip)
+        with self._fs.client.read(self._path) as reader:
+            return reader
+        #return WebHdfsReadPipe(path, self._use_gzip)
 
     def pipe_writer(self, output_pipe):
         return WebHdfsAtomicWritePipe(output_pipe, self._use_gzip)
@@ -65,7 +67,8 @@ class WebHdfsReadPipe(object):
         self._fs = fs or luigi.contrib.hdfs.hdfs_clients.hdfs_webhdfs_client.WebHdfsClient()
 
         # Also open up the reader:
-        self.file_reader = self._fs.client.read(self._path).gen
+        with self._fs.client.read(self._path) as reader:
+            self.file_reader = reader
         if self._use_gzip:
             self.d = zlib.decompressobj(16 + zlib.MAX_WBITS)
 
