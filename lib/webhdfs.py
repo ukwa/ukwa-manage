@@ -20,8 +20,9 @@ class WebHdfsPlainFormat(luigi.format.Format):
     """
     This custom format can be used to ensure reads and writes to HDFS go over WebHDFS.
 
-            # HdfsTarget cannot write to HDFS when using the HDFS client!
-            # And WebHdfsTarget cannot be read!
+    Luigi's standard HdfsTarget does not support WebHDFS mode:
+    # HdfsTarget cannot write to HDFS when using the HDFS client!
+    # And WebHdfsTarget cannot be read!
     """
 
     input = 'bytes'
@@ -45,6 +46,8 @@ class WebHdfsPlainFormat(luigi.format.Format):
 
 class WebHdfsReadPipe(object):
 
+    reader = None
+
     def __init__(self, path, use_gzip=False, fs=None):
         """
         Initializes a WebHdfsReadPipe instance.
@@ -63,8 +66,14 @@ class WebHdfsReadPipe(object):
 
         self._fs = fs or luigi.contrib.hdfs.hdfs_clients.hdfs_webhdfs_client.WebHdfsClient()
 
+        # Also open up the reader:
+        self.reader = self._fs.client.read(self._path)
+        if self._use_gzip:
+            self.d = zlib.decompressobj(16 + zlib.MAX_WBITS)
+
     def _finish(self):
-        pass
+        if self.reader is not None:
+            self.reader.close()
 
     def close(self):
         self._finish()
@@ -94,16 +103,14 @@ class WebHdfsReadPipe(object):
 
     def __iter__(self):
         if self._use_gzip:
-            d = zlib.decompressobj(16 + zlib.MAX_WBITS)
             last_line = ""
             try:
-                with self._fs.client.read(self._path) as reader:
-                    for gzchunk in reader:
-                        chunk = "%s%s" % (last_line, d.decompress(gzchunk))
-                        chunk_by_line = chunk.split('\n')
-                        last_line = chunk_by_line.pop()
-                        for line in chunk_by_line:
-                            yield line
+                for gzchunk in self.reader:
+                    chunk = "%s%s" % (last_line, self.d.decompress(gzchunk))
+                    chunk_by_line = chunk.split('\n')
+                    last_line = chunk_by_line.pop()
+                    for line in chunk_by_line:
+                        yield line
             except StopIteration:  # the other end of the pipe is empty
                 yield last_line
                 raise StopIteration
@@ -112,7 +119,12 @@ class WebHdfsReadPipe(object):
             with self._fs.client.read(self._path) as reader:
                 for line in reader:
                     yield line
-        self._finish()
+
+    def read(self, size):
+        if self._use_gzip:
+            yield self.d.decompress(self.reader.read(size))
+        else:
+            yield self.reader.read(size)
 
     def readable(self):
         return True
