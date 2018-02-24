@@ -46,8 +46,6 @@ class WebHdfsPlainFormat(luigi.format.Format):
 
 class WebHdfsReadPipe(object):
 
-    reader = None
-
     def __init__(self, path, use_gzip=False, fs=None):
         """
         Initializes a WebHdfsReadPipe instance.
@@ -67,13 +65,13 @@ class WebHdfsReadPipe(object):
         self._fs = fs or luigi.contrib.hdfs.hdfs_clients.hdfs_webhdfs_client.WebHdfsClient()
 
         # Also open up the reader:
-        self.reader = self._fs.client.read(self._path)
+        self.file_reader = self._fs.client.read(self._path).gen
         if self._use_gzip:
             self.d = zlib.decompressobj(16 + zlib.MAX_WBITS)
 
     def _finish(self):
-        if self.reader is not None:
-            self.reader.close()
+        if self.file_reader is not None:
+            self.file_reader.close()
 
     def close(self):
         self._finish()
@@ -105,7 +103,7 @@ class WebHdfsReadPipe(object):
         if self._use_gzip:
             last_line = ""
             try:
-                for gzchunk in self.reader:
+                for gzchunk in self.file_reader:
                     chunk = "%s%s" % (last_line, self.d.decompress(gzchunk))
                     chunk_by_line = chunk.split('\n')
                     last_line = chunk_by_line.pop()
@@ -122,9 +120,9 @@ class WebHdfsReadPipe(object):
 
     def read(self, size):
         if self._use_gzip:
-            return self.d.decompress(self.reader.read(size))
+            return self.d.decompress(self.file_reader.read(size))
         else:
-            return self.reader.read(size)
+            return self.file_reader.read(size)
 
     def readable(self):
         return True
