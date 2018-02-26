@@ -62,7 +62,8 @@ class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
     num_reducers = 50
 
     def output(self):
-        timestamp = self.timestamp.isoformat().replace(':','-')
+        timestamp = self.timestamp.isoformat()
+        timestamp = timestamp.replace(':','-')
         file_prefix = os.path.splitext(os.path.basename(self.input_file))[0]
         return state_file(self.timestamp, 'warcs2cdx', '%s-submitted-%s.txt' % (file_prefix, timestamp), on_hdfs=True )
 
