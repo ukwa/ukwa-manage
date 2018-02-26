@@ -21,7 +21,7 @@ The overall, higher-level system documentation is here: <https://github.com/ukwa
 
 
 API Reference
--------------
+=============
 
 .. autosummary::
    :toctree: api
