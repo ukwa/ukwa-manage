@@ -15,9 +15,23 @@ Introduction
 
 This project includes the `Python Luigi`_ tasks used to automate the management of crawls and content at the UK Web Archive.
 
-The overall, higher-level system documentation is here: <https://github.com/ukwa/ukwa-documentation> This documentation provides more fine-grained detail about individual tasks and processes.
+The overall, higher-level system documentation is here: <https://github.com/ukwa/ukwa-documentation>, whereas this documentation site provides more fine-grained detail about individual tasks and processes.
 
 .. _Python Luigi: https://github.com/spotify/luigi
+
+
+API Reference
+-------------
+
+.. autosummary::
+   :toctree: api
+
+   lib
+   tasks
+   tasks.access
+   tasks.ingest
+   tasks.backup
+
 
 Indices and tables
 ==================
