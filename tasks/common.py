@@ -12,7 +12,7 @@ luigi.interface.setup_interface_logging()
 
 LOCAL_STATE_FOLDER = os.environ.get('LOCAL_STATE_FOLDER', '/var/task-state')
 LOCAL_REPORT_FOLDER = os.environ.get('LOCAL_REPORT_FOLDER', '/data/ukwa-reports')
-HDFS_STATE_FOLDER = os.environ.get('HDFS_STATE_FOLDER','/9_processing/task-state/')
+HDFS_STATE_FOLDER = os.environ.get('HDFS_STATE_FOLDER','./task-state/')
 
 logger = logging.getLogger('luigi-interface')
 
