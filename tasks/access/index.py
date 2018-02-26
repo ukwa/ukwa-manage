@@ -46,7 +46,7 @@ class CopyToHDFS(luigi.Task):
             with self.output().open('w') as writer:
                 items = json.load(reader)
                 for item in items:
-                    logger.info("Found %s" % item)
+                    #logger.info("Found %s" % item)
                     writer.write('%s\n' % item['filename'])
 
 
@@ -228,7 +228,7 @@ class CheckCdxIndex(luigi.WrapperTask):
         with open(str(self.input_file)) as f_in:
             items = json.load(f_in)
             for item in items:
-                logger.info("Found %s" % item)
+                #logger.info("Found %s" % item)
                 yield CheckCdxIndexForWARC(item['filename'])
 
     def output(self):
