@@ -53,6 +53,8 @@ class CopyToHDFS(luigi.Task):
 class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
     input_file = luigi.Parameter()
     cdx_server = luigi.Parameter(default='http://bigcdx:8080/data-heritrix')
+    # This is used to add a timestamp to the output file, so this task can always be re-run:
+    timestamp = luigi.DateSecondParameter(default=datetime.datetime.now())
 
     meta_flag = ''
     task_namespace = 'index'
@@ -60,8 +62,9 @@ class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
     num_reducers = 50
 
     def output(self):
-        out_name = os.path.join("warcs2cdx", "%s-submitted.txt" % os.path.splitext(os.path.basename(self.input_file))[0])
-        return luigi.contrib.hdfs.HdfsTarget(out_name, format=luigi.contrib.hdfs.Plain)
+        timestamp = self.timestamp.isoformat()
+        file_prefix = os.path.splitext(os.path.basename(self.input_file))[0]
+        return state_file(self.timestamp, 'warcs2cdx', '%s-submitted-%s.txt' % (file_prefix, timestamp) )
 
     def requires(self):
         return CopyToHDFS(input_file = self.input_file, tag="warcs2cdx")
