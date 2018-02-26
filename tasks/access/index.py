@@ -47,7 +47,7 @@ class CopyToHDFS(luigi.Task):
                 items = json.load(reader)
                 for item in items:
                     logger.info("Found %s" % item)
-                    writer.write(item['filename'])
+                    writer.write('%s\n' % item['filename'])
 
 
 class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
