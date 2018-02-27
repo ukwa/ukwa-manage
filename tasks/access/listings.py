@@ -27,7 +27,9 @@ class CurrentHDFSFileList(luigi.ExternalTask):
     task_namespace = 'access'
 
     def output(self):
-        return CopyFileListToHDFS(self.date).output()
+        t = CopyFileListToHDFS(self.date).output()
+        logger.info("Looking for %s on HDFS..." % t.path)
+        return t
 
 
 class DownloadHDFSFileList(luigi.Task):

@@ -26,11 +26,11 @@ API Reference
 .. autosummary::
    :toctree: api
 
-   lib
    tasks
    tasks.access
    tasks.ingest
    tasks.backup
+   lib
 
 
 Indices and tables
