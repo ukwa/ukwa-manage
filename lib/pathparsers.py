@@ -16,14 +16,14 @@ class CrawlStream(enum.Enum):
     An enumeration of the different crawl streams.
     """
 
-    """'selective' is permissions-based collection. e.g. Pre-NPLD collections."""
     selective = 1
+    """'selective' is permissions-based collection. e.g. Pre-NPLD collections."""
 
-    """ 'frequent' covers NPLD crawls of curated sites."""
     frequent = 2
+    """ 'frequent' covers NPLD crawls of curated sites."""
 
-    """ 'domain' refers to NPLD domain crawls."""
     domain = 3
+    """ 'domain' refers to NPLD domain crawls."""
 
 
 class HdfsPathParser(object):
