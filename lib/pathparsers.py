@@ -56,7 +56,7 @@ class HdfsPathParser(object):
             self.job = 'domain'  # Overriding old job name.
             # Cope with variation in folder naming - all DC crawlers launched on the same day:
             if len(self.launch) > 8:
-                launch = self.launch[0:8]
+                self.launch = self.launch[0:8]
             self.launch_datetime = datetime.datetime.strptime(self.launch, "%Y%m%d")
         elif mfc:
             self.recognised = True
