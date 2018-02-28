@@ -69,6 +69,7 @@ class HdfsPathParser(object):
             # In this case the job is the Target ID and the launch is the Instance ID:
             (self.job, self.launch, self.kind, self.file_name) = mby.groups()
             self.kind = self.kind.lower()
+            self.launch_datetime = None
         else:
             self.recognised = False
             self.stream = None
@@ -84,9 +85,10 @@ class HdfsPathParser(object):
             self.timestamp_datetime = datetime.datetime.strptime(mwarc.group(1), "%Y%m%d%H%M%S%f")
             self.timestamp = self.timestamp_datetime.isoformat()
         else:
-            # fall back on launch datetime:
-            self.timestamp_datetime = self.launch_datetime
-            self.timestamp = self.timestamp_datetime.isoformat()
+            if self.recognised and self.launch_datetime:
+                # fall back on launch datetime:
+                self.timestamp_datetime = self.launch_datetime
+                self.timestamp = self.timestamp_datetime.isoformat()
         # TODO Do the same for crawl logs...
 
         # TODO distinguish crawl logs from other logs...
