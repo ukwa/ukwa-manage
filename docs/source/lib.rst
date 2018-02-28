@@ -4,6 +4,14 @@ lib package
 Submodules
 ----------
 
+lib.pathparsers module
+------------------
+
+.. automodule:: lib.pathparsers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 lib.webhdfs module
 ------------------
 
