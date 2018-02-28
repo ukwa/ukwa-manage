@@ -16,6 +16,7 @@ import luigi.contrib.hadoop_jar
 from tasks.access.listings import ListWarcsForDate
 from tasks.common import state_file, report_file, CopyToTableInDB, taskdb_target
 from lib.webhdfs import WebHdfsPlainFormat, webhdfs
+from lib.pathparsers import CrawlStream
 
 logger = logging.getLogger('luigi-interface')
 
@@ -33,7 +34,7 @@ class CopyToHDFS(luigi.Task):
     input_file = luigi.Parameter()
     tag = luigi.Parameter()
     date = luigi.DateParameter(default=datetime.date.today())
-    task_namespace = "hdfs"
+    task_namespace = "access.hdfs"
 
     def output(self):
         full_path = os.path.join(self.tag, os.path.basename(self.input_file))
@@ -55,9 +56,9 @@ class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
     cdx_server = luigi.Parameter(default='http://bigcdx:8080/data-heritrix')
     # This is used to add a timestamp to the output file, so this task can always be re-run:
     timestamp = luigi.DateSecondParameter(default=datetime.datetime.now())
-
     meta_flag = ''
-    task_namespace = 'index'
+
+    task_namespace = "access.index"
 
     num_reducers = 50
 
@@ -135,7 +136,7 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
     sampling_rate = luigi.IntParameter(default=500)
     cdx_server = luigi.Parameter(default='http://bigcdx:8080/data-heritrix')
     max_records_to_check = luigi.IntParameter(default=10)
-    task_namespace = "index"
+    task_namespace = "access.index"
 
     table = 'index_result_table'
     columns = (('warc_path', 'text'),
@@ -221,7 +222,7 @@ class CheckCdxIndex(luigi.WrapperTask):
     input_file = luigi.Parameter()
     sampling_rate = luigi.IntParameter(default=500)
     cdx_server = luigi.Parameter(default='http://bigcdx:8080/data-heritrix')
-    task_namespace = "index"
+    task_namespace = "access.index"
 
     def requires(self):
         # For each input file, open it up and get some URLs and timestamps.
@@ -241,7 +242,8 @@ class CheckCdxIndex(luigi.WrapperTask):
 
 class CdxIndexAndVerify(luigi.Task):
     target_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
-    stream = luigi.Parameter(default='npld')
+    stream = luigi.EnumParameter(enum=CrawlStream, default=CrawlStream.frequent)
+    task_namespace = "access.index"
 
     def requires(self):
         return ListWarcsForDate(target_date=self.target_date, stream=self.stream)

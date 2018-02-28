@@ -12,12 +12,17 @@ import luigi.contrib.hdfs
 import luigi.contrib.webhdfs
 from prometheus_client import CollectorRegistry, Gauge
 from tasks.common import state_file, report_file
+from lib.pathparsers import HdfsPathParser
 
 logger = logging.getLogger('luigi-interface')
 
 DEFAULT_BUFFER_SIZE = 1024*1000
 
 csv_fieldnames = ['permissions', 'number_of_replicas', 'userid', 'groupid', 'filesize', 'modified_at', 'filename']
+
+"""
+Tasks relating to listing HDFS content and reporting on it.
+"""
 
 
 class ListAllFilesOnHDFSToLocalFile(luigi.Task):
@@ -30,7 +35,7 @@ class ListAllFilesOnHDFSToLocalFile(luigi.Task):
     It set up to run once a day, as input to downstream reporting or analysis processes.
     """
     date = luigi.DateParameter(default=datetime.date.today())
-    task_namespace = "hdfs"
+    task_namespace = "ingest.hdfs"
 
     total_directories = -1
     total_files = -1
@@ -137,7 +142,7 @@ class CopyFileListToHDFS(luigi.Task):
     This puts a copy of the file list onto HDFS
     """
     date = luigi.DateParameter(default=datetime.date.today())
-    task_namespace = "hdfs"
+    task_namespace = "ingest.hdfs"
 
     def requires(self):
         return ListAllFilesOnHDFSToLocalFile(self.date)
@@ -161,7 +166,7 @@ class ListEmptyFiles(luigi.Task):
     Takes the full file list and extracts the empty files, as these should be checked.
     """
     date = luigi.DateParameter(default=datetime.date.today())
-    task_namespace = "hdfs"
+    task_namespace = "ingest.hdfs"
 
     def requires(self):
         return ListAllFilesOnHDFSToLocalFile(self.date)
@@ -187,7 +192,7 @@ class ListUKWAFiles(luigi.Task):
     Takes the full WARC list and filters UKWA content by folder:
     """
     date = luigi.DateParameter(default=datetime.date.today())
-    task_namespace = "hdfs"
+    task_namespace = "ingest.hdfs"
 
     def requires(self):
         return ListAllFilesOnHDFSToLocalFile(self.date)
@@ -213,7 +218,7 @@ class ListWebArchiveFiles(luigi.Task):
     Takes the full file list and strips it down to just the WARCs and ARCs
     """
     date = luigi.DateParameter(default=datetime.date.today())
-    task_namespace = "hdfs"
+    task_namespace = "ingest.hdfs"
 
     def requires(self):
         return ListAllFilesOnHDFSToLocalFile(self.date)
@@ -240,7 +245,7 @@ class ListUKWAWebArchiveFiles(luigi.Task):
     Takes the full WARC list and filters UKWA content by folder:
     """
     date = luigi.DateParameter(default=datetime.date.today())
-    task_namespace = "hdfs"
+    task_namespace = "ingest.hdfs"
 
     def requires(self):
         return ListWebArchiveFiles(self.date)
@@ -266,7 +271,7 @@ class ListUKWAFilesByCollection(luigi.Task):
     """
     date = luigi.DateParameter(default=datetime.date.today())
     subset = luigi.Parameter(default='npld')
-    task_namespace = "hdfs"
+    task_namespace = "ingest.hdfs"
 
     total_files = 0
     total_bytes = 0
@@ -330,7 +335,7 @@ class ListDuplicateWebArchiveFiles(luigi.Task):
     """
     date = luigi.DateParameter(default=datetime.date.today())
     collection = luigi.Parameter(default='all')
-    task_namespace = "hdfs"
+    task_namespace = "ingest.hdfs"
 
     total_unduplicated = 0
     total_duplicated = 0
@@ -373,10 +378,12 @@ class ListDuplicateWebArchiveFiles(luigi.Task):
 
 class ListByCrawl(luigi.Task):
     """
-    Loads in the crawl files and arranges them by crawl.
+    Identifies in the crawl output files and arranges them by crawl.
     """
     date = luigi.DateParameter(default=datetime.date.today())
     stream = luigi.Parameter(default='npld')
+
+    task_namespace = "ingest.report"
 
     def requires(self):
         return ListUKWAFilesByCollection(self.date)
@@ -398,59 +405,38 @@ class ListByCrawl(luigi.Task):
         with self.input().open('r') as fin:
             reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
             for item in reader:
-                # Archive file names:
-                file_path = item['filename']
-                # Look for different filename patterns:
-                mfc = re.search('/heritrix/output/(warcs|viral|logs)/([a-z\-0-9]+)[-/]([0-9]{12,14})/([^\/]+)', file_path)
-                mdc = re.search('/heritrix/output/(warcs|viral|logs)/(dc|crawl)[0-3]\-([0-9]{8}|[0-9]{14})/([^\/]+)', file_path)
-                if mdc:
-                    (kind, job, launch, filename) = mdc.groups()
-                    job = 'domain' # Overriding old job name.
-                    # Cope with variation in folder naming - all DC crawlers launched on the same day:
-                    if len(launch) > 8:
-                        launch = launch[0:8]
-                    launch_datetime = datetime.datetime.strptime(launch, "%Y%m%d")
-                elif mfc:
-                    (kind, job, launch, filename) = mfc.groups()
-                    launch_datetime = datetime.datetime.strptime(launch, "%Y%m%d%H%M%S")
-                else:
+                # Parse file paths and names:
+                p = HdfsPathParser(item['filename'])
+                if not p.recognised:
                     # print("Could not parse: %s" % file_path)
-                    logger.warning("Could not parse: %s" % file_path)
-                    unparsed.append(file_path)
-                    unparsed_dirs.add(os.path.dirname(file_path))
+                    logger.warning("Could not parse: %s" % item['filename'])
+                    unparsed.append(item['filename'])
+                    unparsed_dirs.add(os.path.dirname(item['filename']))
                     continue
 
-                # Attempt to parse file timestamp out of filename:
-                m = re.search('^.*-([12][0-9]{16})-.*\.warc\.gz$', filename)
-                if m:
-                    file_timestamp = datetime.datetime.strptime(m.group(1), "%Y%m%d%H%M%S%f")
-                else:
-                    # fall back on launch timestamp:
-                    file_timestamp = launch_datetime
-
                 # Store the job details:
-                if job not in crawls:
+                if p.job not in crawls:
                     #print(file_datestamp, kind, job, launch, filename)
-                    crawls[job] = {}
-                if launch not in crawls[job]:
-                    crawls[job][launch] = {}
-                    crawls[job][launch]['date'] = launch_datetime.isoformat()
-                    crawls[job][launch]['categories'] = ['legal-deposit crawls', '%s crawl' % job.split('-')[0]]
-                    crawls[job][launch]['tags'] = ['crawl/npld/%s' % job, 'crawl/npld/%s/%s' % (job, launch)]
-                    crawls[job][launch]['total_files'] = 0
-                    crawls[job][launch]['launch_datetime'] = launch_datetime.isoformat()
+                    crawls[p.job] = {}
+                if p.launch not in crawls[p.job]:
+                    crawls[p.job][p.launch] = {}
+                    crawls[p.job][p.launch]['date'] = p.launch_datetime.isoformat()
+                    crawls[p.job][p.launch]['categories'] = ['legal-deposit crawls', '%s crawl' % p.job.split('-')[0]]
+                    crawls[p.job][p.launch]['tags'] = ['crawl/npld/%s' % p.job, 'crawl/npld/%s/%s' % (p.job, p.launch)]
+                    crawls[p.job][p.launch]['total_files'] = 0
+                    crawls[p.job][p.launch]['launch_datetime'] = p.launch_datetime.isoformat()
                 # Append this item:
-                if 'files' not in crawls[job][launch]:
-                    crawls[job][launch]['files'] = []
+                if 'files' not in crawls[p.job][p.launch]:
+                    crawls[p.job][p.launch]['files'] = []
                 file_info = {
-                    'path': file_path,
-                    'kind': kind,
-                    'timestamp': file_timestamp.isoformat(),
+                    'path': p.file_path,
+                    'kind': p.kind,
+                    'timestamp': p.file_datetime.isoformat(),
                     'filesize': item['filesize'],
                     'modified_at': item['modified_at']
                 }
-                crawls[job][launch]['files'].append(file_info)
-                crawls[job][launch]['total_files'] += 1
+                crawls[p.job][p.launch]['files'].append(file_info)
+                crawls[p.job][p.launch]['total_files'] += 1
 
         # Now emit a file for each, remembering the filenames as we go:
         filenames = []
@@ -486,32 +472,15 @@ class ListByCrawl(luigi.Task):
 
 
 class GenerateHDFSSummaries(luigi.WrapperTask):
-    task_namespace = "hdfs"
+    task_namespace = "ingest.report"
+
+    """
+    A 'Wrapper Task' that invokes the summaries of HDFS we are interested in.
+    """
 
     def requires(self):
         return [ CopyFileListToHDFS(), ListUKWAWebArchiveFiles(), ListDuplicateWebArchiveFiles(), ListEmptyFiles(),
                  ListByCrawl() ]
-
-
-class PrintSomeLines(luigi.Task):
-    """
-    An example to try to get things working:
-    """
-    date = luigi.DateParameter(default=datetime.date.today())
-
-    def requires(self):
-        return ListAllFilesOnHDFSToLocalFile(self.date)
-
-    def output(self):
-        return state_file(self.date, 'hdfs', 'empty-files-list.csv')
-
-    def run(self):
-        with self.input().open('r') as fin:
-            reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
-            for item in reader:
-                print(item)
-                break
-
 
 
 if __name__ == '__main__':
