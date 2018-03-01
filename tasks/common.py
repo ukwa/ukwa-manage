@@ -156,6 +156,7 @@ def celebrate_any_success(task):
 @luigi.Task.event_handler(luigi.Event.PROCESSING_TIME)
 def record_processing_time(task, processing_time):
     """Record the processing time of every task."""
+    logger.info("Got %s processing time %s" % (task.task_namespace, processing_time))
 
     # Where to store the metrics:
     registry = CollectorRegistry()
