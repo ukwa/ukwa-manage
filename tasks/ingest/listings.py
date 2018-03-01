@@ -416,7 +416,6 @@ class ListByCrawl(luigi.Task):
 
                 # Store the job details:
                 if p.job not in crawls:
-                    #print(file_datestamp, kind, job, launch, filename)
                     crawls[p.job] = {}
                 if p.launch not in crawls[p.job]:
                     crawls[p.job][p.launch] = {}
@@ -431,7 +430,7 @@ class ListByCrawl(luigi.Task):
                 file_info = {
                     'path': p.file_path,
                     'kind': p.kind,
-                    'timestamp': p.file_datetime.isoformat(),
+                    'timestamp': p.timestamp_datetime.isoformat(),
                     'filesize': item['filesize'],
                     'modified_at': item['modified_at']
                 }
