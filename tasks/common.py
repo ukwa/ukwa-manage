@@ -156,11 +156,14 @@ def celebrate_any_success(task):
 @luigi.Task.event_handler(luigi.Event.PROCESSING_TIME)
 def record_processing_time(task, processing_time):
     """Record the processing time of every task."""
-    logger.info("Got %s processing time %s" % (task.task_namespace, processing_time))
+    logger.info("Got %s processing time %s" % (task.task_namespace, str(processing_time)))
 
     # Where to store the metrics:
     registry = CollectorRegistry()
 
+    # Disable pylint warnings due to it not picking up decorators:
+    # pylint: disable=E1101,E1120,E1123,E1124
+    
     # Generate metrics:
     g = Gauge('ukwa_task_processing_time',
               'Processing time of a task, in seconds.',
