@@ -17,6 +17,7 @@ from tasks.access.listings import ListWarcsForDate
 from tasks.common import state_file, report_file, CopyToTableInDB, taskdb_target
 from lib.webhdfs import WebHdfsPlainFormat, webhdfs
 from lib.pathparsers import CrawlStream
+from prometheus_client import CollectorRegistry, Gauge
 
 logger = logging.getLogger('luigi-interface')
 
@@ -108,26 +109,16 @@ class TellingReader():
         self.pos = 0
 
     def read(self, size=None):
-        #logger.warning("read()ing from current position: %i, size=%s" % (self.pos, size))
         chunk = self.stream.read(size)
-        #if len(bytes(chunk)) == 0:
-        #    logger.warning("read() 0 bytes, current position: %i" % self.pos)
-        #else:
-        #    logger.warning("read() %s" % binascii.hexlify(chunk[:64]))
         self.pos += len(bytes(chunk))
-        #logger.warning("read()ing current position now: %i" % self.pos)
         return chunk
 
     def readline(self, size=None):
-        #logger.warning("readline()ing from current position: %i" % self.pos)
         line = self.stream.readline(size)
-        #logger.warning("readline() %s" % line)
         self.pos += len(bytes(line))
-        #logger.warning("readline()ing current position now: %i" % self.pos)
         return line
 
     def tell(self):
-        #logger.debug("tell()ing current position: %i" % self.pos)
         return self.pos
 
 
@@ -224,6 +215,8 @@ class CheckCdxIndex(luigi.WrapperTask):
     cdx_server = luigi.Parameter(default='http://bigcdx:8080/data-heritrix')
     task_namespace = "access.index"
 
+    checked_total = 0
+
     def requires(self):
         # For each input file, open it up and get some URLs and timestamps.
         with open(str(self.input_file)) as f_in:
@@ -231,6 +224,7 @@ class CheckCdxIndex(luigi.WrapperTask):
             for item in items:
                 #logger.info("Found %s" % item)
                 yield CheckCdxIndexForWARC(item['filename'])
+                self.checked_total += 1
 
     def output(self):
         return taskdb_target("warc_set_verified","%s INDEXED OK" % self.input_file)
@@ -238,6 +232,14 @@ class CheckCdxIndex(luigi.WrapperTask):
     def run(self):
         # If all the requirements are there, the whole set must be fine.
         self.output().touch()
+
+    def get_metrics(self,registry):
+        # type: (CollectorRegistry) -> None
+
+        g = Gauge('ukwa_task_warcs_cdx_verified',
+                  'Number of WARCS verified as present in the CDX server',
+                  registry=registry)
+        g.set(self.checked_total)
 
 
 class CdxIndexAndVerify(luigi.Task):

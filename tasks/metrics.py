@@ -9,13 +9,13 @@ from prometheus_client import CollectorRegistry, Gauge
 logger = logging.getLogger('luigi-interface')
 
 
-def record_task_outcome(registry, task, value):
+def record_task_outcome(registry, task, value, event_status):
     # type: (CollectorRegistry, luigi.Task, int) -> None
 
     g = Gauge('ukwa_task_event_timestamp',
-              'Timestamp of this task event.',
-              labelnames=['task_namespace'], registry=registry)
-    g.labels(task_namespace=task.task_namespace).set_to_current_time()
+              'Timestamp of this task event, labelled by task status.',
+              labelnames=['task_namespace','status'], registry=registry)
+    g.labels(task_namespace=task.task_namespace, status=event_status).set_to_current_time()
 
     g = Gauge('ukwa_task_status',
               'Record a 1 if a task ran, 0 if a task failed.',
