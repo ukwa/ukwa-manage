@@ -112,7 +112,7 @@ class ListWarcFileSets(luigi.Task):
                 # Parse file paths and names:
                 p = HdfsPathParser(item['filename'])
                 # Look at WARCS in this stream:
-                if p.stream == self.stream and p.kind == 'warcs':
+                if p.stream == self.stream and p.kind == 'warcs' and p.file_name.endswith(".warc.gz"):
                     filenames.append(p.file_path)
 
         # Sanity check:

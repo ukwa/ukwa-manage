@@ -11,8 +11,9 @@ import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.webhdfs
 from prometheus_client import CollectorRegistry, Gauge
-from tasks.common import state_file, report_file
-from lib.pathparsers import HdfsPathParser
+from tasks.common import state_file
+from lib.pathparsers import HdfsPathParser, CrawlStream
+from lib.targets import CrawlPackageTarget, CrawlReportTarget, ReportTarget
 
 logger = logging.getLogger('luigi-interface')
 
@@ -282,6 +283,7 @@ class ListUKWAFilesByCollection(luigi.Task):
         return ListUKWAFiles(self.date)
 
     def output(self):
+        print(state_file(self.date, 'hdfs', 'ukwa-%s-files-list.csv' % self.subset).path)
         return state_file(self.date, 'hdfs', 'ukwa-%s-files-list.csv' % self.subset)
 
     def run(self):
@@ -381,7 +383,6 @@ class ListByCrawl(luigi.Task):
     Identifies in the crawl output files and arranges them by crawl.
     """
     date = luigi.DateParameter(default=datetime.date.today())
-    stream = luigi.Parameter(default='npld')
 
     task_namespace = "ingest.report"
 
@@ -393,9 +394,6 @@ class ListByCrawl(luigi.Task):
 
     def output(self):
         return state_file(self.date, 'hdfs', 'crawl-file-lists.txt')
-
-    def get_path_for(self, stream, job, launch, count):
-        return report_file(None, 'content/crawls', '%s/%s/%s/%08d.md' % (stream,job,launch,count))
 
     def run(self):
         # Go through the data and assemble the resources for each crawl:
@@ -420,10 +418,19 @@ class ListByCrawl(luigi.Task):
                 if p.launch not in crawls[p.job]:
                     crawls[p.job][p.launch] = {}
                     crawls[p.job][p.launch]['date'] = p.launch_datetime.isoformat()
-                    crawls[p.job][p.launch]['categories'] = ['legal-deposit crawls', '%s crawl' % p.job.split('-')[0]]
-                    crawls[p.job][p.launch]['tags'] = ['crawl/npld/%s' % p.job, 'crawl/npld/%s/%s' % (p.job, p.launch)]
+                    launched = p.launch_datetime.strftime("%d %b %Y")
+                    crawls[p.job][p.launch]['stream'] = p.stream
+                    if p.stream == CrawlStream.frequent or p.stream == CrawlStream.domain:
+                        crawls[p.job][p.launch]['categories'] = ['legal-deposit crawls', '%s crawl' % p.job.split('-')[0]]
+                        crawls[p.job][p.launch]['title'] = "NPLD %s crawl, launched %s" % (p.job, launched)
+                    elif p.stream == CrawlStream.selective:
+                        crawls[p.job][p.launch]['categories'] = ['selective crawls',
+                                                                 '%s crawl' % p.job.split('-')[0]]
+                        crawls[p.job][p.launch]['title'] = "Selective %s crawl, launched %s" % (p.job, launched)
+                    crawls[p.job][p.launch]['tags'] = ['crawl-%s' % p.stream.name, 'crawl-%s-%s' % (p.stream.name, p.job)]
                     crawls[p.job][p.launch]['total_files'] = 0
                     crawls[p.job][p.launch]['launch_datetime'] = p.launch_datetime.isoformat()
+
                 # Append this item:
                 if 'files' not in crawls[p.job][p.launch]:
                     crawls[p.job][p.launch]['files'] = []
@@ -441,17 +448,22 @@ class ListByCrawl(luigi.Task):
         filenames = []
         for job in crawls:
             for launch in crawls[job]:
-                #print(job, launch, crawls[job][launch]['total_files'], )
-                outfile = self.get_path_for(self.stream,job, launch, crawls[job][launch]['total_files'])
-                launch_datetime = datetime.datetime.strptime(crawls[job][launch]['launch_datetime'], "%Y-%m-%dT%H:%M:%S")
-                launched = launch_datetime.strftime("%d %b %Y")
-                crawls[job][launch]['title'] = "NPLD %s crawl, launched %s (file count %i)" % (job, launched, crawls[job][launch]['total_files'])
+                # Grab the stream and just use the name in the dict so we can serialise to JSON:
+                stream = crawls[job][launch]['stream']
+                crawls[job][launch]['stream'] = stream.name
+                # Output a Package file ('versioned' by file count):
+                outfile = CrawlPackageTarget(stream, job, launch, crawls[job][launch]['total_files'])
+                with outfile.open('w') as f:
+                    f.write(json.dumps(crawls[job][launch], indent=2, sort_keys=True))
+                filenames.append(outfile.path)
+                # Output a Crawl Report file (always the latest version):
+                outfile = CrawlReportTarget(stream, job, launch)
                 with outfile.open('w') as f:
                     f.write(json.dumps(crawls[job][launch], indent=2, sort_keys=True))
                 filenames.append(outfile.path)
 
         # Also emit a list of files that could not be understood:
-        outfile = report_file(None, 'data/crawls', 'unparsed-file-paths.json')
+        outfile = ReportTarget('data/crawls', 'unparsed-file-paths.json')
         with outfile.open('w') as f:
             unparsed_data = {
                 'folders': sorted(list(unparsed_dirs)),
@@ -487,5 +499,5 @@ if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.INFO)
     #luigi.run(['ListUKWAWebArchiveFilesOnHDFS', '--local-scheduler'])
-    luigi.run(['ListWarcsByDate', '--local-scheduler', '--target-date', '2018-02-10'])
+    luigi.run(['ingest.report.ListByCrawl', '--local-scheduler', '--date', '2018-02-12'])
     #luigi.run(['ListEmptyFilesOnHDFS', '--local-scheduler'])

@@ -89,6 +89,9 @@ class HdfsPathParser(object):
                 # fall back on launch datetime:
                 self.timestamp_datetime = self.launch_datetime
                 self.timestamp = self.timestamp_datetime.isoformat()
+
+        # TODO Distinguish 'bad' crawl files, e.g. warc.gz.open files that are down as warcs
+
         # TODO Do the same for crawl logs...
 
         # TODO distinguish crawl logs from other logs...

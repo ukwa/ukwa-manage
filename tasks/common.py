@@ -11,7 +11,6 @@ from metrics import record_task_outcome
 luigi.interface.setup_interface_logging()
 
 LOCAL_STATE_FOLDER = os.environ.get('LOCAL_STATE_FOLDER', '/var/task-state')
-LOCAL_REPORT_FOLDER = os.environ.get('LOCAL_REPORT_FOLDER', '/data/ukwa-reports')
 HDFS_STATE_FOLDER = os.environ.get('HDFS_STATE_FOLDER','/9_processing/task-state/')
 
 logger = logging.getLogger('luigi-interface')
@@ -51,21 +50,6 @@ def state_file(date, tag, suffix, on_hdfs=False, use_gzip=False, use_webhdfs=Fal
             return luigi.contrib.hdfs.HdfsTarget(path=full_path, format=luigi.contrib.hdfs.PlainFormat())
     else:
         return luigi.LocalTarget(path=full_path)
-
-
-def report_file(date, tag, suffix):
-    report_folder = LOCAL_REPORT_FOLDER
-    # build the full path:
-    pather = os.path
-    if date:
-        full_path = pather.join( str(report_folder),
-                         date.strftime("%Y-%m"),
-                         tag,
-                         '%s-%s' % (date.strftime("%Y-%m-%d"), suffix))
-    else:
-        full_path = pather.join( str(report_folder), tag, suffix)
-
-    return luigi.LocalTarget(path=full_path)
 
 
 # --------------------------------------------------------------------------

@@ -61,7 +61,7 @@ class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
 
     task_namespace = "access.index"
 
-    num_reducers = 50
+    num_reducers = 5
 
     def output(self):
         timestamp = self.timestamp.isoformat()
