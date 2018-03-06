@@ -4,6 +4,14 @@ lib package
 Submodules
 ----------
 
+lib.targets module
+------------------
+
+.. automodule:: lib.targets
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 lib.pathparsers module
 ------------------
 
