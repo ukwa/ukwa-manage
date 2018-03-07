@@ -273,12 +273,15 @@ class ListByCrawl(luigi.Task):
                     if p.launch not in crawls[p.job]:
                         crawls[p.job][p.launch] = {}
                     # Store the launch data:
-                    crawls[p.job][p.launch]['date'] = p.launch_datetime.isoformat()
-                    launched = p.launch_datetime.strftime("%d %b %Y")
+                    if p.launch_datetime:
+                        crawls[p.job][p.launch]['date'] = p.launch_datetime.isoformat()
+                        crawls[p.job][p.launch]['launch_datetime'] = p.launch_datetime.isoformat()
+                        launched = p.launch_datetime.strftime("%d %b %Y")
+                    else:
+                        launched = '?'
                     crawls[p.job][p.launch]['stream'] = p.stream
                     crawls[p.job][p.launch]['tags'] = ['crawl-%s' % p.stream.name, 'crawl-%s-%s' % (p.stream.name, p.job)]
                     crawls[p.job][p.launch]['total_files'] = 0
-                    crawls[p.job][p.launch]['launch_datetime'] = p.launch_datetime.isoformat()
 
                     # Determine the collection and store information at that level:
                     if p.stream == CrawlStream.frequent or p.stream == CrawlStream.domain:
