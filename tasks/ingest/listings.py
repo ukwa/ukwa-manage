@@ -257,6 +257,10 @@ class ListByCrawl(luigi.Task):
         with self.input().open('r') as fin:
             reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
             for item in reader:
+                # Skip the first line:
+                if item['filesize'] == 'filesize':
+                    continue
+
                 # Parse file paths and names:
                 p = HdfsPathParser(item['filename'])
                 collection = 'no-collection'
