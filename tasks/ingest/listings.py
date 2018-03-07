@@ -188,82 +188,45 @@ class ListEmptyFiles(luigi.Task):
                         writer.writerow(item)
 
 
-class ListUKWAFiles(luigi.Task):
+class ListDuplicateFiles(luigi.Task):
     """
-    Takes the full WARC list and filters UKWA content by folder:
+    List all files on HDFS that appear to be duplicates.
     """
     date = luigi.DateParameter(default=datetime.date.today())
     task_namespace = "ingest.hdfs"
+
+    total_unduplicated = 0
+    total_duplicated = 0
 
     def requires(self):
         return ListAllFilesOnHDFSToLocalFile(self.date)
 
     def output(self):
-        return state_file(self.date, 'hdfs', 'ukwa-files-list.csv')
+        return state_file(self.date, 'hdfs', 'duplicate-files-list.tsv')
 
     def run(self):
+        filenames = {}
+        with self.input().open('r') as fin:
+            reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
+            for item in reader:
+                # Archive file names:
+                basename = os.path.basename(item['filename'])
+                if basename not in filenames:
+                    filenames[basename] = [item['filename']]
+                else:
+                    filenames[basename].append(item['filename'])
+
+        # And emit duplicates:
+        self.total_duplicated = 0
+        self.total_unduplicated = 0
         with self.output().open('w') as f:
-            writer = csv.DictWriter(f, fieldnames=csv_fieldnames)
-            writer.writeheader()
-            with self.input().open('r') as fin:
-                reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
-                for item in reader:
-                    item['filename'] = item['filename'].strip()
-                    # Archive file names:
-                    if item['filename'].startswith('/data/') or item['filename'].startswith('/heritrix/'):
-                        writer.writerow(item)
-
-
-class ListWebArchiveFiles(luigi.Task):
-    """
-    Takes the full file list and strips it down to just the WARCs and ARCs
-    """
-    date = luigi.DateParameter(default=datetime.date.today())
-    task_namespace = "ingest.hdfs"
-
-    def requires(self):
-        return ListAllFilesOnHDFSToLocalFile(self.date)
-
-    def output(self):
-        return state_file(self.date, 'hdfs', 'warc-files-list.csv')
-
-    def run(self):
-        with self.output().open('w') as f:
-            writer = csv.DictWriter(f, fieldnames=csv_fieldnames)
-            writer.writeheader()
-            with self.input().open('r') as fin:
-                reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
-                for item in reader:
-                    item['filename'] = item['filename'].strip()
-                    # Archive file names:
-                    if item['filename'].endswith('.warc.gz') or item['filename'].endswith('.arc.gz') \
-                            or item['filename'].endswith('.warc') or item['filename'].endswith('.arc'):
-                        writer.writerow(item)
-
-
-class ListUKWAWebArchiveFiles(luigi.Task):
-    """
-    Takes the full WARC list and filters UKWA content by folder:
-    """
-    date = luigi.DateParameter(default=datetime.date.today())
-    task_namespace = "ingest.hdfs"
-
-    def requires(self):
-        return ListWebArchiveFiles(self.date)
-
-    def output(self):
-        return state_file(self.date, 'hdfs', 'warc-ukwa-files-list.csv')
-
-    def run(self):
-        with self.output().open('w') as f:
-            writer = csv.DictWriter(f, fieldnames=csv_fieldnames)
-            writer.writeheader()
-            with self.input().open('r') as fin:
-                reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
-                for item in reader:
-                    # Archive file names:
-                    if item['filename'].startswith('/data/') or item['filename'].startswith('/heritrix/'):
-                        writer.writerow(item)
+            for basename in filenames:
+                if len(filenames[basename]) > 1:
+                    self.total_duplicated += 1
+                    f.write("%s\t%i\t%s\n" % (basename, len(filenames[basename]), json.dumps(filenames[basename])))
+                else:
+                    self.total_unduplicated += 1
+        logger.info("Of %i WARC filenames, %i are stored in a single HDFS location." % (len(filenames), self.total_unduplicated))
 
 
 class ListUKWAFilesByCollection(luigi.Task):
@@ -274,10 +237,6 @@ class ListUKWAFilesByCollection(luigi.Task):
     subset = luigi.Parameter(default='npld')
     task_namespace = "ingest.hdfs"
 
-    total_files = 0
-    total_bytes = 0
-    total_warc_files = 0
-    total_warc_bytes = 0
 
     def requires(self):
         return ListUKWAFiles(self.date)
@@ -331,53 +290,6 @@ class ListUKWAFilesByCollection(luigi.Task):
         g.labels(collection=col).set(self.total_warc_files)
 
 
-class ListDuplicateWebArchiveFiles(luigi.Task):
-    """
-    Takes the full WARC list and filters UKWA content by folder:
-    """
-    date = luigi.DateParameter(default=datetime.date.today())
-    collection = luigi.Parameter(default='all')
-    task_namespace = "ingest.hdfs"
-
-    total_unduplicated = 0
-    total_duplicated = 0
-
-    def requires(self):
-        if self.collection == 'ukwa':
-            return ListUKWAWebArchiveFiles(self.date)
-        elif self.collection == 'all':
-            return ListWebArchiveFiles(self.date)
-        else:
-            raise Exception("Unrecognised collection parameter! %s non known!" % self.collection)
-
-    def output(self):
-        return state_file(self.date, 'hdfs', 'warc-%s-duplicate-files-list.tsv' % self.collection)
-
-    def run(self):
-        filenames = {}
-        with self.input().open('r') as fin:
-            reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
-            for item in reader:
-                # Archive file names:
-                basename = os.path.basename(item['filename'])
-                if basename not in filenames:
-                    filenames[basename] = [item['filename']]
-                else:
-                    filenames[basename].append(item['filename'])
-
-        # And emit duplicates:
-        self.total_duplicated = 0
-        self.total_unduplicated = 0
-        with self.output().open('w') as f:
-            for basename in filenames:
-                if len(filenames[basename]) > 1:
-                    self.total_duplicated += 1
-                    f.write("%s\t%i\t%s\n" % (basename, len(filenames[basename]), json.dumps(filenames[basename])))
-                else:
-                    self.total_unduplicated += 1
-        logger.info("Of %i WARC filenames, %i are stored in a single HDFS location." % (len(filenames), self.total_unduplicated))
-
-
 class ListByCrawl(luigi.Task):
     """
     Identifies in the crawl output files and arranges them by crawl.
@@ -386,8 +298,11 @@ class ListByCrawl(luigi.Task):
 
     task_namespace = "ingest.report"
 
+    totals = {}
+    streams = {}
+
     def requires(self):
-        return ListUKWAFilesByCollection(self.date)
+        return ListAllFilesOnHDFSToLocalFile(self.date)
 
     #def complete(self):
     #    return False
@@ -421,12 +336,16 @@ class ListByCrawl(luigi.Task):
                     launched = p.launch_datetime.strftime("%d %b %Y")
                     crawls[p.job][p.launch]['stream'] = p.stream
                     if p.stream == CrawlStream.frequent or p.stream == CrawlStream.domain:
+                        collection = 'npld'
                         crawls[p.job][p.launch]['categories'] = ['legal-deposit crawls', '%s crawl' % p.job.split('-')[0]]
                         crawls[p.job][p.launch]['title'] = "NPLD %s crawl, launched %s" % (p.job, launched)
                     elif p.stream == CrawlStream.selective:
+                        collection = 'selective'
                         crawls[p.job][p.launch]['categories'] = ['selective crawls',
                                                                  '%s crawl' % p.job.split('-')[0]]
                         crawls[p.job][p.launch]['title'] = "Selective %s crawl, launched %s" % (p.job, launched)
+                    else:
+                        collection = 'unknown'
                     crawls[p.job][p.launch]['tags'] = ['crawl-%s' % p.stream.name, 'crawl-%s-%s' % (p.stream.name, p.job)]
                     crawls[p.job][p.launch]['total_files'] = 0
                     crawls[p.job][p.launch]['launch_datetime'] = p.launch_datetime.isoformat()
@@ -443,6 +362,20 @@ class ListByCrawl(luigi.Task):
                 }
                 crawls[p.job][p.launch]['files'].append(file_info)
                 crawls[p.job][p.launch]['total_files'] += 1
+
+                # Also count up files and bytes
+                if collection not in self.totals:
+                    self.totals[collection] = {}
+                    self.totals[collection]['all'] = {'count': 0, 'bytes': 0}
+                    self.streams[collection] = p.stream.name
+                # Totals for all files:
+                self.totals[collection]['all']['count'] += 1
+                self.totals[collection]['all']['bytes'] += int(item['filesize'])
+                # Totals broken down by kind:
+                if p.kind not in self.totals[collection]:
+                    self.totals[collection][p.kind] = { 'count': 0, 'bytes': 0}
+                self.totals[collection][p.kind]['count'] += 1
+                self.totals[collection][p.kind]['bytes'] += int(item['filesize'])
 
         # Now emit a file for each, remembering the filenames as we go:
         filenames = []
@@ -481,6 +414,23 @@ class ListByCrawl(luigi.Task):
             for output_path in filenames:
                 f.write('%s\n' % output_path)
 
+    def get_metrics(self, registry):
+        # type: (CollectorRegistry) -> None
+
+        g_b = Gauge('ukwa_files_total_bytes',
+                  'Total size of files on HDFS in bytes.',
+                  labelnames=['collection', 'stream', 'kind'], registry=registry)
+        g_c = Gauge('ukwa_files_total_count',
+                  'Total number of files on HDFS.',
+                  labelnames=['collection', 'stream', 'kind'], registry=registry)
+
+        # Go through the kinds of data in each collection and
+        for col in self.totals:
+            stream = self.streams[col]
+            for kind in self.totals[col]:
+                g_b.labels(collection=col, stream=stream, kind=kind).set(self.totals[col][kind]['bytes'])
+                g_c.labels(collection=col, stream=stream, kind=kind).set(self.totals[col][kind]['count'])
+
 
 class GenerateHDFSSummaries(luigi.WrapperTask):
     task_namespace = "ingest.report"
@@ -490,8 +440,7 @@ class GenerateHDFSSummaries(luigi.WrapperTask):
     """
 
     def requires(self):
-        return [ CopyFileListToHDFS(), ListUKWAWebArchiveFiles(), ListDuplicateWebArchiveFiles(), ListEmptyFiles(),
-                 ListByCrawl() ]
+        return [ CopyFileListToHDFS(), ListDuplicateFiles(), ListEmptyFiles(), ListByCrawl() ]
 
 
 if __name__ == '__main__':
