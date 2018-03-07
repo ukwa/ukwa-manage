@@ -259,52 +259,55 @@ class ListByCrawl(luigi.Task):
             for item in reader:
                 # Parse file paths and names:
                 p = HdfsPathParser(item['filename'])
-                if not p.recognised:
+                collection = 'no-collection'
+                stream = 'no-stream'
+
+                # Store the job details:
+                if p.recognised:
+                    if p.job not in crawls:
+                        crawls[p.job] = {}
+                    if p.launch not in crawls[p.job]:
+                        crawls[p.job][p.launch] = {}
+                    # Store the launch data:
+                    crawls[p.job][p.launch]['date'] = p.launch_datetime.isoformat()
+                    launched = p.launch_datetime.strftime("%d %b %Y")
+                    crawls[p.job][p.launch]['stream'] = p.stream
+                    crawls[p.job][p.launch]['tags'] = ['crawl-%s' % p.stream.name, 'crawl-%s-%s' % (p.stream.name, p.job)]
+                    crawls[p.job][p.launch]['total_files'] = 0
+                    crawls[p.job][p.launch]['launch_datetime'] = p.launch_datetime.isoformat()
+
+                    # Determine the collection and store information at that level:
+                    if p.stream == CrawlStream.frequent or p.stream == CrawlStream.domain:
+                        collection = 'npld'
+                        crawls[p.job][p.launch]['categories'] = ['legal-deposit crawls', '%s crawl' % p.job.split('-')[0]]
+                        crawls[p.job][p.launch]['title'] = "NPLD %s crawl, launched %s" % (p.job, launched)
+                    elif p.stream == CrawlStream.selective:
+                        collection = 'selective'
+                        crawls[p.job][p.launch]['categories'] = ['selective crawls',
+                                                                 '%s crawl' % p.job.split('-')[0]]
+                        crawls[p.job][p.launch]['title'] = "Selective %s crawl, launched %s" % (p.job, launched)
+
+                    # Append this item:
+                    if 'files' not in crawls[p.job][p.launch]:
+                        crawls[p.job][p.launch]['files'] = []
+                    file_info = {
+                        'path': p.file_path,
+                        'kind': p.kind,
+                        'timestamp': p.timestamp_datetime.isoformat(),
+                        'filesize': item['filesize'],
+                        'modified_at': item['modified_at']
+                    }
+                    crawls[p.job][p.launch]['files'].append(file_info)
+                    crawls[p.job][p.launch]['total_files'] += 1
+
+                else:
                     #logger.warning("Could not parse: %s" % item['filename'])
                     unparsed.append(item['filename'])
                     unparsed_dirs.add(os.path.dirname(item['filename']))
-                    continue
 
-                # Store the job details:
-                if p.job not in crawls:
-                    crawls[p.job] = {}
-                if p.launch not in crawls[p.job]:
-                    crawls[p.job][p.launch] = {}
-                # Store the launch data:
-                crawls[p.job][p.launch]['date'] = p.launch_datetime.isoformat()
-                launched = p.launch_datetime.strftime("%d %b %Y")
-                crawls[p.job][p.launch]['stream'] = p.stream
-                crawls[p.job][p.launch]['tags'] = ['crawl-%s' % p.stream.name, 'crawl-%s-%s' % (p.stream.name, p.job)]
-                crawls[p.job][p.launch]['total_files'] = 0
-                crawls[p.job][p.launch]['launch_datetime'] = p.launch_datetime.isoformat()
-
-                # Determine the collection and store information at that level:
-                collection = 'unknown'
-                if p.stream == CrawlStream.frequent or p.stream == CrawlStream.domain:
-                    collection = 'npld'
-                    crawls[p.job][p.launch]['categories'] = ['legal-deposit crawls', '%s crawl' % p.job.split('-')[0]]
-                    crawls[p.job][p.launch]['title'] = "NPLD %s crawl, launched %s" % (p.job, launched)
-                elif p.stream == CrawlStream.selective:
-                    collection = 'selective'
-                    crawls[p.job][p.launch]['categories'] = ['selective crawls',
-                                                             '%s crawl' % p.job.split('-')[0]]
-                    crawls[p.job][p.launch]['title'] = "Selective %s crawl, launched %s" % (p.job, launched)
-
-                # Append this item:
-                if 'files' not in crawls[p.job][p.launch]:
-                    crawls[p.job][p.launch]['files'] = []
-                file_info = {
-                    'path': p.file_path,
-                    'kind': p.kind,
-                    'timestamp': p.timestamp_datetime.isoformat(),
-                    'filesize': item['filesize'],
-                    'modified_at': item['modified_at']
-                }
-                crawls[p.job][p.launch]['files'].append(file_info)
-                crawls[p.job][p.launch]['total_files'] += 1
-
-                # Also count up files and bytes
-                stream = p.stream.name
+                # Also count up files and bytes:
+                if p.stream:
+                    stream = p.stream.name
                 if stream not in self.totals:
                     self.totals[stream] = {}
                     self.totals[stream]['all'] = {'count': 0, 'bytes': 0}
