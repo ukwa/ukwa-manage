@@ -1,19 +1,18 @@
 import os
 import zlib
-import hdfs
 import gzip
 import logging
 import tempfile
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hdfs.format
+from luigi.contrib.webhdfs import WebHdfsClient
 
 logger = logging.getLogger(__name__)
 
 
 def webhdfs():
-    client = hdfs.InsecureClient(url=os.environ.get('WEBHDFS_URL'), user=os.environ.get('WEBHDFS_USER'))
-    return client
+    return WebHdfsClient().client
 
 
 class WebHdfsPlainFormat(luigi.format.Format):
