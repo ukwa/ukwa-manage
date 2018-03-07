@@ -14,7 +14,7 @@ import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
 from tasks.access.listings import ListWarcsForDate
-from tasks.common import state_file, report_file, CopyToTableInDB, taskdb_target
+from tasks.common import state_file, CopyToTableInDB, taskdb_target
 from lib.webhdfs import WebHdfsPlainFormat, webhdfs
 from lib.pathparsers import CrawlStream
 from prometheus_client import CollectorRegistry, Gauge
