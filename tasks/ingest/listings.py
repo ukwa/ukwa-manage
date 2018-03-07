@@ -267,7 +267,7 @@ class ListByCrawl(luigi.Task):
                 stream = 'no-stream'
 
                 # Store the job details:
-                if p.recognised:
+                if p.recognised and p.job:
                     if p.job not in crawls:
                         crawls[p.job] = {}
                     if p.launch not in crawls[p.job]:
@@ -304,7 +304,7 @@ class ListByCrawl(luigi.Task):
                     crawls[p.job][p.launch]['files'].append(file_info)
                     crawls[p.job][p.launch]['total_files'] += 1
 
-                else:
+                if not p.recognised:
                     #logger.warning("Could not parse: %s" % item['filename'])
                     unparsed.append(item['filename'])
                     unparsed_dirs.add(os.path.dirname(item['filename']))
