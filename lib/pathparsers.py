@@ -46,9 +46,9 @@ class HdfsPathParser(object):
         # ------------------------------------------------
 
         self.file_path = file_path
-        mfc = re.search('/heritrix/output/(warcs|viral|logs)/([a-z\-0-9]+)[-/]([0-9]{12,14})/([^\/]+)', file_path)
-        mdc = re.search('/heritrix/output/(warcs|viral|logs)/(dc|crawl)[0-3]\-([0-9]{8}|[0-9]{14})/([^\/]+)', file_path)
-        mby = re.search('/data/([0-9])+/([0-9])+/(DLX/|Logs/|WARCS/|)([^\/]+)', file_path)
+        mfc = re.search('^/heritrix/output/(warcs|viral|logs)/([a-z\-0-9]+)[-/]([0-9]{12,14})/([^\/]+)$', file_path)
+        mdc = re.search('^/heritrix/output/(warcs|viral|logs)/(dc|crawl)[0-3]\-([0-9]{8}|[0-9]{14})/([^\/]+)$', file_path)
+        mby = re.search('^/data/([0-9])+/([0-9])+/(DLX/|Logs/|WARCS/|)([^\/]+)$', file_path)
         if mdc:
             self.recognised = True
             self.stream = CrawlStream.domain
@@ -68,11 +68,19 @@ class HdfsPathParser(object):
             self.stream = CrawlStream.selective
             # In this case the job is the Target ID and the launch is the Instance ID:
             (self.job, self.launch, self.kind, self.file_name) = mby.groups()
-            self.kind = self.kind.lower()
+            self.kind = self.kind.lower().strip('/')
+            if self.kind == '':
+                self.kind = 'unknown'
             self.launch_datetime = None
+        elif file_path.startswith('/_to_be_deleted/'):
+            self.recognised = True
+            self.stream = None
+            self.kind = 'to-be-deleted'
+            self.file_name = os.path.basename(file_path)
         else:
             self.recognised = False
             self.stream = None
+            self.kind = 'unknown'
             self.file_name = os.path.basename(file_path)
 
         # Now Add data based on file name...
@@ -85,7 +93,7 @@ class HdfsPathParser(object):
             self.timestamp_datetime = datetime.datetime.strptime(mwarc.group(1), "%Y%m%d%H%M%S%f")
             self.timestamp = self.timestamp_datetime.isoformat()
         else:
-            if self.recognised and self.launch_datetime:
+            if self.stream and self.launch_datetime:
                 # fall back on launch datetime:
                 self.timestamp_datetime = self.launch_datetime
                 self.timestamp = self.timestamp_datetime.isoformat()
@@ -100,5 +108,6 @@ class HdfsPathParser(object):
 
 
 if __name__ == '__main__':
-    print(HdfsPathParser("/data/12312/212312/filename").stream)
-    print(HdfsPathParser("/data/12312/212312/DLX/filename").stream)
+    print(HdfsPathParser("/data/12312/212312/filename").kind)
+    print(HdfsPathParser("/data/12312/212312/DLX/filename").kind)
+    print(HdfsPathParser("/_to_be_deleted/data/12312/212312/DLX/filename").kind)
