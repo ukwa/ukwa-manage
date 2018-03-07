@@ -371,7 +371,7 @@ class ListByCrawl(luigi.Task):
         # Go through the kinds of data in each collection and
         for stream in self.totals:
             col = self.collections[stream]
-            for kind in self.totals[col]:
+            for kind in self.totals[stream]:
                 g_b.labels(collection=col, stream=stream, kind=kind).set(self.totals[col][kind]['bytes'])
                 g_c.labels(collection=col, stream=stream, kind=kind).set(self.totals[col][kind]['count'])
 
