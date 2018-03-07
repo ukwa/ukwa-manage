@@ -48,7 +48,7 @@ class HdfsPathParser(object):
         self.file_path = file_path
         mfc = re.search('/heritrix/output/(warcs|viral|logs)/([a-z\-0-9]+)[-/]([0-9]{12,14})/([^\/]+)', file_path)
         mdc = re.search('/heritrix/output/(warcs|viral|logs)/(dc|crawl)[0-3]\-([0-9]{8}|[0-9]{14})/([^\/]+)', file_path)
-        mby = re.search('/data/(0-9)+/(0-9)+/(DLX/|Logs/|WARCS/|)([^\/]+)', file_path)
+        mby = re.search('/data/([0-9])+/([0-9])+/(DLX/|Logs/|WARCS/|)([^\/]+)', file_path)
         if mdc:
             self.recognised = True
             self.stream = CrawlStream.domain
@@ -97,3 +97,8 @@ class HdfsPathParser(object):
         # TODO distinguish crawl logs from other logs...
         if self.file_path.startswith("crawl.log"):
             self.type = "CRAWL_LOG"
+
+
+if __name__ == '__main__':
+    print(HdfsPathParser("/data/12312/212312/filename").stream)
+    print(HdfsPathParser("/data/12312/212312/DLX/filename").stream)
