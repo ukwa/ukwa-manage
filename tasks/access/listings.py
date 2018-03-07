@@ -108,7 +108,7 @@ class ListWarcFileSets(luigi.Task):
             reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
             for item in reader:
                 # Parse file paths and names:
-                p = HdfsPathParser(item['filename'])
+                p = HdfsPathParser('filename')
                 # Look at WARCS in this stream:
                 if p.stream == self.stream and p.kind == 'warcs' and p.file_name.endswith(".warc.gz"):
                     filenames.append(p.file_path)

@@ -262,7 +262,7 @@ class ListByCrawl(luigi.Task):
                     continue
 
                 # Parse file paths and names:
-                p = HdfsPathParser(item['filename'])
+                p = HdfsPathParser(item)
                 collection = 'no-collection'
                 stream = 'no-stream'
 

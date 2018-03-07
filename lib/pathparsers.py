@@ -31,7 +31,7 @@ class HdfsPathParser(object):
     This class takes a HDFS file path and determines what, if any, crawl it belongs to, etc.
     """
 
-    def __init__(self, file_path):
+    def __init__(self, item):
         """
         Given a string containing the absolute HDFS file path, parse it to work our what kind of thing it is.
 
@@ -42,13 +42,24 @@ class HdfsPathParser(object):
         :param file_path:
         """
 
+        # Perform basic processing:
+        # ------------------------------------------------
+        self.recognised = False
+        self.stream = None
+        self.job = None
+        self.kind = 'unknown'
+        self.file_path = item['filename']
+        self.file_name = os.path.basename(self.file_path)
+        self.timestamp_datetime = datetime.datetime.strptime(item['modified_at'], "%Y-%m-%dT%H:%M:%S")
+        self.timestamp = self.timestamp_datetime.isoformat()
+
+
         # Look for different filename patterns:
         # ------------------------------------------------
 
-        self.file_path = file_path
-        mfc = re.search('^/heritrix/output/(warcs|viral|logs)/([a-z\-0-9]+)[-/]([0-9]{12,14})/([^\/]+)$', file_path)
-        mdc = re.search('^/heritrix/output/(warcs|viral|logs)/(dc|crawl)[0-3]\-([0-9]{8}|[0-9]{14})/([^\/]+)$', file_path)
-        mby = re.search('^/data/([0-9])+/([0-9])+/(DLX/|Logs/|WARCS/|)([^\/]+)$', file_path)
+        mfc = re.search('^/heritrix/output/(warcs|viral|logs)/([a-z\-0-9]+)[-/]([0-9]{12,14})/([^\/]+)$', self.file_path)
+        mdc = re.search('^/heritrix/output/(warcs|viral|logs)/(dc|crawl)[0-3]\-([0-9]{8}|[0-9]{14})/([^\/]+)$', self.file_path)
+        mby = re.search('^/data/([0-9])+/([0-9])+/(DLX/|Logs/|WARCS/|)([^\/]+)$', self.file_path)
         if mdc:
             self.recognised = True
             self.stream = CrawlStream.domain
@@ -72,18 +83,10 @@ class HdfsPathParser(object):
             if self.kind == '':
                 self.kind = 'unknown'
             self.launch_datetime = None
-        elif file_path.startswith('/_to_be_deleted/'):
+        elif self.file_path.startswith('/_to_be_deleted/'):
             self.recognised = True
-            self.stream = None
-            self.job = None
             self.kind = 'to-be-deleted'
-            self.file_name = os.path.basename(file_path)
-        else:
-            self.recognised = False
-            self.stream = None
-            self.job = None
-            self.kind = 'unknown'
-            self.file_name = os.path.basename(file_path)
+            self.file_name = os.path.basename(self.file_path)
 
         # Now Add data based on file name...
         # ------------------------------------------------
@@ -110,6 +113,12 @@ class HdfsPathParser(object):
 
 
 if __name__ == '__main__':
-    print(HdfsPathParser("/data/12312/212312/filename").kind)
-    print(HdfsPathParser("/data/12312/212312/DLX/filename").kind)
-    print(HdfsPathParser("/_to_be_deleted/data/12312/212312/DLX/filename").kind)
+    print(HdfsPathParser({
+        "filename": "/data/12312/212312/filename",
+        "modified_at": "2011-02-12T13:14:11"}).kind)
+    print(HdfsPathParser({
+        "filename": "/data/12312/212312/DLX/filename",
+        "modified_at": "2011-02-12T13:14:11"}).kind)
+    print(HdfsPathParser({
+        "filename": "/_to_be_deleted/data/12312/212312/DLX/filename",
+        "modified_at": "2011-02-12T13:14:11"}).kind)
