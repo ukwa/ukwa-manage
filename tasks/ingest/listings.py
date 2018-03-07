@@ -238,7 +238,7 @@ class ListByCrawl(luigi.Task):
     task_namespace = "ingest.report"
 
     totals = {}
-    streams = {}
+    collections = {}
 
     def requires(self):
         return ListAllFilesOnHDFSToLocalFile(self.date)
@@ -270,23 +270,25 @@ class ListByCrawl(luigi.Task):
                     crawls[p.job] = {}
                 if p.launch not in crawls[p.job]:
                     crawls[p.job][p.launch] = {}
-                    crawls[p.job][p.launch]['date'] = p.launch_datetime.isoformat()
-                    launched = p.launch_datetime.strftime("%d %b %Y")
-                    crawls[p.job][p.launch]['stream'] = p.stream
-                    if p.stream == CrawlStream.frequent or p.stream == CrawlStream.domain:
-                        collection = 'npld'
-                        crawls[p.job][p.launch]['categories'] = ['legal-deposit crawls', '%s crawl' % p.job.split('-')[0]]
-                        crawls[p.job][p.launch]['title'] = "NPLD %s crawl, launched %s" % (p.job, launched)
-                    elif p.stream == CrawlStream.selective:
-                        collection = 'selective'
-                        crawls[p.job][p.launch]['categories'] = ['selective crawls',
-                                                                 '%s crawl' % p.job.split('-')[0]]
-                        crawls[p.job][p.launch]['title'] = "Selective %s crawl, launched %s" % (p.job, launched)
-                    else:
-                        collection = 'unknown'
-                    crawls[p.job][p.launch]['tags'] = ['crawl-%s' % p.stream.name, 'crawl-%s-%s' % (p.stream.name, p.job)]
-                    crawls[p.job][p.launch]['total_files'] = 0
-                    crawls[p.job][p.launch]['launch_datetime'] = p.launch_datetime.isoformat()
+                # Store the launch data:
+                crawls[p.job][p.launch]['date'] = p.launch_datetime.isoformat()
+                launched = p.launch_datetime.strftime("%d %b %Y")
+                crawls[p.job][p.launch]['stream'] = p.stream
+                crawls[p.job][p.launch]['tags'] = ['crawl-%s' % p.stream.name, 'crawl-%s-%s' % (p.stream.name, p.job)]
+                crawls[p.job][p.launch]['total_files'] = 0
+                crawls[p.job][p.launch]['launch_datetime'] = p.launch_datetime.isoformat()
+
+                # Determine the collection and store information at that level:
+                collection = 'unknown'
+                if p.stream == CrawlStream.frequent or p.stream == CrawlStream.domain:
+                    collection = 'npld'
+                    crawls[p.job][p.launch]['categories'] = ['legal-deposit crawls', '%s crawl' % p.job.split('-')[0]]
+                    crawls[p.job][p.launch]['title'] = "NPLD %s crawl, launched %s" % (p.job, launched)
+                elif p.stream == CrawlStream.selective:
+                    collection = 'selective'
+                    crawls[p.job][p.launch]['categories'] = ['selective crawls',
+                                                             '%s crawl' % p.job.split('-')[0]]
+                    crawls[p.job][p.launch]['title'] = "Selective %s crawl, launched %s" % (p.job, launched)
 
                 # Append this item:
                 if 'files' not in crawls[p.job][p.launch]:
@@ -302,18 +304,19 @@ class ListByCrawl(luigi.Task):
                 crawls[p.job][p.launch]['total_files'] += 1
 
                 # Also count up files and bytes
-                if collection not in self.totals:
-                    self.totals[collection] = {}
-                    self.totals[collection]['all'] = {'count': 0, 'bytes': 0}
-                    self.streams[collection] = p.stream.name
+                stream = p.stream.name
+                if stream not in self.totals:
+                    self.totals[stream] = {}
+                    self.totals[stream]['all'] = {'count': 0, 'bytes': 0}
+                    self.collections[stream] = collection
                 # Totals for all files:
-                self.totals[collection]['all']['count'] += 1
-                self.totals[collection]['all']['bytes'] += int(item['filesize'])
+                self.totals[stream]['all']['count'] += 1
+                self.totals[stream]['all']['bytes'] += int(item['filesize'])
                 # Totals broken down by kind:
-                if p.kind not in self.totals[collection]:
-                    self.totals[collection][p.kind] = { 'count': 0, 'bytes': 0}
-                self.totals[collection][p.kind]['count'] += 1
-                self.totals[collection][p.kind]['bytes'] += int(item['filesize'])
+                if p.kind not in self.totals[stream]:
+                    self.totals[stream][p.kind] = { 'count': 0, 'bytes': 0}
+                self.totals[stream][p.kind]['count'] += 1
+                self.totals[stream][p.kind]['bytes'] += int(item['filesize'])
 
         # Now emit a file for each, remembering the filenames as we go:
         filenames = []
@@ -363,8 +366,8 @@ class ListByCrawl(luigi.Task):
                   labelnames=['collection', 'stream', 'kind'], registry=registry)
 
         # Go through the kinds of data in each collection and
-        for col in self.totals:
-            stream = self.streams[col]
+        for stream in self.totals:
+            col = self.collections[stream]
             for kind in self.totals[col]:
                 g_b.labels(collection=col, stream=stream, kind=kind).set(self.totals[col][kind]['bytes'])
                 g_c.labels(collection=col, stream=stream, kind=kind).set(self.totals[col][kind]['count'])
