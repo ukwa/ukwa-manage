@@ -75,11 +75,13 @@ class HdfsPathParser(object):
         elif file_path.startswith('/_to_be_deleted/'):
             self.recognised = True
             self.stream = None
+            self.job = None
             self.kind = 'to-be-deleted'
             self.file_name = os.path.basename(file_path)
         else:
             self.recognised = False
             self.stream = None
+            self.job = None
             self.kind = 'unknown'
             self.file_name = os.path.basename(file_path)
 
