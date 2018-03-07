@@ -372,8 +372,8 @@ class ListByCrawl(luigi.Task):
         for stream in self.totals:
             col = self.collections[stream]
             for kind in self.totals[stream]:
-                g_b.labels(collection=col, stream=stream, kind=kind).set(self.totals[col][kind]['bytes'])
-                g_c.labels(collection=col, stream=stream, kind=kind).set(self.totals[col][kind]['count'])
+                g_b.labels(collection=col, stream=stream, kind=kind).set(self.totals[stream][kind]['bytes'])
+                g_c.labels(collection=col, stream=stream, kind=kind).set(self.totals[stream][kind]['count'])
 
 
 class GenerateHDFSSummaries(luigi.WrapperTask):
