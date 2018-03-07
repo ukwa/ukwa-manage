@@ -229,67 +229,6 @@ class ListDuplicateFiles(luigi.Task):
         logger.info("Of %i WARC filenames, %i are stored in a single HDFS location." % (len(filenames), self.total_unduplicated))
 
 
-class ListUKWAFilesByCollection(luigi.Task):
-    """
-    Takes the full file list and filters UKWA content by collection 'npld' or 'selective':
-    """
-    date = luigi.DateParameter(default=datetime.date.today())
-    subset = luigi.Parameter(default='npld')
-    task_namespace = "ingest.hdfs"
-
-
-    def requires(self):
-        return ListUKWAFiles(self.date)
-
-    def output(self):
-        print(state_file(self.date, 'hdfs', 'ukwa-%s-files-list.csv' % self.subset).path)
-        return state_file(self.date, 'hdfs', 'ukwa-%s-files-list.csv' % self.subset)
-
-    def run(self):
-        with self.output().open('w') as f:
-            writer = csv.DictWriter(f, fieldnames=csv_fieldnames)
-            writer.writeheader()
-            with self.input().open('r') as fin:
-                reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
-                for item in reader:
-                    # Archive file names:
-                    if (self.subset == 'selective' and item['filename'].startswith('/data/')) \
-                            or (self.subset == 'npld' and item['filename'].startswith('/heritrix/')):
-                        self.total_files += 1
-                        self.total_bytes += int(item['filesize'])
-                        if item['filename'].endswith('.warc.gz'):
-                            self.total_warc_files += 1
-                            self.total_warc_bytes += int(item['filesize'])
-                        writer.writerow(item)
-
-    def get_metrics(self, registry):
-        # type: (CollectorRegistry) -> None
-        col = self.subset
-
-        g = Gauge('ukwa_files_total_bytes',
-                  'Total size of files on HDFS in bytes.',
-                  labelnames=['collection', 'kind'], registry=registry)
-        g.labels(collection=col, kind='all').set(self.total_bytes)
-        g.labels(collection=col, kind='warcs').set(self.total_warc_bytes)
-
-        g = Gauge('ukwa_files_total_count',
-                  'Total number of files on HDFS.',
-                  labelnames=['collection', 'kind'], registry=registry)
-        g.labels(collection=col, kind='all').set(self.total_files)
-        g.labels(collection=col, kind='warcs').set(self.total_warc_files)
-
-        # Old metrics (deprected, will be removed shortly):
-        g = Gauge('ukwa_warc_files_total_bytes',
-                  'Total size of files on HDFS in bytes.',
-                  labelnames=['collection'], registry=registry)
-        g.labels(collection=col).set(self.total_warc_bytes)
-
-        g = Gauge('ukwa_warc_files_total_count',
-                  'Total number of files on HDFS.',
-                  labelnames=['collection'], registry=registry)
-        g.labels(collection=col).set(self.total_warc_files)
-
-
 class ListByCrawl(luigi.Task):
     """
     Identifies in the crawl output files and arranges them by crawl.
@@ -321,8 +260,7 @@ class ListByCrawl(luigi.Task):
                 # Parse file paths and names:
                 p = HdfsPathParser(item['filename'])
                 if not p.recognised:
-                    # print("Could not parse: %s" % file_path)
-                    logger.warning("Could not parse: %s" % item['filename'])
+                    #logger.warning("Could not parse: %s" % item['filename'])
                     unparsed.append(item['filename'])
                     unparsed_dirs.add(os.path.dirname(item['filename']))
                     continue
