@@ -13,7 +13,7 @@ import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.webhdfs
 from prometheus_client import CollectorRegistry, Gauge
-from tasks.common import state_file, report_file
+from tasks.common import state_file
 from tasks.ingest.listings import CopyFileListToHDFS, csv_fieldnames
 from lib.webhdfs import webhdfs
 from lib.pathparsers import CrawlStream, HdfsPathParser
