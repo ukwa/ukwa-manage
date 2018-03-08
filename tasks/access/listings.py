@@ -106,6 +106,7 @@ class ListWarcFileSets(luigi.Task):
         filenames = []
         with self.input().open('r') as fin:
             reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
+            first_line = reader.next()
             for item in reader:
                 # Parse file paths and names:
                 p = HdfsPathParser(item)
@@ -154,6 +155,7 @@ class ListWarcsByDate(luigi.Task):
         by_day = {}
         with self.input().open('r') as fin:
             reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
+            first_line = reader.next()
             for item in reader:
                 # Parse file paths and names:
                 p = HdfsPathParser(item)
