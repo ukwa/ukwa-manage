@@ -108,7 +108,7 @@ class ListWarcFileSets(luigi.Task):
             reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
             for item in reader:
                 # Parse file paths and names:
-                p = HdfsPathParser('filename')
+                p = HdfsPathParser(item)
                 # Look at WARCS in this stream:
                 if p.stream == self.stream and p.kind == 'warcs' and p.file_name.endswith(".warc.gz"):
                     filenames.append(p.file_path)
@@ -156,7 +156,7 @@ class ListWarcsByDate(luigi.Task):
             reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
             for item in reader:
                 # Parse file paths and names:
-                p = HdfsPathParser(item['filename'])
+                p = HdfsPathParser(item)
                 # Look at WARCS in this stream:
                 if p.stream == self.stream and p.kind == 'warcs':
                     # Take the first ten characters of the timestamp - YYYY-MM-DD:
