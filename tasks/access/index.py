@@ -205,7 +205,7 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
                 cdx_query_url = "%s?q=%s" % (self.cdx_server, quote_plus(q))
                 logger.info("Getting %s" % cdx_query_url)
                 proxies = {} # Force no proxy to be used
-                f = urllib.urlopen(cdx_query_url, proxies=proxies)
+                f = urllib.urlopen(cdx_query_url)#, proxies=proxies)
                 content = f.read()
                 f.close()
                 # Grab the capture dates:
