@@ -206,15 +206,16 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
                 logger.info("Getting %s" % cdx_query_url)
                 proxies = {} # Force no proxy to be used
                 f = urllib.urlopen(cdx_query_url, proxies=proxies)
-                logger.info("Parsing response from %s" % cdx_query_url)
-                dom = xml.dom.minidom.parseString(f.read())
+                content = f.read()
+                f.close()
                 # Grab the capture dates:
+                logger.info("Parsing response: %s" % content)
+                dom = xml.dom.minidom.parseString(content)
                 logger.info("Scanning response from %s" % cdx_query_url)
                 new_records = 0
                 for de in dom.getElementsByTagName('capturedate'):
                     capture_dates.append(de.firstChild.nodeValue)
                     new_records += 1
-                f.close()
                 # Done?
                 if new_records == 0:
                     next_batch = False
