@@ -163,8 +163,6 @@ class WebHdfsAtomicWritePipe(object):
             self._temp = tempfile.NamedTemporaryFile(delete=False)
             self._writer = gzip.GzipFile(fileobj=self._temp, mode='wb')
         else:
-            if self._path.endswith('.gz'):
-                raise Exception("Only gzipped files should end with '.gz' and '%s' does!" % self._path)
             self._writer = self._fs.client.write(self._tmp_path, overwrite=True)
 
         self.closed = False
