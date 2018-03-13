@@ -204,7 +204,7 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
                 q = "type:urlquery url:" + quote_plus(url) + (" limit:%i offset:%i" % (batch, offset))
                 cdx_query_url = "%s?q=%s" % (self.cdx_server, quote_plus(q))
                 logger.info("Getting %s" % cdx_query_url)
-                proxies = {'http': ''}
+                proxies = {} # Force no proxy to be used
                 f = urllib.urlopen(cdx_query_url, proxies=proxies)
                 logger.info("Parsing response from %s" % cdx_query_url)
                 dom = xml.dom.minidom.parseString(f.read())
