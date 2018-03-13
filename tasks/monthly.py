@@ -5,7 +5,7 @@ This module summarises the tasks that are to be run monthly.
 """
 
 import luigi
-from tasks.ingest.nominet import NominetDomainListToHDFS
+from tasks.ingest.external_data_sources import NominetDomainListToHDFS
 
 class MonthlyIngestTasks(luigi.WrapperTask):
     """

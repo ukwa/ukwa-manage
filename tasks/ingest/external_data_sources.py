@@ -19,7 +19,11 @@ DEFAULT_BUFFER_SIZE = 1024*1000
 
 class NominetDomainListFTP(luigi.ExternalTask):
     """
-    Remote SFTP service and filenaming pattern for monthly releases:
+    Remote SFTP service and filenaming pattern for monthly releases.
+
+    NOTE that for this to work, the host key must be set up and known to the server that runs this task. e.g.
+    a `ssh USER@HOST` check to get the key registered will be needed to set up a new server or if the remote server changes.
+
     """
     date = luigi.MonthParameter(default=datetime.date.today())
 
