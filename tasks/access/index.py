@@ -178,8 +178,8 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
                     # Keep track of total records:
                     self.count += 1
 
-        # Close the input stream and catch any exception due to closing it early:
-        #fin._abort()
+            # Ensure the input stream is closed (despite not reading all the data):
+            #reader.read_to_end()
 
         # If there were not records at all, something went wrong!
         if self.records == 0:
@@ -192,19 +192,28 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
             raise Exception("For %s, only %i of %i records checked are in the CDX index!"%(self.input_file, self.hits, self.tries))
 
     def get_capture_dates(self, url):
-        # Get the hits for this URL (go deep, as we have a LOT of copies of some URLs):
-        q = "type:urlquery url:" + quote_plus(url) + " limit:1000000"
-        cdx_query_url = "%s?q=%s" % (self.cdx_server, quote_plus(q))
+        # Get the hits for this URL:
         capture_dates = []
-        try:
-            proxies = { 'http': 'http://explorer:3127'}
-            f = urllib.urlopen(cdx_query_url, proxies=proxies)
-            dom = xml.dom.minidom.parseString(f.read())
-            for de in dom.getElementsByTagName('capturedate'):
-                capture_dates.append(de.firstChild.nodeValue)
-            f.close()
-        except ExpatError, e:
-            logger.warning("Exception on lookup: "  + str(e))
+        # Paging, as we have a LOT of copies of some URLs:
+        batch = 25000
+        offset = 0
+        while True:
+            try:
+                # Get a batch:
+                q = "type:urlquery url:" + quote_plus(url) + (" limit:%i offset:%i" % (batch, offset))
+                cdx_query_url = "%s?q=%s" % (self.cdx_server, quote_plus(q))
+                proxies = { 'http': 'http://explorer:3127'}
+                f = urllib.urlopen(cdx_query_url, proxies=proxies)
+                dom = xml.dom.minidom.parseString(f.read())
+                # Grab the capture dates:
+                for de in dom.getElementsByTagName('capturedate'):
+                    capture_dates.append(de.firstChild.nodeValue)
+                f.close()
+                # Next batch:
+                offset += batch
+            except ExpatError, e:
+                logger.warning("Exception on lookup: "  + str(e))
+                break
 
         return capture_dates
 
