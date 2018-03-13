@@ -204,7 +204,7 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
                 q = "type:urlquery url:" + quote_plus(url) + (" limit:%i offset:%i" % (batch, offset))
                 cdx_query_url = "%s?q=%s" % (self.cdx_server, quote_plus(q))
                 logger.info("Getting %s" % cdx_query_url)
-                proxies = { } #'http': 'http://explorer:3127'}
+                proxies = {'http': ''}
                 f = urllib.urlopen(cdx_query_url, proxies=proxies)
                 logger.info("Parsing response from %s" % cdx_query_url)
                 dom = xml.dom.minidom.parseString(f.read())
@@ -223,7 +223,7 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
                     offset += batch
             except ExpatError, e:
                 logger.warning("Exception on lookup: "  + str(e))
-                break
+                next_batch = False
 
         return capture_dates
 
@@ -276,7 +276,7 @@ class CdxIndexAndVerify(luigi.Task):
     def run(self):
         # Yield a Hadoop job to run the indexer:
         index_task = CdxIndexer(self.input().path)
-        yield index_task
+        #yield index_task
 
         # Then run the verification job again to check it worked:
         verify_task = CheckCdxIndex(input_file=self.input().path)
