@@ -53,7 +53,7 @@ class NominetDomainListToHDFS(luigi.Task):
 
     def run(self):
         # Read the file in and write it to HDFS
-        with self.input().open() as reader:
+        with self.input().open('r') as reader:
             with self.output().open('w') as writer:
                 while True:
                     chunk = reader.read(DEFAULT_BUFFER_SIZE)
