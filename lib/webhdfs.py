@@ -4,6 +4,7 @@ import gzip
 import logging
 import tempfile
 import luigi
+import luigi.format
 import luigi.contrib.hdfs
 import luigi.contrib.hdfs.format
 from luigi.contrib.webhdfs import WebHdfsClient
@@ -39,8 +40,8 @@ class WebHdfsPlainFormat(luigi.format.Format):
     def pipe_reader(self, path):
         return WebHdfsReadPipe(path, self._use_gzip)
 
-    def pipe_writer(self, output_pipe):
-        return WebHdfsAtomicWritePipe(output_pipe, self._use_gzip)
+    def pipe_writer(self, path):
+        return WebHdfsAtomicWritePipe(path, self._use_gzip)
 
 
 class WebHdfsReadPipe(object):

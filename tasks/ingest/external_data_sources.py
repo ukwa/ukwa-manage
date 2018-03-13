@@ -5,7 +5,7 @@ import luigi
 import datetime
 import luigi.contrib.ftp
 import luigi.contrib.hdfs
-import lib.webhdfs
+from lib.webhdfs import WebHdfsPlainFormat
 
 #: the FTP server
 NOM_HOST = os.environ['NOM_HOST']
@@ -49,7 +49,7 @@ class NominetDomainListToHDFS(luigi.Task):
 
     def output(self):
         filename = "/1_data/nominet/domains.%s.csv.gz" % self.date.strftime('%Y%m')
-        return luigi.contrib.hdfs.HdfsTarget(path=filename, format=lib.webhdfs.WebHdfsPlainFormat)
+        return luigi.contrib.hdfs.HdfsTarget(path=filename, format=WebHdfsPlainFormat())
 
     def run(self):
         # Read the file in and write it to HDFS
