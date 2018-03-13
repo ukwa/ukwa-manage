@@ -197,15 +197,19 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
         # Paging, as we have a LOT of copies of some URLs:
         batch = 25000
         offset = 0
-        while True:
+        next_batch = True
+        while next_batch:
             try:
                 # Get a batch:
                 q = "type:urlquery url:" + quote_plus(url) + (" limit:%i offset:%i" % (batch, offset))
                 cdx_query_url = "%s?q=%s" % (self.cdx_server, quote_plus(q))
-                #proxies = { 'http': 'http://explorer:3127'}
-                f = urllib.urlopen(cdx_query_url)#, proxies=proxies)
+                logger.info("Getting %s" % cdx_query_url)
+                proxies = { } #'http': 'http://explorer:3127'}
+                f = urllib.urlopen(cdx_query_url, proxies=proxies)
+                logger.info("Parsing response from %s" % cdx_query_url)
                 dom = xml.dom.minidom.parseString(f.read())
                 # Grab the capture dates:
+                logger.info("Scanning response from %s" % cdx_query_url)
                 new_records = 0
                 for de in dom.getElementsByTagName('capturedate'):
                     capture_dates.append(de.firstChild.nodeValue)
@@ -213,7 +217,7 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
                 f.close()
                 # Done?
                 if new_records == 0:
-                    break
+                    next_batch = False
                 else:
                     # Next batch:
                     offset += batch

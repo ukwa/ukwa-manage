@@ -346,6 +346,18 @@ class ListByCrawl(luigi.Task):
                     f.write(json.dumps(crawls[job][launch], indent=2, sort_keys=True))
                 filenames.append(outfile.path)
 
+        # Output the totals:
+        outfile = ReportTarget('data/crawls', 'totals.csv')
+        with outfile.open('w') as f:
+            totals = {
+                'totals': self.totals,
+                'collections': self.collections
+            }
+            f.write(json.dumps(totals, indent=2, sort_keys=True))
+
+        # Go through the data and generate some summary stats:
+        stats = {}
+
         # Also emit a list of files that could not be understood:
         outfile = ReportTarget('data/crawls', 'unparsed-file-paths.json')
         with outfile.open('w') as f:
