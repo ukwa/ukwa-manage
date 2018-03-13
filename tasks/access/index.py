@@ -202,8 +202,8 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
                 # Get a batch:
                 q = "type:urlquery url:" + quote_plus(url) + (" limit:%i offset:%i" % (batch, offset))
                 cdx_query_url = "%s?q=%s" % (self.cdx_server, quote_plus(q))
-                proxies = { 'http': 'http://explorer:3127'}
-                f = urllib.urlopen(cdx_query_url, proxies=proxies)
+                #proxies = { 'http': 'http://explorer:3127'}
+                f = urllib.urlopen(cdx_query_url)#, proxies=proxies)
                 dom = xml.dom.minidom.parseString(f.read())
                 # Grab the capture dates:
                 new_records = 0
