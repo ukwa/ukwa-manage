@@ -195,7 +195,7 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
         # Get the hits for this URL:
         capture_dates = []
         # Paging, as we have a LOT of copies of some URLs:
-        batch = 10000
+        batch = 25000
         offset = 0
         next_batch = True
         while next_batch:
@@ -274,7 +274,7 @@ class CdxIndexAndVerify(luigi.Task):
     def run(self):
         # Yield a Hadoop job to run the indexer:
         index_task = CdxIndexer(self.input().path)
-        #yield index_task
+        yield index_task
 
         # Then run the verification job again to check it worked:
         verify_task = CheckCdxIndex(input_file=self.input().path)
