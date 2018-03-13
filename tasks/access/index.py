@@ -206,11 +206,17 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
                 f = urllib.urlopen(cdx_query_url, proxies=proxies)
                 dom = xml.dom.minidom.parseString(f.read())
                 # Grab the capture dates:
+                new_records = 0
                 for de in dom.getElementsByTagName('capturedate'):
                     capture_dates.append(de.firstChild.nodeValue)
+                    new_records += 1
                 f.close()
-                # Next batch:
-                offset += batch
+                # Done?
+                if new_records == 0:
+                    break
+                else:
+                    # Next batch:
+                    offset += batch
             except ExpatError, e:
                 logger.warning("Exception on lookup: "  + str(e))
                 break
