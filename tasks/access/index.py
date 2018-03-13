@@ -262,6 +262,7 @@ class CheckCdxIndex(luigi.WrapperTask):
 class CdxIndexAndVerify(luigi.Task):
     target_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
     stream = luigi.EnumParameter(enum=CrawlStream, default=CrawlStream.frequent)
+    verify_only = luigi.BoolParameter(default=False)
     task_namespace = "access.index"
 
     def requires(self):
@@ -272,9 +273,11 @@ class CdxIndexAndVerify(luigi.Task):
         return taskdb_target("warc_set_indexed_and_verified","%s OK" % self.input().path)
 
     def run(self):
-        # Yield a Hadoop job to run the indexer:
-        index_task = CdxIndexer(self.input().path)
-        yield index_task
+        # Make performing the actual indexing optional. Set --verify-only to skip the indexing step:
+        if not self.verify_only:
+            # Yield a Hadoop job to run the indexer:
+            index_task = CdxIndexer(self.input().path)
+            yield index_task
 
         # Then run the verification job again to check it worked:
         verify_task = CheckCdxIndex(input_file=self.input().path)
