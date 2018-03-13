@@ -195,7 +195,7 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
         # Get the hits for this URL:
         capture_dates = []
         # Paging, as we have a LOT of copies of some URLs:
-        batch = 25000
+        batch = 10
         offset = 0
         next_batch = True
         while next_batch:
