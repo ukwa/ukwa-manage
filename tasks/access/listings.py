@@ -12,7 +12,7 @@ import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.webhdfs
 from tasks.common import state_file
-from tasks.ingest.listings import CopyFileListToHDFS, csv_fieldnames
+from tasks.ingest.listings import CopyFileListToHDFS, ListAllFilesOnHDFSToLocalFile
 from lib.webhdfs import webhdfs
 from lib.pathparsers import CrawlStream, HdfsPathParser
 
@@ -105,7 +105,7 @@ class ListWarcFileSets(luigi.Task):
         # Go through the data and assemble the resources for each crawl:
         filenames = []
         with self.input().open('r') as fin:
-            reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
+            reader = csv.DictReader(fin, fieldnames=ListAllFilesOnHDFSToLocalFile.fieldnames())
             first_line = reader.next()
             for item in reader:
                 # Parse file paths and names:
@@ -154,7 +154,7 @@ class ListWarcsByDate(luigi.Task):
         # Build up a list of all WARCS, by day:
         by_day = {}
         with self.input().open('r') as fin:
-            reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
+            reader = csv.DictReader(fin, fieldnames=ListAllFilesOnHDFSToLocalFile.fieldnames())
             first_line = reader.next()
             for item in reader:
                 # Parse file paths and names:

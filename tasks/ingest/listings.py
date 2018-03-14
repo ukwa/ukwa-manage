@@ -19,35 +19,24 @@ logger = logging.getLogger('luigi-interface')
 
 DEFAULT_BUFFER_SIZE = 1024*1000
 
-csv_fieldnames = ['permissions', 'number_of_replicas', 'userid', 'groupid', 'filesize', 'modified_at', 'filename']
-
 """
 Tasks relating to listing HDFS content and reporting on it.
 """
 
 
-class ListAllFilesOnHDFSToLocalFile(luigi.Task):
+class DatedStateFileTask(luigi.Task):
     """
-    This task lists all files on HDFS (skipping directories).
-
-    As this can be a very large list, it avoids reading it all into memory. It
-    parses each line, and creates a CSV line for each.
-
-    It set up to run once a day, as input to downstream reporting or analysis processes.
+    This specialisation of a general luigi Task support having two separate files - a small 'dated' overall task
+    status file that manages a much larger 'current' file that contains detailed data.
     """
-    date = luigi.DateParameter(default=datetime.date.today())
-    task_namespace = "ingest.hdfs"
 
-    total_directories = -1
-    total_files = -1
-    total_bytes = -1
-    total_under_replicated = -1
+    on_hdfs = False
 
     def output(self):
         return self.state_file('current')
 
     def state_file(self, state_date, ext='csv'):
-        return state_file(state_date,'hdfs','all-files-list.%s' % ext, on_hdfs=False)
+        return state_file(state_date,self.tag,'%s.%s' % (self.name, ext), on_hdfs=self.on_hdfs)
 
     def dated_state_file(self):
         return self.state_file(self.date, ext='json')
@@ -61,6 +50,31 @@ class ListAllFilesOnHDFSToLocalFile(luigi.Task):
             return False
         return True
 
+
+class ListAllFilesOnHDFSToLocalFile(DatedStateFileTask):
+    """
+    This task lists all files on HDFS (skipping directories).
+
+    As this can be a very large list, it avoids reading it all into memory. It
+    parses each line, and creates a CSV line for each.
+
+    It set up to run once a day, as input to downstream reporting or analysis processes.
+    """
+    date = luigi.DateParameter(default=datetime.date.today())
+    task_namespace = "ingest.hdfs"
+
+    tag = 'hdfs'
+    name = 'all-files-list'
+
+    total_directories = -1
+    total_files = -1
+    total_bytes = -1
+    total_under_replicated = -1
+
+    @staticmethod
+    def fieldnames():
+        return ['permissions', 'number_of_replicas', 'userid', 'groupid', 'filesize', 'modified_at', 'filename']
+
     def run(self):
         command = luigi.contrib.hdfs.load_hadoop_cmd()
         command += ['fs', '-lsr', '/']
@@ -70,7 +84,7 @@ class ListAllFilesOnHDFSToLocalFile(luigi.Task):
         self.total_under_replicated = 0
         with self.output().open('w') as fout:
             # Set up output file:
-            writer = csv.DictWriter(fout, fieldnames=csv_fieldnames)
+            writer = csv.DictWriter(fout, fieldnames=ListAllFilesOnHDFSToLocalFile.fieldnames())
             writer.writeheader()
             # Set up listing process
             process = subprocess.Popen(command, stdout=subprocess.PIPE)
@@ -138,6 +152,40 @@ class ListAllFilesOnHDFSToLocalFile(luigi.Task):
         g.labels(service=hdfs_service).set(self.total_under_replicated)
 
 
+class ListParsedPaths(DatedStateFileTask):
+    """
+    Identifies in the crawl output files and arranges them by crawl.
+    """
+    date = luigi.DateParameter(default=datetime.date.today())
+
+    tag = 'hdfs'
+    name = 'parsed-paths'
+
+    task_namespace = "ingest.listings"
+
+    def requires(self):
+        return ListAllFilesOnHDFSToLocalFile(self.date)
+
+    def run(self):
+        with self.output().open('w') as fout:
+            # Set up output file:
+            writer = csv.DictWriter(fout, fieldnames=HdfsPathParser.field_names())
+            writer.writeheader()
+            with self.input().open('r') as fin:
+                reader = csv.DictReader(fin, fieldnames=ListAllFilesOnHDFSToLocalFile.fieldnames())
+                for item in reader:
+                    # Skip the first line:
+                    if item['filesize'] == 'filesize':
+                        continue
+                    # Output the enriched version:
+                    p = HdfsPathParser(item)
+                    writer.writerow(p.to_dict())
+
+        # Record a dated flag file to show the work is done.
+        with self.dated_state_file().open('w') as fout:
+            fout.write(json.dumps("DONE"))
+
+
 class CopyFileListToHDFS(luigi.Task):
     """
     This puts a copy of the file list onto HDFS
@@ -178,10 +226,10 @@ class ListEmptyFiles(luigi.Task):
     def run(self):
         with self.output().open('w') as fout:
             # Set up output file:
-            writer = csv.DictWriter(fout, fieldnames=csv_fieldnames)
+            writer = csv.DictWriter(fout, fieldnames=ListAllFilesOnHDFSToLocalFile.fieldnames())
             writer.writeheader()
             with self.input().open('r') as fin:
-                reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
+                reader = csv.DictReader(fin, fieldnames=ListAllFilesOnHDFSToLocalFile.fieldnames())
                 for item in reader:
                     # Archive file names:
                     if not item['permissions'].startswith('d') and item['filesize'] == "0":
@@ -207,7 +255,7 @@ class ListDuplicateFiles(luigi.Task):
     def run(self):
         filenames = {}
         with self.input().open('r') as fin:
-            reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
+            reader = csv.DictReader(fin, fieldnames=ListAllFilesOnHDFSToLocalFile.fieldnames())
             for item in reader:
                 # Archive file names:
                 basename = os.path.basename(item['filename'])
@@ -255,7 +303,7 @@ class ListByCrawl(luigi.Task):
         unparsed = []
         unparsed_dirs = set()
         with self.input().open('r') as fin:
-            reader = csv.DictReader(fin, fieldnames=csv_fieldnames)
+            reader = csv.DictReader(fin, fieldnames=ListAllFilesOnHDFSToLocalFile.fieldnames())
             for item in reader:
                 # Skip the first line:
                 if item['filesize'] == 'filesize':
@@ -347,7 +395,7 @@ class ListByCrawl(luigi.Task):
                 filenames.append(outfile.path)
 
         # Output the totals:
-        outfile = ReportTarget('data/crawls', 'totals.csv')
+        outfile = ReportTarget('data/crawls', 'totals.json')
         with outfile.open('w') as f:
             totals = {
                 'totals': self.totals,
@@ -403,7 +451,7 @@ class GenerateHDFSSummaries(luigi.WrapperTask):
     """
 
     def requires(self):
-        return [ CopyFileListToHDFS(), ListDuplicateFiles(), ListEmptyFiles(), ListByCrawl() ]
+        return [ CopyFileListToHDFS(), ListDuplicateFiles(), ListEmptyFiles(), ListByCrawl(), ListParsedPaths() ]
 
 
 if __name__ == '__main__':
@@ -411,5 +459,5 @@ if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.INFO)
     #luigi.run(['ListUKWAWebArchiveFilesOnHDFS', '--local-scheduler'])
-    luigi.run(['ingest.report.ListByCrawl', '--local-scheduler', '--date', '2018-02-12'])
+    luigi.run(['ingest.listings.ListParsedPaths', '--local-scheduler', '--date', '2018-02-12'])
     #luigi.run(['ListEmptyFilesOnHDFS', '--local-scheduler'])

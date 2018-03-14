@@ -25,11 +25,19 @@ class CrawlStream(enum.Enum):
     domain = 3
     """ 'domain' refers to NPLD domain crawls."""
 
+    def __str__(self):
+        return self.name
+
 
 class HdfsPathParser(object):
     """
     This class takes a HDFS file path and determines what, if any, crawl it belongs to, etc.
     """
+
+    @staticmethod
+    def field_names():
+        """This returns the extended set of field names that this class derives from the basic listing."""
+        return ['recognised', 'collection', 'stream','job', 'kind', 'permissions', 'number_of_replicas', 'user_id', 'group_id', 'file_size', 'modified_at', 'file_path', 'file_name']
 
     def __init__(self, item):
         """
@@ -44,15 +52,23 @@ class HdfsPathParser(object):
 
         # Perform basic processing:
         # ------------------------------------------------
+        # To be captured later
         self.recognised = False
         self.stream = None
         self.job = None
         self.kind = 'unknown'
+        # From the item listing:
+        self.permissions = item['permissions']
+        self.number_of_replicas = item['number_of_replicas']
+        self.user_id = item['userid']
+        self.group_id = item['groupid']
+        self.file_size = item['filesize']
+        self.modified_at = item['modified_at']
         self.file_path = item['filename']
+        # Derived:
         self.file_name = os.path.basename(self.file_path)
         self.timestamp_datetime = datetime.datetime.strptime(item['modified_at'], "%Y-%m-%dT%H:%M:%S")
         self.timestamp = self.timestamp_datetime.isoformat()
-
 
         # Look for different filename patterns:
         # ------------------------------------------------
@@ -88,6 +104,12 @@ class HdfsPathParser(object):
             self.kind = 'to-be-deleted'
             self.file_name = os.path.basename(self.file_path)
 
+        # Specify the collection, based on stream:
+        if self.stream == CrawlStream.frequent or self.stream == CrawlStream.domain:
+            self.collection = 'npld'
+        elif self.stream == CrawlStream.selective:
+            self.collection = 'selective'
+
         # Now Add data based on file name...
         # ------------------------------------------------
 
@@ -110,6 +132,12 @@ class HdfsPathParser(object):
         # TODO distinguish crawl logs from other logs...
         if self.file_path.startswith("crawl.log"):
             self.type = "CRAWL_LOG"
+
+    def to_dict(self):
+        d = dict()
+        for f in self.field_names():
+            d[f] = str(getattr(self,f,""))
+        return d
 
 
 if __name__ == '__main__':
