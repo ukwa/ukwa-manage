@@ -444,11 +444,10 @@ class ListByCrawl(luigi.Task):
 
 
 class GenerateHDFSSummaries(luigi.WrapperTask):
-    task_namespace = "ingest.report"
-
     """
     A 'Wrapper Task' that invokes the summaries of HDFS we are interested in.
     """
+    task_namespace = "ingest.report"
 
     def requires(self):
         return [ CopyFileListToHDFS(), ListDuplicateFiles(), ListEmptyFiles(), ListByCrawl(), ListParsedPaths() ]
