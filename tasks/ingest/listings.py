@@ -411,7 +411,7 @@ class ListByCrawl(luigi.Task):
         with outfile.open('w') as f:
             unparsed_data = {
                 'folders': sorted(list(unparsed_dirs)),
-#                'files': unparsed,
+                # 'files': unparsed,
                 'num_files': len(unparsed)
             }
             f.write(json.dumps(unparsed_data, indent=2, sort_keys=True))

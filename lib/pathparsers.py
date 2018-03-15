@@ -37,7 +37,7 @@ class HdfsPathParser(object):
     @staticmethod
     def field_names():
         """This returns the extended set of field names that this class derives from the basic listing."""
-        return ['recognised', 'collection', 'stream','job', 'kind', 'permissions', 'number_of_replicas', 'user_id', 'group_id', 'file_size', 'modified_at', 'file_path', 'file_name']
+        return ['recognised', 'collection', 'stream','job', 'kind', 'permissions', 'number_of_replicas', 'user_id', 'group_id', 'file_size', 'modified_at', 'timestamp', 'file_path', 'file_name', 'file_ext']
 
     def __init__(self, item):
         """
@@ -67,6 +67,11 @@ class HdfsPathParser(object):
         self.file_path = item['filename']
         # Derived:
         self.file_name = os.path.basename(self.file_path)
+        first_dot_at = self.file_name.find('.')
+        if first_dot_at != -1:
+            self.file_ext = self.file_name[first_dot_at:]
+        else:
+            self.file_ext = None
         self.timestamp_datetime = datetime.datetime.strptime(item['modified_at'], "%Y-%m-%dT%H:%M:%S")
         self.timestamp = self.timestamp_datetime.isoformat()
 
