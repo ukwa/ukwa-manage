@@ -54,6 +54,7 @@ class HdfsPathParser(object):
         # ------------------------------------------------
         # To be captured later
         self.recognised = False
+        self.collection = None
         self.stream = None
         self.job = None
         self.kind = 'unknown'
