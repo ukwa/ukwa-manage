@@ -158,6 +158,10 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
                 # Only look at valid response records:
                 if record.rec_type == 'response' and record.content_type.startswith(b'application/http'):
                     record_url = record.rec_headers.get_header('WARC-Target-URI')
+                    # Skip ridiculously long URIs
+                    if len(record_url) > 2000:
+                        logger.warning("Skipping very long URL: %s" % record_url)
+                        continue
                     # Timestamp, stripped down to Wayback form:
                     timestamp = record.rec_headers.get_header('WARC-Date')
                     timestamp = re.sub('[^0-9]', '', timestamp)

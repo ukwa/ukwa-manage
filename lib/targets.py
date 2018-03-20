@@ -1,6 +1,9 @@
 import os
+import posixpath
 import luigi
+import luigi.contrib.hdfs
 from lib.pathparsers import CrawlStream
+from lib.webhdfs import WebHdfsPlainFormat
 
 """
 These classes define our standad concepts and Luigi Targets for events and outputs.
@@ -78,5 +81,72 @@ class ReportTarget(luigi.LocalTarget):
             self.sub_path = os.path.join(tag, suffix)
 
         path = os.path.join(self.report_folder, self.sub_path)
+        print("GOT PATH " + path)
         super(ReportTarget, self).__init__(path)
 
+
+def _make_dated_path(pather, state_folder, tag, suffix, date):
+    if date is None:
+        full_path = pather.join(
+            str(state_folder),
+            tag,
+            "%s-%s" % (tag, suffix))
+    elif isinstance(date, str):
+        full_path = pather.join(
+            str(state_folder),
+            tag,
+            date,
+            "%s-%s-%s" % (date, tag, suffix))
+    else:
+        full_path = pather.join(
+            str(state_folder),
+            tag,
+            date.strftime("%Y-%m"),
+            '%s-%s-%s' % (date.strftime("%Y-%m-%d"), tag, suffix))
+
+    return full_path
+
+
+class TaskTarget(luigi.LocalTarget):
+    """
+    This Local Target defines the general task output targets.
+    Aims to supercede the `status_file` approach from tasks.common.
+    """
+    local_state_folder = os.environ.get('LOCAL_STATE_FOLDER', '/var/task-state')
+
+    def __init__(self, tag, suffix, date=None):
+        # type: (str, str) -> None
+        self.tag = tag
+        self.suffix = suffix
+        self.date = date
+
+        # build the full path:
+        full_path = _make_dated_path(os.path, self.local_state_folder, self.tag, self.suffix, self.date)
+
+        super(TaskTarget, self).__init__(full_path)
+
+
+class HdfsTaskTarget(luigi.contrib.hdfs.HdfsTarget):
+    """
+    This HDFS Target defines the general task output targets.
+    Aims to supercede the `status_file` approach from tasks.common.
+    """
+    hdfs_state_folder = os.environ.get('HDFS_STATE_FOLDER', '/9_processing/task-state/')
+
+    def __init__(self, tag, suffix, date=None, use_webhdfs=False, use_gzip=False ):
+        # type: (str, str) -> None
+        self.tag = tag
+        self.suffix = suffix
+        self.date = date
+        self.use_gzip = use_gzip
+        self.use_webhdfs = use_webhdfs
+
+        # build the full path:
+        full_path = _make_dated_path(posixpath, self.hdfs_state_folder, self.date, self.tag, self.suffix)
+
+        if use_webhdfs:
+            target_format = WebHdfsPlainFormat(use_gzip=use_gzip)
+        else:
+            target_format = luigi.contrib.hdfs.PlainFormat()
+
+        super(HdfsTaskTarget, self).__init__(path=full_path, format=target_format)

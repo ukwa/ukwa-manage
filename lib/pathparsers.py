@@ -131,13 +131,15 @@ class HdfsPathParser(object):
                 self.timestamp_datetime = self.launch_datetime
                 self.timestamp = self.timestamp_datetime.isoformat()
 
-        # TODO Distinguish 'bad' crawl files, e.g. warc.gz.open files that are down as warcs
+        # Distinguish 'bad' crawl files, e.g. warc.gz.open files that are down as warcs
+        if self.kind == 'warcs':
+            if self.file_path.endswith("warc.gz.open"):
+                self.kind = 'warcs-open'
 
-        # TODO Do the same for crawl logs...
-
-        # TODO distinguish crawl logs from other logs...
-        if self.file_path.startswith("crawl.log"):
-            self.type = "CRAWL_LOG"
+        # Distinguish crawl logs from other logs...
+        if self.kind == 'logs':
+            if self.file_path.startswith("crawl.log"):
+                self.kind = 'crawl-logs'
 
     def to_dict(self):
         d = dict()
