@@ -133,12 +133,12 @@ class HdfsPathParser(object):
 
         # Distinguish 'bad' crawl files, e.g. warc.gz.open files that are down as warcs
         if self.kind == 'warcs':
-            if self.file_path.endswith("warc.gz.open"):
+            if self.file_name.endswith("warc.gz.open"):
                 self.kind = 'warcs-open'
 
         # Distinguish crawl logs from other logs...
         if self.kind == 'logs':
-            if self.file_path.startswith("crawl.log"):
+            if self.file_name.startswith("crawl.log"):
                 self.kind = 'crawl-logs'
 
     def to_dict(self):
