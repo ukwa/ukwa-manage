@@ -289,7 +289,9 @@ class CdxIndexAndVerify(luigi.Task):
 
         # If it worked, record it here:
         if verify_task.complete():
-            self.output().touch()
+            # Sometimes tasks get re-run...
+            if not self.output().exists():
+                self.output().touch()
 
 
 if __name__ == '__main__':
