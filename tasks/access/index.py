@@ -273,14 +273,15 @@ class CdxIndexAndVerify(luigi.Task):
         return ListWarcsForDate(target_date=self.target_date, stream=self.stream)
 
     def output(self):
-        logger.info("Checking is complete: %s" % self.input().path)
-        return taskdb_target("warc_set_indexed_and_verified","%s OK" % self.input().path)
+        if self.input():
+            logger.info("Checking is complete: %s" % self.input().path)
+            return taskdb_target("warc_set_indexed_and_verified","%s OK" % self.input().path)
+        else:
+            return None
 
     def run(self):
         # Some days have no data, so we can skip them:
-        if self.input() is None:
-            logger.info("No WARCs found for %s" % self.target_date)
-        else:
+        if self.input():
             # Make performing the actual indexing optional. Set --verify-only to skip the indexing step:
             if not self.verify_only:
                 # Yield a Hadoop job to run the indexer:
@@ -296,6 +297,9 @@ class CdxIndexAndVerify(luigi.Task):
                 # Sometimes tasks get re-run...
                 if not self.output().exists():
                     self.output().touch()
+
+        else:
+            logger.info("No WARCs found for %s" % self.target_date)
 
 
 if __name__ == '__main__':
