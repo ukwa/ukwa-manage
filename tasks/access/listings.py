@@ -208,6 +208,7 @@ class ListWarcsForDate(luigi.Task):
             if count > max_count:
                 max_count = count
                 best_path = path
+        logger.info("Found the best path: %s" % best_path)
 
         return best_path
 
