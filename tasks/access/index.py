@@ -277,7 +277,7 @@ class CdxIndexAndVerify(luigi.Task):
             logger.info("Checking is complete: %s" % self.input().path)
             return taskdb_target("warc_set_indexed_and_verified","%s OK" % self.input().path)
         else:
-            return None
+            return taskdb_target("warc_set_indexed_and_verified","0 WARCs on %s OK" % self.target_date)
 
     def run(self):
         # Some days have no data, so we can skip them:
@@ -300,7 +300,7 @@ class CdxIndexAndVerify(luigi.Task):
 
         else:
             logger.info("No WARCs found for %s" % self.target_date)
-
+            self.output().touch()
 
 if __name__ == '__main__':
     import logging
