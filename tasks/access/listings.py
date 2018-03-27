@@ -201,19 +201,25 @@ class ListWarcsForDate(luigi.Task):
         datestamp = self.target_date.strftime("%Y-%m-%d")
         target_path = state_file(None, 'warcs-by-day', '%s-%s-*-warcs-for-date.txt' % (self.stream.name, datestamp)).path
         max_count = 0
-        best_path = target_path
+        best_path = None
         for path in glob.glob(target_path):
             count = int(re.search('-([0-9]+)-warcs-for-date.txt$', path).group(1))
             # If this has a higher file count, use it:
             if count > max_count:
                 max_count = count
                 best_path = path
-        logger.info("Found the best path: %s" % best_path)
 
+        logger.info("Found the best path: %s" % best_path)
         return best_path
 
     def output(self):
-        return luigi.LocalTarget(path=self.find_best_path())
+        best_path = self.find_best_path()
+        if best_path:
+            # List of WARCs for the given day stored here:
+            return luigi.LocalTarget(path=best_path)
+        else:
+            # No WARCs found for this day:
+            return
 
     def run(self):
         # The output does all the work here.
