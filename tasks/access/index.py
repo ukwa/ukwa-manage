@@ -13,7 +13,7 @@ from urllib import quote_plus  # python 2
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
-from tasks.access.listings import ListWarcsForDate
+from tasks.access.listings import ListWarcsForDate, NoWARCsToday
 from tasks.common import state_file, CopyToTableInDB, taskdb_target
 from lib.webhdfs import WebHdfsPlainFormat, webhdfs
 from lib.pathparsers import CrawlStream
@@ -273,15 +273,18 @@ class CdxIndexAndVerify(luigi.Task):
         return ListWarcsForDate(target_date=self.target_date, stream=self.stream)
 
     def output(self):
-        if self.input():
+        if isinstance(self.input(), NoWARCsToday):
+            return taskdb_target("warc_set_indexed_and_verified", "0 WARCs on %s OK" % self.target_date)
+        else:
             logger.info("Checking is complete: %s" % self.input().path)
             return taskdb_target("warc_set_indexed_and_verified","%s OK" % self.input().path)
-        else:
-            return taskdb_target("warc_set_indexed_and_verified","0 WARCs on %s OK" % self.target_date)
 
     def run(self):
         # Some days have no data, so we can skip them:
-        if self.input():
+        if isinstance(self.input(), NoWARCsToday):
+            logger.info("No WARCs found for %s" % self.target_date)
+            self.output().touch()
+        else:
             # Make performing the actual indexing optional. Set --verify-only to skip the indexing step:
             if not self.verify_only:
                 # Yield a Hadoop job to run the indexer:
@@ -298,9 +301,6 @@ class CdxIndexAndVerify(luigi.Task):
                 if not self.output().exists():
                     self.output().touch()
 
-        else:
-            logger.info("No WARCs found for %s" % self.target_date)
-            self.output().touch()
 
 if __name__ == '__main__':
     import logging

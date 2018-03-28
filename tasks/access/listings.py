@@ -193,7 +193,7 @@ class ListWarcsForDate(luigi.Task):
     task_namespace = 'access.report'
 
     def requires(self):
-        # Get todays list (not target_date):
+        # Get current list (use self.date not the target_date):
         return ListWarcsByDate(self.date, self.stream)
 
     def find_best_path(self):
@@ -209,7 +209,6 @@ class ListWarcsForDate(luigi.Task):
                 max_count = count
                 best_path = path
 
-        logger.info("Found the best path: %s" % best_path)
         return best_path
 
     def output(self):
@@ -218,12 +217,20 @@ class ListWarcsForDate(luigi.Task):
             # List of WARCs for the given day stored here:
             return luigi.LocalTarget(path=best_path)
         else:
-            # No WARCs found for this day:
-            return
+            # Return special Target that says no WARCs were to be found
+            return NoWARCsToday()
 
     def run(self):
         # The output does all the work here.
         pass
+
+
+class NoWARCsToday(luigi.Target):
+    """
+    Special Target that exists only to inform downstream tasks that there are no WARCs for a given day.
+    """
+    def exists(self):
+        return True
 
 
 if __name__ == '__main__':
