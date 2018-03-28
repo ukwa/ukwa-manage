@@ -5,9 +5,9 @@ import datetime
 from lib.w3act.w3act import w3act
 from tasks.common import logger, state_file
 
-ACT_URL = os.environ.get('ACT_URL')
-ACT_USER = os.environ.get('ACT_USER')
-ACT_PASSWORD = os.environ.get('ACT_PW')
+ACT_URL = os.environ['ACT_URL']
+ACT_USER = os.environ['ACT_USER']
+ACT_PASSWORD = os.environ['ACT_PASSWORD']
 
 class CrawlFeed(luigi.Task):
     """
