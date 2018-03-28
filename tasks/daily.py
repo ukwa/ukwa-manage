@@ -8,7 +8,7 @@ import luigi
 from tasks.ingest.listings import GenerateHDFSSummaries
 from tasks.backup.postgresql import BackupProductionW3ACTPostgres
 from tasks.access.search import PopulateBetaCollectionsSolr, GenerateIndexAnnotations
-from tasks.access.index import GenerateAccessWhitelist
+from tasks.access.index import UpdateAccessWhitelist
 
 
 class DailyIngestTasks(luigi.WrapperTask):
@@ -26,7 +26,7 @@ class DailyAccessTasks(luigi.WrapperTask):
     so can't be done in the one job. To be run an hour or so after the :py:DailyIngestTasks.
     """
     def requires(self):
-        return [GenerateAccessWhitelist(),
+        return [UpdateAccessWhitelist(),
                 GenerateIndexAnnotations(),
                 PopulateBetaCollectionsSolr()]
 
