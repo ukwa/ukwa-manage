@@ -1,10 +1,12 @@
 import json
 import luigi
 import pysolr
+import logging
 import datetime
-from ukwa.tasks.w3act.feeds import TargetList, SubjectList, CollectionList
-from ukwa.tasks.access.access import GenerateAccessWhitelist
-from ukwa.tasks.common import LUIGI_STATE_FOLDER, logger
+from tasks.ingest.w3act import TargetList, SubjectList, CollectionList
+from tasks.access.index import GenerateAccessWhitelist
+
+logger = logging.getLogger('luigi-interface')
 
 
 class GenerateIndexAnnotations(luigi.Task):

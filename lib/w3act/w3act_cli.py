@@ -22,7 +22,7 @@ import logging
 import argparse
 from urlparse import urlparse
 
-from crawl.w3act.w3act import w3act
+from lib.w3act.w3act import w3act
 
 
 # Set up a logging handler:

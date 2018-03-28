@@ -1,9 +1,8 @@
 import json
 import luigi
 import datetime
-from ukwa.lib.w3act.w3act import w3act
-from ukwa.tasks.settings import state, act
-from ukwa.tasks.common import logger
+from lib.w3act.w3act import w3act
+from tasks.common import logger
 
 LUIGI_STATE_FOLDER = state().folder
 

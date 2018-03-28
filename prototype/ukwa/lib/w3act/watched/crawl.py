@@ -3,7 +3,6 @@ Additional site-specific crawl setup.
 """
 
 import sys
-import w3act
 import logging
 import requests
 from lxml import html

@@ -6,8 +6,10 @@ import json
 import requests
 import traceback
 import time
+import logging
 import dateutil.parser
-from ukwa.tasks.common import logger
+
+logger = logging.getLogger(__name__)
 
 
 class CachedItem(object):
