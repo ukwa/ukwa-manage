@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import shutil
 import logging
 import datetime
 import xml.dom.minidom
@@ -400,6 +401,31 @@ class GenerateAccessWhitelist(luigi.Task):
         with self.output().open('w') as f:
             for surt in sorted(self.all_surts):
                 f.write("%s\n" % surt)
+
+
+class UpdateAccessWhitelist(luigi.Task):
+    """
+    This takes the updated access list and puts it in the right place.
+    """
+    task_namespace = 'access'
+    date = luigi.DateParameter(default=datetime.date.today())
+    wb_oa_whitelist = luigi.Parameter(default='/root/wayback-config/open-access-whitelist.txt')
+
+    def requires(self):
+        return GenerateAccessWhitelist(self.date)
+
+    def output(self):
+        return state_file(self.date,'access-data', 'access-whitelist-updated.txt')
+
+    def run(self):
+        # Copy the file to the deployment location (atomically):
+        wl = luigi.LocalTarget(path=self.wb_oa_whitelist)
+        with wl.temporary_path() as temp_path:
+            shutil.copy(self.input().path, temp_path)
+
+        # Note that we've completed this work successfully
+        with self.output().open('w') as f:
+            f.write('Written SURTS from %s to %s' % (self.input().path, wl.path))
 
 
 if __name__ == '__main__':
