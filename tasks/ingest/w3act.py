@@ -1,14 +1,13 @@
+import os
 import json
 import luigi
 import datetime
 from lib.w3act.w3act import w3act
-from tasks.common import logger
+from tasks.common import logger, state_file
 
-LUIGI_STATE_FOLDER = state().folder
-
-ACT_URL = act().url
-ACT_USER = act().username
-ACT_PASSWORD = act().password
+ACT_URL = os.environ.get('ACT_URL')
+ACT_USER = os.environ.get('ACT_USER')
+ACT_PASSWORD = os.environ.get('ACT_PW')
 
 class CrawlFeed(luigi.Task):
     """
@@ -21,9 +20,7 @@ class CrawlFeed(luigi.Task):
     date = luigi.DateHourParameter(default=datetime.datetime.today())
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateHourParameter.date_format)
-        return luigi.LocalTarget('%s/%s/w3act/crawl-feed-%s.%s.%s.json' % (
-            LUIGI_STATE_FOLDER, datetime_string[0:7], self.feed, datetime_string, self.frequency))
+        return state_file(self.date,'w3act', 'crawl-feed-%s.%s.json' % (self.feed, self.frequency))
 
     def run(self):
         # Set up connection to W3ACT:
@@ -49,9 +46,7 @@ class GetTargetIDs(luigi.Task):
     date = luigi.DateParameter(default=datetime.date.today())
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
-        return luigi.LocalTarget('%s/%s/w3act/target-%s-ids.%s.json' % (
-            LUIGI_STATE_FOLDER, datetime_string[0:7], self.frequency, datetime_string))
+        return state_file(self.date,'w3act', 'target-ids-%s.json' % self.frequency)
 
     def run(self):
         # Set up connection to W3ACT:
@@ -76,11 +71,8 @@ class GetTarget(luigi.Task):
     id = luigi.IntParameter()
     date = luigi.DateParameter(default=datetime.date.today())
 
-
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
-        return luigi.LocalTarget('%s/%s/w3act/targets/target-%i.%s.json' % (
-            LUIGI_STATE_FOLDER, datetime_string[0:7], self.id, datetime_string))
+        return state_file(self.date,'w3act-targets', 'target-%i.json' % self.id)
 
     def run(self):
         # Set up connection to W3ACT:
@@ -102,9 +94,7 @@ class CollectionList(luigi.Task):
     date = luigi.DateMinuteParameter(default=datetime.datetime.now())
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateMinuteParameter.date_format)
-        return luigi.LocalTarget('%s/%s/w3act/collection-list.%s.json' % (
-            LUIGI_STATE_FOLDER, datetime_string[0:7], datetime_string))
+        return state_file(self.date,'w3act-collections', 'collections.json')
 
     def add_collection_detail(self, col, collections):
         c_id = int(col['key'])
@@ -134,9 +124,7 @@ class SubjectList(luigi.Task):
     date = luigi.DateMinuteParameter(default=datetime.datetime.now())
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateMinuteParameter.date_format)
-        return luigi.LocalTarget('%s/%s/w3act/subject-list.%s.json' % (
-            LUIGI_STATE_FOLDER, datetime_string[0:7], datetime_string))
+        return state_file(self.date,'w3act-subjects', 'subject-list.json')
 
     def run(self):
         # Paged downloads...
@@ -158,9 +146,7 @@ class TargetList(luigi.Task):
     date = luigi.DateParameter(default=datetime.date.today())
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
-        return luigi.LocalTarget('%s/%s/w3act/target-list.%s.json' % (
-            LUIGI_STATE_FOLDER, datetime_string[0:7], datetime_string))
+        return state_file(self.date,'w3act-target-list', 'target-list.json')
 
     def run(self):
         # Paged downloads...
@@ -199,9 +185,7 @@ class TargetListForFrequency(luigi.Task):
         return TargetList()
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
-        return luigi.LocalTarget('%s/%s/w3act/target-list.%s.%s.json' % (
-            LUIGI_STATE_FOLDER, datetime_string[0:7], self.frequency, datetime_string))
+        return state_file(self.date,'w3act-target-list', 'target-list-%s.json' % self.frequency)
 
     def run(self):
         # Load the targets:

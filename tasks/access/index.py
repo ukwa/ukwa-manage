@@ -337,15 +337,13 @@ class GenerateAccessWhitelist(luigi.Task):
     #w3actURLsFile = '/home/tomcat/oukwa-wayback-whitelist/w3act_urls'
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
-        return luigi.LocalTarget('%s/%s/w3act/access-whitelist.%s.txt' % (
-            LUIGI_STATE_FOLDER, datetime_string[0:7], datetime_string))
+        return state_file(self.date,'access-data', 'access-whitelist.txt')
 
     def requires(self):
         return CrawlFeed('all','oa')
 
     def generate_surt(self, url):
-        if RE_NONCHARS.search(url):
+        if self.RE_NONCHARS.search(url):
             logger.warn("Questionable characters found in URL [%s]" % url)
 
         surtVal = surt(url)
@@ -353,7 +351,7 @@ class GenerateAccessWhitelist(luigi.Task):
         #### WA: ensure SURT has scheme of original URL ------------
         # line_scheme = RE_SCHEME.match(line)           # would allow http and https (and any others)
         line_scheme = 'http://'  # for wayback, all schemes need to be only http
-        surt_scheme = RE_SCHEME.match(surtVal)
+        surt_scheme = self.RE_SCHEME.match(surtVal)
 
         if line_scheme and not surt_scheme:
             if re.match(r'\(', surtVal):

@@ -4,7 +4,7 @@ import pysolr
 import logging
 import datetime
 from tasks.ingest.w3act import TargetList, SubjectList, CollectionList
-from tasks.access.index import GenerateAccessWhitelist
+from tasks.common import state_file
 
 logger = logging.getLogger('luigi-interface')
 
@@ -17,9 +17,7 @@ class GenerateIndexAnnotations(luigi.Task):
     date = luigi.DateParameter(default=datetime.date.today())
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateParameter.date_format)
-        return luigi.LocalTarget('%s/%s/w3act/indexer-annotations.%s.json' % (
-            LUIGI_STATE_FOLDER, datetime_string[0:7], datetime_string))
+        return state_file(self.date,'access-data', 'indexer-annotations.json')
 
     def requires(self):
         return [TargetList(), CollectionList(), SubjectList()]
@@ -115,9 +113,7 @@ class UpdateCollectionsSolr(luigi.Task):
         return [TargetList(self.date), CollectionList(self.date), SubjectList(self.date)]
 
     def output(self):
-        datetime_string = self.date.strftime(luigi.DateMinuteParameter.date_format)
-        return luigi.LocalTarget('%s/%s/w3act/updated-collections-solr.%s.json' % (
-            LUIGI_STATE_FOLDER, datetime_string[0:7], datetime_string))
+        return state_file(self.date,'access-data', 'updated-collections-solr.json')
 
     @staticmethod
     def add_collection(s, targets_by_id, col, parent_id):
@@ -194,13 +190,6 @@ class UpdateCollectionsSolr(luigi.Task):
         # Record that we have completed this task successfully:
         with self.output().open('w') as f:
             f.write('{}'.format(json.dumps(collections, indent=4)))
-
-
-class GenerateAnnotationsAndWhitelist(luigi.WrapperTask):
-    task_namespace = 'discovery'
-
-    def requires(self):
-        return [ GenerateAccessWhitelist(), GenerateIndexAnnotations() ]
 
 
 class PopulateBetaCollectionsSolr(luigi.WrapperTask):

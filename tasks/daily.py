@@ -7,7 +7,8 @@ This module summarises the tasks that are to be run daily.
 import luigi
 from tasks.ingest.listings import GenerateHDFSSummaries
 from tasks.backup.postgresql import BackupProductionW3ACTPostgres
-from tasks.access.search import PopulateBetaCollectionsSolr
+from tasks.access.search import PopulateBetaCollectionsSolr, GenerateIndexAnnotations
+from tasks.access.index import GenerateAccessWhitelist
 
 
 class DailyIngestTasks(luigi.WrapperTask):
@@ -25,7 +26,9 @@ class DailyAccessTasks(luigi.WrapperTask):
     so can't be done in the one job. To be run an hour or so after the :py:DailyIngestTasks.
     """
     def requires(self):
-        return [PopulateBetaCollectionsSolr()]
+        return [GenerateAccessWhitelist(),
+                GenerateIndexAnnotations(),
+                PopulateBetaCollectionsSolr()]
 
 
 if __name__ == '__main__':
