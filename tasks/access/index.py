@@ -425,7 +425,7 @@ class UpdateAccessWhitelist(luigi.Task):
 
         # Note that we've completed this work successfully
         with self.output().open('w') as f:
-            f.write('Written SURTS from %s to %s' % (self.input().path, wl.path))
+            f.write('Written SURTS from %s to %s' % (self.input().path, self.wb_oa_whitelist))
 
 
 if __name__ == '__main__':
