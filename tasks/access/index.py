@@ -421,7 +421,7 @@ class UpdateAccessWhitelist(luigi.Task):
         # Copy the file to the deployment location (atomically):
         wl = luigi.LocalTarget(path=self.wb_oa_whitelist)
         with wl.temporary_path() as temp_path:
-            shutil.copy(self.input().path, temp_path)
+            shutil.copyfile(self.input().path, temp_path)
 
         # Note that we've completed this work successfully
         with self.output().open('w') as f:
