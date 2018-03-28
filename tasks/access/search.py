@@ -32,6 +32,9 @@ class GenerateIndexAnnotations(luigi.Task):
                 continue
             target = targets_by_id[tid]
             scope = target['field_scope']
+            if scope is None:
+                logger.error("Scope not set for %s - %s!" % (tid, target['fieldUrls']) )
+                continue
             for fieldUrl in target['fieldUrls']:
                 url = fieldUrl['url']
                 ann = annotations['collections'][scope].get(url, {'collection': collection_name, 'collections': [], 'subject': []})
