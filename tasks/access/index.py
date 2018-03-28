@@ -402,6 +402,14 @@ class GenerateAccessWhitelist(luigi.Task):
             for surt in sorted(self.all_surts):
                 f.write("%s\n" % surt)
 
+    def get_metrics(self,registry):
+        # type: (CollectorRegistry) -> None
+
+        g = Gauge('ukwa_url_count',
+                  'Number of URLs.',
+                  labelnames=['set'], registry=registry)
+        g.labels(set='ukwa-oa').set(len(self.all_surts))
+
 
 class UpdateAccessWhitelist(luigi.Task):
     """
