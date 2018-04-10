@@ -268,12 +268,12 @@ class CheckCdxIndex(luigi.WrapperTask):
 
 class CdxIndexAndVerify(luigi.Task):
     target_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
-    stream = luigi.EnumParameter(enum=CrawlStream, default=CrawlStream.frequent)
+    stream = luigi.Parameter(default='frequent')
     verify_only = luigi.BoolParameter(default=False)
     task_namespace = "access.index"
 
     def requires(self):
-        return ListWarcsForDate(target_date=self.target_date, stream=self.stream)
+        return ListWarcsForDate(target_date=self.target_date, stream=CrawlStream(self.stream))
 
     def output(self):
         if isinstance(self.input(), NoWARCsToday):
