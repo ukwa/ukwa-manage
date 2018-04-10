@@ -273,7 +273,7 @@ class CdxIndexAndVerify(luigi.Task):
     task_namespace = "access.index"
 
     def requires(self):
-        return ListWarcsForDate(target_date=self.target_date, stream=CrawlStream(self.stream))
+        return ListWarcsForDate(target_date=self.target_date, stream=CrawlStream[self.stream])
 
     def output(self):
         if isinstance(self.input(), NoWARCsToday):
