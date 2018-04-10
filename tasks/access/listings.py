@@ -211,6 +211,13 @@ class ListWarcsForDate(luigi.Task):
 
         return best_path
 
+    def complete(self):
+        # Ensure ListWarcsByDate has been run:
+        if not self.requires().complete():
+            return False
+        # If the pre-requisite has definately run, proceed as normal:
+        return super(ListWarcsForDate, self).complete()
+
     def output(self):
         best_path = self.find_best_path()
         if best_path:
