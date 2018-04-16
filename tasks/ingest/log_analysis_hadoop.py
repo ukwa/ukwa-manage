@@ -8,13 +8,16 @@ import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 from luigi.contrib.hdfs.format import Plain, PlainDir
 
-import ukwa # Imported so extra_modules MR-bundle can access the following:
-from ukwa.lib.utils import url_to_surt
+import lib # Imported so extra_modules MR-bundle can access the following:
+from surt import surt
 
 logger = logging.getLogger(__name__)
 
 
 class CrawlLogLine(object):
+    """
+    Parsers Heritrix3 format log files, including annotations and any additional extra JSON at the end of the line.
+    """
     def __init__(self, line):
         """
         Parse from a standard log-line.
@@ -117,7 +120,7 @@ class CrawlLogExtractors(object):
         # Convert to SURT form:
         watched_surts = []
         for url in watched:
-            watched_surts.append(url_to_surt(url))
+            watched_surts.append(surt(url))
         logger.info("WATCHED SURTS %s" % watched_surts)
 
         self.watched_surts = watched_surts
@@ -150,8 +153,8 @@ class CrawlLogExtractors(object):
         # Check the URL and Content-Type:
         if "application/pdf" in log.mime:
             for prefix in self.watched_surts:
-                document_surt = url_to_surt(log.url)
-                landing_page_surt = url_to_surt(log.via)
+                document_surt = surt(log.url)
+                landing_page_surt = surt(log.via)
                 # Are both URIs under the same watched SURT:
                 if document_surt.startswith(prefix) and landing_page_surt.startswith(prefix):
                     # Proceed to extract metadata and pass on to W3ACT:
@@ -281,7 +284,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
             return luigi.LocalTarget(path=out_name)
 
     def extra_modules(self):
-        return [ukwa]
+        return [lib]
 
     def init_mapper(self):
         # Set up...
@@ -374,7 +377,7 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
             return luigi.LocalTarget(path=out_name)
 
     def extra_modules(self):
-        return [ukwa]
+        return [lib]
 
     def mapper(self, line):
         log_time, status, size, url, discovery_path, referrer, mime, thread, request_time, hash, ignore, annotations \

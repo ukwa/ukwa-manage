@@ -1,6 +1,6 @@
 import json
 import luigi
-from ukwa.tasks.analyse.log_analysis_hadoop import SummariseLogFiles
+from tasks.ingest.log_analysis_hadoop import SummariseLogFiles
 
 
 def test_run_summariser():

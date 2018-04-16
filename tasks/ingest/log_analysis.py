@@ -4,15 +4,13 @@ import json
 import hashlib
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
-
-from ukwa.tasks.w3act.feeds import CrawlFeed
-from ukwa.tasks.hadoop.scan_hdfs import ScanForOutputs
-from ukwa.tasks.analyse.log_analysis_hadoop import AnalyseLogFile, SummariseLogFiles
-from ukwa.tasks.analyse.documents import ExtractDocumentAndPost
 from luigi.contrib.hdfs.format import Plain, PlainDir
 
-from ukwa.tasks.common import logger, webhdfs
-from ukwa.tasks.settings import state
+from tasks.ingest.log_analysis_hadoop import AnalyseLogFile, SummariseLogFiles
+from tasks.ingest.documents import ExtractDocumentAndPost
+from tasks.ingest.w3act import CrawlFeed
+from tasks.common import state_file, logger
+from lib.webhdfs import webhdfs
 
 
 class LogFilesForJobLaunch(luigi.ExternalTask):
@@ -180,17 +178,6 @@ class GenerateCrawlLogReports(luigi.Task):
         # And clean out the file from temp:
         logger.warning("Removing temporary targets cache: %s" % hdfs_targets.path)
         hdfs_targets.remove()
-
-
-class ScanForLogs(ScanForOutputs):
-    """
-    This task scans the output folder for jobs and instances of those jobs, looking for crawls logs.
-    """
-    task_namespace = 'scan'
-    scan_name = 'logs'
-
-    def process_output(self, job, launch):
-        yield GenerateCrawlLogReports(job, launch)
 
 
 class DomainCrawlSummarise(luigi.WrapperTask):
