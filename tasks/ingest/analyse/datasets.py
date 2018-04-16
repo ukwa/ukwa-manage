@@ -27,7 +27,7 @@ class GenerateWordColocations(luigi.contrib.hadoop_jar.HadoopJarJobTask):
     #    return tasks.report.crawl_summary.GenerateWarcList(self.input_file)
 
     def jar(self):
-        return "../jars/ati-word-colocation-0.0.1-SNAPSHOT-job.jar"
+        return "../../jars/ati-word-colocation-0.0.1-SNAPSHOT-job.jar"
 
     def main(self):
         return "uk.bl.coloc.wa.hadoop.WARCWordColocationAnalysisTool"
