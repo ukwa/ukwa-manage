@@ -17,7 +17,7 @@ class GenerateWordColocations(luigi.contrib.hadoop_jar.HadoopJarJobTask):
         input_file: A local file that contains the list of WARC files to process
     """
     input_file = luigi.Parameter()
-    task_namespace = "hdfs"
+    task_namespace = "datasets"
 
     def output(self):
         out_name = "%s-word-coloc.tsv" % os.path.splitext(self.input_file)[0]
@@ -40,4 +40,4 @@ if __name__ == '__main__':
     import logging
 
     logging.getLogger().setLevel(logging.INFO)
-    luigi.run(['GenerateWordColocations', 'daily-warcs-test.txt'])
+    luigi.run(['datasets.GenerateWordColocations', 'daily-warcs-test.txt'])
