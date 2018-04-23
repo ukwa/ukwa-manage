@@ -2,6 +2,7 @@ FROM centos:7
 
 # Set up basic Python 2.7 on Centos environment:
 RUN \
+  yum -y upgrade ca-certificates && \
   yum install -y epel-release && \
   yum install -y git python-pip python-devel libpng-devel libjpeg-devel gcc gcc-c++ make libffi-devel openssl-devel supervisor libxml2 libxml2-devel libxslt libxslt-devel
 
