@@ -254,7 +254,6 @@
 				<map>
 					<entry key="fetchHttp.maxLengthBytes" value="0" />
 					<entry key="quotaEnforcer.serverMaxSuccessKb" value="-1" />
-					<entry key="metadata.robotsPolicyName" value="ignore" />
 				</map>
 			</property>
 		</bean>
@@ -262,7 +261,6 @@
 			<property name="map">
 				<map>
 					<entry key="quotaEnforcer.serverMaxSuccessKb" value="2097152" />
-					<entry key="metadata.robotsPolicyName" value="ignore" />
 				</map>
 			</property>
 		</bean>
