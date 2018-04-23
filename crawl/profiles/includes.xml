@@ -117,7 +117,11 @@
 					<value>http://(com,oup,global,</value>
 					<value>http://(uk,org,brereton,</value>
 					<value>http://(uk,org,webarchive,www,)/wayback</value>
-					<value>http://(uk,org,webarchive,beta,</value>
+					<value>http://(uk,org,webarchive,beta,)/wayback/</value>
+                                        <value>http://(uk,co,cdssl,</value>
+                                        <value>http://(uk,co,yeomanryhouse,www,</value>
+                                        <value>http://(uk,co,car-specs-features,</value>
+                                        <value>http://(uk,org,grettonvillage,www,</value>
 				</list>
 			</property>
 			<property name="targetSheetNames">
