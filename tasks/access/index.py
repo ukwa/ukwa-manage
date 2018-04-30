@@ -159,7 +159,7 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
                 self.records += 1
 
                 # Only look at valid response records:
-                if record.rec_type == 'response' and record.content_type.startswith(b'application/http'):
+                if record.rec_type == 'response' and record.content_type and record.content_type.startswith(b'application/http'):
                     record_url = record.rec_headers.get_header('WARC-Target-URI')
                     # Skip ridiculously long URIs
                     if len(record_url) > 2000:
