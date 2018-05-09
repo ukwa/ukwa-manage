@@ -11,6 +11,7 @@ from tasks.ingest.documents import ExtractDocumentAndPost
 from tasks.ingest.w3act import CrawlFeed
 from tasks.common import state_file, logger
 from lib.webhdfs import webhdfs
+from lib.targets import TaskTarget
 
 
 class LogFilesForJobLaunch(luigi.ExternalTask):
@@ -112,8 +113,8 @@ class AnalyseAndProcessDocuments(luigi.Task):
         return AnalyseLogFile(self.job, self.launch_id, self.log_paths, self.targets_path, self.from_hdfs)
 
     def output(self):
-        return luigi.LocalTarget(
-            '{}/documents/posted-{}-{}-{}.jsonl'.format(state().folder, self.job, self.launch_id, len(self.log_paths)))
+        return TaskTarget('documents',
+                          'documents/posted-{}-{}-{}.jsonl'.format(self.job, self.launch_id, len(self.log_paths)))
 
     def run(self):
         # Loop over documents discovered, and attempt to post to W3ACT:
@@ -151,11 +152,11 @@ class GenerateCrawlLogReports(luigi.Task):
     def output(self):
         logs_count = len(self.input())
         if self.extract_documents:
-            return luigi.LocalTarget(
-                '{}/crawl-log-documents-{}-{}-{}'.format(state().folder, self.job, self.launch_id, logs_count))
+            return TaskTarget('crawl-reports',
+                'crawl-log-documents-{}-{}-{}'.format(self.job, self.launch_id, logs_count))
         else:
-            return luigi.LocalTarget(
-                '{}/crawl-log-report-{}-{}-{}'.format(state().folder, self.job, self.launch_id, logs_count))
+            return TaskTarget('crawl-reports',
+                'crawl-log-report-{}-{}-{}'.format(self.job, self.launch_id, logs_count))
 
     def run(self):
         # Set up necessary data:
@@ -201,5 +202,6 @@ class DomainCrawlSummarise(luigi.WrapperTask):
 if __name__ == '__main__':
     import logging
     logging.getLogger().setLevel(logging.INFO)
-    luigi.run(['analyse.DomainCrawlSummarise', '--local-scheduler'])
-    #luigi.run(['report.GenerateCrawlLogReports', '--job', 'weekly', '--launch-id', '20170220090024', '--local-scheduler'])
+    #luigi.run(['analyse.DomainCrawlSummarise', '--local-scheduler'])
+    luigi.run(['report.GenerateCrawlLogReports', '--job', 'weekly', '--launch-id', '20180507080102',
+               '--extract-documents', '--local-scheduler'])

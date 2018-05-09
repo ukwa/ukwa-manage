@@ -57,16 +57,12 @@ class w3act():
 
     def _get_json(self, url):
         js = None
-        try:
-            logger.info("Getting URL: %s" % url)
-            r = requests.get(url, headers=self.get_headers)
-            if r.status_code == 200:
-                js = json.loads(r.content)
-            else:
-                logger.info("%i - %s" % (r.status_code, r.text))
-        except:
-            logger.warning(str(sys.exc_info()[0]))
-            logger.warning(str(traceback.format_exc()))
+        logger.info("Getting URL: %s" % url)
+        r = requests.get(url, headers=self.get_headers)
+        if r.status_code == 200:
+            js = json.loads(r.content)
+        else:
+            logger.info("%i - %s" % (r.status_code, r.text))
         return js
 
     def get_json(self, path):

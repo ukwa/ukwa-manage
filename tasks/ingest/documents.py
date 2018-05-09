@@ -1,5 +1,7 @@
+import os
 import json
 import hashlib
+import logging
 from urlparse import urlparse
 import requests
 from requests.utils import quote
@@ -10,10 +12,14 @@ import luigi.contrib.hadoop
 from lib.w3act.w3act import w3act
 from lib.docharvester.document_mdex import DocumentMDEx
 from tasks.ingest.w3act import CrawlFeed
+from lib.targets import TaskTarget
 
+logger = logging.getLogger(__name__)
 
-def dtarget(job, launch_id, status):
-    return luigi.LocalTarget('{}/{}'.format(state().folder, target_name('logs/documents', job, launch_id, status)))
+ACT_URL = os.environ.get('ACT_URL', None)
+ACT_USER = os.environ.get('ACT_USER', '')
+ACT_PASSWORD = os.environ.get('ACT_PASSWORD', '')
+WAYBACK_URL = os.environ.get('WAYBACK_URL_PREFIX', None)
 
 
 class AvailableInWayback(luigi.ExternalTask):
@@ -87,7 +93,7 @@ class AvailableInWayback(luigi.ExternalTask):
         Checks if a resource with a particular timestamp is available in the index:
         :return:
         """
-        wburl = '%s/xmlquery.jsp?type=urlquery&url=%s' % (systems().wayback, quote(self.url))
+        wburl = '%s/xmlquery.jsp?type=urlquery&url=%s' % (WAYBACK_URL, quote(self.url))
         logger.debug("Checking availability %s" % wburl)
         r = requests.get(wburl)
         logger.debug("Availability response: %d" % r.status_code)
@@ -109,7 +115,7 @@ class AvailableInWayback(luigi.ExternalTask):
         This is done separately, as using this alone may accidentally get an older version.
         :return:
         """
-        wburl = '%s/%s/%s' % (systems().wayback, self.ts, self.url)
+        wburl = '%s/%s/%s' % (WAYBACK_URL, self.ts, self.url)
         logger.debug("Checking download %s" % wburl)
         r = requests.head(wburl)
         logger.debug("Download HEAD response: %d" % r.status_code)
@@ -144,7 +150,7 @@ class ExtractDocumentAndPost(luigi.Task):
 
     @staticmethod
     def document_target(host, hash):
-        return luigi.LocalTarget('{}/documents/{}/{}'.format(state().folder, host, hash))
+        return TaskTarget('documents','document-{}/{}'.format(host, hash))
 
     def output(self):
         hasher = hashlib.md5()
@@ -164,7 +170,7 @@ class ExtractDocumentAndPost(luigi.Task):
             # Inform W3ACT it's available:
             doc['status'] = 'ACCEPTED'
             logger.debug("Sending doc: %s" % doc)
-            w = w3act(act().url, act().username, act().password)
+            w = w3act(ACT_URL, ACT_USER, ACT_PASSWORD)
             r = w.post_document(doc)
             if r.status_code == 200:
                 logger.info("Document POSTed to W3ACT: %s" % doc['document_url'])
