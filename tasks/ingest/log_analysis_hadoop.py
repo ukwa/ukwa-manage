@@ -284,7 +284,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
             return luigi.LocalTarget(path=out_name)
 
     def extra_modules(self):
-        return [lib]
+        return [lib,surt]
 
     def init_mapper(self):
         # Set up...
