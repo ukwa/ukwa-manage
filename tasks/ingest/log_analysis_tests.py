@@ -4,7 +4,7 @@ from tasks.ingest.log_analysis_hadoop import SummariseLogFiles
 
 
 def test_run_summariser():
-    task = SummariseLogFiles( [ 'test/logs/fragment-of-a-crawl.log' ], 'dc','20170220090024', False )
+    task = SummariseLogFiles( [ '../../test/fragment-of-a-crawl.log' ], 'dc','20170220090024', False )
     luigi.build([task], local_scheduler=True)
 
     count = 0

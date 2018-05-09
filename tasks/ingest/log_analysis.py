@@ -113,8 +113,7 @@ class AnalyseAndProcessDocuments(luigi.Task):
         return AnalyseLogFile(self.job, self.launch_id, self.log_paths, self.targets_path, self.from_hdfs)
 
     def output(self):
-        return TaskTarget('documents',
-                          'documents/posted-{}-{}-{}.jsonl'.format(self.job, self.launch_id, len(self.log_paths)))
+        return TaskTarget('documents', 'posted-{}-{}-{}.jsonl'.format(self.job, self.launch_id, len(self.log_paths)))
 
     def run(self):
         # Loop over documents discovered, and attempt to post to W3ACT:
@@ -171,8 +170,10 @@ class GenerateCrawlLogReports(luigi.Task):
         for log_file in self.input():
             log_paths.append(log_file.path)
 
-        # Yield a task for processing all the current logs:
+        # Yield a task for processing all the current logs (Hadoop job):
         log_stats = yield AnalyseLogFile(self.job, self.launch_id, log_paths, hdfs_targets.path, True)
+
+        # If we are looking at documents, extract them:
         if self.extract_documents:
             yield AnalyseAndProcessDocuments(self.job, self.launch_id, log_paths, hdfs_targets.path, True)
 
@@ -203,5 +204,7 @@ if __name__ == '__main__':
     import logging
     logging.getLogger().setLevel(logging.INFO)
     #luigi.run(['analyse.DomainCrawlSummarise', '--local-scheduler'])
-    luigi.run(['report.GenerateCrawlLogReports', '--job', 'weekly', '--launch-id', '20180507080102',
-               '--extract-documents', '--local-scheduler'])
+    luigi.run(['report.GenerateCrawlLogReports',
+               '--job', 'weekly',
+               '--launch-id', '20180507080102',
+               '--extract-documents'])
