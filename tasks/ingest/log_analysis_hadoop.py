@@ -9,7 +9,7 @@ import luigi.contrib.hadoop
 from luigi.contrib.hdfs.format import Plain, PlainDir
 
 import lib # Imported so extra_modules MR-bundle can access the following:
-from surt import surt
+import surt
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +120,7 @@ class CrawlLogExtractors(object):
         # Convert to SURT form:
         watched_surts = []
         for url in watched:
-            watched_surts.append(surt(url))
+            watched_surts.append(surt.surt(url))
         logger.info("WATCHED SURTS %s" % watched_surts)
 
         self.watched_surts = watched_surts
@@ -153,8 +153,8 @@ class CrawlLogExtractors(object):
         # Check the URL and Content-Type:
         if "application/pdf" in log.mime:
             for prefix in self.watched_surts:
-                document_surt = surt(log.url)
-                landing_page_surt = surt(log.via)
+                document_surt = surt.surt(log.url)
+                landing_page_surt = surt.surt(log.via)
                 # Are both URIs under the same watched SURT:
                 if document_surt.startswith(prefix) and landing_page_surt.startswith(prefix):
                     # Proceed to extract metadata and pass on to W3ACT:
