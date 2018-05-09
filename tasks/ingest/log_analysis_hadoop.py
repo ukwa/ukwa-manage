@@ -7,9 +7,10 @@ import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 from luigi.contrib.hdfs.format import Plain, PlainDir
+from lib.surt import url_to_surt
 
 import lib # Imported so extra_modules MR-bundle can access them
-import surt, tldextract, idna, requests, urllib3, certifi, chardet, requests_file, six # Unfortunately the surt module has a LOT of dependencies.
+#import surt, tldextract, idna, requests, urllib3, certifi, chardet, requests_file, six # Unfortunately the surt module has a LOT of dependencies.
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +121,7 @@ class CrawlLogExtractors(object):
         # Convert to SURT form:
         watched_surts = []
         for url in watched:
-            watched_surts.append(surt.surt(url))
+            watched_surts.append(url_to_surt(url))
         logger.warning("WATCHED SURTS %s" % watched_surts)
 
         self.watched_surts = watched_surts
@@ -153,8 +154,8 @@ class CrawlLogExtractors(object):
         # Check the URL and Content-Type:
         if "application/pdf" in log.mime:
             for prefix in self.watched_surts:
-                document_surt = surt.surt(log.url)
-                landing_page_surt = surt.surt(log.via)
+                document_surt = url_to_surt(log.url)
+                landing_page_surt = url_to_surt(log.via)
                 logger.warning("Looking for prefix '%s' in '%s' and '%s'" % (prefix,document_surt, landing_page_surt))
                 # Are both URIs under the same watched SURT:
                 if document_surt.startswith(prefix) and landing_page_surt.startswith(prefix):
@@ -285,7 +286,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
             return luigi.LocalTarget(path=out_name)
 
     def extra_modules(self):
-        return [lib,surt,tldextract,idna,requests,urllib3,certifi,chardet,requests_file,six]
+        return [lib]#,surt,tldextract,idna,requests,urllib3,certifi,chardet,requests_file,six]
 
     def init_mapper(self):
         # Set up...
@@ -378,7 +379,7 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
             return luigi.LocalTarget(path=out_name)
 
     def extra_modules(self):
-        return [lib,surt,tldextract,idna,requests,urllib3,certifi,chardet,requests_file,six]
+        return [lib]#,surt,tldextract,idna,requests,urllib3,certifi,chardet,requests_file,six]
 
     def mapper(self, line):
         log_time, status, size, url, discovery_path, referrer, mime, thread, request_time, hash, ignore, annotations \
