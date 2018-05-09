@@ -14,7 +14,7 @@ import logging
 import requests
 from urlparse import urljoin, urlparse
 from lxml import html
-from ukwa.lib.utils import url_to_surt
+import surt
 
 logger = logging.getLogger(__name__)
 
@@ -49,13 +49,13 @@ class DocumentMDEx(object):
         Given a URL and an array of publisher strings, determine which Watched Target to associate them with.
         '''
         # Find the list of Targets where a seed matches the given URL
-        surt = url_to_surt(url, host_only=True)
+        tsurt = surt.surt(url)
         matches = []
         for t in self.targets:
             if t['watched']:
                 a_match = False
                 for seed in t['seeds']:
-                    if surt.startswith(url_to_surt(seed, host_only=True)):
+                    if tsurt.startswith(surt.surt(seed)):
                         a_match = True
                 if a_match:
                     matches.append(t)
