@@ -9,7 +9,7 @@ import luigi.contrib.hadoop
 from luigi.contrib.hdfs.format import Plain, PlainDir
 
 import lib # Imported so extra_modules MR-bundle can access the following:
-import surt
+import surt, tldextract
 
 logger = logging.getLogger(__name__)
 
@@ -284,7 +284,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
             return luigi.LocalTarget(path=out_name)
 
     def extra_modules(self):
-        return [lib,surt]
+        return [lib,surt,tldextract]
 
     def init_mapper(self):
         # Set up...
