@@ -37,8 +37,8 @@ class GenerateHDFSReports(luigi.Task):
                 df2.to_csv(f_out)
 
         # Tag all as done:
-        #with self.output().open('w') as f_out:
-        #    f_out.write("DONE")
+        with self.output().open('w') as f_out:
+            f_out.write("DONE")
 
 
 if __name__ == '__main__':
