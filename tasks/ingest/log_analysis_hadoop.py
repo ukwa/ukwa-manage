@@ -158,7 +158,7 @@ class CrawlLogExtractors(object):
                 landing_page_surt = url_to_surt(log.via)
                 logger.warning("Looking for prefix '%s' in '%s' and '%s'" % (prefix,document_surt, landing_page_surt))
                 # Are both URIs under the same watched SURT:
-                if document_surt.startswith(prefix) and landing_page_surt.startswith(prefix):
+                if document_surt.startswith(prefix) or landing_page_surt.startswith(prefix):
                     # Proceed to extract metadata and pass on to W3ACT:
                     doc = {
                         'wayback_timestamp': log.start_time_plus_duration[:14],
