@@ -132,6 +132,8 @@ class AnalyseAndProcessDocuments(luigi.Task):
                         if counter%self.bunch_size == 0:
                             yield tasks
                             tasks = []
+                if len(tasks) > 0:
+                    yield tasks
 
 
 class GenerateCrawlLogReports(luigi.Task):
