@@ -1,9 +1,9 @@
 import json
 import luigi
 import logging
-from ukwa.lib.dex.document_mdex import DocumentMDEx
+from lib.docharvester.document_mdex import DocumentMDEx
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('luigi-interface')
 
 
 class RunDocumentExtractionTests(luigi.Task):
@@ -14,11 +14,19 @@ class RunDocumentExtractionTests(luigi.Task):
 
     @staticmethod
     def load_targets():
-        with open('test-data/crawl-feed.2017-01-02T2100.frequent') as f:
+        with open('../../test/crawl-feed.2017-01-02T2100.frequent') as f:
             return json.load(f)
 
     def run(self):
         # FIXME Add tests for Command and Act papers, ISBN,
+
+        # Example of the new website layout
+        self.run_doc_mdex_test(
+            "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/704095/commercial-victimisation-survey-technical-report-2017.pdf",
+            "https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/704095/commercial-victimisation-survey-technical-report-2017.pdf",
+            'https://www.gov.uk/government/publications?departments%5B%5D=home-office',
+            35912, "Crime against businesses: findings from the 2017 Commercial Victimisation Survey")
+
 
         # Example of a non-publication
         self.run_doc_mdex_test(
@@ -29,7 +37,7 @@ class RunDocumentExtractionTests(luigi.Task):
 
         # Command and Act papers
         self.run_doc_mdex_test(
-            'https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/593186/Local_government_finance_report.pdf',
+            'https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/594447/Local_government_finance_report.pdf',
             'https://www.gov.uk/government/publications/local-government-finance-report-2017-to-2018',
             'https://www.gov.uk/government/publications?departments[]=department-for-transport',
             35913, "Local Government Finance Report (England) 2017 to 2018")
@@ -68,8 +76,8 @@ class RunDocumentExtractionTests(luigi.Task):
 
         # - Children's Commissioner
         self.run_doc_mdex_test(
-            'http://www.childrenscommissioner.gov.uk/sites/default/files/publications/The%20views%20of%20children%20and%20young%20people%20regarding%20media%20access%20to%20family%20courts.pdf',
-            'http://www.childrenscommissioner.gov.uk/publications/report-views-children-and-young-people-regarding-media-access-family-courts',
+            'https://www.childrenscommissioner.gov.uk/wp-content/uploads/2017/08/The-views-of-children-and-young-people-regarding-media-access-to-family-courts.pdf',
+            'https://www.childrenscommissioner.gov.uk/publication/report-on-the-views-of-children-and-young-people-regarding-media-access-to-family-courts/',
             'http://www.childrenscommissioner.gov.uk/publications',
             36039, "Report on the views of children and young people regarding media access to family courts")
 
@@ -126,10 +134,10 @@ class RunDocumentExtractionTests(luigi.Task):
 
         # gov.uk documnent discovered via other sites:
         self.run_doc_mdex_test(
-            'https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/214379/WP77techapp.pdf',
+            'https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/214379/WP77techapp.pdf',
             'http://www.ifs.org.uk/publications/8736',
             'http://www.ifs.org.uk/',
-            35911, "Technical annexe")
+            36031, "Technical annexe")
 
         # This example is problematic becuase it's a gov.uk document without an 'up' relation to discover it's proper landing page.
         # Running separate crawls or more complete link-based document extraction and analysis would avoid this.

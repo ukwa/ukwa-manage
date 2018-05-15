@@ -9,14 +9,15 @@ Created on 8 Feb 2016
 @author: andy
 '''
 
+import re
 import json
 import logging
 import requests
 from urlparse import urljoin, urlparse
 from lxml import html
-import surt
+from lib.surt import url_to_surt
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('luigi-interface')
 
 
 class DocumentMDEx(object):
@@ -49,13 +50,13 @@ class DocumentMDEx(object):
         Given a URL and an array of publisher strings, determine which Watched Target to associate them with.
         '''
         # Find the list of Targets where a seed matches the given URL
-        tsurt = surt.surt(url)
+        tsurt = url_to_surt(url)
         matches = []
         for t in self.targets:
             if t['watched']:
                 a_match = False
                 for seed in t['seeds']:
-                    if tsurt.startswith(surt.surt(seed)):
+                    if tsurt.startswith(url_to_surt(seed)):
                         a_match = True
                 if a_match:
                     matches.append(t)
@@ -111,9 +112,11 @@ class DocumentMDEx(object):
         '''
         # Pass the document through a different extractor based on how the URL starts.
         try:
-            if( self.doc["document_url"].startswith("https://www.gov.uk/")):
+            if( re.match("^https://.*\.gov\.uk/.*$", self.doc["document_url"]) ):
+                logger.info("Matches gov.uk pattern.")
                 self.mdex_gov_uk_publications()
             elif( self.doc["document_url"].startswith("http://www.ifs.org.uk/")):
+                logger.info("Matches IFS pattern.")
                 self.mdex_ifs_reports()
             else:
                 self.mdex_default()
@@ -214,6 +217,7 @@ class DocumentMDEx(object):
             # Attempt to extract resourse-level metadata (overriding publication-level metadata):
             # Look through landing page for links, find metadata section corresponding to the document:
             for a in h.xpath("//a"):
+                # This relies on a direct link from landing page to PDF, which is no longer the case:
                 if self.doc["document_url"] in urljoin(self.doc["landing_page_url"], a.attrib["href"]):
                     if ("class" in a.getparent().getparent().attrib) and \
                                     a.getparent().getparent().attrib["class"] == "attachment-details":
