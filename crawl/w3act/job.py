@@ -236,7 +236,7 @@ class W3actJob(object):
     def run_job_script(self):
         """Runs the 'script.beanshell' located in the job directory."""
         with open("%s/script.beanshell" % self.job_dir, "rb") as i:
-            raw, html = self.heritrix.execute_script(self.name, " beanshell", i.read())
+            raw, html = self.heritrix.execute_script(self.name, "beanshell", i.read())
 
 
     def write_act_info(self):
