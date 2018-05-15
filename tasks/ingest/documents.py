@@ -153,7 +153,7 @@ class ExtractDocumentAndPost(luigi.Task):
 
     @staticmethod
     def document_target(host, hash):
-        return TaskTarget('documents','document-{}/{}'.format(host, hash))
+        return TaskTarget('documents','{}/{}'.format(host, hash))
 
     def output(self):
         hasher = hashlib.md5()
