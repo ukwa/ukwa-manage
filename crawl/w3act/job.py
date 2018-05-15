@@ -17,9 +17,9 @@ from crawl.h3 import hapyx
 from crawl.w3act.util import unique_list
 from crawl.w3act import credentials
 from xml.etree.ElementTree import ParseError
-from celery.utils.log import get_task_logger
 from tasks.common import systems
-logger = get_task_logger(__name__)
+
+logger = logging.getLogger('luigi-interface')
 
 requests.packages.urllib3.disable_warnings()
 
