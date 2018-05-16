@@ -69,8 +69,8 @@ class GenerateHDFSReports(luigi.Task):
             # NPLD By month:
             out = ReportTarget('content/reports/hdfs', 'npld-total-file-size-by-stream-per-month.csv')
             with out.open('w') as f_out:
-                npsm = np.groupby([np.timestamp.dt.to_period('M'), np.stream]).file_size.sum().unstack()
-                npsm.to_csv(f_out,float_format="%.0f")
+                npsm = np.groupby([np.timestamp.dt.to_period('M'), np.stream]).file_size.sum().reset_index()
+                npsm.to_csv(f_out,float_format="%.0f", na_rep=0,index=False)
 
             # NPLD Total:
             out = ReportTarget('content/reports/hdfs', 'npld-total-file-size-by-stream-totals.csv')
