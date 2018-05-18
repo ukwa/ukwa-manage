@@ -107,7 +107,7 @@ class AnalyseAndProcessDocuments(luigi.Task):
     from_hdfs = luigi.BoolParameter(default=False)
 
     # Size of bunches of jobs to yield
-    bunch_size = 1000
+    bunch_size = 10000
 
     def requires(self):
         return AnalyseLogFile(self.job, self.launch_id, self.log_paths, self.targets_path, self.from_hdfs)
@@ -122,9 +122,11 @@ class AnalyseAndProcessDocuments(luigi.Task):
                 counter = 0
                 tasks = []
                 for line in in_file:
+                    logger.info("Got line: %s" % line)
                     prefix, docjson = line.strip().split("\t", 1)
                     if prefix.startswith("DOCUMENT"):
                         doc = json.loads(docjson)
+                        logger.info("Got doc: %s" % doc['document_url'])
                         out_file.write("%s\n" % json.dumps(doc))
                         tasks.append(ExtractDocumentAndPost(self.job, self.launch_id, doc, doc["source"]))
                         counter += 1
