@@ -203,6 +203,10 @@ class DocumentMDEx(object):
                 api_json_url = api_json_url.geturl()
                 logger.debug("Downloading and parsing from API: %s" % api_json_url)
                 r = requests.get(api_json_url)
+                if r.status_code != 200:
+                    logger.warning("Got status code %s for URL %s" % (r.status_code, api_json_url))
+                    logger.warning("Response: %s" % r.content)
+                    raise Exception("Could not download the URL from the Content API!")
                 md = json.loads(r.content)
                 self.doc['title'] = md['title']
                 self.doc['publication_date'] = md['first_published_at']
@@ -213,6 +217,10 @@ class DocumentMDEx(object):
             # Grab the landing page URL as HTML
             logger.debug("Downloading and parsing: %s" % self.doc['landing_page_url'])
             r = requests.get(self.lp_wb_url())
+            if r.status_code != 200:
+                logger.warning("Got status code %s for URL %s" % (r.status_code, self.lp_wb_url()))
+                logger.warning("Response: %s" % r.content)
+                raise Exception("Could not download the landing page!")
             h = html.fromstring(r.content)
             # Attempt to extract resourse-level metadata (overriding publication-level metadata):
             # Look through landing page for links, find metadata section corresponding to the document:

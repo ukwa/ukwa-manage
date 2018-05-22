@@ -14,13 +14,19 @@ class RunDocumentExtractionTests(luigi.Task):
 
     @staticmethod
     def load_targets():
-        with open('../../test/crawl-feed.2017-01-02T2100.frequent') as f:
+        with open('../../test/crawl-feed.2018-05-21T2100.weekly.json') as f:
             return json.load(f)
 
     def run(self):
         # FIXME Add tests for Command and Act papers, ISBN,
 
-        # Example of the new website layout
+        # Examples of the new website layout
+        self.run_doc_mdex_test(
+            "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/706496/GCSE_Factsheet_employerFEHE_May_2018_.pdf",
+            "https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/706496/GCSE_Factsheet_employerFEHE_May_2018_.pdf",
+            'https://www.gov.uk/government/publications?departments%5B%5D=department-for-education',
+            36033, "GCSE new grading scale: factsheets")
+
         self.run_doc_mdex_test(
             "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/704095/commercial-victimisation-survey-technical-report-2017.pdf",
             "https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/704095/commercial-victimisation-survey-technical-report-2017.pdf",
