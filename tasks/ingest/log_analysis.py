@@ -123,11 +123,11 @@ class AnalyseAndProcessDocuments(luigi.Task):
                 counter = 0
                 tasks = []
                 for line in in_file:
-                    logger.info("Got line: %s" % line)
+                    #logger.info("Got line: %s" % line)
                     prefix, docjson = line.strip().split("\t", 1)
                     if prefix.startswith("DOCUMENT"):
                         doc = json.loads(docjson)
-                        logger.info("Got doc: %s" % doc['document_url'])
+                        #logger.info("Got doc: %s" % doc['document_url'])
                         out_file.write("%s\n" % json.dumps(doc))
                         edp_task = ExtractDocumentAndPost(self.job, self.launch_id, doc, doc["source"])
                         # Reduce Luigi scheduler overhead by only enqueuing incomplete tasks:

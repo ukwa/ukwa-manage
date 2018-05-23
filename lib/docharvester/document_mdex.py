@@ -224,9 +224,12 @@ class DocumentMDEx(object):
             h = html.fromstring(r.content)
             # Attempt to extract resourse-level metadata (overriding publication-level metadata):
             # Look through landing page for links, find metadata section corresponding to the document:
+            matches = 0
             for a in h.xpath("//a"):
+                logger.info("Looking for %s in %s" % ( self.doc['filename'], a.attrib["href"]))
                 # Match based on just the file name:
                 if self.doc["filename"] in a.attrib["href"]:
+                    matches += 1
                     if ("class" in a.getparent().getparent().attrib) and \
                                     a.getparent().getparent().attrib["class"] == "attachment-details":
                         div = a.getparent().getparent()
@@ -244,6 +247,8 @@ class DocumentMDEx(object):
                             if len(ref.xpath("./span[starts-with(text(), 'HC') or starts-with(text(), 'Cm') or starts-with(text(), 'CM')]")) > 0:
                                 self.doc['publishers'] = ["Command and Act Papers"]
             # This is allowed to be empty if we are deferring to the default, and majot problems should throw errors earlier.
+            if matches == 0:
+                raise Exception("Document HREF matching failed! Can't find %s" % self.doc)
             #if not self.doc.has_key('title') or self.doc['title']:
             #    raise Exception('Title extraction failed! Metadata extraction for this target should be reviewed.')
     
