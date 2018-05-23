@@ -107,7 +107,7 @@ class AnalyseAndProcessDocuments(luigi.Task):
     from_hdfs = luigi.BoolParameter(default=False)
 
     # Size of bunches of jobs to yield
-    bunch_size = 1000
+    bunch_size = 10000
 
     def requires(self):
         # Analyse the log file on HDFS, using only one reducer:
