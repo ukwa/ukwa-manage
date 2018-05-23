@@ -107,7 +107,7 @@ class AnalyseAndProcessDocuments(luigi.Task):
     from_hdfs = luigi.BoolParameter(default=False)
 
     # Size of bunches of jobs to yield
-    bunch_size = 100000
+    bunch_size = 1000
 
     def requires(self):
         return AnalyseLogFile(self.job, self.launch_id, self.log_paths, self.targets_path, self.from_hdfs)
@@ -128,8 +128,11 @@ class AnalyseAndProcessDocuments(luigi.Task):
                         doc = json.loads(docjson)
                         logger.info("Got doc: %s" % doc['document_url'])
                         out_file.write("%s\n" % json.dumps(doc))
-                        tasks.append(ExtractDocumentAndPost(self.job, self.launch_id, doc, doc["source"]))
-                        counter += 1
+                        edp_task = ExtractDocumentAndPost(self.job, self.launch_id, doc, doc["source"])
+                        # Reduce Luigi scheduler overhead by only enqueuing incomplete tasks:
+                        if not edp_task.complete():
+                            tasks.append(edp_task)
+                            counter += 1
                         # Group tasks into bunches:
                         if counter%self.bunch_size == 0:
                             yield tasks
