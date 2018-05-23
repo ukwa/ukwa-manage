@@ -110,7 +110,8 @@ class AnalyseAndProcessDocuments(luigi.Task):
     bunch_size = 1000
 
     def requires(self):
-        return AnalyseLogFile(self.job, self.launch_id, self.log_paths, self.targets_path, self.from_hdfs)
+        # Analyse the log file on HDFS, using only one reducer:
+        return AnalyseLogFile(self.job, self.launch_id, self.log_paths, self.targets_path, self.from_hdfs, 1)
 
     def output(self):
         return TaskTarget('documents', 'posted-{}-{}-{}.jsonl'.format(self.job, self.launch_id, len(self.log_paths)))

@@ -267,9 +267,12 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
     targets_path = luigi.Parameter()
     from_hdfs = luigi.BoolParameter(default=False)
 
+    # This can be set to 1 if there is intended to be one output file. The usual Luigi default is 25.
+    # Using one output file ensures the whole output is sorted but is not suitable for very large crawls.
+    n_reduce_tasks = luigi.Parameter(default=25)
+
     extractor = None
 
-    #n_reduce_tasks = 1 # This can be set to 1 if there is intended to be one output file. Default is 25.
 
     def requires(self):
         reqs = []

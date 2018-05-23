@@ -225,8 +225,8 @@ class DocumentMDEx(object):
             # Attempt to extract resourse-level metadata (overriding publication-level metadata):
             # Look through landing page for links, find metadata section corresponding to the document:
             for a in h.xpath("//a"):
-                # This relies on a direct link from landing page to PDF, which is no longer the case:
-                if self.doc["document_url"] in urljoin(self.doc["landing_page_url"], a.attrib["href"]):
+                # Match based on just the file name:
+                if self.doc["filename"] in a.attrib["href"]:
                     if ("class" in a.getparent().getparent().attrib) and \
                                     a.getparent().getparent().attrib["class"] == "attachment-details":
                         div = a.getparent().getparent()
