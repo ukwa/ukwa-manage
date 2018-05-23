@@ -5,9 +5,14 @@ import datetime
 from lib.w3act.w3act import w3act
 from tasks.common import logger, state_file
 
-ACT_URL = os.environ.get('ACT_URL',None)
-ACT_USER = os.environ.get('ACT_USER','')
-ACT_PASSWORD = os.environ.get('ACT_PASSWORD','')
+# Define environment variable names here:
+ENV_ACT_URL = 'ACT_URL'
+ENV_ACT_USER = 'ACT_USER'
+ENV_ACT_PASSWORD = 'ACT_PASSWORD'
+
+ACT_URL = os.environ[ENV_ACT_URL]
+ACT_USER = os.environ[ENV_ACT_USER]
+ACT_PASSWORD = os.environ[ENV_ACT_PASSWORD]
 
 
 class CrawlFeed(luigi.Task):
@@ -31,6 +36,9 @@ class CrawlFeed(luigi.Task):
             targets = w.get_oa_export(self.frequency)
         else:
             targets = w.get_ld_export(self.frequency)
+        # Check the result is sensible:
+        if targets is None or len(targets) == 0:
+            raise Exception("No target data downloaded!")
         # Persist to disk:
         with self.output().open('w') as f:
             f.write('{}'.format(json.dumps(targets, indent=4)))

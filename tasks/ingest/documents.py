@@ -11,15 +11,12 @@ import luigi.contrib.hadoop
 
 from lib.w3act.w3act import w3act
 from lib.docharvester.document_mdex import DocumentMDEx
-from tasks.ingest.w3act import CrawlFeed
+from tasks.ingest.w3act import CrawlFeed, ENV_ACT_PASSWORD, ENV_ACT_URL, ENV_ACT_USER
 from lib.targets import TaskTarget
 
 logger = logging.getLogger(__name__)
 
 # Define environment variable names here:
-ENV_ACT_URL = 'ACT_URL'
-ENV_ACT_USER = 'ACT_USER'
-ENV_ACT_PASSWORD = 'ACT_PASSWORD'
 ENV_WAYBACK_URL_PREFIX = 'WAYBACK_URL_PREFIX'
 
 
@@ -141,13 +138,13 @@ class ExtractDocumentAndPost(luigi.Task):
     launch_id = luigi.Parameter()
     doc = luigi.DictParameter()
     source = luigi.Parameter()
-    w3act = luigi.Parameter(default=os.environ['ACT_URL'])
+    w3act = luigi.Parameter(default=os.environ[ENV_ACT_URL])
 
     resources = { 'w3act': 1 }
 
     def requires(self):
         return {
-            'targets': CrawlFeed('frequent'),
+            'targets': CrawlFeed(self.job),
             'available' : AvailableInWayback(self.doc['document_url'], self.doc['wayback_timestamp'])
         }
 

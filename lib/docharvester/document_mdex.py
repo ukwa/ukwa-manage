@@ -29,6 +29,8 @@ class DocumentMDEx(object):
         '''
         The connection to W3ACT and the Document to be enhanced.
         '''
+        if not targets:
+            raise Exception("The Targets passed to DocumentMDEx cannot by empty!")
         self.targets = targets
         self.doc = document
         self.source = source
@@ -130,7 +132,6 @@ class DocumentMDEx(object):
             logger.info("GOT %s" % self.doc)
 
         # Look up which Target this URL should be associated with:
-        logger.info("Checking targets %s and doc %s" % (self.targets, self.doc))
         if self.targets and self.doc.has_key('landing_page_url'):
             logger.info("Looking for match for %s source %s and publishers '%s'" % (self.doc['landing_page_url'], self.source, self.doc.get('publishers',[])))
             self.doc['target_id'] = self.find_watched_target_for(self.doc['landing_page_url'], self.source, self.doc.get('publishers', []))
