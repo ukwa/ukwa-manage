@@ -212,11 +212,15 @@ class DocumentMDEx(object):
                 md = json.loads(r.content)
                 self.doc['title'] = md['title']
                 self.doc['publication_date'] = md['first_published_at']
+                # Pick up the 'public updated' date instead, if present:
+                if 'public_updated_at' in md:
+                    self.doc['publication_date'] = md['public_updated_at']
                 self.doc['publishers'] = []
                 for org in md['links']['organisations']:
                     self.doc['publishers'].append(org['title'])
 
-            # Grab the landing page URL as HTML
+            # Grab the landing page URL as HTML:
+            # TODO This could all be pulled out of the Content API, if it's stable enough.
             logger.debug("Downloading and parsing: %s" % self.doc['landing_page_url'])
             r = requests.get(self.lp_wb_url())
             if r.status_code != 200:
@@ -228,7 +232,7 @@ class DocumentMDEx(object):
             # Look through landing page for links, find metadata section corresponding to the document:
             matches = 0
             for a in h.xpath("//a"):
-                logger.info("Looking for %s in %s" % ( self.doc['filename'], a.attrib["href"]))
+                #logger.info("Looking for %s in %s" % ( self.doc['filename'], a.attrib["href"]))
                 # Match based on just the file name:
                 if self.doc["filename"] in a.attrib["href"]:
                     matches += 1
