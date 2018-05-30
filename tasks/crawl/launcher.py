@@ -41,8 +41,29 @@ import argparse
 import dateutil.parser
 from datetime import datetime
 
-from ukwa.lib.w3act import w3act
-from ukwa.lib.launch import KafkaLauncher
+from lib.w3act import w3act
+from lib.launch import KafkaLauncher
+
+#
+#
+#
+#
+#
+#
+#
+#
+#
+# FIXME This is to be refactored as a Luigi script.
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
 
 i_launches = 0
 

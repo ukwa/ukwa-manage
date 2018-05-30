@@ -16,12 +16,15 @@ agents.launch -- Feeds URIs into queues
 import os
 import sys
 import time
+import json
 import logging
 import argparse
 import requests
+from datetime import datetime
+from urlparse import urlparse
 from lxml import html
+from kafka import KafkaProducer
 
-from ukwa.lib.launch import KafkaLauncher
 
 # Set up a logging handler:
 handler = logging.StreamHandler()
@@ -40,14 +43,79 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+class KafkaLauncher(object):
+    '''
+    classdocs
+    '''
+
+    def __init__(self, args):
+        '''
+        Constructor
+        '''
+        self.args = args
+        self.producer = KafkaProducer(
+            bootstrap_servers=self.args.kafka_server,
+            value_serializer=lambda v: json.dumps(v).encode('utf-8'))
+
+    def send_message(self, key, message, queue=None):
+        """
+        Sends a message to the given queue.
+        """
+        #
+        if not queue:
+            queue = self.args.queue
+
+        logger.info("Sending message: " + json.dumps(message))
+        self.producer.send(queue, key=key, value=message)
+
+    def launch(self, destination, uri, source, isSeed=False, forceFetch=False):
+        curim = {}
+        if destination == "h3":
+            curim['headers'] = {}
+            # curim['headers']['User-Agent'] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/37.0.2062.120 Chrome/37.0.2062.120 Safari/537.36"
+            curim['method'] = "GET"
+            curim['parentUrl'] = uri
+            curim['parentUrlMetadata'] = {}
+            curim['parentUrlMetadata']['pathFromSeed'] = ""
+            curim['parentUrlMetadata']['heritableData'] = {}
+            curim['parentUrlMetadata']['heritableData']['source'] = source
+            curim['parentUrlMetadata']['heritableData']['heritable'] = ['source', 'heritable']
+            curim['isSeed'] = isSeed
+            if not isSeed:
+                curim['forceFetch'] = forceFetch
+            curim['url'] = uri
+            curim['hop'] = ""
+        elif destination == "har":
+            curim['clientId'] = "unused"
+            curim['metadata'] = {}
+            curim['metadata']['heritableData'] = {}
+            curim['metadata']['heritableData']['heritable'] = ['source', 'heritable']
+            curim['metadata']['heritableData']['source'] = source
+            curim['metadata']['pathFromSeed'] = ""
+            curim['isSeed'] = isSeed
+            if not isSeed:
+                curim['forceFetch'] = forceFetch
+            curim['url'] = uri
+        else:
+            logger.error("Can't handle destination type '%s'" % destination)
+
+        # Determine the key
+        key = urlparse(uri).hostname
+
+        # Push a 'seed' message onto the rendering queue:
+        self.send_message(key, curim)
+
+    def flush(self):
+        self.producer.flush()
+
+
 def sender(launcher, args, uri):
     # Ensure a http:// or https:// at the front:
     if not (uri.startswith("http://") or uri.startswith("https://")):
         uri = "http://%s" % uri
 
     # Add the main URL
-    launcher.launch(args.destination, uri, args.source, isSeed=args.seed, clientId="FC-3-uris-to-crawl",
-                    forceFetch=args.forceFetch, sendCheckMessage=False)
+    launcher.launch(args.destination, uri, args.source, isSeed=args.seed, forceFetch=args.forceFetch)
 
     # Also, for some hosts, attempt to extract all pages from a oaged list:
     if args.pager:
@@ -60,7 +128,7 @@ def sender(launcher, args, uri):
             last = int(span.split()[-1]) + 1
             for i in range(2, last):
                 page_uri = "%s&page=%i" % (uri, i)
-                launcher.launch(args.destination, page_uri, args.source, isSeed=False, clientId="FC-3-uris-to-crawl",
+                launcher.launch(args.destination, page_uri, args.source, isSeed=False,
                                 forceFetch=args.forceFetch)
 
 
@@ -78,7 +146,7 @@ def main(argv=None):
                         help="Force the URL to be fetched, even if already seen and queued/rejected. [default: %(default)s]")
     parser.add_argument("-P", "--pager", dest="pager", action="store_true", default=False, required=False,
                         help="Attempt to extract URLs for all pages, and submit those too.")
-    parser.add_argument('queue', metavar='queue', help="Name of queue to send seeds to.")
+    parser.add_argument('queue', metavar='queue', help="Name of queue to send URIs too, e.g. 'dc.discovered'.")
     parser.add_argument('uri_or_filename', metavar='uri_or_filename', help="URI to enqueue, or filename containing URIs to enqueue.")
 
     args = parser.parse_args()
@@ -86,7 +154,7 @@ def main(argv=None):
     # Set up launcher:
     launcher = KafkaLauncher(args)
 
-    # Read from a file:
+    # Read from a file, if the input is a file:
     if os.path.isfile(args.uri_or_filename):
         with open(args.uri_or_filename,'r') as f:
             for line in f:
