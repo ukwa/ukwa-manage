@@ -1,5 +1,6 @@
 venv*
-legacy
-prototype
-doc
-build
+legacy/*
+prototype/*
+doc/*
+build/*
+task-state/*
