@@ -2,7 +2,7 @@
 from kafka import KafkaConsumer
 
 # To consume latest messages and auto-commit offsets
-consumer = KafkaConsumer('uris-to-crawl', auto_offset_reset='earliest',
+consumer = KafkaConsumer('uris.crawled.fc', auto_offset_reset='earliest',
                          bootstrap_servers=['localhost:9092'])
 for message in consumer:
     # message value and key are raw bytes -- decode if necessary!
