@@ -6,6 +6,7 @@ import datetime
 from tasks.ingest.w3act import TargetList, SubjectList, CollectionList
 from tasks.common import state_file
 from jinja2 import Environment, PackageLoader
+from prometheus_client import CollectorRegistry, Gauge
 
 logger = logging.getLogger('luigi-interface')
 
@@ -112,6 +113,8 @@ class GenerateW3ACTTitleExport(luigi.Task):
     task_namespace = 'discovery'
     date = luigi.DateParameter(default=datetime.date.today())
 
+    record_count = 0
+
     def requires(self):
         return [TargetList(self.date), CollectionList(self.date), SubjectList(self.date)]
 
@@ -127,13 +130,11 @@ class GenerateW3ACTTitleExport(luigi.Task):
         # Index collections by ID:
         collections_by_id = {}
         for col in collections:
-            collections_by_id[col['id']] = col
+            collections_by_id[int(col['id'])] = col
 
         # Convert to records:
-        record_count = 0
         records = []
         for target in targets:
-            print(target)
             if target['field_crawl_frequency'] == 'NEVERCRAWL':
                 continue
             # Get the url, use the first:
@@ -149,11 +150,11 @@ class GenerateW3ACTTitleExport(luigi.Task):
                 'publisher': publisher
             }
             if len(target['collectionIds']) > 0:
-                rec['subject'] = collections_by_id.get(target['collectionIds'][0], "QUACK")
+                rec['subject'] = collections_by_id.get(int(target['collectionIds'][0]), "QUACK")
             # And append it:
-            print(rec)
             records.append(rec)
-            record_count += 1
+            self.record_count += 1
+        print(self.record_count)
 
         # Setup templates:
         env = Environment(loader=PackageLoader('tasks.access.search', 'templates'))
@@ -163,6 +164,14 @@ class GenerateW3ACTTitleExport(luigi.Task):
         with self.output().open('w') as f:
             for part in template.generate({ "records": records }):
                 f.write(part)
+
+    def get_metrics(self, registry):
+        # type: (CollectorRegistry) -> None
+
+        g_b = Gauge('ukwa_titlelevel_record_count',
+                  'Total number of title-level metadata records.',
+                  registry=registry)
+        g_b.set(self.record_count)
 
 
 class UpdateCollectionsSolr(luigi.Task):
