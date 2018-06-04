@@ -144,7 +144,7 @@ class GenerateW3ACTTitleExport(luigi.Task):
             url = target['fieldUrls'][0]['url']
             publisher = url # FIXME reduce to domain.
             first_date = "20130401120000"
-            record_id = "%s/%s" % (first_date, base64.b64encode(hashlib.md5(url).digest()))
+            record_id = "%s/%s" % (first_date, base64.b64encode(hashlib.md5(url.encode('utf-8')).digest()))
             # Otherwise, build the record:
             rec = {
                 'id': record_id,
