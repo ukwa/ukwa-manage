@@ -133,6 +133,7 @@ class GenerateW3ACTTitleExport(luigi.Task):
         record_count = 0
         records = []
         for target in targets:
+            print(target)
             if target['field_crawl_frequency'] == 'NEVERCRAWL':
                 continue
             # Get the url, use the first:
@@ -148,9 +149,11 @@ class GenerateW3ACTTitleExport(luigi.Task):
                 'publisher': publisher
             }
             if len(target['collectionIds']) > 0:
-                rec['subject'] = ''
+                rec['subject'] = collections_by_id[target['collectionIds'][0]]
             # And append it:
+            print(rec)
             records.append(rec)
+            record_count += 1
 
         # Setup templates:
         env = Environment(loader=PackageLoader('tasks.access.search', 'templates'))
@@ -158,7 +161,7 @@ class GenerateW3ACTTitleExport(luigi.Task):
 
         # And write:
         with self.output().open('w') as f:
-            for part in template.generate({ "records ": records }):
+            for part in template.generate({ "records": records }):
                 f.write(part)
 
 
