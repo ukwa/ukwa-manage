@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import json
 import luigi
 import pysolr
@@ -149,12 +150,14 @@ class GenerateW3ACTTitleExport(luigi.Task):
                 'title': target['title'],
                 'publisher': publisher
             }
+            # Add any collection:
             if len(target['collectionIds']) > 0:
-                rec['subject'] = collections_by_id.get(int(target['collectionIds'][0]), "QUACK")
-            # And append it:
+                col = collections_by_id.get(int(target['collectionIds'][0]), {})
+                rec['subject'] = col.get('name', None)
+
+            # And append record to the set:
             records.append(rec)
             self.record_count += 1
-        print(self.record_count)
 
         # Setup templates:
         env = Environment(loader=PackageLoader('tasks.access.search', 'templates'))
@@ -163,7 +166,7 @@ class GenerateW3ACTTitleExport(luigi.Task):
         # And write:
         with self.output().open('w') as f:
             for part in template.generate({ "records": records }):
-                f.write(part.decode("utf-8"))
+                f.write(part.encode("utf-8"))
 
     def get_metrics(self, registry):
         # type: (CollectorRegistry) -> None
