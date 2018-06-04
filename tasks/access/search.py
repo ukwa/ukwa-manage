@@ -149,7 +149,7 @@ class GenerateW3ACTTitleExport(luigi.Task):
                 'publisher': publisher
             }
             if len(target['collectionIds']) > 0:
-                rec['subject'] = collections_by_id[target['collectionIds'][0]]
+                rec['subject'] = collections_by_id.get(target['collectionIds'][0], "QUACK")
             # And append it:
             print(rec)
             records.append(rec)
