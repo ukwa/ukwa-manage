@@ -143,7 +143,7 @@ class GenerateW3ACTTitleExport(luigi.Task):
             # Get the url, use the first:
             url = target['fieldUrls'][0]['url']
             publisher = url # FIXME reduce to domain.
-            first_date = "20130401120000"
+            first_date = "20130401120000" # FIXME should look this up and also honour embargo
             record_id = "%s/%s" % (first_date, base64.b64encode(hashlib.md5(url.encode('utf-8')).digest()))
             # Otherwise, build the record:
             rec = {
