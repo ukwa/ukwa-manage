@@ -163,7 +163,7 @@ class GenerateW3ACTTitleExport(luigi.Task):
         # And write:
         with self.output().open('w') as f:
             for part in template.generate({ "records": records }):
-                f.write(part)
+                f.write(part.decode("utf-8"))
 
     def get_metrics(self, registry):
         # type: (CollectorRegistry) -> None
