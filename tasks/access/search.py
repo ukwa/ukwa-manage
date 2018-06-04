@@ -5,6 +5,7 @@ import logging
 import datetime
 from tasks.ingest.w3act import TargetList, SubjectList, CollectionList
 from tasks.common import state_file
+from jinja2 import Environment, PackageLoader
 
 logger = logging.getLogger('luigi-interface')
 
@@ -105,6 +106,60 @@ class GenerateIndexAnnotations(luigi.Task):
 
         with self.output().open('w') as f:
             f.write('{}'.format(json.dumps(annotations, indent=4)))
+
+
+class GenerateW3ACTTitleExport(luigi.Task):
+    task_namespace = 'discovery'
+    date = luigi.DateParameter(default=datetime.date.today())
+
+    def requires(self):
+        return [TargetList(self.date), CollectionList(self.date), SubjectList(self.date)]
+
+    def output(self):
+        return state_file(self.date,'access-data', 'title-level-metadata-w3act.xml')
+
+    def run(self):
+        # Get the data:
+        targets = json.load(self.input()[0].open())
+        collections = json.load(self.input()[1].open())
+        subjects = json.load(self.input()[2].open())
+
+        # Index collections by ID:
+        collections_by_id = {}
+        for col in collections:
+            collections_by_id[col['id']] = col
+
+        # Convert to records:
+        record_count = 0
+        records = []
+        for target in targets:
+            if target['field_crawl_frequency'] == 'NEVERCRAWL':
+                continue
+            # Get the url, use the first:
+            url = target['fieldUrls'][0]['url']
+            publisher = url # FIXME reduce to domain.
+            first_date = "20130401120000"
+            # Otherwise, build the record:
+            rec = {
+                'id': id,
+                'date': first_date,
+                'url': url,
+                'title': target['title'],
+                'publisher': publisher
+            }
+            if len(target['collectionIds']) > 0:
+                rec['subject'] = ''
+            # And append it:
+            records.append(rec)
+
+        # Setup templates:
+        env = Environment(loader=PackageLoader('tasks.access.search', 'templates'))
+        template = env.get_template('title-level-template.xml')
+
+        # And write:
+        with self.output().open('w') as f:
+            for part in template.generate({ "records ": records }):
+                f.write(part)
 
 
 class UpdateCollectionsSolr(luigi.Task):
