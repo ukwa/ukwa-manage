@@ -6,6 +6,7 @@ import logging
 import base64
 import hashlib
 import datetime
+import tldextract
 from lib.cdx import CdxIndex
 from tasks.ingest.w3act import TargetList, SubjectList, CollectionList
 from tasks.common import state_file
@@ -148,10 +149,13 @@ class GenerateW3ACTTitleExport(luigi.Task):
                 continue
             # Get the url, use the first:
             url = target['fieldUrls'][0]['url']
-            publisher = url # FIXME reduce to domain.
+            # Extract the domain:
+            parsed_url = tldextract.extract(url)
+            publisher = parsed_url.registered_domain
+            # Lookup in CDX:
             wayback_date_str = CdxIndex().get_first_capture_date(url) # Get date in '20130401120000' form.
             if wayback_date_str is None:
-                logger.warning("The URL '%s' is not yet available." % url)
+                logger.warning("The URL '%s' is not yet available, inScopeForLegalDeposit = %s" % (url, target['inScopeForLegalDeposit']))
                 self.missing_record_count += 1
                 continue
             wayback_date = datetime.datetime.strptime(wayback_date_str, '%Y%m%d%H%M%S')
