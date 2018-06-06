@@ -226,7 +226,7 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
                 else:
                     # Next batch:
                     offset += batch
-            except ExpatError, e:
+            except ExpatError as e:
                 logger.warning("Exception on lookup: "  + str(e))
                 next_batch = False
 

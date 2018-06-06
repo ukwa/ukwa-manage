@@ -6,6 +6,7 @@ import logging
 import base64
 import hashlib
 import datetime
+from lib.cdx import CdxIndex
 from tasks.ingest.w3act import TargetList, SubjectList, CollectionList
 from tasks.common import state_file
 from jinja2 import Environment, PackageLoader
@@ -143,8 +144,16 @@ class GenerateW3ACTTitleExport(luigi.Task):
             # Get the url, use the first:
             url = target['fieldUrls'][0]['url']
             publisher = url # FIXME reduce to domain.
-            first_date = "20130401120000" # FIXME should look this up and also honour embargo
-            record_id = "%s/%s" % (first_date, base64.b64encode(hashlib.md5(url.encode('utf-8')).digest()))
+            wayback_date_str = CdxIndex().get_first_capture_date(url) # Get date in '20130401120000' form.
+            wayback_date = datetime.datetime.strptime(wayback_date_str, '%Y%m%d%H%M%S')
+            first_date = wayback_date.isoformat()
+            record_id = "%s/%s" % (wayback_date_str, base64.b64encode(hashlib.md5(url.encode('utf-8')).digest()))
+
+            # Honour embargo
+            ago = datetime.datetime.now() - wayback_date
+            if ago.days <= 7:
+                continue
+
             # Otherwise, build the record:
             rec = {
                 'id': record_id,
