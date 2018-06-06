@@ -118,6 +118,9 @@ class GenerateW3ACTTitleExport(luigi.Task):
     date = luigi.DateParameter(default=datetime.date.today())
 
     record_count = 0
+    blocked_record_count = 0
+    missing_record_count = 0
+    embargoed_record_count = 0
 
     def requires(self):
         return [TargetList(self.date), CollectionList(self.date), SubjectList(self.date)]
@@ -141,6 +144,7 @@ class GenerateW3ACTTitleExport(luigi.Task):
         for target in targets:
             if target['field_crawl_frequency'] == 'NEVERCRAWL':
                 logger.warning("The Target '%s' is blocked (NEVERCRAWL)." % target['title'])
+                self.blocked_record_count += 1
                 continue
             # Get the url, use the first:
             url = target['fieldUrls'][0]['url']
@@ -148,6 +152,7 @@ class GenerateW3ACTTitleExport(luigi.Task):
             wayback_date_str = CdxIndex().get_first_capture_date(url) # Get date in '20130401120000' form.
             if wayback_date_str is None:
                 logger.warning("The URL '%s' is not yet available." % url)
+                self.missing_record_count += 1
                 continue
             wayback_date = datetime.datetime.strptime(wayback_date_str, '%Y%m%d%H%M%S')
             first_date = wayback_date.isoformat()
@@ -156,6 +161,7 @@ class GenerateW3ACTTitleExport(luigi.Task):
             # Honour embargo
             ago = datetime.datetime.now() - wayback_date
             if ago.days <= 7:
+                self.embargoed_record_count += 1
                 continue
 
             # Otherwise, build the record:
@@ -189,8 +195,11 @@ class GenerateW3ACTTitleExport(luigi.Task):
 
         g_b = Gauge('ukwa_titlelevel_record_count',
                   'Total number of title-level metadata records.',
-                  registry=registry)
-        g_b.set(self.record_count)
+                    labelnames=['kind'], registry=registry)
+        g_b.labels(kind='complete').set(self.record_count)
+        g_b.labels(kind='blocked').set(self.blocked_record_count)
+        g_b.labels(kind='missing').set(self.missing_record_count)
+        g_b.labels(kind='embargoed').set(self.embargoed_record_count)
 
 
 class UpdateCollectionsSolr(luigi.Task):
