@@ -50,7 +50,12 @@ class CdxIndex():
                     # Next batch:
                     offset += batch
             except ExpatError as e:
-                logger.warning("Exception on lookup: "  + str(e))
+                logger.warning("ExpatError on lookup: %s" % str(e))
+                logger.warning("ExpatError: URL was %s" % url)
+                next_batch = False
+            except Exception as e:
+                logger.warning("Exception on lookup: %s" % str(e))
+                logger.warning("Exception: URL was %s" % url)
                 next_batch = False
 
     def get_first_capture_date(self, url):
