@@ -140,11 +140,15 @@ class GenerateW3ACTTitleExport(luigi.Task):
         records = []
         for target in targets:
             if target['field_crawl_frequency'] == 'NEVERCRAWL':
+                logger.warning("The Target '%s' is blocked (NEVERCRAWL)." % target['title'])
                 continue
             # Get the url, use the first:
             url = target['fieldUrls'][0]['url']
             publisher = url # FIXME reduce to domain.
             wayback_date_str = CdxIndex().get_first_capture_date(url) # Get date in '20130401120000' form.
+            if wayback_date_str is None:
+                logger.warning("The URL '%s' is not yet available." % url)
+                continue
             wayback_date = datetime.datetime.strptime(wayback_date_str, '%Y%m%d%H%M%S')
             first_date = wayback_date.isoformat()
             record_id = "%s/%s" % (wayback_date_str, base64.b64encode(hashlib.md5(url.encode('utf-8')).digest()))

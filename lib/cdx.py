@@ -57,9 +57,9 @@ class CdxIndex():
         '''
         Returns the earliest capture date
         :param url:
-        :return:
+        :return: None if there is none!
         '''
-        return self._capture_dates_generator(url).next()
+        return next(self._capture_dates_generator(url), None)
 
     def get_capture_dates(self, url):
         '''
