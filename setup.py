@@ -20,7 +20,8 @@ setup(
     long_description=open('README.md').read(),
     entry_points={
         'console_scripts': [
-            'launch=lib.launch:main'
+            'launch=lib.launch:main',
+            'crawlstreams=scripts.crawlstreams:main'
         ]
     }
 )

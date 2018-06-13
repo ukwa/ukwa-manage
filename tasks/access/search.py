@@ -143,10 +143,13 @@ class GenerateW3ACTTitleExport(luigi.Task):
         # Convert to records:
         records = []
         for target in targets:
+            # Skip blocked items:
             if target['field_crawl_frequency'] == 'NEVERCRAWL':
                 logger.warning("The Target '%s' is blocked (NEVERCRAWL)." % target['title'])
                 self.blocked_record_count += 1
                 continue
+            # Skip items that have no crawl permission?
+            # hasOpenAccessLicense == False, and inScopeForLegalDeposit == False ?
             # Get the url, use the first:
             url = target['fieldUrls'][0]['url']
             # Extract the domain:
