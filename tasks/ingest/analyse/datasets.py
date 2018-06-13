@@ -41,4 +41,4 @@ if __name__ == '__main__':
     import logging
 
     logging.getLogger().setLevel(logging.INFO)
-    luigi.run(['datasets.GenerateWordColocations', '--input-file', 'daily-warcs-test.txt'])
+    luigi.run(['datasets.GenerateWordColocations', '--input-file', 'warcs-2017-frequent-aa'])
