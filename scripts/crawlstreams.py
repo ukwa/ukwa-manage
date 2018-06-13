@@ -35,10 +35,12 @@ def show_raw_stream(queue='uris.tocrawl.fc', starting_at='earliest', bootstrap_s
         j = json.loads(message.value.decode('utf-8'))
         if 'parentUrl' in j:
             # This is a discovered URL stream:
-            print("%-80s via %-80s" % (j['url'][-80:], j['parentUrl'][-80:]))
+            print("%s:%d:%d: %-80s via %-80s" % (message.topic, message.offset,
+                                                  message.partition, j['url'][-80:], j['parentUrl'][-80:]))
         elif 'status_code' in j:
             # This is a crawled-event stream:
-            print("%-80s via %-80s" % (j['url'][-80:], j.get('via', 'NONE')[-80:]))
+            print("%s:%d:%d: %-80s via %-80s" % (message.topic, message.offset,
+                                                 message.partition , j['url'][-80:], j.get('via', 'NONE')[-80:]))
         else:
             # This is unknown!
             logger.error("Unrecognised stream! %s" % message.value)
