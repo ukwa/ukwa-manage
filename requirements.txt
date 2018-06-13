@@ -40,6 +40,7 @@ pysftp==0.2.9
 pysolr==3.7.0
 python-daemon==2.1.2
 python-dateutil==2.7.0
+python-snappy==0.5.2
 pytz==2018.3
 requests==2.18.4
 requests-file==1.4.3
