@@ -51,6 +51,10 @@ def summarise_stream(consumer, max_messages=-1):
         if max_messages > 0 and msg_count > max_messages:
             break
         j = json.loads(message.value.decode('utf-8'))
+        if msg_count%1000 == 0:
+            print ("%s:%d:%d: key=%s value=%s" % (message.topic, message.partition,
+                                                  message.offset, message.key,
+                                                  message.value))
         if 'parentUrl' in j:
             url = j['url']
             via = j['parentUrl']
