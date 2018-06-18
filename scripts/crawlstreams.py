@@ -100,8 +100,10 @@ def main(argv=None):
     # To consume messages and auto-commit offsets
     consumer = KafkaConsumer(args.queue, auto_offset_reset=starting_at,
                              bootstrap_servers=args.bootstrap_server,
-                             consumer_timeout_ms=10*1000)
-    
+                             consumer_timeout_ms=10*1000,
+                             max_partition_fetch_bytes=128*1024,
+                             enable_auto_commit=False)
+
     # Choose what kind of analysis:
     if args.summarise:
         summarise_stream(consumer, max_messages=args.max_messages)
