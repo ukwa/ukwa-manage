@@ -21,6 +21,9 @@ import logging
 import argparse
 import requests
 from datetime import datetime
+import mmh3
+import binascii
+import struct
 from urlparse import urlparse
 from lxml import html
 from kafka import KafkaProducer
@@ -65,7 +68,7 @@ class KafkaLauncher(object):
         if not queue:
             queue = self.args.queue
 
-        logger.info("Sending message: " + json.dumps(message))
+        logger.info("Sending key %s, message: %s" % (key, json.dumps(message)))
         self.producer.send(queue, key=key, value=message)
 
     def launch(self, destination, uri, source, isSeed=False, forceFetch=False):
@@ -99,8 +102,8 @@ class KafkaLauncher(object):
         else:
             logger.error("Can't handle destination type '%s'" % destination)
 
-        # Determine the key
-        key = urlparse(uri).hostname
+        # Determine the key, hashing the 'authority' (should match Java version):
+        key = binascii.hexlify(struct.pack("<I",mmh3.hash(urlparse(uri).netloc, signed=False)))
 
         # Push a 'seed' message onto the rendering queue:
         self.send_message(key, curim)
