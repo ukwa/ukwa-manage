@@ -30,6 +30,19 @@ def show_raw_stream(consumer, max_messages=None):
             break
         # message value and key are raw bytes -- decode if necessary!
         # e.g., for unicode: `message.value.decode('utf-8')`
+        print ("%s:%d:%d: key=%s value=%s" % (message.topic, message.partition,
+                                              message.offset, message.key,
+                                              message.value))
+
+
+def show_stream(consumer, max_messages=None):
+    msg_count = 0
+    for message in consumer:
+        msg_count += 1
+        if max_messages and msg_count > max_messages:
+            break
+        # message value and key are raw bytes -- decode if necessary!
+        # e.g., for unicode: `message.value.decode('utf-8')`
         j = json.loads(message.value.decode('utf-8'))
         if 'parentUrl' in j:
             # This is a discovered URL stream:
@@ -85,6 +98,8 @@ def main(argv=None):
                         help="Summarise the queue contents rather then enumerating it. [default: %(default)s]")
     parser.add_argument("-M", "--max-messages", dest="max_messages", default=None, required=False, type=int,
                         help="Maximum number of messages to process. [default: %(default)s]")
+    parser.add_argument("-r", "--raw", dest="raw", action="store_true", default=False, required=False,
+                        help="Show raw queue contents rather than re-formatting. [default: %(default)s]")
     parser.add_argument("-q", "--queue", dest="queue", default="uris.crawled.fc", required=False,
                         help="Name of queue to inspect. [default: %(default)s]")
 
@@ -107,8 +122,10 @@ def main(argv=None):
     # Choose what kind of analysis:
     if args.summarise:
         summarise_stream(consumer, max_messages=args.max_messages)
-    else:
+    elif args.raw:
         show_raw_stream(consumer, max_messages=args.max_messages)
+    else:
+        show_stream(consumer, max_messages=args.max_messages)
 
 
 if __name__ == "__main__":
