@@ -30,6 +30,8 @@ class NominetDomainListFTP(luigi.ExternalTask):
     """
     date = luigi.MonthParameter(default=datetime.date.today())
 
+    task_namespace = 'ingest'
+
     def output(self):
         """
         Returns the target output for this task.
@@ -45,6 +47,8 @@ class NominetDomainListToHDFS(luigi.Task):
     """
     """
     date = luigi.MonthParameter(default=datetime.date.today())
+
+    task_namespace = 'ingest'
 
     def requires(self):
         return NominetDomainListFTP(date=self.date)
