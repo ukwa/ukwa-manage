@@ -6,6 +6,8 @@ import datetime
 import luigi.contrib.ftp
 import luigi.contrib.hdfs
 from lib.webhdfs import WebHdfsPlainFormat
+# Note that doing this also registers the Prometheus handler:
+from tasks.common import logger
 
 #: the FTP server
 NOM_HOST = os.environ['NOM_HOST']
@@ -55,6 +57,7 @@ class NominetDomainListToHDFS(luigi.Task):
         # Read the file in and write it to HDFS
         with self.input().open('r') as reader:
             with self.output().open('w') as writer:
+                logger.info("Uploading %s to %s" % (self.input().path, self.output().path))
                 while True:
                     chunk = reader.read(DEFAULT_BUFFER_SIZE)
                     if not chunk:
