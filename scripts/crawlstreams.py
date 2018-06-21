@@ -72,17 +72,31 @@ def summarise_stream(consumer, max_messages=None):
             print ("%s:%d:%d: key=%s value=%s" % (message.topic, message.partition,
                                                   message.offset, message.key,
                                                   message.value))
+        # Select fields:
         if 'parentUrl' in j:
             url = j['url']
             via = j['parentUrl']
-            urlp = urlparse(url)
-            viap = urlparse(via)
-            stats = tot.get(urlp.hostname,{})
-            if viap.hostname != urlp.hostname and not 'via' in stats:
-                stats['via'] = via
-                #print(j) # hop, isSeed, parentUrlMetadata.pathFromSeed
-            stats['tot'] = stats.get('tot', 0) + 1
-            tot[urlp.hostname] = stats
+        elif 'status_code' in j:
+            url = j['url']
+            via = j.get('via',"-")
+        else:
+            # Skip unrecognised lines
+            continue
+
+        # Skip screenshot: etc. URLs for now:
+        if not url.startswith("http"):
+            continue
+
+        # analyse:
+        urlp = urlparse(url)
+        viap = urlparse(via)
+        stats = tot.get(urlp.hostname,{})
+        if viap.hostname != urlp.hostname and not 'via' in stats:
+            stats['via'] = via
+            #print(j) # hop, isSeed, parentUrlMetadata.pathFromSeed
+        stats['tot'] = stats.get('tot', 0) + 1
+        tot[urlp.hostname] = stats
+
     print("URL Host\tDiscovered Via URL\tTotal URLs")
     for host in tot:
         print("%s\t%s\t%i" %(host, tot[host].get('via', '-'), tot[host]['tot']))
@@ -98,6 +112,8 @@ def main(argv=None):
                         help="Summarise the queue contents rather then enumerating it. [default: %(default)s]")
     parser.add_argument("-M", "--max-messages", dest="max_messages", default=None, required=False, type=int,
                         help="Maximum number of messages to process. [default: %(default)s]")
+    parser.add_argument("-t", "--timeout", dest="timeout", default=10, required=False, type=int,
+                        help="Seconds to wait for more messages before timing-out. '-1' for 'never'. [default: %(default)s]")
     parser.add_argument("-r", "--raw", dest="raw", action="store_true", default=False, required=False,
                         help="Show raw queue contents rather than re-formatting. [default: %(default)s]")
     parser.add_argument("-q", "--queue", dest="queue", default="uris.crawled.fc", required=False,
@@ -112,10 +128,14 @@ def main(argv=None):
     else:
         starting_at = 'earliest'
 
+    if args.timeout != -1:
+        # Convert to ms:
+        args.timeout = 1000*args.timeout
+
     # To consume messages and auto-commit offsets
     consumer = KafkaConsumer(args.queue, auto_offset_reset=starting_at,
                              bootstrap_servers=args.bootstrap_server,
-                             consumer_timeout_ms=10*1000,
+                             consumer_timeout_ms=args.timeout,
                              max_partition_fetch_bytes=128*1024,
                              enable_auto_commit=False)
 
