@@ -71,7 +71,7 @@ class KafkaLauncher(object):
         logger.info("Sending key %s, message: %s" % (key, json.dumps(message)))
         self.producer.send(queue, key=key, value=message)
 
-    def launch(self, destination, uri, source, isSeed=False, forceFetch=False):
+    def launch(self, destination, uri, source, isSeed=False, forceFetch=False, sheets=[], hop="", recrawl_interval=None):
         curim = {}
         if destination == "h3":
             curim['headers'] = {}
@@ -87,7 +87,12 @@ class KafkaLauncher(object):
             if not isSeed:
                 curim['forceFetch'] = forceFetch
             curim['url'] = uri
-            curim['hop'] = ""
+            curim['hop'] = hop
+            if len(sheets) > 0:
+                curim['sheets'] = sheets
+            if recrawl_interval:
+                curim['recrawlInterval'] = recrawl_interval
+            curim['timestamp'] = datetime.now().isoformat()
         elif destination == "har":
             curim['clientId'] = "unused"
             curim['metadata'] = {}
@@ -103,7 +108,7 @@ class KafkaLauncher(object):
             logger.error("Can't handle destination type '%s'" % destination)
 
         # Determine the key, hashing the 'authority' (should match Java version):
-        key = binascii.hexlify(struct.pack("<I",mmh3.hash(urlparse(uri).netloc, signed=False)))
+        key = binascii.hexlify(struct.pack("<I", mmh3.hash(urlparse(uri).netloc, signed=False)))
 
         # Push a 'seed' message onto the rendering queue:
         self.send_message(key, curim)
@@ -118,7 +123,8 @@ def sender(launcher, args, uri):
         uri = "http://%s" % uri
 
     # Add the main URL
-    launcher.launch(args.destination, uri, args.source, isSeed=args.seed, forceFetch=args.forceFetch)
+    launcher.launch(args.destination, uri, args.source, isSeed=args.seed, forceFetch=args.forceFetch,
+                    recrawl_interval=args.recrawl_interval)
 
     # Also, for some hosts, attempt to extract all pages from a oaged list:
     if args.pager:
@@ -149,6 +155,8 @@ def main(argv=None):
                         help="Force the URL to be fetched, even if already seen and queued/rejected. [default: %(default)s]")
     parser.add_argument("-P", "--pager", dest="pager", action="store_true", default=False, required=False,
                         help="Attempt to extract URLs for all pages, and submit those too.")
+    parser.add_argument("-r", "--recrawl-interval", dest="recrawl_interval", default=None, required=False, type=int,
+                        help="Recrawl interval override for this URI (in seconds). [default: %(default)s]")
     parser.add_argument('queue', metavar='queue', help="Name of queue to send URIs too, e.g. 'dc.discovered'.")
     parser.add_argument('uri_or_filename', metavar='uri_or_filename', help="URI to enqueue, or filename containing URIs to enqueue.")
 
@@ -174,7 +182,7 @@ def main(argv=None):
                         time.sleep(10)
     else:
         # Or send one URI
-        sender(launcher, args, args.uri_or_filename)
+        sender(launcher, args, args.uri_or_filename,)
 
     # Wait for send to complete:
     launcher.flush()

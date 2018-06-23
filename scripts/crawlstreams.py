@@ -50,7 +50,7 @@ def show_stream(consumer, max_messages=None):
                                                 j['url'][-80:], j.get('hop','-'), j['parentUrl'][-80:]))
         elif 'status_code' in j:
             # This is a crawled-event stream:
-            print("%s %-80s %s via %-80s" % (j['timestamp'], j['url'][-80:], j.get('hop_path','-'), j.get('via', 'NONE')[-80:]))
+            print("%s %-80s %s %s via %-80s" % (j['timestamp'], j['url'][-80:], j.get('status_code'), j.get('hop_path','-'), j.get('via', 'NONE')[-80:]))
         else:
             # This is unknown!
             logger.error("Unrecognised stream! %s" % message.value)
