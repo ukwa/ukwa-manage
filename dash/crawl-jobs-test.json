@@ -1,0 +1,16 @@
+[
+  {
+    "id": "frequent",
+    "job_name": "frequent",
+    "deployment": "frequent",
+    "function": "ingest",
+    "url": "https://heritrix-worker:8443/"
+  },
+  {
+    "id": "test-lookup",
+    "job_name": "frequent",
+    "deployment": "test-lookup",
+    "function": "ingest",
+    "dns_sd_name": "heritrix-worker"
+  }
+]
