@@ -50,7 +50,7 @@ def sender(launcher, args, uri):
         args.sheets = args.sheets.split(',')
 
     # Add the main URL
-    launcher.launch(args.destination, uri, args.source, isSeed=args.seed, forceFetch=args.forceFetch,
+    launcher.launch("h3", uri, args.source, isSeed=args.seed, forceFetch=args.forceFetch,
                     recrawl_interval=args.recrawl_interval, sheets=args.sheets)
 
     # Also, for some hosts, attempt to extract all pages from a oaged list:
