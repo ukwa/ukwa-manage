@@ -45,9 +45,13 @@ def sender(launcher, args, uri):
     if not (uri.startswith("http://") or uri.startswith("https://")):
         uri = "http://%s" % uri
 
+    # Expand sheets into an array:
+    if args.sheets:
+        args.sheets = args.sheets.split(',')
+
     # Add the main URL
     launcher.launch(args.destination, uri, args.source, isSeed=args.seed, forceFetch=args.forceFetch,
-                    recrawl_interval=args.recrawl_interval)
+                    recrawl_interval=args.recrawl_interval, sheets=args.sheets)
 
     # Also, for some hosts, attempt to extract all pages from a oaged list:
     if args.pager:
@@ -68,8 +72,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser('(Re)Launch URIs into crawl queues.')
     parser.add_argument('-k', '--kafka-bootstrap-server', dest='kafka_server', type=str, default="localhost:9092",
                         help="Kafka bootstrap server(s) to use [default: %(default)s]")
-    parser.add_argument("-d", "--destination", dest="destination", type=str, default='h3',
-                        help="Destination, implying message format to use: 'har' or 'h3'. [default: %(default)s]")
+    parser.add_argument("-t", "--sheets", dest="sheets", type=str, default='',
+                        help="Comma-separated list of sheets to apply for this URL. [default: %(default)s]")
     parser.add_argument("-s", "--source", dest="source", type=str, default='',
                         help="Source tag to attach to this URI, if any. [default: %(default)s]")
     parser.add_argument("-S", "--seed", dest="seed", action="store_true", default=False, required=False,
@@ -105,7 +109,7 @@ def main(argv=None):
                         time.sleep(10)
     else:
         # Or send one URI
-        sender(launcher, args, args.uri_or_filename,)
+        sender(launcher, args, args.uri_or_filename)
 
     # Wait for send to complete:
     launcher.flush()
