@@ -20,7 +20,7 @@ setup(
     long_description=open('README.md').read(),
     entry_points={
         'console_scripts': [
-            'submit=scripts.submit.main',
+            'submit=scripts.submit:main',
             'crawlstreams=scripts.crawlstreams:main'
         ]
     }
