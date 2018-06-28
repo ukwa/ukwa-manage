@@ -17,7 +17,7 @@ Flask==1.0.2
 funcsigs==1.0.2
 futures==3.2.0
 gunicorn==19.8.1
-git+https://github.com/ukwa/hapy.git@master#egg=hapy_heritrix
+hapy-heritrix===-.-.-
 hdfs==2.1.0
 html5lib==1.0.1
 idna==2.7
