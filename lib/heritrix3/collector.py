@@ -59,6 +59,9 @@ class Heritrix3Collector(object):
         for job in dns_sd:
             # DNS SD under Docker uses this form of naming to discover services:
             dns_name = 'tasks.%s' % job['dns_sd_name']
+            #
+            # WARNING Under 'alpine' builds this only ever returned 12 or less entries!
+            #
             try:
                 # Look up service IP addresses via DNS:
                 (hostname, alias, ipaddrlist) = socket.gethostbyname_ex(dns_name)

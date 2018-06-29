@@ -22,14 +22,14 @@ services:
       - "CDXSERVER_ENDPOINT=http://cdxserver:8080/fc"
 
   # Hapy Dashboard
-  hapy:
+  hw-dash:
     build: .
-    #image: ukwa/hapy:latest
+    #image: ukwa/ukwa-manage:latest
     ports:
       - 8000:8000
     environment:
       - "HERITRIX_USERNAME=heritrix"
       - "HERITRIX_PASSWORD=test"
-      - "CRAWL_JOBS_FILE=/usr/src/app/hapy/dash/crawl-jobs-test.json"
+      - "CRAWL_JOBS_FILE=/ukwa-manage/dash/crawl-jobs-test.json"
     depends_on:
       - heritrix-worker
