@@ -16,21 +16,22 @@ in Python 3 but be compatible with both where possible.
 
 
 
-## Dash
+## Heritrix Jargon
 
 
 | State | meaning |
 |---|---|
-| active | that|
-| exhausted | this|
-| in-process | |
-| inactive | |
-| ineligible | |
-| ready | |
-| retired | |
-| snoozed | |
+| ready | Queues ready to emit a URL now. |
+| in-process | Queues that have emitted a URL that is currently being processed. |
+| snoozed | Due to the crawl delay, or waiting before retries. |
+| active | Total in-process + ready + snoozed |
+| inactive | Queues currently not being considered (due to queue rotation). |
+| ineligible | Inactive queues where the queue precedence exceeds the precedence floor. |
+| retired | Disabled for some reason, e.g. that queue has hit it's allocated quota. |
+| exhausted | Queues that are now empty. |
 
-A queue is ELIGIBLE iff it is INACTIVE and its precedence exceeds the precedence floor.
+
+### Notes on queue precedence
 
 A queue's precedence is determined by the precedence provider, usually based on the last crawled URI. Note that a lower precedence value means 'higher priority'.
 
