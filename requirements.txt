@@ -60,7 +60,7 @@ surt==0.3.0
 tldextract==2.2.0
 tornado==4.5.3
 urllib3==1.23
-warcio==1.5.1
+warcio==1.5.3
 webencodings==0.5.1
 Werkzeug==0.14.1
 wrapt==1.10.11

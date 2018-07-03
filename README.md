@@ -19,17 +19,7 @@ in Python 3 but be compatible with both where possible.
 ## Heritrix Jargon
 
 
-| State | meaning |
-|---|---|
-| ready | Queues ready to emit a URL now. |
-| in-process | Queues that have emitted a URL that is currently being processed. |
-| snoozed | Due to the crawl delay, or waiting before retries. |
-| active | Total in-process + ready + snoozed |
-| inactive | Queues currently not being considered (due to queue rotation). |
-| ineligible | Inactive queues where the queue precedence exceeds the precedence floor. |
-| retired | Disabled for some reason, e.g. that queue has hit it's allocated quota. |
-| exhausted | Queues that are now empty. |
-
+* [Queue States](https://webarchive.jira.com/wiki/spaces/Heritrix/pages/5735753/Glossary#Glossary-QueueStates)
 
 ### Notes on queue precedence
 

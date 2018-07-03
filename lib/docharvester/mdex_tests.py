@@ -3,7 +3,6 @@
 import os
 import sys
 import json
-import pika
 import time
 import logging
 import argparse
@@ -12,7 +11,7 @@ import requests
 from requests.utils import quote
 import xml.dom.minidom
 
-from crawl.w3act import w3act
+from lib.w3act import w3act
 from document_mdex import DocumentMDEx
 
 # Set up a logging handler:
@@ -33,12 +32,13 @@ logging.getLogger('pika').setLevel( logging.WARNING )
 # Set logging for this module and keep the reference handy:
 logger = logging.getLogger(__name__)
 
+
 def run_doc_mdex_test(url,lpu,src,tid,title):
     logger.info("Looking at document URL: %s" % url)
     doc = {}
     doc['document_url'] = url
     doc['landing_page_url'] = lpu
-    doc = DocumentMDEx(act, doc, src, null_if_no_target_found=False).mdex()
+    doc = DocumentMDEx(targets, doc, src, null_if_no_target_found=False).mdex()
     logger.info(json.dumps(doc))
     if doc['target_id'] != tid:
         logger.error("Target matching failed! %s v %s" % (doc['target_id'], tid))
@@ -46,6 +46,7 @@ def run_doc_mdex_test(url,lpu,src,tid,title):
     if doc.get('title',None) != title:
         logger.error("Wrong title found for this document! '%s' v '%s'" % (doc['title'], title))
         sys.exit()
+
 
 def run_doc_mdex_test_extraction(url,lpu,src,title):
     logger.info("Looking at document URL: %s" % url)
@@ -58,10 +59,11 @@ def run_doc_mdex_test_extraction(url,lpu,src,title):
         logger.error("Wrong title found for this document! '%s' v '%s'" % (doc['title'], title))
         sys.exit()
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('Test document extraction and target association.')
     parser.add_argument('-w', '--w3act-url', dest='w3act_url', 
-                    type=str, default="http://localhost:9000/act/", 
+                    type=str, default="http://localhost:9000/act/",
                     help="W3ACT endpoint to use [default: %(default)s]" )
     parser.add_argument('-u', '--w3act-user', dest='w3act_user', 
                     type=str, default="wa-sysadm@bl.uk", 
@@ -76,9 +78,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Set up connection to ACT:
-    act = w3act.w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
+    #act = w3act.w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
+    targets = json.load(open('../../test/crawl-feed.2017-01-02T2100.frequent'))
 
     # Non-matching Target test
+    run_doc_mdex_test('https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/695901/mid-tier-and-offers-for-wildlife-manual-2018.pdf',
+                    'https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/695901/mid-tier-and-offers-for-wildlife-manual-2018.pdf',
+                    'https://www.gov.uk/government/publications?departments[]=department-for-transport',
+                    None,'')
+
     run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/567676/east_dulwich_community_nursery_association.pdf',
                     'https://www.gov.uk/government/publications/east-dulwich-community-nursery-association-inquiry-report',
                     'https://www.gov.uk/government/publications?departments[]=department-for-transport',

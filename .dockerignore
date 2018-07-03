@@ -1,4 +1,5 @@
 venv*
+venv-manage-2/*
 legacy/*
 prototype/*
 doc/*
