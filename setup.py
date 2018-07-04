@@ -22,7 +22,7 @@ setup(
         'console_scripts': [
             'submit=scripts.submit:main',
             'crawlstreams=scripts.crawlstreams:main',
-            'w3act=scripts.w3act:main'
+            'targets=scripts.targets:main'
         ]
     }
 )
