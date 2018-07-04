@@ -10,6 +10,7 @@ Created on 8 Feb 2016
 '''
 
 import re
+import time
 import json
 import logging
 import requests
@@ -192,10 +193,17 @@ class DocumentMDEx(object):
         # Start by grabbing the Link-rel-up header to refine the landing page url:
         # e.g. https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/497662/accidents-involving-illegal-alcohol-levels-2014.pdf
         # Link: <https://www.gov.uk/government/statistics/reported-road-casualties-in-great-britain-estimates-involving-illegal-alcohol-levels-2014>; rel="up"
-        r = requests.head(url=self.doc_wb_url())
-        if r.links.has_key('up'):
-            lpu = r.links['up']
-            self.doc["landing_page_url"] = lpu['url']
+        tries = 5
+        while tries > 0:
+            r = requests.head(url=self.doc_wb_url())
+            if r.links.has_key('up'):
+                lpu = r.links['up']
+                self.doc["landing_page_url"] = lpu['url']
+                break
+            else:
+                logger.info("Could not find 'up' relationship!")
+                tries -= 1
+                time.sleep(10)
         # Grab data from the landing page:
         lp_url = urlparse(self.doc["landing_page_url"])
         if "www.gov.uk" == lp_url.hostname:

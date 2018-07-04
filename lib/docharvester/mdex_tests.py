@@ -53,7 +53,7 @@ def run_doc_mdex_test_extraction(url,lpu,src,title):
     doc = {}
     doc['document_url'] = url
     doc['landing_page_url'] = lpu
-    doc = DocumentMDEx(act, doc, src, null_if_no_target_found=False).mdex()
+    doc = DocumentMDEx(targets, doc, src, null_if_no_target_found=False).mdex()
     logger.info(json.dumps(doc))
     if doc.get('title',None) != title:
         logger.error("Wrong title found for this document! '%s' v '%s'" % (doc['title'], title))
