@@ -49,7 +49,7 @@ def main(argv=None):
             if t['field_crawl_frequency'] is None:
                 logger.warning("No crawl frequency set for %s" % t)
             elif t['field_crawl_frequency'].lower() == args.frequency.lower():
-                if t['inScopeForLegalDeposit']:# or t['hasOpenAccessLicense']:
+                if t['inScopeForLegalDeposit'] or args.frequency.lower() == 'nevercrawl':# or t['hasOpenAccessLicense']:
                     for furl in t['fieldUrls']:
                         print(furl['url'])
                 else:
