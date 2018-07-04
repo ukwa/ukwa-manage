@@ -25,18 +25,18 @@ def main(argv=None):
     parser = argparse.ArgumentParser('Interact with W3ACT, extracting data etc.')
     parser.add_argument('-f', '--frequency', dest='frequency', type=str, default="daily",
                         help="The crawl frequency to look at when filtering targets [default: %(default)s]")
-    parser.add_argument('action', metavar='action', help="Action to perform. One of 'extract'.")
+    parser.add_argument('action', metavar='action', help="Action to perform. One of 'seeds'.")
 
     args = parser.parse_args()
 
-    if args.action == 'extract':
+    if args.action == 'seeds':
         # Find the source files:
         source = TargetList().output()
         if not source.exists():
             logger.error("Targets file %s does not exist! Has it been updated yet? Are you running this task on the right server?" % source.path )
             return
 
-        print("Extracting %s" % args.frequency)
+        logger.info("Extracting seed list for frequency: %s" % args.frequency)
         # Load the targets:
         with source.open() as f:
             all_targets = json.load(f)
@@ -45,7 +45,6 @@ def main(argv=None):
         logger.info("Filtering detailed information for %i targets..." % len(all_targets))
 
         # Filter...
-        targets = []
         for t in all_targets:
             if t['field_crawl_frequency'] is None:
                 logger.warning("No crawl frequency set for %s" % t)
