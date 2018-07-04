@@ -49,11 +49,11 @@ def main(argv=None):
             if t['field_crawl_frequency'] is None:
                 logger.warning("No crawl frequency set for %s" % t)
             elif t['field_crawl_frequency'].lower() == args.frequency.lower():
-                if t['inScopeForLegalDeposit'] or t['hasOpenAccessLicense']:
+                if t['inScopeForLegalDeposit']:# or t['hasOpenAccessLicense']:
                     for furl in t['fieldUrls']:
                         print(furl['url'])
                 else:
-                    logger.info("Skipping target %i (%s) as it is not in scope for NPLD and is not OA." % (t['id'],t['title']))
+                    logger.info("Skipping target %i (%s) as it is not in scope for NPLD." % (t['id'],t['title']))
 
     else:
         logger.error("Unknown action %s!" % args.action)
