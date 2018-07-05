@@ -17,6 +17,7 @@ COPY README.md /ukwa-manage/
 COPY MANIFEST.in /ukwa-manage/
 COPY lib /ukwa-manage/lib
 COPY tasks /ukwa-manage/tasks
+COPY scripts /ukwa-manage/scripts
 COPY dash /ukwa-manage/dash
 RUN cd /ukwa-manage && python setup.py install
 
