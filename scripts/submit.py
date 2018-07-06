@@ -45,10 +45,6 @@ def sender(launcher, args, uri):
     if not (uri.startswith("http://") or uri.startswith("https://")):
         uri = "http://%s" % uri
 
-    # Expand sheets into an array:
-    if args.sheets:
-        args.sheets = args.sheets.split(',')
-
     # Add the main URL
     launcher.launch("h3", uri, args.source, isSeed=args.seed, forceFetch=args.forceFetch,
                     recrawl_interval=args.recrawl_interval, sheets=args.sheets)
@@ -88,6 +84,10 @@ def main(argv=None):
     parser.add_argument('uri_or_filename', metavar='uri_or_filename', help="URI to enqueue, or filename containing URIs to enqueue.")
 
     args = parser.parse_args()
+
+    # Expand sheets into an array:
+    if args.sheets:
+        args.sheets = args.sheets.split(',')
 
     # Set up launcher:
     launcher = KafkaLauncher(args)
