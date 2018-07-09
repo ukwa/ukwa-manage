@@ -119,6 +119,9 @@ class Heritrix3Collector(object):
             if not job['url']:
                 job['state']['status'] = "LOOKUP FAILED"
 
+        # Sort services by ID:
+        services = sorted(services, key=lambda k: k['id'])
+
         return services
 
     def collect(self):

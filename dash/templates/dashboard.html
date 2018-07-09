@@ -26,11 +26,12 @@
 
         <table class="pure-table">
             <thead>
-                <tr><th>Crawl Type</th><th>Crawl Job</th><th>Status</th></tr>
+                <tr><th>Crawler ID</th><th>Crawl Type</th><th>Crawl Job</th><th>Status</th></tr>
             </thead>
             <tbody>
 {% for crawl in crawls %}
 <tr>
+    <td>{{ crawl['id'] }}</td>
     <td>{{ crawl['deployment'] }}</td>
     <td>{{ crawl['job_name'] }}</td>
     <td>{{ crawl['state']['status'] }}</td>
