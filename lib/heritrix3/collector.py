@@ -5,6 +5,7 @@ import json
 import time
 import socket
 import urllib2
+import requests
 from multiprocessing import Pool, Process
 from prometheus_client import start_http_server
 from prometheus_client.core import GaugeMetricFamily, REGISTRY
@@ -379,6 +380,16 @@ def do_h3_action(args):
             logger.info("Requesting termination of job %s on server %s." % (job_name, server_url))
             h.terminate_job(job_name)
             state['message'] = "Requested termination of job %s on server %s." % (job_name, server_url)
+        elif action == 'kafka-report':
+            logger.info("Requesting KafkaReport from job %s on server %s." % (job_name, server_url))
+            url = '%s/job/%s/report/KafkaUrlReceiverReport' % (h.base_url, job_name)
+            r = requests.get(
+                url=url,
+                auth=h.auth,
+                verify=not h.insecure,
+                timeout=h.timeout
+            )
+            state['message'] = "Requested Kafka Report of job %s on server %s:\n%s" % (job_name, server_url, r.content)
         else:
             logger.warning("Unrecognised crawler action! '%s'" % action)
             state['error'] = "Unrecognised crawler action! '%s'" % action
