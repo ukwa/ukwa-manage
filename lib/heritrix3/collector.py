@@ -91,6 +91,39 @@ class Heritrix3Collector(object):
 
         return services
 
+    def do(self, action):
+        # Find the list of Heritrixen to talk to
+        services = self.lookup_services()
+
+        # Parallel check for H3 job status:
+        argsv = []
+        for job in services:
+            logger.debug("Looking up %s" % job)
+            server_url = job['url']
+            server_user = os.getenv('HERITRIX_USERNAME', "admin")
+            server_pass = os.getenv('HERITRIX_PASSWORD', "heritrix")
+            # app.logger.info(json.dumps(server, indent=4))
+            argsv.append((job['id'], job['job_name'], server_url, server_user, server_pass, action))
+        # Wait for all...
+        result_list = self.pool.map(do_h3_action, argsv)
+        self.pool.terminate()
+        self.pool.join()
+        # Collect:
+        results = {}
+        for job, status in result_list:
+            results[job] = status
+
+        # Merge the results in:
+        for job in services:
+            job['state'] = results[job['id']]
+            if not job['url']:
+                job['state']['status'] = "LOOKUP FAILED"
+
+        # Sort services by ID:
+        services = sorted(services, key=lambda k: k['id'])
+
+        return services
+
     def run_api_requests(self):
         # Find the list of Heritrixen to talk to
         services = self.lookup_services()
@@ -319,6 +352,40 @@ def get_h3_status(args):
     except Exception as e:
         state['status'] = "DOWN"
         state['error'] = "Exception while checking Heritrix! %s" % e
+        logger.exception(e)
+
+    return job_id, state
+
+
+def do_h3_action(args):
+    job_id, job_name, server_url, server_user, server_pass, action = args
+    # Set up connection to H3:
+    h = hapy.Hapy(server_url, username=server_user, password=server_pass, timeout=TIMEOUT)
+    state = {}
+    try:
+        if action == 'pause':
+            logger.info("Requesting pause of job %s on server %s." % (job_name, server_url))
+            h.pause_job(job_name)
+            state['message'] = "Requested pause of job %s on server %s." % (job_name, server_url)
+        elif action == 'unpause':
+            logger.info("Requesting unpause of job %s on server %s." % (job_name, server_url))
+            h.unpause_job(job_name)
+            state['message'] = "Requested unpause of job %s on server %s." % (job_name, server_url)
+        elif action == 'launch':
+            logger.info("Requesting launch of job %s on server %s." % (job_name, server_url))
+            h.launch_job(job_name)
+            state['message'] = "Requested launch of job %s on server %s." % (job_name, server_url)
+        elif action == 'terminate':
+            logger.info("Requesting termination of job %s on server %s." % (job_name, server_url))
+            h.terminate_job(job_name)
+            state['message'] = "Requested termination of job %s on server %s." % (job_name, server_url)
+        else:
+            logger.warning("Unrecognised crawler action! '%s'" % action)
+            state['error'] = "Unrecognised crawler action! '%s'" % action
+
+    except Exception as e:
+        state['status'] = "DOWN"
+        state['error'] = "Exception while checking Heritrix!\n%s" % e
         logger.exception(e)
 
     return job_id, state

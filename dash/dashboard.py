@@ -1,9 +1,9 @@
 import os
+import json
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from flask import Flask
 from flask import render_template, redirect, url_for, flash
 from lib.heritrix3.collector import Heritrix3Collector
-from hapy import hapy
 
 app = Flask(__name__)
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -34,35 +34,8 @@ def prometheus_metrics():
 def control_all(action=None):
     try:
         c = Heritrix3Collector()
-        services = c.lookup_services()
-
-        for s in services:
-            try:
-                server_user = os.getenv('HERITRIX_USERNAME', "heritrix")
-                server_pass = os.getenv('HERITRIX_PASSWORD', "test")
-                h = hapy.Hapy(s['url'], username=server_user, password=server_pass)
-                if action == 'pause':
-                    app.logger.info("Requesting pause of job %s on server %s." % (s['job_name'], s['url']))
-                    h.pause_job(s['job_name'])
-                    flash("Requested pause of job %s on server %s." % (s['job_name'], s['url']))
-                elif action == 'unpause':
-                    app.logger.info("Requesting unpause of job %s on server %s." % (s['job_name'], s['url']))
-                    h.unpause_job(s['job_name'])
-                    flash("Requested unpause of job %s on server %s." % (s['job_name'], s['url']))
-                elif action == 'launch':
-                    app.logger.info("Requesting launch of job %s on server %s." % (s['job_name'], s['url']))
-                    h.launch_job(s['job_name'])
-                    flash("Requested launch of job %s on server %s." % (s['job_name'], s['url']))
-                elif action == 'terminate':
-                    app.logger.info("Requesting termination of job %s on server %s." % (s['job_name'], s['url']))
-                    h.terminate_job(s['job_name'])
-                    flash("Requested termination of job %s on server %s." % (s['job_name'], s['url']))
-                else:
-                    app.logger.warning("Unrecognised crawler action! '%s'" % action)
-                    flash("Unrecognised crawler action! '%s'" % action)
-
-            except Exception as e:
-                flash("Something went wrong with service %s!\n%s" % (s,e))
+        services = c.do(action)
+        flash("Result:\n%s" % json.dumps(services, indent=2))
 
     except Exception as e:
         flash("Something went wrong!\n%s" % e)
