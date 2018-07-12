@@ -2,7 +2,7 @@ import os
 import json
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from flask import Flask
-from flask import render_template, redirect, url_for, flash
+from flask import render_template, redirect, url_for, flash, jsonify, session
 from lib.heritrix3.collector import Heritrix3Collector
 
 app = Flask(__name__)
@@ -35,12 +35,25 @@ def control_all(action=None):
     try:
         c = Heritrix3Collector()
         services = c.do(action)
-        flash("Result:\n%s" % json.dumps(services, indent=2))
+        session[action] = services
 
     except Exception as e:
         flash("Something went wrong!\n%s" % e)
+        return redirect(url_for('status'))
 
-    return redirect(url_for('status'))
+    return redirect(url_for('result_all', action=action))
+
+
+@app.route('/result/all/<action>')
+def result_all(action=None):
+    try:
+        services = session.pop(action)
+        return jsonify(services)
+
+    except Exception as e:
+        flash("Something went wrong!\n%s" % e.message)
+        return redirect(url_for('status'))
+
 
 
 if __name__ == "__main__":
