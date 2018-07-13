@@ -123,7 +123,35 @@ class Heritrix3Collector(object):
         # Sort services by ID:
         services = sorted(services, key=lambda k: k['id'])
 
+        # If the task was the kafka-report task, do some post-processing:
+        if action == 'kafka-report':
+            services = self.aggregate_kafka_reports(services)
+
         return services
+
+    def aggregate_kafka_reports(self, services):
+        partitions = {}
+        consumed = 0
+        for h in services:
+            kr = h['state'].get('message','')
+            for line in kr.split('\n'):
+                if "partition: " in line:
+                    line = line.replace("  partition: ", "")
+                    line = line.replace(" offset: ", "")
+                    p, o = line.split(',')
+                    p = int(p)
+                    o = int(o)
+                    if p in partitions and partitions[p] < o:
+                        logger.warning("Same partition appears in multiple reports!")
+                        continue
+                    partitions[p] = o
+                    consumed += o
+
+        return {
+            'services': services,
+            'kafka_total_consumed': consumed,
+            'kafka_partition_offsets': partitions
+                }
 
     def run_api_requests(self):
         # Find the list of Heritrixen to talk to

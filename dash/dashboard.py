@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from flask import Flask
 from flask import render_template, redirect, url_for, flash, jsonify
@@ -37,8 +38,10 @@ def control_all(action=None):
     try:
         c = Heritrix3Collector()
         services = c.do(action)
-        app.logger.info(json.dumps(services, indent=2))
-        cache.add(action, services)
+        # Cache the result:
+        cache_set = False
+        while not cache_set:
+            cache_set = cache.set(action, services, timeout=300)
 
     except Exception as e:
         flash("Something went wrong!\n%s" % e.message)
