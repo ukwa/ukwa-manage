@@ -144,8 +144,7 @@ class Heritrix3Collector(object):
                     p = int(p)
                     o = int(o)
                     if p in partitions and partitions[p] < o:
-                        logger.warning("Same partition appears in multiple reports!")
-                        continue
+                        logger.warning("Same partition appears in multiple reports! partition:%i" % p)
                     h_partitions[p] = o
                     h_consumed += o
                     partitions[p] = o
