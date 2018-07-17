@@ -377,6 +377,8 @@ class Heritrix3Collector(object):
         yield m_bytes
         yield m_qs
         yield m_ts
+        yield m_kc
+        yield m_kt
 
 
 def dict_values_to_floats(d, k, excluding=list()):
