@@ -190,7 +190,9 @@ class Heritrix3Collector(object):
         # Also get the KafkaReport:
         kafka_results = Heritrix3Collector().do('kafka-report')
         for h in services:
+            print("H %s" % h)
             for k in kafka_results['services']:
+                print("K %s" % k)
                 if h['url'] == k['url']:
                     h['kafka_consumed'] = k['kafka_consumed']
                     h['kafka_partitions'] = k['kafka_partitions']
