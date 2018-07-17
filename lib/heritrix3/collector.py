@@ -134,6 +134,8 @@ class Heritrix3Collector(object):
         consumed = 0
         for h in services:
             kr = h['state'].get('message','')
+            h_partitions = {}
+            h_consumed = 0
             for line in kr.split('\n'):
                 if "partition: " in line:
                     line = line.replace("  partition: ", "")
@@ -144,8 +146,13 @@ class Heritrix3Collector(object):
                     if p in partitions and partitions[p] < o:
                         logger.warning("Same partition appears in multiple reports!")
                         continue
+                    h_partitions[p] = o
+                    h_consumed += o
                     partitions[p] = o
                     consumed += o
+            # Add to this service:
+            h['kafka_consumed'] = h_consumed
+            h['kafka_partitions'] = h_partitions
 
         return {
             'services': services,
@@ -180,6 +187,14 @@ class Heritrix3Collector(object):
             job['state'] = results[job['id']]
             if not job['url']:
                 job['state']['status'] = "LOOKUP FAILED"
+
+        # Also get the KafkaReport:
+        kafka_results = Heritrix3Collector().do('kafka-report')
+        for h in services:
+            for k in kafka_results['services']:
+                if h['url'] == k['url']:
+                    h['kafka_consumed'] = k['kafka_consumed']
+                    h['kafka_partitions'] = k['kafka_partitions']
 
         # Sort services by ID:
         services = sorted(services, key=lambda k: k['id'])
@@ -231,6 +246,16 @@ class Heritrix3Collector(object):
             'Thread counters from a Heritrix3 crawl job, labeled by kind',
             labels=["jobname", "deployment", "id", "kind"]) # No hyphens in label names please!
 
+        m_kc = GaugeMetricFamily(
+            'kafka_consumer_offset',
+            'Kafka partition offsets, indicating messages consumed by client.',
+            labels=["jobname", "deployment", "id", "partition"]) # No hyphens in label names please!
+
+        m_kt = GaugeMetricFamily(
+            'kafka_consumer_offset_total',
+            'Kafka total offset, indicating messages consumed by client.',
+            labels=["jobname", "deployment", "id"]) # No hyphens in label names please!
+
         result = self.run_api_requests()
 
         for job in result:
@@ -251,87 +276,96 @@ class Heritrix3Collector(object):
                     utr = {}
                 docs_total = utr.get('downloadedUriCount', 0.0)
                 known_total = utr.get('totalUriCount', 0.0)
-                m_uri_down.add_metric([name, deployment, status, id], docs_total)
-                m_uri_known.add_metric([name, deployment, status, id], known_total)
+                m_uri_down.add_metric([name, deployment, status, id], float(docs_total))
+                m_uri_known.add_metric([name, deployment, status, id], float(known_total))
                 # New-style metrics:
-                m_uris.add_metric([name, deployment, id, 'downloaded'], docs_total)
-                m_uris.add_metric([name, deployment, id, 'queued'], known_total)
+                m_uris.add_metric([name, deployment, id, 'downloaded'], float(docs_total))
+                m_uris.add_metric([name, deployment, id, 'queued'], float(known_total))
                 m_uris.add_metric([name, deployment, id, 'novel'],
-                          ji.get('sizeTotalsReport', {}).get('novelCount', 0.0))
+                          float(ji.get('sizeTotalsReport', {}).get('novelCount', 0.0)))
                 m_uris.add_metric([name, deployment, id, 'deduplicated'],
-                          ji.get('sizeTotalsReport', {}).get('dupByHashCount', 0.0))
-                m_uris.add_metric([name, deployment, id, 'deepest-queue-depth'],
-                          ji.get('loadReport', {}).get('deepestQueueDepth', 0.0))
-                m_uris.add_metric([name, deployment, id, 'average-queue-depth'],
-                          ji.get('loadReport', {}).get('averageQueueDepth', 0.0))
+                          float(ji.get('sizeTotalsReport', {}).get('dupByHashCount', 0.0)))
+                if ji.get('loadReport', {}) is not None:
+                    m_uris.add_metric([name, deployment, id, 'deepest-queue-depth'],
+                              ji.get('loadReport', {}).get('deepestQueueDepth', 0.0))
+                    m_uris.add_metric([name, deployment, id, 'average-queue-depth'],
+                              ji.get('loadReport', {}).get('averageQueueDepth', 0.0))
 
                 # Bytes:
                 m_bytes.add_metric([name, deployment, id, 'novel'],
-                          ji.get('sizeTotalsReport', {}).get('novel', 0.0))
+                          float(ji.get('sizeTotalsReport', {}).get('novel', 0.0)))
                 m_bytes.add_metric([name, deployment, id, 'deduplicated'],
-                          ji.get('sizeTotalsReport', {}).get('dupByHash', 0.0))
+                          float(ji.get('sizeTotalsReport', {}).get('dupByHash', 0.0)))
                 m_bytes.add_metric([name, deployment, id, 'warc-novel-content'],
-                          ji.get('sizeTotalsReport', {}).get('warcNovelContentBytes', 0.0))
+                          float(ji.get('sizeTotalsReport', {}).get('warcNovelContentBytes', 0.0)))
 
                 # Queues:
-                m_qs.add_metric([name, deployment, id, 'total'],
-                          ji.get('frontierReport', {}).get('totalQueues', 0.0))
-                m_qs.add_metric([name, deployment, id, 'in-process'],
-                          ji.get('frontierReport', {}).get('inProcessQueues', 0.0))
-                m_qs.add_metric([name, deployment, id, 'ready'],
-                          ji.get('frontierReport', {}).get('readyQueues', 0.0))
-                m_qs.add_metric([name, deployment, id, 'snoozed'],
-                          ji.get('frontierReport', {}).get('snoozedQueues', 0.0))
-                m_qs.add_metric([name, deployment, id, 'active'],
-                          ji.get('frontierReport', {}).get('activeQueues', 0.0))
-                m_qs.add_metric([name, deployment, id, 'inactive'],
-                          ji.get('frontierReport', {}).get('inactiveQueues', 0.0))
-                m_qs.add_metric([name, deployment, id, 'ineligible'],
-                          ji.get('frontierReport', {}).get('ineligibleQueues', 0.0))
-                m_qs.add_metric([name, deployment, id, 'retired'],
-                          ji.get('frontierReport', {}).get('retiredQueues', 0.0))
-                m_qs.add_metric([name, deployment, id, 'exhausted'],
-                          ji.get('frontierReport', {}).get('exhaustedQueues', 0.0))
+                if ji.get('frontierReport', {}) is not None:
+                    m_qs.add_metric([name, deployment, id, 'total'],
+                              ji.get('frontierReport', {}).get('totalQueues', 0.0))
+                    m_qs.add_metric([name, deployment, id, 'in-process'],
+                              ji.get('frontierReport', {}).get('inProcessQueues', 0.0))
+                    m_qs.add_metric([name, deployment, id, 'ready'],
+                              ji.get('frontierReport', {}).get('readyQueues', 0.0))
+                    m_qs.add_metric([name, deployment, id, 'snoozed'],
+                              ji.get('frontierReport', {}).get('snoozedQueues', 0.0))
+                    m_qs.add_metric([name, deployment, id, 'active'],
+                              ji.get('frontierReport', {}).get('activeQueues', 0.0))
+                    m_qs.add_metric([name, deployment, id, 'inactive'],
+                              ji.get('frontierReport', {}).get('inactiveQueues', 0.0))
+                    m_qs.add_metric([name, deployment, id, 'ineligible'],
+                              ji.get('frontierReport', {}).get('ineligibleQueues', 0.0))
+                    m_qs.add_metric([name, deployment, id, 'retired'],
+                              ji.get('frontierReport', {}).get('retiredQueues', 0.0))
+                    m_qs.add_metric([name, deployment, id, 'exhausted'],
+                              ji.get('frontierReport', {}).get('exhaustedQueues', 0.0))
 
                 # Threads:
-                m_ts.add_metric([name, deployment, id, 'total'],
-                          ji.get('loadReport', {}).get('totalThreads', 0.0))
-                m_ts.add_metric([name, deployment, id, 'busy'],
-                          ji.get('loadReport', {}).get('busyThreads', 0.0))
-                m_ts.add_metric([name, deployment, id, 'toe-count'],
-                          ji.get('threadReport', {}).get('toeCount', 0.0))
-                # Congestion ratio can be literal 'null':
-                congestion = ji.get('loadReport', {}).get('congestionRatio', 0.0)
-                if congestion is not None:
-                    m_ts.add_metric([name, deployment, id, 'congestion-ratio'], congestion)
-                # Thread Steps (could be an array or just one entry):
-                steps = ji.get('threadReport', {}).get('steps', {})
-                if steps is not None:
-                    steps = steps.get('value',[])
-                    if isinstance(steps, basestring):
-                        steps = [steps]
-                    for step_value in steps:
-                        splut = re.split(' ', step_value, maxsplit=1)
-                        if len(splut) == 2:
-                            count, step = splut
-                            step = "step-%s" % step.lower()
-                            m_ts.add_metric([name, deployment, id, step], float(int(count)))
-                        else:
-                            logger.warning("Could not handle step value: %s" % step_value)
-                # Thread Processors (could be an array or just one entry):
-                procs = ji.get('threadReport', {}).get('processors', {})
-                if procs is not None:
-                    procs = procs.get('value',[])
-                    if isinstance(procs, basestring):
-                        procs = [procs]
-                    for proc_value in procs:
-                        splut = re.split(' ', proc_value, maxsplit=1)
-                        if len(splut) == 2:
-                            count, proc = splut
-                            proc = "processor-%s" % proc.lower()
-                            m_ts.add_metric([name, deployment, id, proc], float(count))
-                        else:
-                            logger.warning("Could not handle processor value: '%s'" % proc_value)
+                if ji.get('loadReport', {}) is not None:
+                    m_ts.add_metric([name, deployment, id, 'total'],
+                              ji.get('loadReport', {}).get('totalThreads', 0.0))
+                    m_ts.add_metric([name, deployment, id, 'busy'],
+                              ji.get('loadReport', {}).get('busyThreads', 0.0))
+                    # Congestion ratio can be literal 'null':
+                    congestion = ji.get('loadReport', {}).get('congestionRatio', 0.0)
+                    if congestion is not None:
+                        m_ts.add_metric([name, deployment, id, 'congestion-ratio'], congestion)
+                if ji.get('threadReport', {}) is not None:
+                    m_ts.add_metric([name, deployment, id, 'toe-count'],
+                              ji.get('threadReport', {}).get('toeCount', 0.0))
+                    # Thread Steps (could be an array or just one entry):
+                    steps = ji.get('threadReport', {}).get('steps', {})
+                    if steps is not None:
+                        steps = steps.get('value',[])
+                        if isinstance(steps, basestring):
+                            steps = [steps]
+                        for step_value in steps:
+                            splut = re.split(' ', step_value, maxsplit=1)
+                            if len(splut) == 2:
+                                count, step = splut
+                                step = "step-%s" % step.lower()
+                                m_ts.add_metric([name, deployment, id, step], float(int(count)))
+                            else:
+                                logger.warning("Could not handle step value: %s" % step_value)
+                    # Thread Processors (could be an array or just one entry):
+                    procs = ji.get('threadReport', {}).get('processors', {})
+                    if procs is not None:
+                        procs = procs.get('value',[])
+                        if isinstance(procs, basestring):
+                            procs = [procs]
+                        for proc_value in procs:
+                            splut = re.split(' ', proc_value, maxsplit=1)
+                            if len(splut) == 2:
+                                count, proc = splut
+                                proc = "processor-%s" % proc.lower()
+                                m_ts.add_metric([name, deployment, id, proc], float(count))
+                            else:
+                                logger.warning("Could not handle processor value: '%s'" % proc_value)
+
+                # Store Kafka offsets
+                for p in ji.get('kafka_partitions', {}):
+                    m_kc.add_metric([name, deployment, id, str(p)], float(ji['kafka_partitions'][p]))
+                m_kt.add_metric([name, deployment, id], float(ji.get('kafka_consumed', 0)))
 
             except Exception as e:
                 logger.exception("Exception while parsing metrics!")
