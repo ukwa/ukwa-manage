@@ -341,7 +341,7 @@ class GenerateAccessWhitelist(luigi.Task):
     def output(self):
         return {
             'owb': state_file(self.date,'access-data', 'access-whitelist.txt'),
-            'pywb': state_file(self.date,'access-data', 'access-whitelist.json')
+            'pywb': state_file(self.date,'access-data', 'access-whitelist.aclj')
         }
 
     def requires(self):
@@ -447,6 +447,7 @@ class UpdateAccessWhitelist(luigi.Task):
     task_namespace = 'access'
     date = luigi.DateParameter(default=datetime.date.today())
     wb_oa_whitelist = luigi.Parameter(default='/root/wayback-config/open-access-whitelist.txt')
+    pywb_oa_whitelist = luigi.Parameter(default='/root/wayback-config/open-access-whitelist.aclj')
 
     def requires(self):
         return GenerateAccessWhitelist(self.date)
@@ -460,8 +461,14 @@ class UpdateAccessWhitelist(luigi.Task):
         shutil.copy(self.input()['owb'].path, temp_path)
         shutil.move(temp_path, self.wb_oa_whitelist)
 
+        # Copy the file to the deployment location (atomically):
+        temp_path = "%s.tmp" % self.pywb_oa_whitelist
+        shutil.copy(self.input()['pywb'].path, temp_path)
+        shutil.move(temp_path, self.pywb_oa_whitelist)
+
         # Note that we've completed this work successfully
         with self.output().open('w') as f:
+            f.write('Written SURTS from %s to %s' % (self.input()['pywb'].path, self.pywb_oa_whitelist))
             f.write('Written SURTS from %s to %s' % (self.input()['owb'].path, self.wb_oa_whitelist))
 
 
