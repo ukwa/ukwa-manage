@@ -314,6 +314,7 @@ class GenerateAccessWhitelist(luigi.Task):
     wct_url_file = luigi.Parameter(default=os.path.join(os.path.dirname(__file__), "wct_urls.txt"))
 
     all_surts = set()
+    all_surts_and_urls = list()
 
     RE_NONCHARS = re.compile(r"""
     [^	# search for any characters that aren't those below
@@ -338,7 +339,10 @@ class GenerateAccessWhitelist(luigi.Task):
     #w3actURLsFile = '/home/tomcat/oukwa-wayback-whitelist/w3act_urls'
 
     def output(self):
-        return state_file(self.date,'access-data', 'access-whitelist.txt')
+        return {
+            'owb': state_file(self.date,'access-data', 'access-whitelist.txt'),
+            'pywb': state_file(self.date,'access-data', 'access-whitelist.json')
+        }
 
     def requires(self):
         return CrawlFeed('all','oa')
@@ -378,7 +382,12 @@ class GenerateAccessWhitelist(luigi.Task):
 
             # for all WCT URLs, generate surt. Using a set disallows duplicates
             for line in lines:
-                self.all_surts.add(self.generate_surt(line))
+                surt = self.generate_surt(line)
+                self.all_surts.add(surt)
+                self.all_surts_and_urls.append({
+                    'surt': surt,
+                    'url': line
+                })
                 count += 1
 
         logger.info("%s surts from WCT generated" % count)
@@ -391,6 +400,10 @@ class GenerateAccessWhitelist(luigi.Task):
             for seed in target['seeds']:
                 surtVal = self.generate_surt(seed)
                 self.all_surts.add(surtVal)
+                self.all_surts_and_urls.append({
+                    'surt': surtVal,
+                    'url': seed
+                })
 
     def run(self):
         # collate surts
@@ -398,9 +411,18 @@ class GenerateAccessWhitelist(luigi.Task):
         self.surts_from_w3act()
 
         # And write out the SURTs:
-        with self.output().open('w') as f:
+        with self.output()['owb'].open('w') as f:
             for surt in sorted(self.all_surts):
                 f.write("%s\n" % surt)
+        # Also in pywb format:
+        with self.output()['pywb'].open('w') as f:
+            pywb_rules = set()
+            for surt, url in self.all_surts_and_urls:
+                rule = { 'access': 'allow',
+                         'url' : url}
+                pywb_rules.append("%s - %s" % ( surt, json.dumps(rule)))
+            for rule in sorted(pywb_rules, reverse=True):
+                f.write("%s\n" % rule)
 
     def get_metrics(self,registry):
         # type: (CollectorRegistry) -> None
@@ -428,7 +450,7 @@ class UpdateAccessWhitelist(luigi.Task):
     def run(self):
         # Copy the file to the deployment location (atomically):
         temp_path = "%s.tmp" % self.wb_oa_whitelist
-        shutil.copy(self.input().path, temp_path)
+        shutil.copy(self.input()['owb'].path, temp_path)
         shutil.move(temp_path, self.wb_oa_whitelist)
 
         # Note that we've completed this work successfully

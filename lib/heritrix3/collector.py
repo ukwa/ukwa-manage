@@ -4,9 +4,7 @@ import math
 import json
 import time
 import socket
-import urllib2
 import requests
-from multiprocessing import Pool, Process
 from prometheus_client import start_http_server
 from prometheus_client.core import GaugeMetricFamily, REGISTRY
 import logging
