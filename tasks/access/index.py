@@ -417,10 +417,12 @@ class GenerateAccessWhitelist(luigi.Task):
         # Also in pywb format:
         with self.output()['pywb'].open('w') as f:
             pywb_rules = set()
-            for surt, url in self.all_surts_and_urls:
-                rule = { 'access': 'allow',
-                         'url' : url}
-                pywb_rules.add("%s - %s" % ( surt, json.dumps(rule)))
+            for item in self.all_surts_and_urls:
+                rule = {
+                    'access': 'allow',
+                    'url': item['url']
+                }
+                pywb_rules.add("%s - %s" % (item['surt'], json.dumps(rule)))
             for rule in sorted(pywb_rules, reverse=True):
                 f.write("%s\n" % rule)
 
