@@ -350,6 +350,7 @@ class GenerateAccessWhitelist(luigi.Task):
     def generate_surt(self, url):
         if self.RE_NONCHARS.search(url):
             logger.warn("Questionable characters found in URL [%s]" % url)
+            return None
 
         surtVal = surt(url)
 
@@ -383,12 +384,13 @@ class GenerateAccessWhitelist(luigi.Task):
             # for all WCT URLs, generate surt. Using a set disallows duplicates
             for line in lines:
                 surt = self.generate_surt(line)
-                self.all_surts.add(surt)
-                self.all_surts_and_urls.append({
-                    'surt': surt,
-                    'url': line
-                })
-                count += 1
+                if surt is not None:
+                    self.all_surts.add(surt)
+                    self.all_surts_and_urls.append({
+                        'surt': surt,
+                        'url': line
+                    })
+                    count += 1
 
         logger.info("%s surts from WCT generated" % count)
 
@@ -399,11 +401,12 @@ class GenerateAccessWhitelist(luigi.Task):
         for target in targets:
             for seed in target['seeds']:
                 surtVal = self.generate_surt(seed)
-                self.all_surts.add(surtVal)
-                self.all_surts_and_urls.append({
-                    'surt': surtVal,
-                    'url': seed
-                })
+                if surtVal is not None:
+                    self.all_surts.add(surtVal)
+                    self.all_surts_and_urls.append({
+                        'surt': surtVal,
+                        'url': seed
+                    })
 
     def run(self):
         # collate surts
