@@ -9,7 +9,7 @@ from xml.parsers.expat import ExpatError
 import random
 import warcio
 import urllib
-from surt import surt
+import surt
 from tasks.ingest.w3act import CrawlFeed
 from urllib import quote_plus  # python 2
 # from urllib.parse import quote_plus # python 3
@@ -352,7 +352,7 @@ class GenerateAccessWhitelist(luigi.Task):
             logger.warn("Questionable characters found in URL [%s]" % url)
             return None
 
-        surtVal = surt(url)
+        surtVal = surt.surt(url)
 
         #### WA: ensure SURT has scheme of original URL ------------
         # line_scheme = RE_SCHEME.match(line)           # would allow http and https (and any others)
@@ -425,7 +425,9 @@ class GenerateAccessWhitelist(luigi.Task):
                     'access': 'allow',
                     'url': item['url']
                 }
-                pywb_rules.add("%s - %s" % (item['surt'], json.dumps(rule)))
+                surt = item['surt']
+                surt = surt.replace('http://(', '', 1)
+                pywb_rules.add("%s - %s" % (surt, json.dumps(rule)))
             for rule in sorted(pywb_rules, reverse=True):
                 f.write("%s\n" % rule)
 
