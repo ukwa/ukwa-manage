@@ -448,7 +448,7 @@ class UpdateAccessWhitelist(luigi.Task):
     task_namespace = 'access'
     date = luigi.DateParameter(default=datetime.date.today())
     wb_oa_whitelist = luigi.Parameter(default='/root/wayback-config/open-access-whitelist.txt')
-    pywb_oa_whitelist = luigi.Parameter(default='/root/wayback-config/open-access-whitelist.aclj')
+    pywb_oa_whitelist = luigi.Parameter(default='/root/wayback-config/allows.aclj')
 
     def requires(self):
         return GenerateAccessWhitelist(self.date)
