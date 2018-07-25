@@ -427,6 +427,7 @@ class GenerateAccessWhitelist(luigi.Task):
                 }
                 surt = item['surt']
                 surt = surt.replace('http://(', '', 1)
+                surt = surt.rstrip(',') # Strip any trailing comma
                 pywb_rules.add("%s - %s" % (surt, json.dumps(rule)))
             for rule in sorted(pywb_rules, reverse=True):
                 f.write("%s\n" % rule)

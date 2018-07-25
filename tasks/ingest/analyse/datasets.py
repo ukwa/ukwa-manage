@@ -13,6 +13,21 @@ class GenerateWordColocations(luigi.contrib.hadoop_jar.HadoopJarJobTask):
     """
     This generates word co-location data for a batch of WARCs.
 
+    The data looks like this:
+
+201701  aaaee   rukc    2
+201701  aaaejd  gaevc   2
+201701  aaaepc  eaamyh  2
+201701  aaaepf  eaaezd  2
+201701  aaaf    3
+201701  aaagb   eaae    4
+201701  aaagbrl eaaojj  2
+201701  aaagghh through 1
+201701  aaagh   endless 7
+201701  aaagh   here    7
+
+i.e. a mixture of three-column (frequency) and four-column (co-location) data.
+
     Parameters:
         input_file: A local file that contains the list of WARC files to process
     """
