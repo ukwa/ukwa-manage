@@ -108,7 +108,6 @@ class DocumentMDEx(object):
             logger.warning("Assuming first match is sufficient... (%s)" % title_matches[0]['title'])
             return int(title_matches[0]['id'])
 
-
     def mdex(self):
         '''
         Metadata extraction and target association.
@@ -137,10 +136,10 @@ class DocumentMDEx(object):
             logger.info("Looking for match for %s source %s and publishers '%s'" % (self.doc['landing_page_url'], self.source, self.doc.get('publishers',[])))
             self.doc['target_id'] = self.find_watched_target_for(self.doc['landing_page_url'], self.source, self.doc.get('publishers', []))
         
-        # If there is no association, drop it:
+        # If there is no association, flag it to be dropped:
         if not self.doc.get('target_id', None) and self.null_if_no_target_found:
             logger.critical("Failed to associated document with any target: %s" % self.doc)
-            return None
+            self.doc['match_failed'] = True
 
         # If the publisher appears unambiguous, store it where it can be re-used
         if len(self.doc.get('publishers',[])) is 1:
@@ -194,16 +193,22 @@ class DocumentMDEx(object):
         # e.g. https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/497662/accidents-involving-illegal-alcohol-levels-2014.pdf
         # Link: <https://www.gov.uk/government/statistics/reported-road-casualties-in-great-britain-estimates-involving-illegal-alcohol-levels-2014>; rel="up"
         tries = 5
+        success = False
         while tries > 0:
             r = requests.head(url=self.doc_wb_url())
             if r.links.has_key('up'):
                 lpu = r.links['up']
                 self.doc["landing_page_url"] = lpu['url']
+                success = True
                 break
             else:
                 logger.info("Could not find 'up' relationship!")
                 tries -= 1
                 time.sleep(10)
+        # Fail if we could not contact the API:
+        if not success:
+            self.doc['api_call_failed'] = "Could not find rel['up'] relationship."
+            return
         # Grab data from the landing page:
         lp_url = urlparse(self.doc["landing_page_url"])
         if "www.gov.uk" == lp_url.hostname:

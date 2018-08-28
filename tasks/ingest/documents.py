@@ -168,7 +168,7 @@ class ExtractDocumentAndPost(luigi.Task):
         doc = DocumentMDEx(targets, self.doc.get_wrapped().copy(), self.source).mdex()
 
         # Documents may be rejected at this point:
-        if doc is None:
+        if doc['match_failed']:
             logger.error("The document %s has been REJECTED!" % self.doc['document_url'])
             doc = self.doc.get_wrapped().copy()
             doc['status'] = 'REJECTED'
