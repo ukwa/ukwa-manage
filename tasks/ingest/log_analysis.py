@@ -30,6 +30,7 @@ class LogFilesForJobLaunch(luigi.ExternalTask):
         outputs = []
         # Get HDFS client:
         client = luigi.contrib.hdfs.WebHdfsClient()
+        # Find log files:
         parent_path = "/heritrix/output/logs/%s/%s" % (self.job, self.launch_id)
         for listed_item in client.listdir(parent_path):
             # Oddly, depending on the implementation, the listed_path may be absolute or basename-only, so fix here:
@@ -150,11 +151,26 @@ class GenerateCrawlLogReports(luigi.Task):
     """
     task_namespace = 'report'
     job = luigi.Parameter()
-    launch_id = luigi.Parameter()
+    launch_id = luigi.Parameter(default=None)
     extract_documents = luigi.BoolParameter(default=False)
 
     def requires(self):
+        # Find latest launch if needed:
+        if not self.launch_id:
+            self.launch_id = self.find_last_launch()
         return LogFilesForJobLaunch(self.job, self.launch_id)
+
+    def find_last_launch(self):
+        output_folder = None
+        # Get HDFS client:
+        client = luigi.contrib.hdfs.WebHdfsClient()
+        parent_path = "/heritrix/output/logs/%s" % self.job
+        for listed_item in client.listdir(parent_path):
+            item = os.path.basename(listed_item)
+            if output_folder is None or item > output_folder:
+                output_folder = item
+        # Return the logs to be processed:
+        return output_folder
 
     def output(self):
         logs_count = len(self.input())
