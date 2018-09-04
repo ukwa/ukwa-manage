@@ -168,8 +168,18 @@ class LaunchCrawls(luigi.Task):
                 elif t['depth'] == 'DEEP':
                     sheets.append('noLimit')
                 # Frequency:
-                if freq == 'WEEKLY':
+                if freq == 'DAILY':
+                    sheets.append('recrawl-1day')
+                elif freq == 'WEEKLY':
                     sheets.append('recrawl-1week')
+                elif freq == 'MONTHLY':
+                    sheets.append('recrawl-27days')
+                elif freq == 'QUARTERLY':
+                    sheets.append('recrawl-12weeks')
+                elif freq == 'SIXMONTHLY':
+                    sheets.append('recrawl-24weeks')
+                elif freq == 'ANNUAL':
+                    sheets.append('recrawl-365days')
 
                 # And send launch message:
                 self.launcher.launch(destination, seed, source, isSeed, sheets=sheets)
