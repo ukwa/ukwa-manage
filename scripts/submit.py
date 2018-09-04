@@ -77,7 +77,7 @@ def main(argv=None):
     parser.add_argument("-F", "--force-fetch", dest="forceFetch", action="store_true", default=False, required=False,
                         help="Force the URL to be fetched, even if already seen and queued/rejected. [default: %(default)s]")
     parser.add_argument("-P", "--pager", dest="pager", action="store_true", default=False, required=False,
-                        help="Attempt to extract URLs for all pages, and submit those too.")
+                        help=argparse.SUPPRESS ) #"Attempt to extract URLs for all pages, and submit those too.")
     parser.add_argument("-r", "--recrawl-interval", dest="recrawl_interval", default=None, required=False, type=int,
                         help="Recrawl interval override for this URI (in seconds). [default: %(default)s]")
     parser.add_argument('queue', metavar='queue', help="Name of queue to send URIs too, e.g. 'dc.discovered'.")
