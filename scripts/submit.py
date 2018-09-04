@@ -90,7 +90,7 @@ def main(argv=None):
         args.sheets = args.sheets.split(',')
 
     # Set up launcher:
-    launcher = KafkaLauncher(args)
+    launcher = KafkaLauncher(kafka_server=args.kafka_server, topic=args.queue)
 
     # Read from a file, if the input is a file:
     if os.path.isfile(args.uri_or_filename):

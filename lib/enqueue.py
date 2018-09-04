@@ -32,25 +32,25 @@ class KafkaLauncher(object):
     classdocs
     '''
 
-    def __init__(self, args):
+    def __init__(self, kafka_server, topic=None):
         '''
         Constructor
         '''
-        self.args = args
         self.producer = KafkaProducer(
-            bootstrap_servers=self.args.kafka_server,
+            bootstrap_servers=kafka_server,
             value_serializer=lambda v: json.dumps(v).encode('utf-8'))
+        self.topic = topic
 
-    def send_message(self, key, message, queue=None):
+    def send_message(self, key, message, topic=None):
         """
         Sends a message to the given queue.
         """
         #
-        if not queue:
-            queue = self.args.queue
+        if not topic:
+            topic = self.topic
 
         logger.info("Sending key %s, message: %s" % (key, json.dumps(message)))
-        self.producer.send(queue, key=key, value=message)
+        self.producer.send(topic, key=key, value=message)
 
     def launch(self, destination, uri, source, isSeed=False, forceFetch=False, sheets=[], hop="", recrawl_interval=None):
         curim = {}
