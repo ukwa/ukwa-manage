@@ -34,6 +34,8 @@ class LaunchCrawls(luigi.Task):
     kafka_server = luigi.Parameter(default='localhost:9092')
     queue = luigi.Parameter(default='fc.candidates')
 
+    i_launches = 0
+
     def requires(self):
         # Get the crawl feed of interest:
         return CrawlFeed(frequency=self.frequency, date=self.date)
@@ -55,11 +57,11 @@ class LaunchCrawls(luigi.Task):
         destination = 'h3'
 
         # Get current time
-        now = self.date
+        now = datetime.datetime.today()
         logger.debug("Now timestamp: %s" % str(now))
 
         # Process looking for due:
-        i_launches = 0
+        self.i_launches = 0
         for t in all_targets:
             logger.debug("----------")
             logger.debug("Looking at %s (tid:%d)" % (t['title'], t['id']))
@@ -72,14 +74,14 @@ class LaunchCrawls(luigi.Task):
             # Check the scheduling:
             for schedule in t['schedules']:
                 # Skip if target schedule outside of start/end range
-                startDate = datetime.utcfromtimestamp(schedule['startDate'] / 1000)
+                startDate = datetime.datetime.utcfromtimestamp(schedule['startDate'] / 1000)
                 logger.debug("Target schedule start date: %s" % str(startDate))
                 if (now < startDate):
                     logger.debug("Start date %s not yet reached" % startDate)
                     continue
                 endDate = 'N/S'
                 if schedule['endDate']:
-                    endDate = datetime.utcfromtimestamp(schedule['endDate'] / 1000)
+                    endDate = datetime.datetime.utcfromtimestamp(schedule['endDate'] / 1000)
                     if now > endDate:
                         logger.debug("End date %s passed" % endDate)
                         continue
@@ -95,14 +97,14 @@ class LaunchCrawls(luigi.Task):
                         self.launch_by_hour(now, startDate, endDate, t, destination, source, 'WEEKLY')
                     else:
                         logger.debug("WEEKLY: isoweekday %s differs from schedule %s" % (
-                        now.isoweekday(), startDate.isoweekday()))
+                            now.isoweekday(), startDate.isoweekday()))
 
                 elif schedule['frequency'] == "MONTHLY":
                     if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day:
                         self.launch_by_hour(now, startDate, endDate, t, destination, source, 'MONTHLY')
                     else:
                         logger.debug("MONTHLY: isoweekday %s differs from schedule %s" % (
-                        now.isoweekday(), startDate.isoweekday()))
+                            now.isoweekday(), startDate.isoweekday()))
                         logger.debug("MONTHLY: day %s differs from schedule %s" % (now.day, startDate.day))
 
                 elif schedule['frequency'] == "QUARTERLY":
@@ -110,7 +112,7 @@ class LaunchCrawls(luigi.Task):
                         self.launch_by_hour(now, startDate, endDate, t, destination, source, 'QUARTERLY')
                     else:
                         logger.debug("QUARTERLY: isoweekday %s differs from schedule %s" % (
-                        now.isoweekday(), startDate.isoweekday()))
+                            now.isoweekday(), startDate.isoweekday()))
                         logger.debug(
                             "QUARTERLY: month3 %s differs from schedule %s" % (now.month % 3, startDate.month % 3))
 
@@ -128,12 +130,12 @@ class LaunchCrawls(luigi.Task):
                         self.launch_by_hour(now, startDate, endDate, t, destination, source, 'ANNUAL')
                     else:
                         logger.debug("ANNUAL: isoweekday %s differs from schedule %s" % (
-                        now.isoweekday(), startDate.isoweekday()))
+                            now.isoweekday(), startDate.isoweekday()))
                         logger.debug("ANNUAL: month %s differs from schedule %s" % (now.month, startDate.month))
                 else:
                     logger.error("Don't understand crawl frequency " + schedule['frequency'])
 
-        logger.info("Completed. Launches this hour: %s" % i_launches)
+        logger.info("Completed. Launches this hour: %s" % self.i_launches)
 
     def launch_by_hour(self, now, startDate, endDate, t, destination, source, freq):
         # Is it the current hour?
@@ -152,8 +154,7 @@ class LaunchCrawls(luigi.Task):
                 # And send launch message:
                 self.launcher.launch(destination, seed, source, isSeed)
                 counter = counter + 1
-                global i_launches
-                i_launches = i_launches + 1
+                self.i_launches = self.i_launches + 1
 
         else:
             logger.debug("The hour (%s) is not current." % startDate.hour)
