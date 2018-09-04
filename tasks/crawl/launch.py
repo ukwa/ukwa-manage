@@ -50,10 +50,10 @@ class LaunchCrawls(luigi.Task):
         logger.info("Filtering detailed information for %i targets..." % len(all_targets))
 
         # Set up launcher:
-        launcher = KafkaLauncher({
-            'kafka_server': self.kafka_server,
-            'queue': self.queue
-        })
+        args = dict()
+        args.kafka_server = self.kafka_server
+        args.queue = self.queue
+        launcher = KafkaLauncher(args)
         # Destination is always h3
         destination = 'h3'
 
