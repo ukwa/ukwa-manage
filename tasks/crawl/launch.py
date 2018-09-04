@@ -16,7 +16,7 @@ task.crawl.launch -- Launches the Frequent Crawls
 import datetime
 import json
 import luigi
-from tasks.ingest.w3act import TargetList
+from tasks.ingest.w3act import CrawlFeed
 from tasks.common import logger, state_file
 
 from lib.enqueue import KafkaLauncher
@@ -29,14 +29,14 @@ class LaunchCrawls(luigi.Task):
     Only generated once per day as this is rather heavy going.
     """
     task_namespace = 'crawl'
-    frequency = luigi.Parameter(default=None)
+    frequency = luigi.Parameter(default='weekly')
     date = luigi.DateHourParameter(default=datetime.datetime.today())
     kafka_server = luigi.Parameter(default='localhost:9092')
     queue = luigi.Parameter(default='fc.candidates')
 
     def requires(self):
-        # Get todays target list:
-        return TargetList()
+        # Get the crawl feed of interest:
+        return CrawlFeed(frequency=self.frequency, date=self.date)
 
     def output(self):
         return state_file(self.date,'w3act-target-list', 'target-launch-%s.json' % self.frequency)
