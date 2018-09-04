@@ -35,7 +35,7 @@ class LaunchCrawls(luigi.Task):
     queue = luigi.Parameter(default='fc.candidates')
 
     # Set up launcher:
-    launcher = KafkaLauncher(kafka_server=kafka_server, topic=queue)
+    launcher = KafkaLauncher(kafka_server=[kafka_server], topic=queue)
     i_launches = 0
 
     def requires(self):
