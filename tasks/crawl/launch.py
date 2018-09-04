@@ -31,7 +31,7 @@ class LaunchCrawls(luigi.Task):
     task_namespace = 'crawl'
     frequency = luigi.Parameter(default='weekly')
     date = luigi.DateHourParameter(default=datetime.datetime.today())
-    kafka_server = luigi.Parameter(default='localhost:9092')
+    kafka_server = luigi.Parameter(default='crawler02.n45.bl.uk:9094')
     queue = luigi.Parameter(default='fc.candidates')
 
     # Set up launcher:
