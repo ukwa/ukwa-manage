@@ -175,4 +175,4 @@ class LaunchCrawls(luigi.Task):
 
 
 if __name__ == '__main__':
-    luigi.run(['crawl.LaunchCrawls', '--kafka-server', 'crawler02.bl.uk:9094', '--queue', 'fc.to-crawl', '--local-scheduler'])
+    luigi.run(['crawl.LaunchCrawls', '--kafka-server', 'crawler02.n45.bl.uk:9094', '--queue', 'fc.to-crawl', '--local-scheduler'])
