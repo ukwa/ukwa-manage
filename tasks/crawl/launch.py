@@ -34,8 +34,8 @@ class LaunchCrawls(luigi.Task):
     kafka_server = luigi.Parameter(default='crawler02.n45.bl.uk:9094')
     queue = luigi.Parameter(default='fc.candidates')
 
-    # Set up launcher:
-    launcher = KafkaLauncher(kafka_server=[str(kafka_server)], topic=queue)
+    # The message launcher:
+    launcher = None
     i_launches = 0
 
     def requires(self):
@@ -53,6 +53,8 @@ class LaunchCrawls(luigi.Task):
         # Grab detailed target data:
         logger.info("Filtering detailed information for %i targets..." % len(all_targets))
 
+        # Set up launcher:
+        self.launcher = KafkaLauncher(kafka_server=self.kafka_server, topic=self.queue)
         # Destination is always h3
         destination = 'h3'
 
