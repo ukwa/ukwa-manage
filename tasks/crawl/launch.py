@@ -34,6 +34,8 @@ class LaunchCrawls(luigi.Task):
     kafka_server = luigi.Parameter(default='localhost:9092')
     queue = luigi.Parameter(default='fc.candidates')
 
+    # Set up launcher:
+    launcher = KafkaLauncher(kafka_server=kafka_server, topic=queue)
     i_launches = 0
 
     def requires(self):
@@ -51,8 +53,6 @@ class LaunchCrawls(luigi.Task):
         # Grab detailed target data:
         logger.info("Filtering detailed information for %i targets..." % len(all_targets))
 
-        # Set up launcher:
-        launcher = KafkaLauncher(kafka_server=self.kafka_server, topic=self.queue)
         # Destination is always h3
         destination = 'h3'
 
@@ -151,8 +151,28 @@ class LaunchCrawls(luigi.Task):
                 else:
                     isSeed = False
 
+                # Set-up sheets
+                sheets = []
+
+                # Robots.txt
+                if t['ignoreRobotsTxt']:
+                    sheets.append('ignoreRobots')
+                # Scope
+                if t['scope'] == 'subdomains':
+                    sheets.append('subdomainsScope')
+                elif t['scope'] == 'plus1Scope':
+                    sheets.append('plus1Scope')
+                # Limits
+                if t['depth'] == 'CAPPED_LARGE':
+                    sheets.append('higherLimit')
+                elif t['depth'] == 'DEEP':
+                    sheets.append('noLimit')
+                # Frequency:
+                if freq == 'WEEKLY':
+                    sheets.append('recrawl-1week')
+
                 # And send launch message:
-                self.launcher.launch(destination, seed, source, isSeed)
+                self.launcher.launch(destination, seed, source, isSeed, sheets=sheets)
                 counter = counter + 1
                 self.i_launches = self.i_launches + 1
 
