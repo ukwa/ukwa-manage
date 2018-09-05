@@ -17,19 +17,64 @@ import datetime
 import json
 import luigi
 from tasks.ingest.w3act import CrawlFeed
-from tasks.common import logger, state_file
+from tasks.common import logger, state_file, taskdb_target, CopyToTableInIngestDB
+from prometheus_client import CollectorRegistry, Gauge
 
 from lib.enqueue import KafkaLauncher
 
 
-class LaunchCrawls(luigi.Task):
+class UpdateScopeFiles(luigi.Task):
     """
-    Get the lists of all targets, with full details for each, whether or not they are scheduled for crawling.
-
-    Only generated once per day as this is rather heavy going.
+    Get the lists of all targets and updates the crawlers scope files.
     """
     task_namespace = 'crawl'
-    frequency = luigi.Parameter(default='weekly')
+    date = luigi.DateHourParameter(default=datetime.datetime.today())
+
+    def requires(self):
+        # Get the crawl feed of interest:
+        return {
+            'all' : CrawlFeed(frequency='all', date=self.date),
+            'nevercrawl': CrawlFeed(frequency='nevercrawl', date=self.date)
+        }
+
+    def output(self):
+        return taskdb_target('crawl', self.task_id, kind='ingest')
+
+    def run(self):
+        # Load the targets:
+        with self.input()['all'].open() as f:
+            all_targets = json.load(f)
+            self.write_surt_file(all_targets, self.scope_in_file)
+            self.write_watched_surt_file(all_targets, self.scope_watched_file)
+        # Load the block list:
+        with self.input()['nevercrawl'].open() as f:
+            blocked_targets = json.load(f)
+            self.write_surt_file(blocked_targets, self.scope_blocked_file)
+        # Record that all went well:
+        self.output().touch()
+
+    def write_surt_file(self, targets, filename):
+        with open(filename, 'w') as f:
+            for t in targets:
+                for seed in t['seeds']:
+                    # f.write("%s\n" % url_to_surt(seed)) # needs a '+'?
+                    f.write("%s\n" % seed)
+
+    def write_watched_surt_file(self, targets, filename):
+        with open(filename, 'w') as f:
+            for t in targets:
+                if t['watched']:
+                    for seed in t['seeds']:
+                        # f.write("%s\n" % url_to_surt(seed))
+                        f.write("%s\n" % seed)
+
+
+class LaunchCrawls(luigi.Task):
+    """
+    Get the lists of all targets from the crawl feed and launch those that need launching.
+    """
+    task_namespace = 'crawl'
+    frequency = luigi.Parameter(default='all')
     date = luigi.DateHourParameter(default=datetime.datetime.today())
     kafka_server = luigi.Parameter(default='crawler02.n45.bl.uk:9094')
     queue = luigi.Parameter(default='fc.candidates')
@@ -43,7 +88,7 @@ class LaunchCrawls(luigi.Task):
         return CrawlFeed(frequency=self.frequency, date=self.date)
 
     def output(self):
-        return state_file(self.date,'w3act-target-list', 'target-launch-%s.json' % self.frequency)
+        return taskdb_target('crawl', self.task_id, kind='ingest')
 
     def run(self):
         # Load the targets:
@@ -69,9 +114,7 @@ class LaunchCrawls(luigi.Task):
             logger.debug("Looking at %s (tid:%d)" % (t['title'], t['id']))
 
             # Add a source tag if this is a watched target:
-            source = ''
-            if t['watched']:
-                source = t['seeds'][0]
+            source = "tid:%d:%s" % (t['id'], t['seeds'][0])
 
             # Check the scheduling:
             for schedule in t['schedules']:
@@ -138,6 +181,16 @@ class LaunchCrawls(luigi.Task):
                     logger.error("Don't understand crawl frequency " + schedule['frequency'])
 
         logger.info("Completed. Launches this hour: %s" % self.i_launches)
+        # Record that all went well:
+        self.output().touch()
+
+    def get_metrics(self,registry):
+        # type: (CollectorRegistry) -> None
+
+        g = Gauge('hdfs_files_total_bytes',
+                  'Total size of files on HDFS in bytes.',
+                  labelnames=['service'], registry=registry)
+        g.labels(service='').set(self.i_launches)
 
     def launch_by_hour(self, now, startDate, endDate, t, destination, source, freq):
         # Is it the current hour?
@@ -190,21 +243,6 @@ class LaunchCrawls(luigi.Task):
 
         else:
             logger.debug("The hour (%s) is not current." % startDate.hour)
-
-    def write_surt_file(self, targets, filename):
-        with open(filename, 'w') as f:
-            for t in targets:
-                for seed in t['seeds']:
-                    # f.write("%s\n" % url_to_surt(seed))
-                    f.write("%s\n" % seed)
-
-    def write_watched_surt_file(self, targets, filename):
-        with open(filename, 'w') as f:
-            for t in targets:
-                if t['watched']:
-                    for seed in t['seeds']:
-                        # f.write("%s\n" % url_to_surt(seed))
-                        f.write("%s\n" % seed)
 
 
 if __name__ == '__main__':
