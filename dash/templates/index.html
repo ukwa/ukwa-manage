@@ -13,15 +13,7 @@
 {% endfor %}
     </div>
 
-    <h2 class="content-subhead">Statistics</h2>
-    <p>
-        The following statistics are derived from the last few hundred crawl log entries.
-    </p>
-    <h3 class="content-subhead">Times</h3>
-    <p>
-        The most recent crawl log message was timestamped: {{ stats.last_timestamp }}
-    </p>
-    <h3 class="content-subhead">Status Codes</h3>
+    <h3 class="content-subhead">Statistics</h3>
     <table class="pure-table">
         <thead>
             <tr><th>Status Code</th><th>Count</th></tr>
@@ -35,5 +27,10 @@
 {% endfor %}
         </tbody>
     </table>
+
+    <p>
+        These statistics were derived from the last few hundred crawl log entries.
+        The most recent crawl log message was timestamped: {{ stats.last_timestamp }}
+    </p>
 
 {% endblock %}

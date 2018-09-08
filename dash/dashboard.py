@@ -28,7 +28,7 @@ consumer.start()
 @app.route('/')
 def index():
     stats = consumer.get_stats()
-    return render_template('index.html', title="Dashboard", stats=stats)
+    return render_template('index.html', title="Recent Activity", stats=stats)
 
 @app.route('/activity/json')
 def get_recent_activity():
