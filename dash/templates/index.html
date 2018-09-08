@@ -5,7 +5,7 @@
     <h2 class="content-subhead">Recent Screenshots</h2>
     <div class="pure-g">
 {% for url, shot in stats.screenshots.items() %}
-        <div class="pure-u-1-4" style="max-height:150px; overflow:hidden; border:1px solid #ccc;">
+        <div class="pure-u-1-4" style="max-height:150px; overflow:hidden;">
             <a href="{{ url_for('get_rendered_original', url=url, target_date=shot['timestamp']) }}">
                 <img class="pure-img-responsive" src="{{ url_for('get_rendered_original', url=url, target_date=shot['timestamp']) }}" alt="Screenshot of {{ url }}">
             </a>

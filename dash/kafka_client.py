@@ -66,7 +66,7 @@ class CrawlLogConsumer(Thread):
         # Information on the most recent hosts:
         self.hosts = LimitedSizeDict(size_limit=100)
         # This is used to hold the last 1000 messages, for tail analysis
-        self.recent = LimitedSizeDict(size_limit=1000)
+        self.recent = LimitedSizeDict(size_limit=10000)
         # Set up a consumer:
         up = False
         while not up:
@@ -135,10 +135,12 @@ class CrawlLogConsumer(Thread):
     def get_status_codes(self):
         status_codes = defaultdict(int)
         for k in self.recent.keys():
-            m = self.recent[k]
-            sc = str(m.get('status_code'))
-            if sc:
-                status_codes[sc] += 1
+            # Note that this can fail because the list is changing rapidly!
+            m = self.recent.get(k, None)
+            if m:
+                sc = str(m.get('status_code'))
+                if sc:
+                    status_codes[sc] += 1
         return status_codes
 
     def get_stats(self):
