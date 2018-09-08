@@ -184,13 +184,13 @@ class LaunchCrawls(luigi.Task):
         # Record that all went well:
         self.output().touch()
 
-    def get_metrics(self,registry):
+    def get_metrics(self, registry):
         # type: (CollectorRegistry) -> None
 
-        g = Gauge('hdfs_files_total_bytes',
-                  'Total size of files on HDFS in bytes.',
-                  labelnames=['service'], registry=registry)
-        g.labels(service='').set(self.i_launches)
+        g = Gauge('ukwa_seeds_launched',
+                  'Total number of seeds launched.',
+                  labelnames=['stream'], registry=registry)
+        g.labels(stream=self.frequency).set(self.i_launches)
 
     def launch_by_hour(self, now, startDate, endDate, t, destination, source, freq):
         # Is it the current hour?
