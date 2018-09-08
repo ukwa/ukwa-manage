@@ -6,7 +6,7 @@ from flask import Flask
 from flask import render_template, redirect, url_for, flash, jsonify, request, abort, send_file
 from werkzeug.contrib.cache import FileSystemCache
 from lib.heritrix3.collector import Heritrix3Collector
-from dash.kafka_client import Consumer
+from dash.kafka_client import CrawlLogConsumer
 from dash.screenshots import lookup_in_cdx, get_rendered_original_stream
 
 app = Flask(__name__)
@@ -15,17 +15,25 @@ app.config['SECRET_KEY'] = os.environ.get('APP_SECRET', 'dev-mode-key')
 app.config['CACHE_FOLDER'] = os.environ.get('CACHE_FOLDER', '__cache__')
 cache = FileSystemCache(os.path.join(app.config['CACHE_FOLDER'], 'request_cache'))
 
-consumer = Consumer('uris.crawled.fc', ['localhost:9092'], 'dashboard')
+kafka_broker = os.environ.get('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
+kafka_crawled_topic = os.environ.get('KAFKA_CRAWLED_TOPIC', 'uris.crawled.fc')
+kafka_seek_to_beginning = os.environ.get('KAFKA_SEEK_TO_BEGINNING', False)
+# Note that each proces needs a distinct group-id or different workers see different parts of the logs
+consumer = CrawlLogConsumer(
+    kafka_crawled_topic, [kafka_broker],
+    'dashboard-pid-%i' % os.getpid(),
+    from_beginning=kafka_seek_to_beginning)
 consumer.start()
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    stats = consumer.get_stats()
+    return render_template('index.html', title="Dashboard", stats=stats)
 
 @app.route('/activity/json')
 def get_recent_activity():
-    metrics = consumer.get_stats()
-    return jsonify(metrics)
+    stats = consumer.get_stats()
+    return jsonify(stats)
 
 @app.route('/get-rendered-original')
 def get_rendered_original():
@@ -36,10 +44,10 @@ def get_rendered_original():
     i.e. 'screenshot:http://' and replaces them with 'http://screenshot:http://'
     """
     url = request.args.get('url')
-    app.logger.debug("Got URL: %s" % url)
+    #app.logger.debug("Got URL: %s" % url)
     #
     type = request.args.get('type', 'screenshot')
-    app.logger.debug("Got type: %s" % type)
+    #app.logger.debug("Got type: %s" % type)
 
     # Query URL
     qurl = "%s:%s" % (type, url)
@@ -65,7 +73,7 @@ def status():
     #app.logger.info(json.dumps(s, indent=4))
 
     # And render
-    return render_template('dashboard.html', title="Status", crawls=s)
+    return render_template('dashboard.html', title="Control", crawls=s)
 
 
 @app.route('/metrics')

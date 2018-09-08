@@ -1,74 +1,39 @@
-<!doctype html>
-<head>
-    <title>{{ title }}</title>
-    <meta http-equiv="refresh" content="60">
-    <link rel="stylesheet" href="/static/pure-min.css">
-    <link rel="stylesheet" href="/static/font-awesome-4.6.3/css/font-awesome.min.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!--[if lte IE 8]>
-    <link rel="stylesheet" href="/static/grids-responsive-old-ie-min.css">
-    <![endif]-->
-    <!--[if gt IE 8]><!-->
-    <link rel="stylesheet" href="/static/grids-responsive-min.css">
-    <!--<![endif]-->
-    <link rel="stylesheet" href="/static/main.css">
-</head>
-<body>
+{% extends "_base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
 
-<div id="layout" class="pure-g">
-    <div class="sidebar pure-u-1 pure-u-md-1-3">
+    <h2 class="content-subhead">Recent Screenshots</h2>
+    <div class="pure-g">
+{% for url, shot in stats.screenshots.items() %}
+        <div class="pure-u-1-4" style="max-height:150px; overflow:hidden; border:1px solid #ccc;">
+            <a href="{{ url_for('get_rendered_original', url=url, target_date=shot['timestamp']) }}">
+                <img class="pure-img-responsive" src="{{ url_for('get_rendered_original', url=url, target_date=shot['timestamp']) }}" alt="Screenshot of {{ url }}">
+            </a>
+        </div>
+{% endfor %}
     </div>
 
-    <div class="content pure-u-1 pure-u-md-1-3">
-    <main>
+    <h2 class="content-subhead">Statistics</h2>
+    <p>
+        The following statistics are derived from the last few hundred crawl log entries.
+    </p>
+    <h3 class="content-subhead">Times</h3>
+    <p>
+        The most recent crawl log message was timestamped: {{ stats.last_timestamp }}
+    </p>
+    <h3 class="content-subhead">Status Codes</h3>
+    <table class="pure-table">
+        <thead>
+            <tr><th>Status Code</th><th>Count</th></tr>
+        </thead>
+        <tbody>
+{% for sc,count in stats.status_codes.items() %}
+<tr>
+    <td>{{ sc }}</td>
+    <td>{{ count }}</td>
+</tr>
+{% endfor %}
+        </tbody>
+    </table>
 
-        <h1 class="content-subhead">Heritrix Workers</h1>
-
-        <table class="pure-table">
-            <thead>
-                <tr><th>Crawler ID</th><th>Crawl Type</th><th>Crawl Job</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-
-        <h2>Operations</h2>
-
-{% with messages = get_flashed_messages() %}
-    {% if messages %}
-    <div class="flashes">
-    {% for message in messages %}
-        <pre>{{ message | safe }}</pre>
-    {% endfor %}
-    </div>
-  {% endif %}
-{% endwith %}
-
-        <p>
-            <a class="pure-button pure-button-primary" href="{{ url_for('control_all', action='launch') }}" title="LAUNCH ALL CRAWL JOBS!">LAUNCH ALL <i class="fa fa-play-circle" aria-hidden="true"></i></a>
-        </p>
-        <p>
-            <a class="pure-button pure-button-primary" href="{{ url_for('control_all', action='pause') }}" title="PAUSE ALL CRAWL JOBS!">PAUSE ALL <i class="fa fa-pause-circle" aria-hidden="true"></i></a>
-            <a class="pure-button pure-button-primary" href="{{ url_for('control_all', action='unpause') }}" title="UNPAUSE ALL CRAWL JOBS!">UNPAUSE ALL <i class="fa fa-play-circle" aria-hidden="true"></i></a>
-        </p>
-        <p>
-            <a class="pure-button pure-button-primary" href="{{ url_for('control_all', action='kafka-report') }}" title="KAFKA REPORT ALL CRAWL JOBS!">KAFKA REPORT ALL <i class="fa fa-play-circle" aria-hidden="true"></i></a>
-        </p>
-        <p>
-            <a class="pure-button pure-button-primary" href="{{ url_for('control_all', action='terminate') }}" title="TERMINATE ALL CRAWL JOBS!">TERMINATE ALL <i class="fa fa-stop-circle" aria-hidden="true"></i></a>
-        </p>
-
-        <h2>Monitoring</h2>
-        <p>
-            <a class="pure-button" href="{{ url_for('prometheus_metrics') }}">Metrics for Prometheus</a>
-        </p>
-
-    </main>
-    </div>
-
-    <div class="sidebar pure-u-1 pure-u-md-1-3">
-    </div>
-</div>
-
-</body>
-
+{% endblock %}

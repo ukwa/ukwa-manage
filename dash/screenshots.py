@@ -30,7 +30,7 @@ def get_rendered_original(url, render_type='screenshot', target_date=datetime.da
     # Query URL
     qurl = "%s:%s" % (render_type, url)
     # Query CDX Server for the item
-    logger.info("Querying CDX for prefix...")
+    logger.debug("Querying CDX for prefix...")
     warc_filename, warc_offset, compressedendoffset = lookup_in_cdx(qurl)
 
     return warc_filename, warc_offset, compressedendoffset
@@ -45,17 +45,12 @@ def get_rendered_original_stream(warc_filename, warc_offset, compressedendoffset
     url = "%s%s?op=OPEN&user.name=%s&offset=%s" % (WEBHDFS_PREFIX, warc_filename, WEBHDFS_USER, warc_offset)
     if compressedendoffset:
         url = "%s&length=%s" % (url, compressedendoffset)
-    logger.info("Requesting copy from HDFS: %s " % url)
     r = requests.get(url, stream=True)
-    logger.info("Loading from: %s" % r.url)
+    logger.debug("Loading from: %s" % r.url)
     r.raw.decode_content = False
     rl = ArcWarcRecordLoader()
-    logger.info("Passing response to parser...")
     record = rl.parse_record_stream(DecompressingBufferedReader(stream=r.raw))
-    logger.info("RESULT:")
-    logger.info(record)
 
-    logger.info("Returning stream...")
     return record.raw_stream, record.content_type
 
 
@@ -89,9 +84,9 @@ def list_from_cdx(qurl):
     :return: a list of matches by timestamp
     """
     query = "%s?q=type:urlquery+url:%s" % (CDX_SERVER, quote(qurl))
-    logger.info("Querying: %s" % query)
+    logger.debug("Querying: %s" % query)
     r = requests.get(query)
-    logger.info("Availability response: %d" % r.status_code)
+    logger.debug("Availability response: %d" % r.status_code)
     result_set = OrderedDict()
     # Is it known, with a matching timestamp?
     if r.status_code == 200:

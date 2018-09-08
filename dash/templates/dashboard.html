@@ -1,28 +1,8 @@
-<!doctype html>
-<head>
-    <title>{{ title }}</title>
-    <meta http-equiv="refresh" content="60">
-    <link rel="stylesheet" href="/static/pure-min.css">
-    <link rel="stylesheet" href="/static/font-awesome-4.6.3/css/font-awesome.min.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!--[if lte IE 8]>
-    <link rel="stylesheet" href="/static/grids-responsive-old-ie-min.css">
-    <![endif]-->
-    <!--[if gt IE 8]><!-->
-    <link rel="stylesheet" href="/static/grids-responsive-min.css">
-    <!--<![endif]-->
-    <link rel="stylesheet" href="/static/main.css">
-</head>
-<body>
+{% extends "_base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
 
-<div id="layout" class="pure-g">
-    <div class="sidebar pure-u-1 pure-u-md-1-3">
-    </div>
-
-    <div class="content pure-u-1 pure-u-md-1-3">
-    <main>
-
-        <h1 class="content-subhead">Heritrix Workers</h1>
+        <h2 class="content-subhead">Workers</h2>
 
         <table class="pure-table">
             <thead>
@@ -40,17 +20,7 @@
             </tbody>
         </table>
 
-        <h2>Operations</h2>
-
-{% with messages = get_flashed_messages() %}
-    {% if messages %}
-    <div class="flashes">
-    {% for message in messages %}
-        <pre>{{ message | safe }}</pre>
-    {% endfor %}
-    </div>
-  {% endif %}
-{% endwith %}
+        <h2 class="content-subhead">Operations</h2>
 
         <p>
             <a class="pure-button pure-button-primary" href="{{ url_for('control_all', action='launch') }}" title="LAUNCH ALL CRAWL JOBS!">LAUNCH ALL <i class="fa fa-play-circle" aria-hidden="true"></i></a>
@@ -66,17 +36,5 @@
             <a class="pure-button pure-button-primary" href="{{ url_for('control_all', action='terminate') }}" title="TERMINATE ALL CRAWL JOBS!">TERMINATE ALL <i class="fa fa-stop-circle" aria-hidden="true"></i></a>
         </p>
 
-        <h2>Monitoring</h2>
-        <p>
-            <a class="pure-button" href="{{ url_for('prometheus_metrics') }}">Metrics for Prometheus</a>
-        </p>
-
-    </main>
-    </div>
-
-    <div class="sidebar pure-u-1 pure-u-md-1-3">
-    </div>
-</div>
-
-</body>
+{% endblock %}
 

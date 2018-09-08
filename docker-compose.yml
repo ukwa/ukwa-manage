@@ -12,8 +12,14 @@ services:
       - "HERITRIX_USERNAME=heritrix"
       - "HERITRIX_PASSWORD=test"
       - "CRAWL_JOBS_FILE=/ukwa-manage/dash/crawl-jobs-test.json"
+      - "WEBHDFS_PREFIX=http://warc-server:8000/by-filename/"
+      - "CDX_SERVER=http://cdx:9090/fc"
+      - "KAFKA_BOOTSTRAP_SERVERS=kafka:9092"
+      - "KAFKA_CRAWLED_TOPIC=uris.crawled.fc"
+      - "KAFKA_SEEK_TO_BEGINNING=true"
     depends_on:
       - heritrix-worker
+      - kafka
 
   # UKWA Heritrix
   heritrix-worker:

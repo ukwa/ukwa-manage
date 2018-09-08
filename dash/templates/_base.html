@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Heritrix3 Dashboard: {{ title }}">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/static/pure-min.css">
+    <link rel="stylesheet" href="/static/font-awesome-4.6.3/css/font-awesome.min.css">
+    <!--[if lte IE 8]>
+    <link rel="stylesheet" href="/static/grids-responsive-old-ie-min.css">
+    <link rel="stylesheet" href="/static/side-menu-old-ie.css">
+    <![endif]-->
+    <!--[if gt IE 8]><!-->
+    <link rel="stylesheet" href="/static/grids-responsive-min.css">
+    <link rel="stylesheet" href="/static/side-menu.css">
+    <!--<![endif]-->
+    <link rel="stylesheet" href="/static/main.css">
+    <!--[if lt IE 9]>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7/html5shiv.js"></script>
+    <![endif]-->
+</head>
+<body>
+
+<div id="layout">
+    <!-- Menu toggle -->
+    <a href="#menu" id="menuLink" class="menu-link">
+        <!-- Hamburger icon -->
+        <span></span>
+    </a>
+
+    <div id="menu">
+        <div class="pure-menu">
+            <a class="pure-menu-heading" href="{{ url_for('index') }}">Heritrix3 Dashboard</a>
+
+            <ul class="pure-menu-list">
+                <li class="pure-menu-item"><a href="{{ url_for('index') }}" class="pure-menu-link">Home</a></li>
+                <li class="pure-menu-item"><a href="{{ url_for('status') }}" class="pure-menu-link">Control</a></li>
+                <li class="pure-menu-item"><a href="{{ url_for('prometheus_metrics') }}" class="pure-menu-link">Prometheus Metrics</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="main">
+        <div class="header">
+            <h1>{{ title }}</h1>
+            <h2>Heritrix3 Dashboard</h2>
+        </div>
+
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="flashes">
+    {% for message in messages %}
+        <pre>{{ message | safe }}</pre>
+    {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+</div>
+
+<script src="/static/ui.js"></script>
+
+</body>
+</html>

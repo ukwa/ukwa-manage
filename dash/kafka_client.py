@@ -30,7 +30,7 @@ class LimitedSizeDict(OrderedDict):
         self.popitem(last=False)
 
 
-class Consumer(Thread):
+class CrawlLogConsumer(Thread):
     '''
     {
       "mimetype": "image/vnd.microsoft.icon",
@@ -57,13 +57,8 @@ class Consumer(Thread):
     }
     '''
 
-    def __init__(self, kafka_topic, kafka_brokers, group_id):
+    def __init__(self, kafka_topic, kafka_brokers, group_id, from_beginning=False):
         Thread.__init__(self)
-        # Set up a consumer:
-        self.consumer = KafkaConsumer(kafka_topic, bootstrap_servers=kafka_brokers, group_id=group_id)
-        # If requested, start at the start:
-        self.consumer.poll()
-        self.consumer.seek_to_beginning()
         # The last event timestamp we saw
         self.last_timestamp = None
         # Details of the most recent screenshots:
@@ -72,6 +67,19 @@ class Consumer(Thread):
         self.hosts = LimitedSizeDict(size_limit=100)
         # This is used to hold the last 1000 messages, for tail analysis
         self.recent = LimitedSizeDict(size_limit=1000)
+        # Set up a consumer:
+        up = False
+        while not up:
+            try:
+                self.consumer = KafkaConsumer(kafka_topic, bootstrap_servers=kafka_brokers, group_id=group_id)
+                # If requested, start at the start:
+                if from_beginning:
+                    logger.info("Seeking to the beginning of %s" % kafka_topic)
+                    self.consumer.poll()
+                    self.consumer.seek_to_beginning()
+                up = True
+            except Exception as e:
+                logger.exception("Failed to start CrawlLogConsumer!", e)
 
     def process_message(self, message):
         try:
@@ -83,8 +91,9 @@ class Consumer(Thread):
             self.last_timestamp = m['timestamp']
 
             # Recent screenshots:
-            if url.startswith('screenshot'):
-                self.screenshots[url] = m
+            if url.startswith('screenshot:'):
+                original_url = url[11:]
+                self.screenshots[original_url] = m
 
             # Host info:
             host = self.get_host(url)
@@ -126,7 +135,6 @@ class Consumer(Thread):
     def get_status_codes(self):
         status_codes = defaultdict(int)
         for k in self.recent.keys():
-            print(k)
             m = self.recent[k]
             sc = str(m.get('status_code'))
             if sc:
@@ -137,7 +145,7 @@ class Consumer(Thread):
         return {
             'last_timestamp': self.last_timestamp,
             'status_codes': self.get_status_codes(),
-            'screenshots': self.screenshots,
+            'screenshots': dict(reversed(list(self.screenshots.items()))),
             'hosts': self.hosts
         }
 

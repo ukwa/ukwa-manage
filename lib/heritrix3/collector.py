@@ -24,7 +24,7 @@ TIMEOUT = 10
 socket.setdefaulttimeout(TIMEOUT)
 
 # Config file:
-CRAWL_JOBS_FILE = os.environ.get("CRAWL_JOBS_FILE", 'crawl-jobs.json')
+CRAWL_JOBS_FILE = os.environ.get("CRAWL_JOBS_FILE", '../../dash/crawl-jobs-localhost-test.json')
 
 
 class Heritrix3Collector(object):
