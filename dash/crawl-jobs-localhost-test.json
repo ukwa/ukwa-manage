@@ -1,0 +1,9 @@
+[
+  {
+    "id": "frequent",
+    "job_name": "frequent",
+    "deployment": "frequent",
+    "function": "ingest",
+    "url": "https://localhost:8443/"
+  }
+]
