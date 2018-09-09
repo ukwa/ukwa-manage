@@ -9,7 +9,7 @@ from flask import render_template, redirect, url_for, flash, jsonify
 from werkzeug.contrib.cache import FileSystemCache
 from kafka import KafkaConsumer
 from threading import Thread
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict, deque
 
 logger = logging.getLogger(__name__)
 
@@ -62,11 +62,11 @@ class CrawlLogConsumer(Thread):
         # The last event timestamp we saw
         self.last_timestamp = None
         # Details of the most recent screenshots:
-        self.screenshots = LimitedSizeDict(size_limit=25)
+        self.screenshots = deque(maxlen=100)
+        # This is used to hold the last 1000 messages, for tail analysis
+        self.recent = deque(maxlen=10000)
         # Information on the most recent hosts:
         self.hosts = LimitedSizeDict(size_limit=100)
-        # This is used to hold the last 1000 messages, for tail analysis
-        self.recent = LimitedSizeDict(size_limit=10000)
         # Set up a consumer:
         up = False
         while not up:
@@ -87,13 +87,13 @@ class CrawlLogConsumer(Thread):
 
             # Record time event and latest timestamp
             url = m['url']
-            self.recent[url] = m
+            self.recent.append(m)
             self.last_timestamp = m['timestamp']
 
             # Recent screenshots:
             if url.startswith('screenshot:'):
                 original_url = url[11:]
-                self.screenshots[original_url] = m
+                self.screenshots.append((original_url, m['timestamp']))
 
             # Host info:
             host = self.get_host(url)
@@ -134,20 +134,20 @@ class CrawlLogConsumer(Thread):
 
     def get_status_codes(self):
         status_codes = defaultdict(int)
-        for k in self.recent.keys():
-            # Note that this can fail because the list is changing rapidly!
-            m = self.recent.get(k, None)
-            if m:
-                sc = str(m.get('status_code'))
-                if sc:
-                    status_codes[sc] += 1
+        for m in self.recent:
+            sc = str(m.get('status_code'))
+            if sc:
+                status_codes[sc] += 1
         return status_codes
 
     def get_stats(self):
+        # Get screenshots sorted by timestamp
+        shots = list(self.screenshots)
+        shots.sort(key=lambda shot: shot[1], reverse=True)
         return {
             'last_timestamp': self.last_timestamp,
             'status_codes': self.get_status_codes(),
-            'screenshots': dict(reversed(list(self.screenshots.items()))),
+            'screenshots': shots,
             'hosts': self.hosts
         }
 

@@ -1,4 +1,5 @@
 import os
+import io
 import json
 import time
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
@@ -18,12 +19,12 @@ cache = FileSystemCache(os.path.join(app.config['CACHE_FOLDER'], 'request_cache'
 kafka_broker = os.environ.get('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
 kafka_crawled_topic = os.environ.get('KAFKA_CRAWLED_TOPIC', 'uris.crawled.fc')
 kafka_seek_to_beginning = os.environ.get('KAFKA_SEEK_TO_BEGINNING', False)
-# Note that each proces needs a distinct group-id or different workers see different parts of the logs
+# Note that care needs to be taken us using Group IDs, or different workers see different parts of the logs
 consumer = CrawlLogConsumer(
-    kafka_crawled_topic, [kafka_broker],
-    'dashboard-pid-%i' % os.getpid(),
+    kafka_crawled_topic, [kafka_broker], None,
     from_beginning=kafka_seek_to_beginning)
 consumer.start()
+
 
 @app.route('/')
 def index():
@@ -51,6 +52,13 @@ def get_rendered_original():
 
     # Query URL
     qurl = "%s:%s" % (type, url)
+
+    # Check the cache:
+    result = cache.get(qurl)
+    if result is not None:
+        #app.logger.info("Found in cache: %s" % qurl)
+        return send_file(io.BytesIO(result['payload']), mimetype=result['content_type'])
+
     # Query CDX Server for the item
     (warc_filename, warc_offset, compressed_end_offset) = lookup_in_cdx(qurl)
 
@@ -61,7 +69,14 @@ def get_rendered_original():
     # Grab the payload from the WARC and return it.
     stream, content_type = get_rendered_original_stream(warc_filename,warc_offset, compressed_end_offset)
 
-    return send_file(stream, mimetype=content_type)
+    # Cache thumbnails:
+    if type == 'thumbnail':
+        payload = stream.read()
+        cache.set(qurl, {'payload': payload, 'content_type': content_type}, timeout=60*60)
+        return send_file(io.BytesIO(payload), mimetype=content_type)
+    else:
+        # Stream screenshots:
+        return send_file(stream, mimetype=content_type)
 
 @app.route('/control')
 def status():

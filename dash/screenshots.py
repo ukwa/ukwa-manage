@@ -12,6 +12,7 @@ from warcio.bufferedreaders import DecompressingBufferedReader
 
 logger = logging.getLogger(__name__)
 
+
 WEBHDFS_PREFIX = os.environ.get('WEBHDFS_PREFIX', 'http://localhost:8001/by-filename/')
 WEBHDFS_USER = os.environ.get('WEBHDFS_USER', 'hdfs')
 CDX_SERVER = os.environ.get('CDX_SERVER','http://localhost:9090/fc')
