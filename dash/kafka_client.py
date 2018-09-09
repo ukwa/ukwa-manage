@@ -79,7 +79,7 @@ class CrawlLogConsumer(Thread):
                     self.consumer.seek_to_beginning()
                 up = True
             except Exception as e:
-                logger.exception("Failed to start CrawlLogConsumer!", e)
+                logger.exception("Failed to start CrawlLogConsumer!")
 
     def process_message(self, message):
         try:
@@ -124,7 +124,7 @@ class CrawlLogConsumer(Thread):
                     hs['via'][via_host] += 1
 
         except Exception as e:
-            logger.exception("Ho gead", e)
+            logger.exception("Could not process message %s" % message)
 
     def get_host(self, url):
         if url is None:
