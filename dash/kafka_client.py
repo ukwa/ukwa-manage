@@ -57,7 +57,7 @@ class CrawlLogConsumer(Thread):
     }
     '''
 
-    def __init__(self, kafka_topic, kafka_brokers, group_id, from_beginning=False):
+    def __init__(self, kafka_topic, kafka_brokers, group_id, from_beginning='false'):
         Thread.__init__(self)
         # The last event timestamp we saw
         self.last_timestamp = None
@@ -73,13 +73,14 @@ class CrawlLogConsumer(Thread):
             try:
                 self.consumer = KafkaConsumer(kafka_topic, bootstrap_servers=kafka_brokers, group_id=group_id)
                 # If requested, start at the start:
-                if from_beginning is True:
+                if from_beginning.lower() == 'true':
                     logger.info("Seeking to the beginning of %s" % kafka_topic)
                     self.consumer.poll()
                     self.consumer.seek_to_beginning()
                 up = True
             except Exception as e:
                 logger.exception("Failed to start CrawlLogConsumer!")
+                time.sleep(5)
 
     def process_message(self, message):
         try:
