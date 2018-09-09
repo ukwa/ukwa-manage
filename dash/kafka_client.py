@@ -73,7 +73,7 @@ class CrawlLogConsumer(Thread):
             try:
                 self.consumer = KafkaConsumer(kafka_topic, bootstrap_servers=kafka_brokers, group_id=group_id)
                 # If requested, start at the start:
-                if from_beginning:
+                if from_beginning is True:
                     logger.info("Seeking to the beginning of %s" % kafka_topic)
                     self.consumer.poll()
                     self.consumer.seek_to_beginning()
