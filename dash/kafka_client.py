@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import threading
 from urlparse import urlsplit
 import time
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
@@ -65,6 +66,7 @@ class CrawlLogConsumer(Thread):
         self.screenshots = deque(maxlen=100)
         # This is used to hold the last 1000 messages, for tail analysis
         self.recent = deque(maxlen=10000)
+        self.recentLock = threading.Lock()
         # Information on the most recent hosts:
         self.hosts = LimitedSizeDict(size_limit=100)
         # Set up a consumer:
@@ -88,7 +90,8 @@ class CrawlLogConsumer(Thread):
 
             # Record time event and latest timestamp
             url = m['url']
-            self.recent.append(m)
+            with self.recentLock:
+                self.recent.append(m)
             self.last_timestamp = m['timestamp']
 
             # Recent screenshots:
@@ -135,10 +138,11 @@ class CrawlLogConsumer(Thread):
 
     def get_status_codes(self):
         status_codes = defaultdict(int)
-        for m in self.recent:
-            sc = str(m.get('status_code'))
-            if sc:
-                status_codes[sc] += 1
+        with self.recentLock:
+            for m in self.recent:
+                sc = str(m.get('status_code'))
+                if sc:
+                    status_codes[sc] += 1
         return status_codes
 
     def get_stats(self):
