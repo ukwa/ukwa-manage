@@ -99,8 +99,11 @@ class CrawlLogConsumer(Thread):
             if url.startswith('screenshot:'):
                 with self.screenshotsLock:
                     original_url = url[11:]
-                    logger.info("Found screenshot %s" % m)
-                    self.screenshots.append((original_url, m['timestamp']))
+                    # It appears PDFs sent to PhantomJS lead to empty records:
+                    if original_url == '':
+                        logger.info("Found empty screenshot url %s" % m)
+                    else:
+                        self.screenshots.append((original_url, m['timestamp']))
 
             # Host info:
             host = self.get_host(url)
