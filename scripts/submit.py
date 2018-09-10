@@ -47,7 +47,7 @@ def sender(launcher, args, uri):
 
     # Add the main URL
     launcher.launch("h3", uri, args.source, isSeed=args.seed, forceFetch=args.forceFetch,
-                    recrawl_interval=args.recrawl_interval, sheets=args.sheets)
+                    recrawl_interval=args.recrawl_interval, sheets=args.sheets, reset_quotas=args.reset_quotas)
 
     # Also, for some hosts, attempt to extract all pages from a oaged list:
     if args.pager:
@@ -80,6 +80,8 @@ def main(argv=None):
                         help=argparse.SUPPRESS ) #"Attempt to extract URLs for all pages, and submit those too.")
     parser.add_argument("-r", "--recrawl-interval", dest="recrawl_interval", default=None, required=False, type=int,
                         help="Recrawl interval override for this URI (in seconds). [default: %(default)s]")
+    parser.add_argument("-R", "--reset-quotas", dest="reset_quotas", action="store_true", default=False, required=False,
+                        help="Reset the crawl quotas, setting crawled totals to zero. [default: %(default)s]")
     parser.add_argument('queue', metavar='queue', help="Name of queue to send URIs too, e.g. 'dc.discovered'.")
     parser.add_argument('uri_or_filename', metavar='uri_or_filename', help="URI to enqueue, or filename containing URIs to enqueue.")
 

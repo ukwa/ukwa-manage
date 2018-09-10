@@ -52,7 +52,7 @@ class KafkaLauncher(object):
         logger.info("Sending key %s, message: %s" % (key, json.dumps(message)))
         self.producer.send(topic, key=key, value=message)
 
-    def launch(self, destination, uri, source, isSeed=False, forceFetch=False, sheets=[], hop="", recrawl_interval=None):
+    def launch(self, destination, uri, source, isSeed=False, forceFetch=False, sheets=[], hop="", recrawl_interval=None, reset_quotas=None):
         curim = {}
         if destination == "h3":
             curim['headers'] = {}
@@ -73,6 +73,8 @@ class KafkaLauncher(object):
                 curim['sheets'] = sheets
             if recrawl_interval:
                 curim['recrawlInterval'] = recrawl_interval
+            if reset_quotas:
+                curim['resetQuotas'] = 'all'
             curim['timestamp'] = datetime.now().isoformat()
         elif destination == "har":
             curim['clientId'] = "unused"

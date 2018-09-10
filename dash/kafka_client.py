@@ -75,9 +75,9 @@ class CrawlLogConsumer(Thread):
             try:
                 self.consumer = KafkaConsumer(kafka_topic, bootstrap_servers=kafka_brokers, group_id=group_id)
                 # If requested, start at the start:
-                if from_beginning.lower() == 'true':
+                if from_beginning and from_beginning.lower() == 'true':
                     logger.info("Seeking to the beginning of %s" % kafka_topic)
-                    self.consumer.poll()
+                    self.consumer.poll(timeout_ms=5000)
                     self.consumer.seek_to_beginning()
                 up = True
             except Exception as e:
@@ -142,7 +142,9 @@ class CrawlLogConsumer(Thread):
             for m in self.recent:
                 sc = str(m.get('status_code'))
                 if sc:
-                    status_codes[sc] += 1
+                    status_codes[sc] += 10
+        # Sort by count:
+        status_codes = sorted(status_codes.items(), key=lambda x: x[1], reverse=True)
         return status_codes
 
     def get_stats(self):

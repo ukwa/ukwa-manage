@@ -19,7 +19,7 @@
             <tr><th>Status Code</th><th>Count</th></tr>
         </thead>
         <tbody>
-{% for sc,count in stats.status_codes.items() %}
+{% for sc,count in stats.status_codes %}
 <tr>
     <td>{{ sc }}</td>
     <td>{{ count }}</td>

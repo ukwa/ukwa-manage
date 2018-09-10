@@ -236,8 +236,8 @@ class LaunchCrawls(luigi.Task):
                 elif freq == 'ANNUAL':
                     sheets.append('recrawl-365days')
 
-                # And send launch message:
-                self.launcher.launch(destination, seed, source, isSeed, sheets=sheets)
+                # And send launch message, always resetting any crawl quotas:
+                self.launcher.launch(destination, seed, source, isSeed, sheets=sheets, reset_quotas=True)
                 counter = counter + 1
                 self.i_launches = self.i_launches + 1
 
