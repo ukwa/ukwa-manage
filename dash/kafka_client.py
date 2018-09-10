@@ -64,6 +64,7 @@ class CrawlLogConsumer(Thread):
         self.last_timestamp = None
         # Details of the most recent screenshots:
         self.screenshots = deque(maxlen=100)
+        self.screenshotsLock = threading.Lock()
         # This is used to hold the last 1000 messages, for tail analysis
         self.recent = deque(maxlen=10000)
         self.recentLock = threading.Lock()
@@ -96,8 +97,10 @@ class CrawlLogConsumer(Thread):
 
             # Recent screenshots:
             if url.startswith('screenshot:'):
-                original_url = url[11:]
-                self.screenshots.append((original_url, m['timestamp']))
+                with self.screenshotsLock:
+                    original_url = url[11:]
+                    logger.info("Found screenshot %s" % m)
+                    self.screenshots.append((original_url, m['timestamp']))
 
             # Host info:
             host = self.get_host(url)
@@ -149,8 +152,9 @@ class CrawlLogConsumer(Thread):
 
     def get_stats(self):
         # Get screenshots sorted by timestamp
-        shots = list(self.screenshots)
-        shots.sort(key=lambda shot: shot[1], reverse=True)
+        with self.screenshotsLock:
+            shots = list(self.screenshots)
+            shots.sort(key=lambda shot: shot[1], reverse=True)
         return {
             'last_timestamp': self.last_timestamp,
             'status_codes': self.get_status_codes(),
