@@ -128,4 +128,4 @@ def result_all(action=None):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5505)
+    app.run(debug=True, port=5000)

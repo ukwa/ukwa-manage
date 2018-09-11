@@ -60,6 +60,8 @@ class CrawlLogConsumer(Thread):
 
     def __init__(self, kafka_topic, kafka_brokers, group_id, from_beginning='false'):
         Thread.__init__(self)
+        # Ensure we don't hang around...
+        self.setDaemon(True)
         # The last event timestamp we saw
         self.last_timestamp = None
         # Details of the most recent screenshots:
