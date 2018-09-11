@@ -1,0 +1,36 @@
+{% extends "_base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+
+    <h2 class="content-subhead">Recent Screenshots</h2>
+    <div class="pure-g">
+{% for url, timestamp in stats.screenshots[:8] %}
+        <div class="pure-u-1-4" style="max-height:150px; overflow:hidden;">
+            <a href="{{ url_for('get_rendered_original', url=url, target_date=timestamp) }}">
+                <img class="pure-img-responsive" src="{{ url_for('get_rendered_original', url=url, type='thumbnail', target_date=timestamp) }}" alt="Screenshot of {{ url }}">
+            </a>
+        </div>
+{% endfor %}
+    </div>
+
+    <h3 class="content-subhead">Statistics</h3>
+    <table class="pure-table">
+        <thead>
+            <tr><th>Status Code</th><th>Count</th></tr>
+        </thead>
+        <tbody>
+{% for sc,count in stats.status_codes %}
+<tr>
+    <td>{{ sc }}</td>
+    <td>{{ count }}</td>
+</tr>
+{% endfor %}
+        </tbody>
+    </table>
+
+    <p>
+        These statistics were derived from the last few hundred crawl log entries.
+        The most recent crawl log message was timestamped: {{ stats.last_timestamp }} UTC
+    </p>
+
+{% endblock %}
