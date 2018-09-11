@@ -37,32 +37,27 @@
 
             <ul class="pure-menu-list">
                 <li class="pure-menu-item"><a href="{{ url_for('index') }}" class="pure-menu-link">Home</a></li>
+                <li class="pure-menu-item"><a href="{{ url_for('screenshots') }}" class="pure-menu-link">Screenshots</a></li>
                 <li class="pure-menu-item"><a href="{{ url_for('status') }}" class="pure-menu-link">Control</a></li>
+                <li class="pure-menu-item"><a href="{{ url_for('get_recent_activity_json') }}" class="pure-menu-link">Activity (JSON)</a></li>
                 <li class="pure-menu-item"><a href="{{ url_for('prometheus_metrics') }}" class="pure-menu-link">Prometheus Metrics</a></li>
             </ul>
         </div>
     </div>
 
-    <div id="main">
-        <div class="header">
-            <h1>{{ title }}</h1>
-            <h2>Heritrix3 Dashboard</h2>
-        </div>
-
 {% with messages = get_flashed_messages() %}
     {% if messages %}
-    <div class="flashes">
-    {% for message in messages %}
-        <pre>{{ message | safe }}</pre>
-    {% endfor %}
-    </div>
-  {% endif %}
+        <div class="flashes">
+            {% for message in messages %}
+                <pre>{{ message | safe }}</pre>
+            {% endfor %}
+        </div>
+    {% endif %}
 {% endwith %}
 
-        <div class="content">
-            {% block content %}{% endblock %}
-        </div>
-    </div>
+
+    {% block content %}{% endblock %}
+
 </div>
 
 <script src="/static/ui.js"></script>

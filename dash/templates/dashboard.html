@@ -2,6 +2,14 @@
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
 
+    <div id="main">
+        <div class="header">
+            <h1>{{ title }}</h1>
+            <h2>Heritrix3 Dashboard</h2>
+        </div>
+
+        <div class="content">
+
         <h2 class="content-subhead">Workers</h2>
 
         <table class="pure-table">
@@ -35,6 +43,10 @@
         <p>
             <a class="pure-button pure-button-primary" href="{{ url_for('control_all', action='terminate') }}" title="TERMINATE ALL CRAWL JOBS!">TERMINATE ALL <i class="fa fa-stop-circle" aria-hidden="true"></i></a>
         </p>
+
+        </div>
+    </div>
+
 
 {% endblock %}
 

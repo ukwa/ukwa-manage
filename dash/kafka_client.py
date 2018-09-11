@@ -62,6 +62,11 @@ class CrawlLogConsumer(Thread):
         Thread.__init__(self)
         # Ensure we don't hang around...
         self.setDaemon(True)
+        # Remember settings
+        self.kafka_topic = kafka_topic
+        self.kafka_brokers = kafka_brokers
+        self.group_id = group_id
+        self.from_beginning = from_beginning
         # The last event timestamp we saw
         self.last_timestamp = None
         # Details of the most recent screenshots:
@@ -72,20 +77,6 @@ class CrawlLogConsumer(Thread):
         self.recentLock = threading.Lock()
         # Information on the most recent hosts:
         self.hosts = LimitedSizeDict(size_limit=100)
-        # Set up a consumer:
-        up = False
-        while not up:
-            try:
-                self.consumer = KafkaConsumer(kafka_topic, bootstrap_servers=kafka_brokers, group_id=group_id)
-                # If requested, start at the start:
-                if from_beginning and from_beginning.lower() == 'true':
-                    logger.info("Seeking to the beginning of %s" % kafka_topic)
-                    self.consumer.poll(timeout_ms=5000)
-                    self.consumer.seek_to_beginning()
-                up = True
-            except Exception as e:
-                logger.exception("Failed to start CrawlLogConsumer!")
-                time.sleep(5)
 
     def process_message(self, message):
         try:
@@ -168,5 +159,21 @@ class CrawlLogConsumer(Thread):
         }
 
     def run(self):
+        # Set up a consumer:
+        up = False
+        while not up:
+            try:
+                self.consumer = KafkaConsumer(self.kafka_topic, bootstrap_servers=self.kafka_brokers, group_id=self.group_id)
+                # If requested, start at the start:
+                if self.from_beginning and self.from_beginning.lower() == 'true':
+                    logger.info("Seeking to the beginning of %s" % self.kafka_topic)
+                    self.consumer.poll(timeout_ms=5000)
+                    self.consumer.seek_to_beginning()
+                up = True
+            except Exception as e:
+                logger.exception("Failed to start CrawlLogConsumer!")
+                time.sleep(5)
+
+        # And consume...
         for message in self.consumer:
             self.process_message(message)

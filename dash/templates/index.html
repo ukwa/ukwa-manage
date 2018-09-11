@@ -2,6 +2,15 @@
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
 
+    <div id="main">
+        <div class="header">
+            <h1>{{ title }}</h1>
+            <h2>Heritrix3 Dashboard</h2>
+        </div>
+
+        <div class="content">
+
+{% if stats.screenshots | length > 0 %}
     <h2 class="content-subhead">Recent Screenshots</h2>
     <div class="pure-g">
 {% for url, timestamp in stats.screenshots[:8] %}
@@ -12,8 +21,12 @@
         </div>
 {% endfor %}
     </div>
+            <p style="text-align: right;">
+                <a href="{{ url_for('screenshots') }}">More screenshots...</a>
+            </p>
+{% endif %}
 
-    <h3 class="content-subhead">Statistics</h3>
+    <h2 class="content-subhead">Statistics</h2>
     <table class="pure-table">
         <thead>
             <tr><th>Status Code</th><th>Count</th></tr>
@@ -32,5 +45,8 @@
         These statistics were derived from the last few hundred crawl log entries.
         The most recent crawl log message was timestamped: {{ stats.last_timestamp }} UTC
     </p>
+
+        </div>
+    </div>
 
 {% endblock %}

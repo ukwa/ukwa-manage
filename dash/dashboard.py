@@ -31,10 +31,18 @@ def index():
     stats = consumer.get_stats()
     return render_template('index.html', title="Recent Activity", stats=stats)
 
+
+@app.route('/screenshots')
+def screenshots():
+    stats = consumer.get_stats()
+    return render_template('screenshots.html', title="Recent Screenshots", stats=stats)
+
+
 @app.route('/activity/json')
-def get_recent_activity():
+def get_recent_activity_json():
     stats = consumer.get_stats()
     return jsonify(stats)
+
 
 @app.route('/get-rendered-original')
 def get_rendered_original():
