@@ -222,9 +222,16 @@ class LaunchCrawls(luigi.Task):
                     sheets.append('higherLimit')
                 elif t['depth'] == 'DEEP':
                     sheets.append('noLimit')
-                # Frequency:
+
+                # Default re-crawl interval. Ensure seeds gets re-crawled roughly when requested, by allowing a re-crawl
+                # if it's not already been re-crawled in the day:
+                recrawl_interval = 24 * 60 * 60
+
+                # Re-crawl frequency setting:
                 if freq == 'DAILY':
                     sheets.append('recrawl-1day')
+                    # For daily crawls, allow a re-crawl if there's not been one within the hour:
+                    recrawl_interval = 60*60
                 elif freq == 'WEEKLY':
                     sheets.append('recrawl-1week')
                 elif freq == 'MONTHLY':
@@ -237,7 +244,7 @@ class LaunchCrawls(luigi.Task):
                     sheets.append('recrawl-365days')
 
                 # And send launch message, always resetting any crawl quotas:
-                self.launcher.launch(destination, seed, source, isSeed, sheets=sheets, reset_quotas=True)
+                self.launcher.launch(destination, seed, source, isSeed, sheets=sheets, recrawl_interval=recrawl_interval, reset_quotas=True)
                 counter = counter + 1
                 self.i_launches = self.i_launches + 1
 
