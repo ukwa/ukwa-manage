@@ -123,6 +123,11 @@ class GenerateW3ACTTitleExport(luigi.Task):
     missing_record_count = 0
     embargoed_record_count = 0
 
+    target_count = 0
+    collection_count = 0
+    collection_published_count = 0
+    subject_count = 0
+
     def requires(self):
         return [TargetList(self.date), CollectionList(self.date), SubjectList(self.date)]
 
@@ -132,13 +137,18 @@ class GenerateW3ACTTitleExport(luigi.Task):
     def run(self):
         # Get the data:
         targets = json.load(self.input()[0].open())
+        self.target_count = len(targets)
         collections = json.load(self.input()[1].open())
+        self.collection_count = len(collections)
         subjects = json.load(self.input()[2].open())
+        self.subject_count = len(subjects)
 
         # Index collections by ID:
         collections_by_id = {}
         for col in collections:
             collections_by_id[int(col['id'])] = col
+            if col['field_publish']:
+                self.collection_published_count += 1
 
         # Convert to records:
         records = []
@@ -200,13 +210,18 @@ class GenerateW3ACTTitleExport(luigi.Task):
     def get_metrics(self, registry):
         # type: (CollectorRegistry) -> None
 
-        g_b = Gauge('ukwa_titlelevel_record_count',
-                  'Total number of title-level metadata records.',
-                    labelnames=['kind'], registry=registry)
-        g_b.labels(kind='complete').set(self.record_count)
-        g_b.labels(kind='blocked').set(self.blocked_record_count)
-        g_b.labels(kind='missing').set(self.missing_record_count)
-        g_b.labels(kind='embargoed').set(self.embargoed_record_count)
+        g = Gauge('ukwa_record_count',
+                  'Total number of UKWA records.',
+                    labelnames=['kind', 'status'], registry=registry)
+        g.labels(kind='targets', status='_any_').set(self.target_count)
+        g.labels(kind='collections', status='_any_').set(self.collection_count)
+        g.labels(kind='collections', status='published').set(self.collection_published_count_count)
+        g.labels(kind='subjects', status='_any_').set(self.subject_count)
+
+        g.labels(kind='title_level', status='complete').set(self.record_count)
+        g.labels(kind='title_level', status='blocked').set(self.blocked_record_count)
+        g.labels(kind='title_level', status='missing').set(self.missing_record_count)
+        g.labels(kind='title_level', status='embargoed').set(self.embargoed_record_count)
 
 
 class UpdateCollectionsSolr(luigi.Task):
