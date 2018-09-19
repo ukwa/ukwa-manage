@@ -16,6 +16,8 @@ app.config['SECRET_KEY'] = os.environ.get('APP_SECRET', 'dev-mode-key')
 app.config['CACHE_FOLDER'] = os.environ.get('CACHE_FOLDER', '__cache__')
 cache = FileSystemCache(os.path.join(app.config['CACHE_FOLDER'], 'request_cache'))
 
+crawl_id = os.environ.get('CRAWL_ID', 'UNKNOWN!')
+
 kafka_broker = os.environ.get('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
 kafka_crawled_topic = os.environ.get('KAFKA_CRAWLED_TOPIC', 'uris.crawled.fc')
 kafka_seek_to_beginning = os.environ.get('KAFKA_SEEK_TO_BEGINNING', False)
@@ -29,13 +31,13 @@ consumer.start()
 @app.route('/')
 def index():
     stats = consumer.get_stats()
-    return render_template('index.html', title="Recent Activity", stats=stats)
+    return render_template('index.html', title="%s: Recent Activity" % crawl_id, stats=stats)
 
 
 @app.route('/screenshots')
 def screenshots():
     stats = consumer.get_stats()
-    return render_template('screenshots.html', title="Recent Screenshots", stats=stats)
+    return render_template('screenshots.html', title="%s: Recent Screenshots" % crawl_id, stats=stats)
 
 
 @app.route('/activity/json')
@@ -96,7 +98,7 @@ def status():
     #app.logger.info(json.dumps(s, indent=4))
 
     # And render
-    return render_template('dashboard.html', title="Control", crawls=s)
+    return render_template('dashboard.html', title="%s: Crawler Control" % crawl_id, crawls=s)
 
 
 @app.route('/metrics')
