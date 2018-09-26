@@ -23,7 +23,7 @@ RUN cd /ukwa-manage && python setup.py install
 
 
 # Run the dashboard:
-CMD gunicorn --error-logfile - --access-logfile - --bind 0.0.0.0:8000 --workers 10 dash.dashboard:app
+CMD gunicorn --error-logfile - --access-logfile - --bind 0.0.0.0:8000 --workers 10 --timeout 300 dash.dashboard:app
 
 
 
