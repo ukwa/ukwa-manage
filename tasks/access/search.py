@@ -213,6 +213,7 @@ class GenerateW3ACTTitleExport(luigi.Task):
         g = Gauge('ukwa_record_count',
                   'Total number of UKWA records.',
                     labelnames=['kind', 'status'], registry=registry)
+
         g.labels(kind='targets', status='_any_').set(self.target_count)
         g.labels(kind='collections', status='_any_').set(self.collection_count)
         g.labels(kind='collections', status='published').set(self.collection_published_count_count)

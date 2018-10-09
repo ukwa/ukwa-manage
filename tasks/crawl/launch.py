@@ -82,6 +82,7 @@ class LaunchCrawls(luigi.Task):
     # The message launcher:
     launcher = None
     i_launches = 0
+    target_errors = 0
 
     def requires(self):
         # Get the crawl feed of interest:
@@ -112,6 +113,12 @@ class LaunchCrawls(luigi.Task):
         for t in all_targets:
             logger.debug("----------")
             logger.debug("Looking at %s (tid:%d)" % (t['title'], t['id']))
+
+            # Look out for problems:
+            if len(t['seeds']) == 0:
+                logger.error("This target has no seeds! tid: %d" % t['id'])
+                self.target_errors += 1
+                continue
 
             # Add a source tag if this is a watched target:
             source = "tid:%d:%s" % (t['id'], t['seeds'][0])
@@ -191,6 +198,11 @@ class LaunchCrawls(luigi.Task):
                   'Total number of seeds launched.',
                   labelnames=['stream'], registry=registry)
         g.labels(stream=self.frequency).set(self.i_launches)
+
+        g = Gauge('ukwa_target_errors',
+                  'Total number of targets that appear malformed.',
+                  labelnames=['stream'], registry=registry)
+        g.labels(stream=self.frequency).set(self.target_errors)
 
     def launch_by_hour(self, now, startDate, endDate, t, destination, source, freq):
         # Is it the current hour?
