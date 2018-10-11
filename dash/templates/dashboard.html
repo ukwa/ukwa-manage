@@ -32,10 +32,14 @@
 
         <p>
             <a class="pure-button pure-button-primary" href="{{ url_for('control_all', action='launch') }}" title="LAUNCH ALL CRAWL JOBS!">LAUNCH ALL <i class="fa fa-play-circle" aria-hidden="true"></i></a>
+            <a class="pure-button pure-button-primary" href="{{ url_for('control_all', action='resume') }}" title="RESUME ALL CRAWL JOBS!">RESUME ALL <i class="fa fa-play-circle" aria-hidden="true"></i></a>
         </p>
         <p>
             <a class="pure-button pure-button-primary" href="{{ url_for('control_all', action='pause') }}" title="PAUSE ALL CRAWL JOBS!">PAUSE ALL <i class="fa fa-pause-circle" aria-hidden="true"></i></a>
             <a class="pure-button pure-button-primary" href="{{ url_for('control_all', action='unpause') }}" title="UNPAUSE ALL CRAWL JOBS!">UNPAUSE ALL <i class="fa fa-play-circle" aria-hidden="true"></i></a>
+        </p>
+        <p>
+            <a class="pure-button pure-button-primary" href="{{ url_for('control_all', action='checkpoint') }}" title="CHECKPOINT ALL CRAWL JOBS!">CHECKPOINT ALL <i class="fa fa-play-circle" aria-hidden="true"></i></a>
         </p>
         <p>
             <a class="pure-button pure-button-primary" href="{{ url_for('control_all', action='kafka-report') }}" title="KAFKA REPORT ALL CRAWL JOBS!">KAFKA REPORT ALL <i class="fa fa-play-circle" aria-hidden="true"></i></a>

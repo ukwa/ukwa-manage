@@ -437,6 +437,16 @@ def do_h3_action(args):
             logger.info("Requesting launch of job %s on server %s." % (job_name, server_url))
             h.launch_job(job_name)
             state['message'] = "Requested launch of job %s on server %s." % (job_name, server_url)
+        elif action == 'resume':
+            logger.info("Requesting resume (launch-from-last-checkpoint) of job %s on server %s." % (job_name, server_url))
+            h.build_job(job_name)
+            h.launch_from_latest_checkpoint(job_name)
+            state['message'] = "Requested launch-from-last-checkpoint of job %s on server %s." % (job_name, server_url)
+        elif action == 'checkpoint':
+            logger.info(
+                "Requesting checkpoint of job %s on server %s." % (job_name, server_url))
+            h.checkpoint_job(job_name)
+            state['message'] = "Requested checkpoint of job %s on server %s." % (job_name, server_url)
         elif action == 'terminate':
             logger.info("Requesting termination of job %s on server %s." % (job_name, server_url))
             h.terminate_job(job_name)
