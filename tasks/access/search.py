@@ -160,6 +160,9 @@ class GenerateW3ACTTitleExport(luigi.Task):
                 continue
             # Skip items that have no crawl permission?
             # hasOpenAccessLicense == False, and inScopeForLegalDeposit == False ?
+            # Skip items with no URLs:
+            if len(target['fieldUrls']) == 0:
+                continue
             # Get the url, use the first:
             url = target['fieldUrls'][0]['url']
             # Extract the domain:
@@ -257,6 +260,10 @@ class UpdateCollectionsSolr(luigi.Task):
                 target = targets_by_id.get(tid, None)
                 if not target:
                     logger.error("Warning! Could not find target %i" % tid)
+                    continue
+
+                # Skip items with no URLs:
+                if len(target['fieldUrls']) == 0:
                     continue
 
                 # add a document to the Solr index
