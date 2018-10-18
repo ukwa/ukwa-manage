@@ -17159,5 +17159,9 @@ http://(com,wordpress,files,
 http://(com,twimg,pbs)
 http://(com,blogspot,bp,
 http://(com,blogblog,img1
+http://(com,blogblog,img2
 http://(com,squarespace,static)
 http://(net,typekit,use)
+http://(com,blogger,www)/img/
+http://(com,blogger,www)/static/
+http://(com,blogger,www)/dyn-css/
