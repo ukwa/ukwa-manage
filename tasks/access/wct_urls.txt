@@ -17152,3 +17152,12 @@ http://zehraingloucestershire.blogspot.com/
 http://zetoc.mimas.ac.uk/
 http://zintzilik.org/
 http://zope.cetis.ac.uk/members/PDPcontent/
+http://(com,wp,s0
+http://(com,wp,s1
+http://(com,wp,s2
+http://(com,wordpress,files,
+http://(com,twimg,pbs)
+http://(com,blogspot,bp,
+http://(com,blogblog,img1
+http://(com,squarespace,static)
+http://(net,typekit,use)
