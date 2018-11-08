@@ -407,6 +407,8 @@ class GenerateAccessWhitelist(luigi.Task):
                         'surt': surtVal,
                         'url': seed
                     })
+                else
+                    logger.warning("Got no SURT from %s" % seed)
 
     def run(self):
         # collate surts
