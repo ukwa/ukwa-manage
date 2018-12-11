@@ -266,6 +266,14 @@ class UpdateCollectionsSolr(luigi.Task):
                 if len(target['fieldUrls']) == 0:
                     continue
 
+                # Determine license status:
+                licenses = []
+                if target['hasOpenAccessLicence']:
+                    licenses = [l["id"] for l in target["licenses"]]
+                    # Use a special value to indicate an inherited license:
+                    if len(licenses) == 0:
+                        licenses = ['1000']
+
                 # add a document to the Solr index
                 s.add([{
                     "id": "cid:%i-tid:%i" % (col['id'], target['id']),
@@ -278,7 +286,7 @@ class UpdateCollectionsSolr(luigi.Task):
                     "language": target["language"],
                     "startDate": target["crawlStartDateISO"],
                     "endDate": target["crawlEndDateISO"],
-                    "licenses": [l["id"] for l in target["licenses"]]
+                    "licenses": licenses
                 }], commit=False)
 
             # Add child collections
