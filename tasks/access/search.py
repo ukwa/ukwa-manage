@@ -268,7 +268,7 @@ class UpdateCollectionsSolr(luigi.Task):
 
                 # Determine license status:
                 licenses = []
-                if target['hasOpenAccessLicence']:
+                if target.get('hasOpenAccessLicense', False):
                     licenses = [l["id"] for l in target["licenses"]]
                     # Use a special value to indicate an inherited license:
                     if len(licenses) == 0:
