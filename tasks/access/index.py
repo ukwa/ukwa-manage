@@ -373,6 +373,34 @@ class GenerateAccessWhitelist(luigi.Task):
 
         return surtVal
 
+    def surts_for_cdns(self):
+        cdn_surts = [
+            'http://(com,wp,s0',
+            'http://(com,wp,s1',
+            'http://(com,wp,s2',
+            'http://(com,wordpress,files,',
+            'http://(com,twimg,pbs)',
+            'http://(com,blogspot,bp,',
+            'http://(com,blogblog,img1',
+            'http://(com,blogblog,img2',
+            'http://(com,squarespace,static)',
+            'http://(net,typekit,use)',
+            'http://(com,blogger,www)/img/',
+            'http://(com,blogger,www)/static/',
+            'http://(com,blogger,www)/dyn-css/',
+            'http://(net,cloudfront,',
+            'http://(com,googleusercontent,'
+        ]
+        # Add them in:
+        for cdn_surt in cdn_surts:
+            self.all_surts.add(cdn_surt)
+            self.all_surts_and_urls.append({
+                'surt': cdn_surt,
+                'url': cdn_surt
+            })
+
+        logger.info("%s surts for CDNs added" % len(cdn_surts))
+
     def surts_from_wct(self):
         count = 0
         # process every URL from WCT
@@ -383,11 +411,11 @@ class GenerateAccessWhitelist(luigi.Task):
 
             # for all WCT URLs, generate surt. Using a set disallows duplicates
             for line in lines:
-                surt = self.generate_surt(line)
-                if surt is not None:
-                    self.all_surts.add(surt)
+                wct_surt = self.generate_surt(line)
+                if wct_surt is not None:
+                    self.all_surts.add(wct_surt)
                     self.all_surts_and_urls.append({
-                        'surt': surt,
+                        'surt': wct_surt,
                         'url': line
                     })
                     count += 1
@@ -400,11 +428,11 @@ class GenerateAccessWhitelist(luigi.Task):
             targets = json.load(f)
         for target in targets:
             for seed in target['seeds']:
-                surtVal = self.generate_surt(seed)
-                if surtVal is not None:
-                    self.all_surts.add(surtVal)
+                act_surt = self.generate_surt(seed)
+                if act_surt is not None:
+                    self.all_surts.add(act_surt)
                     self.all_surts_and_urls.append({
-                        'surt': surtVal,
+                        'surt': act_surt,
                         'url': seed
                     })
                 else:
@@ -412,6 +440,7 @@ class GenerateAccessWhitelist(luigi.Task):
 
     def run(self):
         # collate surts
+        self.surts_for_cdns()
         self.surts_from_wct()
         self.surts_from_w3act()
 
