@@ -374,6 +374,11 @@ class GenerateAccessWhitelist(luigi.Task):
         return surtVal
 
     def surts_for_cdns(self):
+        '''
+        This adds in dome hard-coded SURTs that correspond to common CDNs.
+
+        :return:
+        '''
         cdn_surts = [
             'http://(com,wp,s0',
             'http://(com,wp,s1',
@@ -479,7 +484,7 @@ class UpdateAccessWhitelist(luigi.Task):
     task_namespace = 'access'
     date = luigi.DateParameter(default=datetime.date.today())
     wb_oa_whitelist = luigi.Parameter(default='/root/wayback-config/open-access-whitelist.txt')
-    pywb_oa_whitelist = luigi.Parameter(default='/root/wayback-config/allows.aclj')
+    pywb_oa_whitelist = luigi.Parameter(default='/root/wayback-config/acl/allows.aclj')
 
     def requires(self):
         return GenerateAccessWhitelist(self.date)
