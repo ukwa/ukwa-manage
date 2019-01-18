@@ -2,6 +2,7 @@ import re
 import os
 import json
 import logging
+import datetime
 from urlparse import urlparse
 import luigi
 import luigi.contrib.hdfs
@@ -88,6 +89,12 @@ class CrawlLogLine(object):
         :return:
         """
         return "%s:00:00" % self.timestamp[:13]
+
+    def date(self):
+        return self.parse_date(self.timestamp)
+
+    def parse_date(self, timestamp):
+        return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 class CrawlLogExtractors(object):
