@@ -1,3 +1,3 @@
 {{ json }}
 
-{{ record.description }}
+{{ description }}
