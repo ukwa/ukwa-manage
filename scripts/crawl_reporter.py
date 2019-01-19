@@ -4,6 +4,10 @@ import datetime
 from tasks.ingest.log_analysis_hadoop import CrawlLogLine
 
 
+def print_launch_stats(key, launch_stats):
+    print("%s\t%s\t%s\t%s" % (key, launch_stats[key].get('launch', False), launch_stats[key].get('timestamp', None), launch_stats[key]['stats']))
+
+
 def main(argv=None):
     # Set up the args:
     parser = argparse.ArgumentParser('Generate crawl reports from log files.')
@@ -14,6 +18,7 @@ def main(argv=None):
 
     #
     launch_stats = dict()
+    launch_stats['-'] = { 'stats': {'count': 0 } }
     #
     with open(args.filename) as f:
         for line in f.readlines():
@@ -30,15 +35,21 @@ def main(argv=None):
 
             if is_new:
                 if key in launch_stats:
-                    print(key,launch_stats[key])
-                launch_stats[key] = {'timestamp': c.timestamp, 'stats': { 'bytes': 0} }
+                    print_launch_stats(key, launch_stats)
+                launch_stats[key] = {'timestamp': c.timestamp, 'stats': { 'bytes': 0, 'count': 0 } }
+
+            if c.hop_path == '-':
+                launch_stats[key]['launch'] = True
 
             if key in launch_stats:
+                launch_stats[key]['stats']['count'] += 1
                 if c.content_length != '-':
                     launch_stats[key]['stats']['bytes'] += int(c.content_length)
+            else:
+                launch_stats['-']['stats']['count'] += 1
 
     for key in launch_stats:
-        print("%s\t%s\t%s" % (key, launch_stats[key]['timestamp'], launch_stats[key]['stats']))
+        print_launch_stats(key,launch_stats)
 
 
 if __name__ == "__main__":
