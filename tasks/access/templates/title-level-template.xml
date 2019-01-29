@@ -15,6 +15,7 @@
                   {% if record.subject %}
                   <dc:subject xmlns:dc="http://purl.org/dc/elements/1.1/">{{ record.subject }}</dc:subject>
                   {% endif %}
+                  <xlink:href xmlns:xlink="http://www.w3.org/1999/xlink">{{ record.wayback_url }}</xlink:href>  
               </oai_dc:dc>
           </metadata>
       </record>
