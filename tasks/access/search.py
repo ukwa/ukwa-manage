@@ -7,7 +7,7 @@ import base64
 import hashlib
 import datetime
 import tldextract
-import ssdeep
+#import ssdeep
 from lib.cdx import CdxIndex
 from tasks.ingest.w3act import TargetList, SubjectList, CollectionList
 from tasks.common import state_file
@@ -185,7 +185,8 @@ class GenerateW3ACTTitleExport(luigi.Task):
                 continue
 
             # Otherwise, build the record:
-            record_id = "%s/%s".format(ssdeep.hash(wayback_date_str + '/' + url.encode('utf-8')))
+#            record_id = ssdeep.hash(wayback_date_str + '/' + url.encode('utf-8'))
+            record_id = wayback_date_str + '/' + url.encode('utf-8')
             title_utf8 = target['title'].encode('utf-8')
             wayback_url = 'https://www.webarchive.org.uk/wayback/archive/' + wayback_date_str + '/' + url
             rec = {
