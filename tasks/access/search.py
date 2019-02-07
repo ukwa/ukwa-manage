@@ -186,14 +186,15 @@ class GenerateW3ACTTitleExport(luigi.Task):
 
             # Otherwise, build the record:
 #            record_id = ssdeep.hash(wayback_date_str + '/' + url.encode('utf-8'))
-            record_id = wayback_date_str + '/' + url.encode('utf-8')
-            title_utf8 = target['title'].encode('utf-8')
+#            record_id = wayback_date_str + '/' + url.encode('utf-8')
+            record_id = "%s/%s" % (wayback_date_str, base64.b64encode(hashlib.md5(url.encode('utf-8')).digest()))
+            title = target['title']
             wayback_url = 'https://www.webarchive.org.uk/wayback/archive/' + wayback_date_str + '/' + url
             rec = {
                 'id': record_id,
                 'date': first_date,
                 'url': url,
-                'title': title_utf8,
+                'title': title,
                 'publisher': publisher,
                 'wayback_url': wayback_url
             }
