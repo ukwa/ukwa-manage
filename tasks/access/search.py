@@ -7,6 +7,7 @@ import base64
 import hashlib
 import datetime
 import tldextract
+#import ssdeep
 from lib.cdx import CdxIndex
 from tasks.ingest.w3act import TargetList, SubjectList, CollectionList
 from tasks.common import state_file
@@ -176,7 +177,6 @@ class GenerateW3ACTTitleExport(luigi.Task):
                 continue
             wayback_date = datetime.datetime.strptime(wayback_date_str, '%Y%m%d%H%M%S')
             first_date = wayback_date.isoformat()
-            record_id = "%s/%s" % (wayback_date_str, base64.b64encode(hashlib.md5(url.encode('utf-8')).digest()))
 
             # Honour embargo
             ago = datetime.datetime.now() - wayback_date
@@ -185,12 +185,17 @@ class GenerateW3ACTTitleExport(luigi.Task):
                 continue
 
             # Otherwise, build the record:
+#            record_id = ssdeep.hash(wayback_date_str + '/' + url.encode('utf-8'))
+            record_id = wayback_date_str + '/' + url.encode('utf-8')
+            title_utf8 = target['title'].encode('utf-8')
+            wayback_url = 'https://www.webarchive.org.uk/wayback/archive/' + wayback_date_str + '/' + url
             rec = {
                 'id': record_id,
                 'date': first_date,
                 'url': url,
-                'title': target['title'],
-                'publisher': publisher
+                'title': title_utf8,
+                'publisher': publisher,
+                'wayback_url': wayback_url
             }
             # Add any collection:
             if len(target['collectionIds']) > 0:
