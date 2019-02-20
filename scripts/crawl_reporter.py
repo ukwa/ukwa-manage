@@ -5,10 +5,11 @@ from tasks.ingest.log_analysis_hadoop import CrawlLogLine
 
 
 def print_launch_stats(key, launch_stats):
-    print("%s\t%s\t%s\t%s\t%s\t%s" % (key, launch_stats[key].get('source', '-'),
-                                      launch_stats[key].get('first_url', '-'),
-                                      launch_stats[key].get('launch', False),
+    print("%s\t%s\t%s\t%s\t%s\t%s" % (key,
                                       launch_stats[key].get('timestamp', None),
+                                      launch_stats[key].get('launch', False),
+                                      launch_stats[key].get('source', '-'),
+                                      launch_stats[key].get('first_url', '-'),
                                       launch_stats[key]['stats']))
 
 
