@@ -36,7 +36,7 @@ def main(argv=None):
             if is_new:
                 if key in launch_stats:
                     print_launch_stats(key, launch_stats)
-                launch_stats[key] = {'timestamp': c.timestamp, 'stats': { 'bytes': 0, 'count': 0 } }
+                launch_stats[key] = {'timestamp': c.timestamp, 'first_url': c.url, 'source': c.source, 'stats': { 'bytes': 0, 'count': 0 } }
 
             if c.hop_path == '-':
                 launch_stats[key]['launch'] = True
@@ -45,6 +45,9 @@ def main(argv=None):
                 launch_stats[key]['stats']['count'] += 1
                 if c.content_length != '-':
                     launch_stats[key]['stats']['bytes'] += int(c.content_length)
+                # Also tot-up status codes:
+                sc = launch_stats[key]['stats'].get('status_codes', dict())
+                sc[c.status_code] = sc.get(c.status_code, 0) + 1
             else:
                 launch_stats['-']['stats']['count'] += 1
 
