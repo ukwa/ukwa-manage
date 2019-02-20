@@ -5,7 +5,11 @@ from tasks.ingest.log_analysis_hadoop import CrawlLogLine
 
 
 def print_launch_stats(key, launch_stats):
-    print("%s\t%s\t%s\t%s" % (key, launch_stats[key].get('launch', False), launch_stats[key].get('timestamp', None), launch_stats[key]['stats']))
+    print("%s\t%s\t%s\t%s\t%s\t%s" % (key, launch_stats[key].get('source', '-'),
+                                      launch_stats[key].get('first_url', '-'),
+                                      launch_stats[key].get('launch', False),
+                                      launch_stats[key].get('timestamp', None),
+                                      launch_stats[key]['stats']))
 
 
 def main(argv=None):
@@ -48,6 +52,7 @@ def main(argv=None):
                 # Also tot-up status codes:
                 sc = launch_stats[key]['stats'].get('status_codes', dict())
                 sc[c.status_code] = sc.get(c.status_code, 0) + 1
+                launch_stats[key]['stats']['status_codes'] = sc
             else:
                 launch_stats['-']['stats']['count'] += 1
 
