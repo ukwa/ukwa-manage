@@ -2,6 +2,7 @@ import luigi
 import datetime
 import pandas as pd
 from tasks.ingest.listings import ListParsedPaths
+from tasks.preserve.hdfs import GatherBlockScanReports
 from lib.targets import ReportTarget, TaskTarget
 
 
@@ -35,14 +36,17 @@ class GenerateHDFSReports(luigi.Task):
     task_namespace = "ingest.report"
 
     def requires(self):
-        return ListParsedPaths(self.date)
+        return {
+            'paths' : ListParsedPaths(self.date),
+            'scans': GatherBlockScanReports(self.date)
+        }
 
     def output(self):
         return TaskTarget('reports', 'hdfs-reports', self.date)
 
     def run(self):
         # Set up the input file:
-        with self.input().open('r') as fin:
+        with self.input()['paths'].open('r') as fin:
             df = pd.read_csv(fin)
             # Interpret timestamp as a date:
             df.timestamp = pd.to_datetime(df.timestamp)
@@ -56,6 +60,13 @@ class GenerateHDFSReports(luigi.Task):
                 df2 = df.groupby([df.collection, df.stream, df.timestamp.dt.year, df.kind]).file_size.sum().unstack()
                 # Output the result as CSV:
                 df2.to_csv(f_out,float_format="%.0f")
+            # Now the same but as file counts:
+            out = ReportTarget('content/reports/hdfs', 'total-file-count-by-stream.csv')
+            with out.open('w') as f_out:
+                # Pandas query:
+                df2 = df.groupby([df.collection, df.stream, df.timestamp.dt.year, df.kind]).file_size.count().unstack()
+                # Output the result as CSV:
+                df2.to_csv(f_out)
 
             # Focus on NPLD:
             np = df.loc[df.collection == 'npld'].loc[df.kind.isin(['warcs', 'crawl-logs', 'viral'])].reset_index()
@@ -78,6 +89,13 @@ class GenerateHDFSReports(luigi.Task):
                 totals = np.groupby(np.stream).file_size.sum().reset_index()
                 totals = totals.append({'stream': 'total', 'file_size': totals.file_size.sum()}, ignore_index=True)
                 totals.file_size = totals.file_size.apply(humanbytes)
+                totals = totals.set_index('stream')
+                # Same for counts rather than size totals:
+                counts = np.groupby(np.stream).file_size.count().reset_index().rename(columns={'file_size': 'file_count'})
+                counts = counts.append({'stream': 'total', 'file_count': counts.file_count.sum()}, ignore_index=True)
+                counts = counts.set_index('stream')
+                # Join the two together into a single table and output:
+                totals.join(counts)
                 totals.to_csv(f_out,index=False)
 
 
