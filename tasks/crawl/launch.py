@@ -236,8 +236,8 @@ class LaunchCrawls(luigi.Task):
                     sheets.append('noLimit')
 
                 # Default re-crawl interval. Ensure seeds gets re-crawled roughly when requested, by allowing a re-crawl
-                # if it's not already been re-crawled in the day:
-                recrawl_interval = 24 * 60 * 60
+                # if it's not already been re-crawled in the day. Includes 4hr tolerance of crawl delays:
+                recrawl_interval = 20 * 60 * 60
 
                 # Re-crawl frequency setting:
                 if freq == 'DAILY':
