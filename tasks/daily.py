@@ -7,6 +7,7 @@ This module summarises the tasks that are to be run daily.
 import luigi
 from tasks.ingest.listings import GenerateHDFSSummaries
 from tasks.ingest.reports import GenerateHDFSReports
+from tasks.preserve.hdfs import GatherBlockScanReports
 from tasks.backup.postgresql import BackupProductionW3ACTPostgres
 from tasks.access.search import PopulateBetaCollectionsSolr, GenerateIndexAnnotations, GenerateW3ACTTitleExport
 from tasks.access.index import UpdateAccessWhitelist
@@ -19,7 +20,8 @@ class DailyIngestTasks(luigi.WrapperTask):
     def requires(self):
         return [BackupProductionW3ACTPostgres(),
                 GenerateHDFSSummaries(),
-                GenerateHDFSReports()]
+                GenerateHDFSReports(),
+                GatherBlockScanReports()]
 
 
 class DailyAccessTasks(luigi.WrapperTask):
