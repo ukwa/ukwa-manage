@@ -95,8 +95,8 @@ class GenerateHDFSReports(luigi.Task):
                 counts = counts.append({'stream': 'total', 'file_count': counts.file_count.sum()}, ignore_index=True)
                 counts = counts.set_index('stream')
                 # Join the two together into a single table and output:
-                totals.join(counts)
-                totals.to_csv(f_out,index=False)
+                totals = totals.join(counts)
+                totals.to_csv(f_out)
 
 
             # Tag all as done:
