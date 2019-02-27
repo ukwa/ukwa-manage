@@ -66,7 +66,7 @@ class GenerateHDFSReports(luigi.Task):
                 # Pandas query:
                 df2 = df.groupby([df.collection, df.stream, df.timestamp.dt.year, df.kind]).file_size.count().unstack()
                 # Output the result as CSV:
-                df2.to_csv(f_out)
+                df2.to_csv(f_out,float_format="%.0f")
 
             # Focus on NPLD:
             np = df.loc[df.collection == 'npld'].loc[df.kind.isin(['warcs', 'crawl-logs', 'viral'])].reset_index()
