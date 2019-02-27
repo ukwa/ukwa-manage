@@ -128,11 +128,13 @@ class GenerateW3ACTTitleExport(luigi.Task):
     collection_count = 0
     collection_published_count = 0
     subject_count = 0
+    subject_published_count = 0
 
     def requires(self):
         return [TargetList(self.date), CollectionList(self.date), SubjectList(self.date)]
 
     def output(self):
+        logger.warning('in output')
         return state_file(self.date,'access-data', 'title-level-metadata-w3act.xml')
 
     def run(self):
@@ -150,6 +152,13 @@ class GenerateW3ACTTitleExport(luigi.Task):
             collections_by_id[int(col['id'])] = col
             if col['field_publish']:
                 self.collection_published_count += 1
+
+        # Index subjects by ID:
+        subjects_by_id = {}
+        for sub in subjects:
+            subjects_by_id[int(sub['id'])] = sub
+            if sub['field_publish']:
+                self.subject_published_count += 1
 
         # Convert to records:
         records = []
@@ -184,24 +193,29 @@ class GenerateW3ACTTitleExport(luigi.Task):
                 self.embargoed_record_count += 1
                 continue
 
-            # Otherwise, build the record:
-#            record_id = ssdeep.hash(wayback_date_str + '/' + url.encode('utf-8'))
-#            record_id = wayback_date_str + '/' + url.encode('utf-8')
+            #### Otherwise, build the record:
             record_id = "%s/%s" % (wayback_date_str, base64.b64encode(hashlib.md5(url.encode('utf-8')).digest()))
             title = target['title']
-            wayback_url = 'https://www.webarchive.org.uk/wayback/archive/' + wayback_date_str + '/' + url
+            # set the rights and wayback_url depending on licence
+            if target.get('hasOpenAccessLicense', True):
+                rights = '***Free access'
+                wayback_url = 'https://www.webarchive.org.uk/wayback/archive/' + wayback_date_str + '/' + url
+            else:
+                rights = '***Available only in our Reading Rooms'
+                wayback_url = 'https://bl.ldls.org.uk/welcome.html?' + wayback_date_str + '/' + url
             rec = {
                 'id': record_id,
                 'date': first_date,
                 'url': url,
                 'title': title,
+                'rights': rights,
                 'publisher': publisher,
                 'wayback_url': wayback_url
             }
             # Add any collection:
-            if len(target['collectionIds']) > 0:
-                col = collections_by_id.get(int(target['collectionIds'][0]), {})
-                rec['subject'] = col.get('name', None)
+            if len(target['subjectIds']) > 0:
+                sub0 = subjects_by_id.get(int(target['subjectIds'][0]), {})
+                rec['subject'] = sub0.get('name', None)
 
             # And append record to the set:
             records.append(rec)
