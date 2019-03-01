@@ -36,9 +36,16 @@ class BackupRemoteDockerPostgres(luigi.Task):
         if rt.exists():
             rt.remove()
 
-        # Launch pg_dump remotely
+        # Launch shell remotely
         rc = luigi.contrib.ssh.RemoteContext(self.host)
-        cmd = ['docker', 'exec', self.service,
+        
+        # get the id of the container - straight service name may not work 
+        # e.g. if it's an instance in a swarm: mydbservice (name) > mydbservice.1.idinfo (instance) 
+        cmd = ['docker', 'ps', '-q', '-f', 'name=%s' % self.service]
+        containerid=rc.check_output(cmd).rstrip()
+          
+        # execute the pg_dump command against the container  
+        cmd = ['docker', 'exec', containerid,
                 'pg_dump', '-U', self.db, '--format=c', '--file=%s' % remote_docker_backup_path, self.db ]
         rc.check_output(cmd)
 
@@ -55,11 +62,54 @@ class BackupProductionW3ACTPostgres(luigi.Task):
     and then pushes the backup file up to HDFS.
     """
     task_namespace = 'backup'
-
     host = luigi.Parameter(default='crawler03')
     service = luigi.Parameter(default='pulsefeprod_postgres_1')
     db = luigi.Parameter(default='w3act')
     remote_host_backup_folder = luigi.Parameter(default='/data/prod/postgresql')
+    hdfs_backup_folder = luigi.Parameter(default='/2_backups/')
+    date = luigi.DateParameter(default=datetime.date.today())
+    
+    def requires(self):
+        return BackupRemoteDockerPostgres(host=self.host, service=self.service, db=self.db,
+                                          remote_host_backup_folder=self.remote_host_backup_folder,
+                                          date=self.date)
+
+    def output(self):
+        bkp_path = os.path.join(self.hdfs_backup_folder,"%s/%s/%s.pgdump-%s" %
+                            (self.host, self.service, self.db, self.date.strftime('%Y%m%d')))
+        return luigi.contrib.hdfs.HdfsTarget(path=bkp_path, format=PlainFormat())
+
+    def run(self):
+        with self.input().open('rb') as reader:
+           with self.output().open('w') as writer:
+                for chunk in reader:
+                    writer.write(chunk)
+
+    def get_backup_size(self):
+        return self.output().fs.count(self.output().path).get('content_size', None)
+        # WebHDFS
+        # return self.output().fs.client.status(self.output().path).get('length',None)
+
+    def get_metrics(self,registry):
+        # type: (CollectorRegistry) -> None
+        g = Gauge('w3act_database_backup_size_bytes', 'Size of W3ACT database backup.',
+                  labelnames=['db'], registry=registry)
+        g.labels(db=self.db).set(self.get_backup_size())
+
+        
+class BackupProductionShinePostgres(luigi.Task):
+    """
+    This task runs a Docker PostgreSQL backup task for a specific system (production Shine)
+    and then pushes the backup file up to HDFS.
+    """
+    task_namespace = 'backup'
+
+    host = luigi.Parameter(default='access')
+    service = luigi.Parameter(default='access_shinedb')
+    db = luigi.Parameter(default='shine')
+    
+    #the host dir mapped to the container data dir that the dump is in
+    remote_host_backup_folder = luigi.Parameter(default='/data/shine/postgresql/data') 
     hdfs_backup_folder = luigi.Parameter(default='/2_backups/')
     date = luigi.DateParameter(default=datetime.date.today())
 
@@ -86,7 +136,7 @@ class BackupProductionW3ACTPostgres(luigi.Task):
 
     def get_metrics(self,registry):
         # type: (CollectorRegistry) -> None
-        g = Gauge('ukwa_task_database_backup_size_bytes', 'Size of a database backup.',
+        g = Gauge('shine_database_backup_size_bytes', 'Size of Shine database backup.',
                   labelnames=['db'], registry=registry)
         g.labels(db=self.db).set(self.get_backup_size())
 
