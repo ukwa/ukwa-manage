@@ -92,7 +92,7 @@ class BackupProductionW3ACTPostgres(luigi.Task):
 
     def get_metrics(self,registry):
         # type: (CollectorRegistry) -> None
-        g = Gauge('w3act_database_backup_size_bytes', 'Size of W3ACT database backup.',
+        g = Gauge('ukwa_database_backup_size_bytes', 'Size of a database backup.',
                   labelnames=['db'], registry=registry)
         g.labels(db=self.db).set(self.get_backup_size())
 
@@ -136,7 +136,7 @@ class BackupProductionShinePostgres(luigi.Task):
 
     def get_metrics(self,registry):
         # type: (CollectorRegistry) -> None
-        g = Gauge('shine_database_backup_size_bytes', 'Size of Shine database backup.',
+        g = Gauge('ukwa_database_backup_size_bytes', 'Size of a database backup.',
                   labelnames=['db'], registry=registry)
         g.labels(db=self.db).set(self.get_backup_size())
 
