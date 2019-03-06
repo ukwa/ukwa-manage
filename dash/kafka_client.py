@@ -141,7 +141,7 @@ class CrawlLogConsumer(Thread):
             for m in self.recent:
                 sc = str(m.get('status_code'))
                 if sc:
-                    status_codes[sc] += 10
+                    status_codes[sc] += 1
         # Sort by count:
         status_codes = sorted(status_codes.items(), key=lambda x: x[1], reverse=True)
         return status_codes
