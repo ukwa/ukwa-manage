@@ -74,16 +74,16 @@ def lookup_in_cdx(qurl, target_date=None):
     matched_ts = None
     for ts in matches:
         wb_date = datetime.datetime.strptime(ts, WAYBACK_TS_FORMAT)
-        logger.warning("MATCHING: %s %s %s %s" %(matched_date, target_date, wb_date, ts))
-        logger.warning("DELTA:THIS: %i" %(wb_date-target_date).total_seconds())
+        logger.debug("MATCHING: %s %s %s %s" %(matched_date, target_date, wb_date, ts))
+        logger.debug("DELTA:THIS: %i" %(wb_date-target_date).total_seconds())
         if matched_date:
-            logger.warning("DELTA:MATCH: %i" % (matched_date-target_date).total_seconds())
+            logger.debug("DELTA:MATCH: %i" % (matched_date-target_date).total_seconds())
         if matched_date is None or abs((wb_date-target_date).total_seconds()) < \
                 abs((matched_date-target_date).total_seconds()):
             matched_date = wb_date
             matched_ts = ts
-            logger.warning("MATCHED: %s %s" %(matched_date, ts))
-        logger.warning("FINAL MATCH: %s %s" %(matched_date, ts))
+            logger.debug("MATCHED: %s %s" %(matched_date, ts))
+        logger.debug("FINAL MATCH: %s %s" %(matched_date, ts))
 
     return matches[matched_ts]
 
