@@ -55,7 +55,7 @@ def get_rendered_original_stream(warc_filename, warc_offset, compressedendoffset
     return record.raw_stream, record.content_type
 
 
-def lookup_in_cdx(qurl, target_date=datetime.datetime.now()):
+def lookup_in_cdx(qurl, target_date=None):
     """
     Checks if a resource is in the CDX index, closest to a specific date:
 
@@ -64,6 +64,10 @@ def lookup_in_cdx(qurl, target_date=datetime.datetime.now()):
     matches = list_from_cdx(qurl)
     if len(matches) == 0:
         return None, None, None
+
+    # Set up default:
+    if target_date is None:
+        target_date = datetime.datetime.now()
 
     # Go through looking for the closest match:
     matched_date = None
