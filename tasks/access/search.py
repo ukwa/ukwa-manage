@@ -7,6 +7,7 @@ import base64
 import hashlib
 import datetime
 import tldextract
+from lxml import etree
 #import ssdeep
 from lib.cdx import CdxIndex
 from tasks.ingest.w3act import TargetList, SubjectList, CollectionList
@@ -221,14 +222,51 @@ class GenerateW3ACTTitleExport(luigi.Task):
             records.append(rec)
             self.record_count += 1
 
-        # Setup templates:
-        env = Environment(loader=PackageLoader('tasks.access.search', 'templates'))
-        template = env.get_template('title-level-template.xml')
+        # declare output XML namespaces
+        OAINS = 'http://www.openarchives.org/OAI/2.0/'
+        OAIDCNS = 'http://www.openarchives.org/OAI/2.0/oai_dc/'
+        DCNS = 'http://purl.org/dc/elements/1.1/'
+        XLINKNS = 'http://www.w3.org/1999/xlink'
+        OAIDC_B = "{%s}" % OAIDCNS
+        DC_B = "{%s}" % DCNS
+        XLINK_B = "{%s}" % XLINKNS
 
-        # And write:
+        # create OAI-PMH XML via lxml
+        oaiPmh = etree.Element('OAI-PMH', nsmap={None:OAINS, 'oai_dc':OAIDCNS, 'dc':DCNS, 'xlink':XLINKNS})
+        listRecords = etree.SubElement(oaiPmh, 'ListRecords')
+
+        for rec in records:
+            record = etree.SubElement(listRecords, 'record')
+
+            # header
+            header = etree.SubElement(record, 'header')
+            identifier = etree.SubElement(header, 'identifier')
+            identifier.text = rec['id']
+
+            # metadata
+            metadata = etree.SubElement(record, 'metadata')
+            dc = etree.SubElement(metadata, OAIDC_B+'dc')
+            source = etree.SubElement(dc, DC_B+'source' )
+            source.text = rec['url']
+            publisher = etree.SubElement(dc, DC_B+'publisher' )
+            publisher.text = rec['publisher']
+            title = etree.SubElement(dc, DC_B+'title' )
+            title.text = rec['title']
+            date = etree.SubElement(dc, DC_B+'date' )
+            date.text = rec['date']
+            rights = etree.SubElement(dc, DC_B+'rights' )
+            rights.text = rec['rights']
+            href = etree.SubElement(dc, XLINK_B+'href' )
+            href.text = rec['wayback_url']
+
+            if 'subject' in rec:
+                subject = etree.SubElement(dc, DC_B+'subject')
+                subject.text = rec['subject']
+
+        # output OAI-PMH XML
         with self.output().open('w') as f:
-            for part in template.generate({ "records": records }):
-                f.write(part.encode("utf-8"))
+            f.write(etree.tostring(oaiPmh, xml_declaration=True, encoding='UTF-8', pretty_print=True))
+
 
     def get_metrics(self, registry):
         # type: (CollectorRegistry) -> None
