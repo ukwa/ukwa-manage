@@ -47,7 +47,8 @@ def sender(launcher, args, uri):
 
     # Add the main URL
     launcher.launch("h3", uri, args.source, isSeed=args.seed, forceFetch=args.forceFetch,
-                    recrawl_interval=args.recrawl_interval, sheets=args.sheets, reset_quotas=args.reset_quotas)
+                    recrawl_interval=args.recrawl_interval, sheets=args.sheets, reset_quotas=args.reset_quotas,
+                    webrender_this=args.webrender_this, launch_ts=args.launch_ts)
 
     # Also, for some hosts, attempt to extract all pages from a oaged list:
     if args.pager:
@@ -82,6 +83,10 @@ def main(argv=None):
                         help="Recrawl interval override for this URI (in seconds). [default: %(default)s]")
     parser.add_argument("-R", "--reset-quotas", dest="reset_quotas", action="store_true", default=False, required=False,
                         help="Reset the crawl quotas, setting crawled totals to zero. [default: %(default)s]")
+    parser.add_argument("-W", "--webrender-this", dest="webrender_this", action="store_true", default=False, required=False,
+                        help="Render this URI in a browser rather than using the usual downloader (always True for seeds). [default: %(default)s]")
+    parser.add_argument("-L", "--launch-ts", dest="launch_ts", default=None, required=False, type=str,
+                        help="Launch request timestamp as 14-character datetime e.g. '20190301120000' or use 'now' to use the current time. [default: %(default)s]")
     parser.add_argument('queue', metavar='queue', help="Name of queue to send URIs too, e.g. 'dc.discovered'.")
     parser.add_argument('uri_or_filename', metavar='uri_or_filename', help="URI to enqueue, or filename containing URIs to enqueue.")
 

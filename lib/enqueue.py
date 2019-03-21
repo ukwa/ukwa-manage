@@ -52,7 +52,13 @@ class KafkaLauncher(object):
         logger.info("Sending key %s, message: %s" % (key, json.dumps(message)))
         self.producer.send(topic, key=key, value=message)
 
-    def launch(self, destination, uri, source, isSeed=False, forceFetch=False, sheets=[], hop="", recrawl_interval=None, reset_quotas=None):
+    def launch(self, destination, uri, source, isSeed=False, forceFetch=False, sheets=[], hop="",
+               recrawl_interval=None, reset_quotas=None, webrender_this=False, launch_ts=None):
+        # Set up a launch timestamp:
+        if launch_ts and launch_ts.lower() == "now":
+            launch_ts = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+
+        #
         curim = {}
         if destination == "h3":
             curim['headers'] = {}
@@ -64,6 +70,7 @@ class KafkaLauncher(object):
             curim['parentUrlMetadata']['heritableData'] = {}
             curim['parentUrlMetadata']['heritableData']['source'] = source
             curim['parentUrlMetadata']['heritableData']['heritable'] = ['source', 'heritable']
+            curim['parentUrlMetadata']['heritableData']['annotations'] = []
             curim['isSeed'] = isSeed
             if not isSeed:
                 curim['forceFetch'] = forceFetch
@@ -73,9 +80,14 @@ class KafkaLauncher(object):
                 curim['sheets'] = sheets
             if recrawl_interval:
                 curim['recrawlInterval'] = recrawl_interval
+            if webrender_this:
+                curim['parentUrlMetadata']['heritableData']['annotations'].append('WebRenderThis')
             if reset_quotas:
-                curim['resetQuotas'] = 'all'
-            curim['timestamp'] = datetime.now().isoformat()
+                curim['parentUrlMetadata']['heritableData']['annotations'].append('resetQuotas')
+            if launch_ts:
+                curim['parentUrlMetadata']['heritableData']['launch_ts'] = launch_ts
+                curim['parentUrlMetadata']['heritableData']['heritable'].append('launch_ts')
+            curim['timestamp'] = datetime.utcnow().isoformat()
         elif destination == "har":
             curim['clientId'] = "unused"
             curim['metadata'] = {}
