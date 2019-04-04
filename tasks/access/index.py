@@ -385,6 +385,7 @@ class GenerateAccessWhitelist(luigi.Task):
             'http://(com,wp,s2',
             'http://(com,wordpress,files,',
             'http://(com,twimg,pbs)',
+            'http://(com,twimg,abs)',
             'http://(com,blogspot,bp,',
             'http://(com,blogblog,img1',
             'http://(com,blogblog,img2',

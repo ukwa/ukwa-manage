@@ -53,7 +53,7 @@ class KafkaLauncher(object):
         self.producer.send(topic, key=key, value=message)
 
     def launch(self, destination, uri, source, isSeed=False, forceFetch=False, sheets=[], hop="",
-               recrawl_interval=None, reset_quotas=None, webrender_this=False, launch_ts=None):
+               recrawl_interval=None, reset_quotas=None, webrender_this=False, launch_ts=None, inherit_launch_ts=True):
         # Set up a launch timestamp:
         if launch_ts and launch_ts.lower() == "now":
             launch_ts = datetime.utcnow().strftime("%Y%m%d%H%M%S")
@@ -85,8 +85,15 @@ class KafkaLauncher(object):
             if reset_quotas:
                 curim['parentUrlMetadata']['heritableData']['annotations'].append('resetQuotas')
             if launch_ts:
-                curim['parentUrlMetadata']['heritableData']['launch_ts'] = launch_ts
-                curim['parentUrlMetadata']['heritableData']['heritable'].append('launch_ts')
+                if inherit_launch_ts:
+                    # Define a Heritrix crawl configuration sheet specific to this target:
+                    curim['targetSheet'] = { 'recentlySeen.launchTimestamp': launch_ts }
+                else:
+                    # Just specify it for this URL:
+                    curim['parentUrlMetadata']['heritableData']['launchTimestamp'] = launch_ts # New syntax
+                    curim['parentUrlMetadata']['heritableData']['launch_ts'] = launch_ts
+                    #curim['parentUrlMetadata']['heritableData']['heritable'].append('launch_ts')
+
             curim['timestamp'] = datetime.utcnow().isoformat()
         elif destination == "har":
             curim['clientId'] = "unused"

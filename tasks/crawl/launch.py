@@ -213,6 +213,7 @@ class LaunchCrawls(luigi.Task):
             counter = 0
             for seed in t['seeds']:
                 # For now, only treat the first URL as a scope-defining seed that we force a re-crawl for:
+                # FIXME Can likely relax this once we separate aliases from seeds, so seeds won't be used for URLs that end up in the same place.
                 if counter == 0:
                     isSeed = True
                 else:
@@ -234,6 +235,8 @@ class LaunchCrawls(luigi.Task):
                     sheets.append('higherLimit')
                 elif t['depth'] == 'DEEP':
                     sheets.append('noLimit')
+
+                # FIXME This recrawl code can all be taken out if the launch_ts approach works fine.
 
                 # Default re-crawl interval. Ensure seeds gets re-crawled roughly when requested, by allowing a re-crawl
                 # if it's not already been re-crawled in the day. Includes 4hr tolerance of crawl delays:
