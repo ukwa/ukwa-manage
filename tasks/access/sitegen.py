@@ -56,6 +56,28 @@ class GenerateSitePages(luigi.Task):
     def output(self):
         return state_file(self.date,'access-data', 'title-level-metadata-w3act.xml')
 
+    def filter_down(self, targets, collections):
+        '''
+        This is used to filter down the whole collection to a much smaller subset, for rapid testing purposes.
+        :return:
+        '''
+        new_collections = []
+        new_collection_ids = []
+        for col in collections:
+            if col['field_publish']:
+                new_collections.append(col)
+                new_collection_ids.append(col['id'])
+            if len(new_collections) >= 5:
+                break
+
+        new_targets = []
+        for target in targets:
+            for col_id in target['collectionIds']:
+                if col_id in new_collection_ids:
+                    new_targets.append(target)
+
+        return new_targets, new_collections
+
     def run(self):
         # Get the data:
         targets = json.load(self.input()[0].open(),encoding='utf-8')
@@ -64,6 +86,9 @@ class GenerateSitePages(luigi.Task):
         self.collection_count = len(collections)
         subjects = json.load(self.input()[2].open())
         self.subject_count = len(subjects)
+
+        # Filter down, for testing:
+        targets, collections = self.filter_down(targets,collections)
 
         # Index collections by ID:
         collections_by_id = {}
