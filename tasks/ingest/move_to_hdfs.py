@@ -14,7 +14,7 @@ import shutil
 from tasks.common import logger, taskdb_target
 
 
-HDFS_PREFIX = os.environ('HDFS_PREFIX','')
+HDFS_PREFIX = os.environ.get('HDFS_PREFIX','')
 CRAWL_OUTPUT_FOLDER = os.environ.get('LOCAL_OUTPUT_FOLDER','/heritrix/output')
 WREN_FOLDER =  os.environ.get('LOCAL_WREN_FOLDER','/heritrix/wren')
 #SIPS_FOLDER =  os.environ.get('LOCAL_SIPS_FOLDER','/heritrix/sips')
