@@ -5,18 +5,29 @@ import time
 import luigi
 import string
 import hashlib
+import datetime
 import threading
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
 import shutil
-from tasks.crawl.h3.crawl_job_tasks import CheckJobStopped
-from tasks.settings import h3
-from tasks.common import hash_target, logger
+from tasks.common import logger, taskdb_target
+
+
+HDFS_PREFIX = os.environ['HDFS_PREFIX']
+WEBHDFS_PREFIX = os.environ['WEBHDFS_PREFIX']
+CRAWL_JOB_FOLDER = os.environ.get('local_job_folder','/heritrix/jobs')
+CRAWL_OUTPUT_FOLDER = os.environ.get('local_output_folder','/heritrix/output')
+WREN_FOLDER =  os.environ.get('local_wren_folder','/heritrix/wren')
+SIPS_FOLDER =  os.environ.get('local_sips_folder','/heritrix/sips')
+
+
+def hash_target(job, launch_id, file):
+    return taskdb_target('move_to_hdfs_hash', "%s-%s-%s" % (job, launch_id, file), kind='ingest' )
 
 
 def get_hdfs_path(path):
     # Prefix the original path with the HDFS root folder, stripping any leading '/' so the path is considered relative
-    return os.path.join(h3().hdfs_root_folder, path.lstrip(os.path.sep))
+    return os.path.join(HDFS_PREFIX, path.lstrip(os.path.sep))
 
 
 def get_hdfs_target(path):
@@ -119,19 +130,29 @@ class ForceUploadFileToHDFS(luigi.Task):
         logger.info("HDFS hash, post:  %s" % client.client.checksum(self.output().path))
 
 
-class CloseOpenWarcFile(luigi.Task):
+class PendingFile(luigi.ExternalTask):
+    """
+    This external task is used to indicate we must wait for the file to be older before we can 'close' it.
+    This output() is never actually created - this task is raised dynamically.
+    """
+    task_namespace = 'file'
+    job = luigi.Parameter()
+    launch_id = luigi.Parameter()
+    path = luigi.Parameter()
+
+    def output(self):
+        return luigi.LocalTarget(self.path)
+
+
+class WarcFile(luigi.Task):
     """
     This task can close files that have been left .open, but it is not safe to tie this in usually as WARCs from
     warcprox do not get closed when the crawler runs a checkpoint.
     """
     task_namespace = 'file'
-    job = luigi.EnumParameter(enum=Jobs)
+    job = luigi.Parameter()
     launch_id = luigi.Parameter()
     path = luigi.Parameter()
-
-    # Require that the job is stopped:
-    def requires(self):
-        return CheckJobStopped(self.job, self.launch_id)
 
     def output(self):
         return luigi.LocalTarget(self.path)
@@ -140,35 +161,23 @@ class CloseOpenWarcFile(luigi.Task):
         open_path = "%s.open" % self.path
         if os.path.isfile(open_path) and not os.path.isfile(self.path):
             logger.info("Found an open file that needs closing: %s " % open_path)
+            # Require that the file is old:
+            if True:
+                logger.info("But this file is too young to close: %s " % open_path)
+                return PendingFile(self.job, self.launch_id, self.path)
+            # Closing it, as it's old enough:
             shutil.move(open_path, self.path)
-
-
-class ClosedWarcFile(luigi.ExternalTask):
-    """
-    An external process is responsible to closing open WARC files, so we declare it here.
-    """
-    task_namespace = 'file'
-    job = luigi.EnumParameter(enum=Jobs)
-    launch_id = luigi.Parameter()
-    path = luigi.Parameter()
-
-    def output(self):
-        return luigi.LocalTarget(self.path)
 
 
 class CalculateLocalHash(luigi.Task):
     task_namespace = 'file'
-    job = luigi.EnumParameter(enum=Jobs)
+    job = luigi.Parameter()
     launch_id = luigi.Parameter()
     path = luigi.Parameter()
-    force_close = luigi.BoolParameter(default=False)
 
     # If instructed, force the closure of any open WARC files. Not safe to use this be default (see above)
     def requires(self):
-        if self.force_close:
-            return CloseOpenWarcFile(self.job, self.launch_id, self.path)
-        else:
-            return ClosedWarcFile(self.job, self.launch_id, self.path)
+        return WarcFile(self.job, self.launch_id, self.path)
 
     def output(self):
         return hash_target(self.job, self.launch_id, "%s.local.sha512" % self.path)
@@ -197,7 +206,7 @@ class CalculateLocalHash(luigi.Task):
 
 class CalculateHdfsHash(luigi.Task):
     task_namespace = 'file'
-    job = luigi.EnumParameter(enum=Jobs)
+    job = luigi.Parameter()
     launch_id = luigi.Parameter()
     path = luigi.Parameter()
     resources = { 'hdfs': 1 }
@@ -227,7 +236,7 @@ class CalculateHdfsHash(luigi.Task):
 
 class MoveToHdfs(luigi.Task):
     task_namespace = 'file'
-    job = luigi.EnumParameter(enum=Jobs)
+    job = luigi.Parameter()
     launch_id = luigi.Parameter()
     path = luigi.Parameter()
     delete_local = luigi.BoolParameter(default=False)
@@ -260,16 +269,12 @@ class MoveToHdfs(luigi.Task):
             f.write(hdfs_hash)
 
 
-class MoveToHdfsIfStopped(luigi.Task):
+class MoveToHdfsIfOld(luigi.Task):
     task_namespace = 'file'
-    job = luigi.EnumParameter(enum=Jobs)
+    job = luigi.Parameter()
     launch_id = luigi.Parameter()
     path = luigi.Parameter()
     delete_local = luigi.BoolParameter(default=False)
-
-    # Require that the job is stopped:
-    def requires(self):
-        return CheckJobStopped(self.job, self.launch_id)
 
     # Use the output of the underlying MoveToHdfs call:
     def output(self):
@@ -277,25 +282,30 @@ class MoveToHdfsIfStopped(luigi.Task):
 
     # Call the MoveToHdfs task as a dynamic dependency:
     def run(self):
-        yield MoveToHdfs(self.job, self.launch_id, self.path, self.delete_local)
+        # Require that the file is old:
+        if True:
+            logger.info("But this file is too young to assume we're done: %s " % self.path)
+            return PendingFile(self.job, self.launch_id, self.path)
+        # Okay to move:
+        return MoveToHdfs(self.job, self.launch_id, self.path, self.delete_local)
 
 
 class MoveToWarcsFolder(luigi.Task):
     """
-    This can used to move a WARC that's outside the
+    This can used to move a WARC that's outside the right folder
     """
     task_namespace = 'file'
-    job = luigi.EnumParameter(enum=Jobs)
+    job = luigi.Parameter()
     launch_id = luigi.Parameter()
     path = luigi.Parameter()
 
     # Requires the source path to be present and closed:
     def requires(self):
-        return ClosedWarcFile(self.job, self.launch_id, self.path)
+        return WarcFile(self.job, self.launch_id, self.path)
 
     # Specify the target folder:
     def output(self):
-        return luigi.LocalTarget("%s/output/warcs/%s/%s/%s" % (h3().local_root_folder, self.job.name, self.launch_id,
+        return luigi.LocalTarget("%s/warcs/%s/%s/%s" % (CRAWL_OUTPUT_FOLDER, self.job.name, self.launch_id,
                                                                os.path.basename(self.path)))
 
     # When run, just move the file, taking care to ensure atomicity:
@@ -305,23 +315,20 @@ class MoveToWarcsFolder(luigi.Task):
             shutil.move(self.path, temp_output_path)
 
 
-class MoveFilesForLaunch(luigi.Task):
+class MoveFilesForLaunch(luigi.WrapperTask):
     """
     Move all the files associated with one launch
     """
     task_namespace = 'file'
-    job = luigi.EnumParameter(enum=Jobs)
+    job = luigi.Parameter()
     launch_id = luigi.Parameter()
     delete_local = luigi.BoolParameter(default=False)
 
-    def output(self):
-        return otarget(self.job, self.launch_id, "all-moved")
-
-    def run(self):
+    def requires(self):
         logger.info("Looking in %s %s" % ( self.job, self.launch_id))
         # Look in /heritrix/output/wren files and move them to the /warcs/ folder:
         tasks = []
-        warc_glob = "%s/*-%s-%s-*.warc.gz" % (h3().local_wren_folder,self.job.name, self.launch_id)
+        warc_glob = "%s/*-%s-%s-*.warc.gz" % (WREN_FOLDER,self.job.name, self.launch_id)
         logger.info("Looking for WREN outputs: %s" % warc_glob)
         for wren_item in glob.glob(warc_glob):
             tasks.append(MoveToWarcsFolder(self.job, self.launch_id, wren_item))
@@ -330,9 +337,9 @@ class MoveFilesForLaunch(luigi.Task):
         # Look in warcs and viral for WARCs e.g in /heritrix/output/{warcs|viral}/{job.name}/{launch_id}
         tasks = []
         for out_type in ['warcs', 'viral']:
-            glob_path = "%s/output/%s/%s/%s/*.warc.gz" % (h3().local_root_folder, out_type, self.job.name, self.launch_id)
+            glob_path = "%s/%s/%s/%s/*.warc.gz" % (CRAWL_OUTPUT_FOLDER, out_type, self.job.name, self.launch_id)
             logger.info("GLOB:%s" % glob_path)
-            for item in glob.glob("%s/output/%s/%s/%s/*.warc.gz" % (h3().local_root_folder, out_type, self.job.name, self.launch_id)):
+            for item in glob.glob("%s/%s/%s/%s/*.warc.gz" % (CRAWL_OUTPUT_FOLDER, out_type, self.job.name, self.launch_id)):
                 logger.info("ITEM:%s" % item)
                 tasks.append(MoveToHdfs(self.job, self.launch_id, item, self.delete_local))
         # Yield these as a group, so they can run in parallel:
@@ -341,13 +348,13 @@ class MoveFilesForLaunch(luigi.Task):
 
         # And look for /heritrix/output/logs:
         tasks = []
-        for log_item in glob.glob("%s/output/logs/%s/%s/*.log*" % (h3().local_root_folder, self.job.name, self.launch_id)):
+        for log_item in glob.glob("%s/logs/%s/%s/*.log*" % (CRAWL_OUTPUT_FOLDER, self.job.name, self.launch_id)):
             if os.path.splitext(log_item)[1] == '.lck':
                 continue
             elif os.path.splitext(log_item)[1] == '.log':
                 # Only move files with the '.log' suffix if this job is no-longer running:
-                logger.info("Using MoveToHdfsIfStopped for %s" % log_item)
-                tasks.append(MoveToHdfsIfStopped(self.job, self.launch_id, log_item, self.delete_local))
+                logger.info("Using MoveToHdfsIfOld for %s" % log_item)
+                tasks.append(MoveToHdfsIfOld(self.job, self.launch_id, log_item, self.delete_local))
             else:
                 tasks.append(MoveToHdfs(self.job, self.launch_id, log_item, self.delete_local))
         # Yield these as a group, so any MoveToHdfsIfStopped jobs don't prevent MoveToHdfs from running
@@ -359,9 +366,48 @@ class MoveFilesForLaunch(luigi.Task):
             f.write("MOVED")
 
 
-#@MoveToHdfs.event_handler(luigi.Event.SUCCESS)
-#def run_task_success(task):
-#    celebrate_success(task)
+def get_large_interval():
+    """
+    This sets up a default, large window for operations.
+
+    :return:
+    """
+    interval = luigi.date_interval.Custom(
+        datetime.date.today() - datetime.timedelta(weeks=52),
+        datetime.date.today() + datetime.timedelta(days=1))
+    return interval
+
+
+class ScanForLaunches(luigi.WrapperTask):
+    """
+    This task scans the output folder for jobs and instances of those jobs, looking for crawled content to process.
+
+    Sub-class this and override the scan_job_launch method as needed.
+    """
+    task_namespace = 'scan'
+    date_interval = luigi.DateIntervalParameter(default=get_large_interval())
+    timestamp = luigi.DateMinuteParameter(default=datetime.datetime.today())
+
+    def requires(self):
+        # Enumerate the jobs:
+        for (job, launch) in self.enumerate_launches():
+            logger.info("Processing %s/%s" % ( job, launch ))
+            yield self.scan_job_launch(job, launch)
+
+    def enumerate_launches(self):
+        # Look for jobs that need to be processed:
+        for date in self.date_interval:
+            logger.info("Looking at date %s" % date)
+            for job_item in glob.glob("%s/*" % CRAWL_JOB_FOLDER):
+                job = os.path.basename(job_item)
+                if os.path.isdir(job_item):
+                    launch_glob = "%s/%s*" % (job_item, date.strftime('%Y%m%d'))
+                    logger.info("Looking for job launch folders matching %s" % launch_glob)
+                    for launch_item in glob.glob(launch_glob):
+                        logger.info("Found %s" % launch_item)
+                        if os.path.isdir(launch_item):
+                            launch = os.path.basename(launch_item)
+                            yield (job, launch)
 
 
 class ScanForFilesToMove(ScanForLaunches):
