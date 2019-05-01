@@ -244,7 +244,7 @@ class LaunchCrawls(luigi.Task):
 
                 # Re-crawl frequency setting:
                 if freq == 'DAILY':
-                    sheets.append('recrawl-1day')
+                    sheets.append('recrawl-1week')
                     # For daily crawls, allow a re-crawl if there's not been one within the hour:
                     recrawl_interval = 60*60
                 elif freq == 'WEEKLY':
@@ -259,7 +259,7 @@ class LaunchCrawls(luigi.Task):
                     sheets.append('recrawl-365days')
 
                 # And send launch message, always resetting any crawl quotas:
-                self.launcher.launch(destination, seed, source, isSeed, sheets=sheets, recrawl_interval=recrawl_interval, reset_quotas=True, launch_ts="now")
+                self.launcher.launch(destination, seed, source, isSeed, forceFetch=True, sheets=sheets, reset_quotas=True, launch_ts="now")
                 counter = counter + 1
                 self.i_launches = self.i_launches + 1
 
