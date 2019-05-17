@@ -392,11 +392,38 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
         return [lib]#,surt,tldextract,idna,requests,urllib3,certifi,chardet,requests_file,six]
 
     def mapper(self, line):
-        log_time, status, size, url, discovery_path, referrer, mime, thread, request_time, hash, ignore, annotations \
-            = line.strip().split(None, 11)
-        if status.isdigit() and 200 <= int(status) < 400:
-            parsed_url = urlparse(url)
-            host = re.sub("^(www([0-9]+)?)\.", "", parsed_url[1])
+        line_test = line.strip().split(None, 11)
+        
+        if len(line_test) == 12: # standard line (it is a seed if discovery and referrer = "-")
+            log_time, status, size, url, discovery_path, referrer, mime, thread, \
+                request_time, hash, ignore, annotations  \
+                = line_test
+
+        elif len(line_test) == 10: # seed - missing referrer and path
+            log_time, status, size, url, mime, thread, \
+            request_time, hash, ignore, annotations  \
+            = line_test
+            discovery_path = "-" # heritrix docs and some code indicate "blank" values, but in the log "-" appears to be in use
+            referrer = "-"
+        else: 
+            logger.info('Log line has unexpected values.\nExpected: 10 or 12. Actual: %s\nLine: %s' % (len(line_test), line))
+            return
+          
+        if not status.isdigit(): return
+            
+        url_state = ""    
+        HTTPStatus = int(status)
+            
+        if (HTTPStatus == 404  # not comprehensive!     
+            and discovery_path == "-" and referrer == "-"): # seed
+            url_state = "Has Dead Seeds"    
+                      
+        if 200 <= HTTPStatus < 400:
+            url_state = "Live"
+            
+        if url_state == "": return
+            
+        if url_state == "Live":    
             data = {
                 "mime": "".join([i if ord(i) < 128 else "" for i in mime]),
             }
@@ -409,8 +436,22 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
                     data["ip"] = value
                 if key == "1":
                     data["virus"] = value.split()[-2]
+                    
+            data["url_state"] = "Live"
+            
+        else:
+            data = {
+                "ip": {},
+                "mime": {},
+                "virus": {},
+                "url_state":"Has Dead Seeds"
+            }
+            
 
-            yield host, json.dumps(data)
+        parsed_url = urlparse(url)
+        host = re.sub("^(www([0-9]+)?)\.", "", parsed_url[1])                        
+                                
+        yield host, json.dumps(data)
 
     def reducer(self, key, values):
         sec_level_domains = ["ac", "co", "gov", "judiciary", "ltd", "me", "mod", "net", "nhs", "nic", "org",
@@ -420,25 +461,40 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
             "ip": {},
             "mime": {},
             "virus": {},
+            "url_state": {}
         }
 
         host = key
         for value in values:
             data = json.loads(value)
+            logger.info(">>> host: %s data: %s " % (host, data))                    
+            
+            # Some values can only be accumulated for Live hosts    
+            if data["url_state"] == "Live":            
+                if "ip" in data.keys():
+                    if data["ip"] in current_host_data["ip"].keys():
+                        current_host_data["ip"][data["ip"]] += 1
+                    else:
+                        current_host_data["ip"][data["ip"]] = 1
+                
+                if "mime" in data.keys():                    
+                    if data["mime"] in current_host_data["mime"].keys():
+                        current_host_data["mime"][data["mime"]] += 1
+                    else:
+                        current_host_data["mime"][data["mime"]] = 1
+                    
+                if "virus" in data.keys():
+                    if data["virus"] in current_host_data["virus"].keys():
+                        current_host_data["virus"][data["virus"]] += 1
+                    else:
+                        current_host_data["virus"][data["virus"]] = 1
+            
+            # We assume that even if a host appeared live at some point in the crawl,
+            # it can be considered to have dead seeds if at any other point we encountered one.            
+            if "url_state" in data.keys(): 
+                if current_host_data["url_state"] <> "Has Dead Seeds":
+                    current_host_data["url_state"] = data["url_state"]                    
 
-            if data["ip"] in current_host_data["ip"].keys():
-                current_host_data["ip"][data["ip"]] += 1
-            else:
-                current_host_data["ip"][data["ip"]] = 1
-            if data["mime"] in current_host_data["mime"].keys():
-                current_host_data["mime"][data["mime"]] += 1
-            else:
-                current_host_data["mime"][data["mime"]] = 1
-            if "virus" in data.keys():
-                if data["virus"] in current_host_data["virus"].keys():
-                    current_host_data["virus"][data["virus"]] += 1
-                else:
-                    current_host_data["virus"][data["virus"]] = 1
 
         current_host_data["host"] = host
         current_host_data["tld"] = host.split(".")[-1]
@@ -448,8 +504,100 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
             if sld in sec_level_domains:
                 current_host_data["2ld"] = sld
 
+
         yield host, json.dumps(current_host_data)
 
+   
+
+
+class ListDeadSeeds(luigi.contrib.hadoop.JobTask):
+
+    """
+    Essentially does the same as SummariseLogFiles on the same input, but 
+    we only output dead seeds here. In that task, we add them to the JSON.
+
+    The reason we don't output a straight list within that process 
+    (i.e. why are we processing the same logs twice?) is that we output 
+    JSON there and MR within Luigi doesn't lend itself obviously to 
+    either operating on JSON input or outputting multiple files 
+    within the same task. TODO.
+    """
+
+    log_paths = luigi.ListParameter()
+    job = luigi.Parameter()
+    launch_id = luigi.Parameter()
+    on_hdfs = luigi.BoolParameter(default=False)
+
+    task_namespace = 'analyse'
+
+    def requires(self):
+        reqs = []
+        for log_path in self.log_paths:
+            logger.info("LOG FILE TO PROCESS: %s" % log_path)
+            reqs.append(InputFile(log_path, self.on_hdfs))
+        return reqs
+
+ 
+    def output(self):
+        out_name = "task-state/%s/%s/crawl-logs-%i.dead-seeds.txt" % (self.job, self.launch_id, len(self.log_paths))
+        if self.on_hdfs:
+            return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=Plain)
+        else:
+            return luigi.LocalTarget(path=out_name)
+
+    def extra_modules(self):
+        return [lib]
+
+    def mapper(self, line):
+  
+        line_test = line.strip().split(None, 11)
+        
+        if len(line_test) == 12: # standard line (it is a seed if discovery and referrer = "-")
+            _, status, _, url, discovery_path, referrer, _, _, _, _, _, _ \
+            = line_test
+
+        elif len(line_test) == 10: # seed - missing referrer and path
+            _, status, _, url, _, _, _, _, _, _  \
+            = line_test
+            discovery_path = "-" # heritrix docs and some code indicate "blank" values, but in the log "-" appears to be in use
+            referrer = "-"
+        else: 
+            logger.info('Log line has unexpected values.\nExpected: 10 or 12. Actual: %s\nLine: %s' % (len(line_test), line))
+            return
+            
+        if not status.isdigit(): 
+            logger.info('Log line has unexpected status.\nExpected: Numeric. Actual: %s\nLine: %s' % (status, line))
+            return
+        
+        url_state = ""    
+        HTTPStatus = int(status)
+            
+        if (HTTPStatus == 404  # not comprehensive!     
+            and discovery_path == "-" and referrer == "-"): # seed
+            url_state = "Dead"    
+                      
+        if 200 <= HTTPStatus < 400:
+            url_state = "Live"
+            
+        if url_state == "": return
+           
+        yield url, url_state
+
+        
+    def reducer(self, key, values):
+        host = key
+        
+        current_url_state = ""
+        for value in values:
+        
+            # We assume that even if a host appeared dead at some point in the crawl,
+            # it can be considered live if at any other point we had a successful request.
+            if value in ("Live", "Dead"):        
+                if current_url_state <> "Live":
+                    current_url_state = value
+        
+        if current_url_state == "Dead":
+            yield host, ""
 
 if __name__ == '__main__':
     #luigi.run(['analyse.SummariseLogFiles', '--job', 'dc', '--launch-id', '20170220090024',
