@@ -71,8 +71,7 @@ class KafkaLauncher(object):
         curim['parentUrlMetadata']['heritableData']['heritable'] = ['source', 'heritable']
         curim['parentUrlMetadata']['heritableData']['annotations'] = []
         curim['isSeed'] = isSeed
-        if not isSeed:
-            curim['forceFetch'] = forceFetch
+        curim['forceFetch'] = forceFetch
         curim['url'] = uri
         curim['hop'] = hop
         if len(sheets) > 0:
@@ -94,7 +93,6 @@ class KafkaLauncher(object):
                 #curim['parentUrlMetadata']['heritableData']['heritable'].append('launch_ts')
 
         curim['timestamp'] = datetime.utcnow().isoformat()
-
 
         # Determine the key, hashing the 'authority' (should match Java version):
         key = binascii.hexlify(struct.pack("<I", mmh3.hash(urlparse(uri).netloc, signed=False)))
