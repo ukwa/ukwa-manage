@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 # Define environment variable names here:
 ENV_WAYBACK_URL_PREFIX = 'WAYBACK_URL_PREFIX'
+ENV_CDXSERVER_ENDPOINT = 'CDXSERVER_ENDPOINT'
 
 
 class AvailableInWayback(luigi.ExternalTask):
@@ -64,6 +65,7 @@ class AvailableInWayback(luigi.ExternalTask):
     ts = luigi.Parameter()
     check_available = luigi.BoolParameter(default=False)
     wayback_prefix = luigi.Parameter(default=os.environ[ENV_WAYBACK_URL_PREFIX])
+    cdxserver_endpoint = luigi.Parameter(default=os.environ[ENV_CDXSERVER_ENDPOINT])
 
     resources = { 'qa-wayback': 1 }
 
@@ -92,7 +94,7 @@ class AvailableInWayback(luigi.ExternalTask):
         Checks if a resource with a particular timestamp is available in the index:
         :return:
         """
-        wburl = '%s/xmlquery.jsp?type=urlquery&url=%s' % (self.wayback_prefix, quote(self.url))
+        wburl = "%s?q=type:urlquery+url:%s" % (self.cdxserver_endpoint, quote(self.url))
         logger.debug("Checking availability %s" % wburl)
         r = requests.get(wburl)
         logger.debug("Availability response: %d" % r.status_code)

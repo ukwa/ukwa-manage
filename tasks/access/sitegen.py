@@ -64,11 +64,10 @@ class GenerateSitePages(luigi.Task):
         new_collections = []
         new_collection_ids = []
         for col in collections:
-            if col['field_publish']:
-                new_collections.append(col)
-                new_collection_ids.append(col['id'])
-            if len(new_collections) >= 5:
-                break
+            if len(new_collections) < 5 or col['id'] == 329: # Add in known collection with sub-collections
+                if col['field_publish']:
+                    new_collections.append(col)
+                    new_collection_ids.append(col['id'])
 
         new_targets = []
         for target in targets:
@@ -97,6 +96,11 @@ class GenerateSitePages(luigi.Task):
             if col['field_publish']:
                 self.collection_published_count += 1
 
+        # Index targets by ID:
+        targets_by_id = {}
+        for target in targets:
+            targets_by_id[int(target['id'])] = target
+
         # Setup template environment:
         env = Environment(loader=PackageLoader('tasks.access.sitegen', 'templates'))
 
@@ -106,9 +110,9 @@ class GenerateSitePages(luigi.Task):
 
         # Collections
         # FIXME this should output targets using 'page-source-path' rather than ID:
-        self.generate_collections("/Users/andy/Documents/workspace/ukwa-site/content/collection", env, collections)
+        self.generate_collections("/Users/andy/Documents/workspace/ukwa-site/content/collection", env, collections, targets_by_id)
 
-    def generate_collections(self, base_path, env, collections):
+    def generate_collections(self, base_path, env, collections, targets_by_id):
         template = env.get_template('site-target-template.md')
         # Emit this level:
         for col in collections:
@@ -119,15 +123,53 @@ class GenerateSitePages(luigi.Task):
                 continue
             # And write:
             col['title'] = col['name']
-            # Use the ID for the URL, via the 'slug':
-            col['slug'] = col['id']
             if 'description' in col and col['description'] != None:
                 col['description'] = col['description'].replace('\r\n', '\n')
             col.pop('url', None)
-            target_md = luigi.LocalTarget("%s/%s/index.en.md" % (base_path, slugify(col['name'])))
-            with target_md.open('w') as f:
+            # Use the ID for the URL:
+            col['url'] = "collection/%s/" % col['id']
+            col['file_path'] = "%s/%s" % (base_path, slugify(col['name']))
+            # Recurse to generate child collections:
+            if 'children' in col:
+                self.generate_collections(col['file_path'], env, col['children'], targets_by_id)
+            col.pop('children', None)
+
+            # Collect the Targets
+            col['targets'] = []
+            col['stats'] = {}
+            col['stats']['num_targets'] = 0
+            col['stats']['num_oa_targets'] = 0
+            for tid in col['targetIds']:
+                target = targets_by_id.get(tid, None)
+                # FIXME blocking etc.
+                col_target = {}
+                col_target['id'] = tid
+                col_target['title'] = target['title']
+                col_target['file_path'] = self.get_target_file_path(target)
+                col_target['open_access'] = target['hasOpenAccessLicense']
+                if target:
+                    col['targets'].append(col_target)
+                    col['stats']['num_targets'] += 1
+                    if col_target['open_access']:
+                        col['stats']['num_oa_targets'] += 1
+            # And remove the plain TID list:
+            col.pop('targetIds', None)
+
+            # and write:
+            col_md = luigi.LocalTarget("%s/_index.en.md" % col['file_path'])
+            with col_md.open('w') as f:
                 for part in template.generate({ "record": col, "json": json.dumps(col, indent=2), "description": col['description'] }):
                     f.write(part.encode("utf-8"))
+
+    def get_target_start_date(self, target):
+        start_date = target.get('crawlStartDateISO')
+        if start_date is None:
+            start_date = "2006-01-01T12:00:00Z"
+        return start_date
+
+    def get_target_file_path(self, target):
+        start_date = self.get_target_start_date(target)
+        return "%s/%s-%s" % (start_date[:4], start_date[:10], slugify(target['title']))
 
     def generate_targets(self, env, targets, collections_by_id):
         # Setup specific template:
@@ -168,9 +210,7 @@ class GenerateSitePages(luigi.Task):
             #    logger.warning("The URL '%s' is not yet available, inScopeForLegalDeposit = %s" % (url, target['inScopeForLegalDeposit']))
             #    self.missing_record_count += 1
             #    continue
-            start_date = target.get('crawlStartDateISO')
-            if start_date is None:
-                start_date = "2006-01-01T12:00:00Z"
+            start_date = self.get_target_start_date(target)
             wayback_date = datetime.datetime.strptime(start_date, '%Y-%m-%dT%H:%M:%SZ')
             wayback_date_str = wayback_date.strftime('%Y%m%dT%H%M%S')
             first_date = wayback_date.isoformat()
@@ -189,6 +229,8 @@ class GenerateSitePages(luigi.Task):
             # Otherwise, build the record:
             rec = {
                 'slug': tid,
+                'id': target['id'],
+                'wct_id': target.get('field_wct_id', None),
                 'record_id': record_id,
                 'date': first_date,
                 'target_url': url,
@@ -199,6 +241,7 @@ class GenerateSitePages(luigi.Task):
                 'open_access': target['hasOpenAccessLicense'],
                 'npld': target['inScopeForLegalDeposit'],
                 'scope': target['field_scope'],
+                'nominating_organisation': target.get('nominating_organisation', {}).get('title',None),
                 'collections': [],
                 'subjects': []
             }
@@ -231,8 +274,9 @@ class GenerateSitePages(luigi.Task):
                 }
 
             # And write:
-            file_name = "%s/%s-%s" % (start_date[:4], start_date[:10], slugify(target['title']))
-            target_md = luigi.LocalTarget("/Users/andy/Documents/workspace/ukwa-site/content/target/%s/index.en.md" % file_name)
+            file_path = self.get_target_file_path(target)
+            target['file_path'] = file_path
+            target_md = luigi.LocalTarget("/Users/andy/Documents/workspace/ukwa-site/content/target/%s/index.en.md" % file_path)
             with target_md.open('w') as f:
                 for part in template.generate({ "record": rec, "json": json.dumps(rec, indent=2), "description": target['description'] }):
                     f.write(part.encode("utf-8"))

@@ -14,6 +14,7 @@ task.crawl.launch -- Launches the Frequent Crawls
 '''
 
 import datetime
+import time
 import json
 import luigi
 from tasks.ingest.w3act import CrawlFeed
@@ -101,11 +102,9 @@ class LaunchCrawls(luigi.Task):
 
         # Set up launcher:
         self.launcher = KafkaLauncher(kafka_server=self.kafka_server, topic=self.queue)
-        # Destination is always h3
-        destination = 'h3'
 
         # Get current time
-        now = datetime.datetime.today()
+        now = self.date
         logger.debug("Now timestamp: %s" % str(now))
 
         # Process looking for due:
@@ -142,18 +141,18 @@ class LaunchCrawls(luigi.Task):
 
                 # Check if the frequency and date match up:
                 if schedule['frequency'] == "DAILY":
-                    self.launch_by_hour(now, startDate, endDate, t, destination, source, 'DAILY')
+                    self.launch_by_hour(now, startDate, endDate, t, source, 'DAILY')
 
                 elif schedule['frequency'] == "WEEKLY":
                     if now.isoweekday() == startDate.isoweekday():
-                        self.launch_by_hour(now, startDate, endDate, t, destination, source, 'WEEKLY')
+                        self.launch_by_hour(now, startDate, endDate, t, source, 'WEEKLY')
                     else:
                         logger.debug("WEEKLY: isoweekday %s differs from schedule %s" % (
                             now.isoweekday(), startDate.isoweekday()))
 
                 elif schedule['frequency'] == "MONTHLY":
                     if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day:
-                        self.launch_by_hour(now, startDate, endDate, t, destination, source, 'MONTHLY')
+                        self.launch_by_hour(now, startDate, endDate, t, source, 'MONTHLY')
                     else:
                         logger.debug("MONTHLY: isoweekday %s differs from schedule %s" % (
                             now.isoweekday(), startDate.isoweekday()))
@@ -161,7 +160,7 @@ class LaunchCrawls(luigi.Task):
 
                 elif schedule['frequency'] == "QUARTERLY":
                     if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day and now.month % 3 == startDate.month % 3:
-                        self.launch_by_hour(now, startDate, endDate, t, destination, source, 'QUARTERLY')
+                        self.launch_by_hour(now, startDate, endDate, t, source, 'QUARTERLY')
                     else:
                         logger.debug("QUARTERLY: isoweekday %s differs from schedule %s" % (
                             now.isoweekday(), startDate.isoweekday()))
@@ -170,7 +169,7 @@ class LaunchCrawls(luigi.Task):
 
                 elif schedule['frequency'] == "SIXMONTHLY":
                     if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day and now.month % 6 == startDate.month % 6:
-                        self.launch_by_hour(now, startDate, endDate, t, destination, source, 'SIXMONTHLY')
+                        self.launch_by_hour(now, startDate, endDate, t, source, 'SIXMONTHLY')
                     else:
                         logger.debug("SIXMONTHLY: isoweekday %s differs from schedule %s" % (
                         now.isoweekday(), startDate.isoweekday()))
@@ -179,7 +178,7 @@ class LaunchCrawls(luigi.Task):
 
                 elif schedule['frequency'] == "ANNUAL":
                     if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day and now.month == startDate.month:
-                        self.launch_by_hour(now, startDate, endDate, t, destination, source, 'ANNUAL')
+                        self.launch_by_hour(now, startDate, endDate, t, source, 'ANNUAL')
                     else:
                         logger.debug("ANNUAL: isoweekday %s differs from schedule %s" % (
                             now.isoweekday(), startDate.isoweekday()))
@@ -204,7 +203,7 @@ class LaunchCrawls(luigi.Task):
                   labelnames=['stream'], registry=registry)
         g.labels(stream=self.frequency).set(self.target_errors)
 
-    def launch_by_hour(self, now, startDate, endDate, t, destination, source, freq):
+    def launch_by_hour(self, now, startDate, endDate, t, source, freq):
         # Is it the current hour?
         if now.hour is startDate.hour:
             logger.info(
@@ -236,30 +235,11 @@ class LaunchCrawls(luigi.Task):
                 elif t['depth'] == 'DEEP':
                     sheets.append('noLimit')
 
-                # FIXME This recrawl code can all be taken out if the launch_ts approach works fine.
-
-                # Default re-crawl interval. Ensure seeds gets re-crawled roughly when requested, by allowing a re-crawl
-                # if it's not already been re-crawled in the day. Includes 4hr tolerance of crawl delays:
-                recrawl_interval = 20 * 60 * 60
-
-                # Re-crawl frequency setting:
-                if freq == 'DAILY':
-                    sheets.append('recrawl-1week')
-                    # For daily crawls, allow a re-crawl if there's not been one within the hour:
-                    recrawl_interval = 60*60
-                elif freq == 'WEEKLY':
-                    sheets.append('recrawl-1week')
-                elif freq == 'MONTHLY':
-                    sheets.append('recrawl-27days')
-                elif freq == 'QUARTERLY':
-                    sheets.append('recrawl-12weeks')
-                elif freq == 'SIXMONTHLY':
-                    sheets.append('recrawl-24weeks')
-                elif freq == 'ANNUAL':
-                    sheets.append('recrawl-365days')
+                # Set up the launch_ts: (Should be startDate but if that happens to be in the future this will all break)
+                launch_timestamp = time.strftime("%Y%m%d%H%M%S", time.gmtime(time.mktime(now.timetuple())))
 
                 # And send launch message, always resetting any crawl quotas:
-                self.launcher.launch(destination, seed, source, isSeed, forceFetch=True, sheets=sheets, reset_quotas=True, launch_ts="now")
+                self.launcher.launch(seed, source, isSeed, forceFetch=True, sheets=sheets, reset_quotas=True, launch_ts=launch_timestamp)
                 counter = counter + 1
                 self.i_launches = self.i_launches + 1
 
