@@ -598,6 +598,62 @@ class ListDeadSeeds(luigi.contrib.hadoop.JobTask):
         
         if current_url_state == "Dead":
             yield host, ""
+            
+            
+            
+class CountStatusCodes(luigi.contrib.hadoop.JobTask):
+
+    """
+    Count of Each Heritrix/HTTP Status returned  
+    https://github.com/internetarchive/heritrix3/wiki/Status-Codes    
+    """
+
+    log_paths = luigi.ListParameter()
+    job = luigi.Parameter()
+    launch_id = luigi.Parameter()
+    on_hdfs = luigi.BoolParameter(default=False)
+
+    task_namespace = 'analyse'
+
+    def requires(self):
+        reqs = []
+        for log_path in self.log_paths:
+            logger.info("LOG FILE TO PROCESS: %s" % log_path)
+            reqs.append(InputFile(log_path, self.on_hdfs))
+        return reqs
+
+ 
+    def output(self):
+        out_name = "task-state/%s/%s/crawl-logs-%i.status-code-counts.txt" % (self.job, self.launch_id, len(self.log_paths))
+        if self.on_hdfs:
+            return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=Plain)
+        else:
+            return luigi.LocalTarget(path=out_name)
+
+    def extra_modules(self):
+        return [lib]
+
+    def mapper(self, line):
+  
+        status = line.strip().split(None, 11)[1]
+    
+        if not status.lstrip('-').isdigit(): 
+            logger.info('Log line has unexpected status.\nExpected: Numeric. Actual: %s\nLine: %s' % (status, line))
+            return 
+                   
+        yield status, "1" # we will count the 1s in the reducer. any single character would suffice though.
+
+        
+    def reducer(self, key, values):
+        status = key
+        
+        i = 0
+        for value in values:
+            i+=1
+           
+        yield status, str(i) 
+            
+            
 
 if __name__ == '__main__':
     #luigi.run(['analyse.SummariseLogFiles', '--job', 'dc', '--launch-id', '20170220090024',
