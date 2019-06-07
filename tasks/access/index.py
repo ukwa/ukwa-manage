@@ -311,7 +311,6 @@ class GenerateAccessWhitelist(luigi.Task):
     """
     task_namespace = 'access'
     date = luigi.DateParameter(default=datetime.date.today())
-    wct_url_file = luigi.Parameter(default=os.path.join(os.path.dirname(__file__), "wct_urls.txt"))
 
     all_surts = set()
     all_surts_and_urls = list()
@@ -406,27 +405,6 @@ class GenerateAccessWhitelist(luigi.Task):
 
         logger.info("%s surts for CDNs added" % len(cdn_surts))
 
-    def surts_from_wct(self):
-        count = 0
-        # process every URL from WCT
-        with open(self.wct_url_file, 'r') as wcturls:
-            # strip any whitespace from beginning or end of line
-            lines = wcturls.readlines()
-            lines = [l.strip() for l in lines]
-
-            # for all WCT URLs, generate surt. Using a set disallows duplicates
-            for line in lines:
-                wct_surt = self.generate_surt(line)
-                if wct_surt is not None:
-                    self.all_surts.add(wct_surt)
-                    self.all_surts_and_urls.append({
-                        'surt': wct_surt,
-                        'url': line
-                    })
-                    count += 1
-
-        logger.info("%s surts from WCT generated" % count)
-
     def surts_from_w3act(self):
         # Surts from ACT:
         with self.input().open() as f:
@@ -446,7 +424,6 @@ class GenerateAccessWhitelist(luigi.Task):
     def run(self):
         # collate surts
         self.surts_for_cdns()
-        self.surts_from_wct()
         self.surts_from_w3act()
 
         # And write out the SURTs:
