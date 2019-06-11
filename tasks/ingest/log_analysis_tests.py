@@ -1,6 +1,7 @@
 import json
 import luigi
-from tasks.ingest.log_analysis_hadoop import SummariseLogFiles, ListDeadSeeds, CountStatusCodes
+from tasks.ingest.log_analysis_hadoop import SummariseLogFiles, ListDeadSeeds, \
+    CountStatusCodes, ReportToSlackStatusCodes, ReportToSlackDeadSeeds
 
 
 def test_run_summariser():
@@ -44,3 +45,17 @@ def test_run_count_status_codes():
             count = count + 1
 
     assert count is 6
+
+    
+def test_report_to_slack():
+#    task = ReportToSlackStatusCodes([ '../../test/fragment-of-a-crawl.log' ], 'dc','20170220090024', False )
+    task = ReportToSlackDeadSeeds([ '../../test/fragment-of-a-crawl-with-dead-seeds.log' ], 'dc','20170220090024', False )
+    luigi.build([task], local_scheduler=True)
+
+    # count = 0
+    # with task.output() as f:
+        # for line in f:
+            # print(f)
+            # count = count + 1
+
+    # assert count is 36
