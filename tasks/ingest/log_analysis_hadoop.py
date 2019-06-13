@@ -425,7 +425,7 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
                       
         if 200 <= HTTPStatus < 400:
             url_state = "Live"
-            k
+        
         if url_state == "": return
             
         if url_state == "Live":    
