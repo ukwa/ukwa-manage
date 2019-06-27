@@ -20,8 +20,7 @@ import luigi
 from tasks.ingest.w3act import CrawlFeed
 from tasks.common import logger, state_file, taskdb_target, CopyToTableInIngestDB
 from prometheus_client import CollectorRegistry, Gauge
-
-from lib.enqueue import KafkaLauncher
+from crawlstreams import enqueue
 
 
 class UpdateScopeFiles(luigi.Task):
@@ -101,7 +100,7 @@ class LaunchCrawls(luigi.Task):
         logger.info("Filtering detailed information for %i targets..." % len(all_targets))
 
         # Set up launcher:
-        self.launcher = KafkaLauncher(kafka_server=self.kafka_server, topic=self.queue)
+        self.launcher = enqueue.KafkaLauncher(kafka_server=self.kafka_server, topic=self.queue)
 
         # Get current time
         now = self.date

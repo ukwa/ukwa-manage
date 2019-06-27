@@ -9,7 +9,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install the dependencies:
 COPY requirements.txt /ukwa-manage/requirements.txt
-RUN cd /ukwa-manage && pip install --no-cache-dir https://github.com/ukwa/hapy/archive/master.zip && pip install --no-cache-dir https://github.com/ukwa/python-w3act/archive/master.zip && pip install --no-cache-dir -r requirements.txt
+RUN cd /ukwa-manage && \
+    pip install --no-cache-dir https://github.com/ukwa/hapy/archive/master.zip && \
+    pip install --no-cache-dir https://github.com/ukwa/python-w3act/archive/master.zip && \
+    pip install --no-cache-dir https://github.com/ukwa/crawl-streams/archive/master.zip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Install the package:
 COPY setup.py /ukwa-manage/

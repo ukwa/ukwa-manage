@@ -2,7 +2,7 @@ import os
 import json
 import hashlib
 import logging
-from urlparse import urlparse
+from urllib.parse import urlparse
 import requests
 from requests.utils import quote
 import xml.dom.minidom

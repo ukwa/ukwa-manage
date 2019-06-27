@@ -2,7 +2,7 @@ import os
 import json
 import luigi
 import datetime
-from lib.w3act.w3act import w3act
+from w3act.w3act import w3act
 from tasks.common import logger, state_file
 
 # Define environment variable names here:

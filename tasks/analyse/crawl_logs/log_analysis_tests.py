@@ -1,6 +1,6 @@
 import json
 import luigi
-from tasks.ingest.log_analysis_hadoop import SummariseLogFiles, ListDeadSeeds, \
+from tasks.analyse.crawl_logs.log_analysis_hadoop import SummariseLogFiles, ListDeadSeeds, \
     CountStatusCodes, ReportToSlackStatusCodes, ReportToSlackDeadSeeds
 
 

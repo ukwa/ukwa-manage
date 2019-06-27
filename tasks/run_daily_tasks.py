@@ -6,7 +6,7 @@ This module summarises the tasks that are to be run daily.
 
 import luigi
 from tasks.analyse.hdfs_analysis import GenerateHDFSSummaries
-from tasks.analyse.reports import GenerateHDFSReports
+from tasks.analyse.hdfs_reports import GenerateHDFSReports
 from tasks.backup.postgresql import BackupProductionW3ACTPostgres, BackupProductionShinePostgres
 from tasks.access.search import PopulateBetaCollectionsSolr, GenerateIndexAnnotations, GenerateW3ACTTitleExport
 from tasks.access.index import UpdateAccessWhitelist
