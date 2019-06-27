@@ -6,7 +6,7 @@ import luigi.contrib.webhdfs
 from luigi.contrib.postgres import PostgresTarget, CopyToTable
 from lib.webhdfs import WebHdfsPlainFormat
 from prometheus_client import CollectorRegistry, push_to_gateway, Gauge
-from metrics import record_task_outcome
+from tasks.metrics import record_task_outcome
 
 luigi.interface.setup_interface_logging()
 

@@ -7,7 +7,7 @@ import base64
 import hashlib
 import datetime
 import tldextract
-from lxml import etree
+from xml import etree
 #import ssdeep
 from lib.cdx import CdxIndex
 from tasks.ingest.w3act import TargetList, SubjectList, CollectionList

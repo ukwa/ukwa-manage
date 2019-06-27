@@ -12,7 +12,7 @@ import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.webhdfs
 from tasks.common import state_file
-from tasks.ingest.listings import CopyFileListToHDFS, ListAllFilesOnHDFSToLocalFile
+from tasks.analyse.hdfs_analysis import CopyFileListToHDFS, ListAllFilesOnHDFSToLocalFile
 from lib.webhdfs import webhdfs
 from lib.pathparsers import CrawlStream, HdfsPathParser
 

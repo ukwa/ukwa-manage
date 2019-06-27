@@ -11,12 +11,11 @@ import warcio
 import urllib
 import surt
 from tasks.ingest.w3act import CrawlFeed
-from urllib import quote_plus  # python 2
-# from urllib.parse import quote_plus # python 3
+from urllib.parse import quote_plus
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
-from tasks.access.listings import ListWarcsForDate, NoWARCsToday
+from tasks.access.hdfs_list_warcs import ListWarcsForDate, NoWARCsToday
 from tasks.common import state_file, CopyToTableInDB, taskdb_target
 from lib.webhdfs import WebHdfsPlainFormat, webhdfs
 from lib.pathparsers import CrawlStream

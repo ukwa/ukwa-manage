@@ -1,7 +1,7 @@
 import luigi
 import datetime
 import pandas as pd
-from tasks.ingest.listings import ListParsedPaths
+from tasks.analyse.hdfs_analysis import ListParsedPaths
 from tasks.preserve.hdfs import GatherBlockScanReports
 from lib.targets import ReportTarget, TaskTarget
 
