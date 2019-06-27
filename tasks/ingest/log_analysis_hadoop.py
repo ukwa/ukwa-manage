@@ -3,7 +3,7 @@ import os
 import json
 import logging
 import datetime
-from urlparse import urlparse
+from urllib.parse import urlparse
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
@@ -497,7 +497,7 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
             # We assume that even if a host appeared live at some point in the crawl,
             # it can be considered to have dead seeds if at any other point we encountered one.            
             if "url_state" in data.keys(): 
-                if current_host_data["url_state"] <> "Has Dead Seeds":
+                if current_host_data["url_state"] != "Has Dead Seeds":
                     current_host_data["url_state"] = data["url_state"]                    
 
 
@@ -598,7 +598,7 @@ class ListDeadSeeds(luigi.contrib.hadoop.JobTask):
             # We assume that even if a host appeared dead at some point in the crawl,
             # it can be considered live if at any other point we had a successful request.
             if value in ("Live", "Dead"):        
-                if current_url_state <> "Live":
+                if current_url_state != "Live":
                     current_url_state = value
         
         if current_url_state == "Dead":

@@ -38,6 +38,7 @@ def run_doc_mdex_test(url,lpu,src,tid,title):
     doc = {}
     doc['document_url'] = url
     doc['landing_page_url'] = lpu
+    doc['filename'] = os.path.basename(urlparse(url).path)
     doc = DocumentMDEx(targets, doc, src, null_if_no_target_found=False).mdex()
     logger.info(json.dumps(doc))
     if doc['target_id'] != tid:
@@ -53,6 +54,7 @@ def run_doc_mdex_test_extraction(url,lpu,src,title):
     doc = {}
     doc['document_url'] = url
     doc['landing_page_url'] = lpu
+    doc['filename'] = os.path.basename(urlparse(url).path)
     doc = DocumentMDEx(targets, doc, src, null_if_no_target_found=False).mdex()
     logger.info(json.dumps(doc))
     if doc.get('title',None) != title:
@@ -81,13 +83,13 @@ if __name__ == "__main__":
     #act = w3act.w3act(args.w3act_url,args.w3act_user,args.w3act_pw)
     targets = json.load(open('../../test/crawl-feed.2017-01-02T2100.frequent'))
 
-    # Non-matching Target test
-    run_doc_mdex_test('https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/695901/mid-tier-and-offers-for-wildlife-manual-2018.pdf',
-                    'https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/695901/mid-tier-and-offers-for-wildlife-manual-2018.pdf',
-                    'https://www.gov.uk/government/publications?departments[]=department-for-transport',
-                    None,'')
+    # Non-matching Target test (Document GONE!?)
+    #run_doc_mdex_test('https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/695901/mid-tier-and-offers-for-wildlife-manual-2018.pdf',
+    #                'https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/695901/mid-tier-and-offers-for-wildlife-manual-2018.pdf',
+    #                'https://www.gov.uk/government/publications?departments[]=department-for-transport',
+    #                None,'')
 
-    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/567676/east_dulwich_community_nursery_association.pdf',
+    run_doc_mdex_test('https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/567676/east_dulwich_community_nursery_association.pdf',
                     'https://www.gov.uk/government/publications/east-dulwich-community-nursery-association-inquiry-report',
                     'https://www.gov.uk/government/publications?departments[]=department-for-transport',
                     None,"East Dulwich Community Nursery Association")
@@ -103,11 +105,42 @@ if __name__ == "__main__":
         "https://www.gov.uk/government/organisations/department-for-work-pensions/about/recruitment",
         "https://www.gov.uk/government/organisations/department-for-work-pensions", "Guidance on writing competency statements for a job application")
 
-    run_doc_mdex_test_extraction(
-        "https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/421402/List_of_lawyers_in_Mexico.pdf",
-        "https://www.gov.uk/government/world/organisations/british-embassy-mexico-city",
-        "https://www.gov.uk/government/publications?departments[]=department-for-transport",
-        "List of lawyers and interpreters")
+
+    # - DCMS
+    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/522511/Research_to_explore_public_views_about_the_BBC_-_Wave_1_data_tables.pdf',
+        'https://www.gov.uk/government/publications/research-to-explore-public-views-about-the-bbc',
+        'https://www.gov.uk/government/publications?departments%5B%5D=department-for-culture-media-sport',
+        36035, "Research to explore public views about the BBC - Data Tables Wave 1")
+
+    # - ifs.org.uk
+    run_doc_mdex_test('http://www.ifs.org.uk/uploads/cemmap/wps/cwp721515.pdf',
+                    'http://www.ifs.org.uk/publications/8080','http://www.ifs.org.uk',
+                    35915,"Identifying effects of multivalued treatments")
+    run_doc_mdex_test('http://www.ifs.org.uk/uploads/publications/bns/BN179.pdf',
+                    'http://www.ifs.org.uk/publications/8049','http://www.ifs.org.uk',
+                    35915,"Funding the English & Welsh police service: from boom to bust?")
+
+    # - gov.uk
+    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/507081/2904936_Bean_Review_Web_Accessible.pdf',
+                    'https://www.gov.uk/government/publications/independent-review-of-uk-economic-statistics-final-report',
+                    'https://www.gov.uk/publications',
+                    35909,"Independent review of UK economic statistics: final report")
+    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/246770/0121.pdf',
+                    'https://www.gov.uk/government/publications/met-office-annual-report-and-accounts-2012-to-2013',
+                    'https://www.gov.uk/',
+                    35913,"Met Office annual report and accounts 2012/13 - Full Text")
+    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/497536/rtfo-year-8-report-2.pdf',
+                    'https://www.gov.uk/government/statistics/biofuel-statistics-year-8-2015-to-2016-report-2', 'https://www.gov.uk/',
+                    35846,"Renewable Transport Fuel Obligation statistics: year 8, report 2")
+    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/495227/harbour-closure-orders-consultation-summary-responses.pdf',
+                    'https://www.gov.uk/government/consultations/harbour-closure-and-pilotage-function-removal-orders-draft-guidance', 'https://www.gov.uk/',
+                    35846,"Guidance on harbour closure orders and pilotage function removal orders: summary of responses")
+
+    #run_doc_mdex_test_extraction(
+    #    "https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/421402/List_of_lawyers_in_Mexico.pdf",
+    #    "https://www.gov.uk/government/world/organisations/british-embassy-mexico-city",
+    #    "https://www.gov.uk/government/publications?departments[]=department-for-transport",
+    #    "List of lawyers and interpreters")
 
     # the tests Target association:
     # - scottish parliament
@@ -116,11 +149,11 @@ if __name__ == "__main__":
         'http://www.parliament.scot/', 
         36096, "BBC charter renewal - Call for views")
 
-    # - Children's Commissioner
-    run_doc_mdex_test('http://www.childrenscommissioner.gov.uk/sites/default/files/publications/The%20views%20of%20children%20and%20young%20people%20regarding%20media%20access%20to%20family%20courts.pdf',
-        'http://www.childrenscommissioner.gov.uk/publications/report-views-children-and-young-people-regarding-media-access-family-courts',
-        'http://www.childrenscommissioner.gov.uk/publications', 
-        36039, "Report on the views of children and young people regarding media access to family courts")
+    # - Children's Commissioner NOW 404
+    #run_doc_mdex_test('http://www.childrenscommissioner.gov.uk/sites/default/files/publications/The%20views%20of%20children%20and%20young%20people%20regarding%20media%20access%20to%20family%20courts.pdf',
+    #    'http://www.childrenscommissioner.gov.uk/publications/report-views-children-and-young-people-regarding-media-access-family-courts',
+    #    'http://www.childrenscommissioner.gov.uk/publications',
+    #    36039, "Report on the views of children and young people regarding media access to family courts")
 
     # - ONS
     run_doc_mdex_test('https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/ageing/articles/characteristicsofolderpeople/2013-12-06/pdf',
@@ -140,32 +173,3 @@ if __name__ == "__main__":
         'http://www.local.gov.uk/publications',
         36040, "LGA press release 30 November 2013" ) # page title: "Allow councils to lead energy efficiency schemes, says LGA")
 
-    # - DCMS
-    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/522511/Research_to_explore_public_views_about_the_BBC_-_Wave_1_data_tables.pdf',
-        'https://www.gov.uk/government/publications/research-to-explore-public-views-about-the-bbc', 
-        'https://www.gov.uk/government/publications?departments%5B%5D=department-for-culture-media-sport',
-        36035, "Research to explore public views about the BBC - Data Tables Wave 1")
-
-    # - ifs.org.uk
-    run_doc_mdex_test('http://www.ifs.org.uk/uploads/cemmap/wps/cwp721515.pdf',
-                    'http://www.ifs.org.uk/publications/8080','http://www.ifs.org.uk',
-                    35915,"Identifying effects of multivalued treatments")
-    run_doc_mdex_test('http://www.ifs.org.uk/uploads/publications/bns/BN179.pdf',
-                    'http://www.ifs.org.uk/publications/8049','http://www.ifs.org.uk',
-                    35915,"Funding the English & Welsh police service: from boom to bust?")
-
-    # - gov.uk
-    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/507081/2904936_Bean_Review_Web_Accessible.pdf',
-                    'https://www.gov.uk/government/publications/independent-review-of-uk-economic-statistics-final-report',
-                    'https://www.gov.uk/publications',
-                    35909,"Independent review of UK economic statistics: final report")
-    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/246770/0121.pdf',
-                    'https://www.gov.uk/government/publications/met-office-annual-report-and-accounts-2012-to-2013', 
-                    'https://www.gov.uk/',
-                    35913,"Met Office annual report and accounts 2012/13 - Full Text")
-    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/497536/rtfo-year-8-report-2.pdf',
-                    'https://www.gov.uk/government/statistics/biofuel-statistics-year-8-2015-to-2016-report-2', 'https://www.gov.uk/',
-                    35846,"Renewable Transport Fuel Obligation statistics: year 8, report 2")
-    run_doc_mdex_test('https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/495227/harbour-closure-orders-consultation-summary-responses.pdf',
-                    'https://www.gov.uk/government/consultations/harbour-closure-and-pilotage-function-removal-orders-draft-guidance', 'https://www.gov.uk/',
-                    35846,"Guidance on harbour closure orders and pilotage function removal orders: summary of responses")

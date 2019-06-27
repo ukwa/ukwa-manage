@@ -2,44 +2,6 @@ version: "3.2"
 
 services:
 
-  # Hapy Dashboard
-  hw-dash:
-    build: .
-    #image: ukwa/ukwa-manage:latest
-    ports:
-      - 8000:8000
-    environment:
-      - "HERITRIX_USERNAME=heritrix"
-      - "HERITRIX_PASSWORD=test"
-      - "CRAWL_JOBS_FILE=/ukwa-manage/dash/crawl-jobs-test.json"
-      - "WEBHDFS_PREFIX=http://warc-server:8000/by-filename/"
-      - "CDX_SERVER=http://cdx:9090/fc"
-      - "KAFKA_BOOTSTRAP_SERVERS=kafka:9092"
-      - "KAFKA_CRAWLED_TOPIC=uris.crawled.fc"
-      - "KAFKA_SEEK_TO_BEGINNING=true"
-    depends_on:
-      - heritrix-worker
-      - kafka
-
-  # UKWA Heritrix
-  heritrix-worker:
-    image: ukwa/heritrix-worker
-    ports:
-      - 8443:8443
-    environment:
-      - "JAVA_OPTS=-Xmx2g"
-      - "CRAWL_NAME=npld-fc"
-      - "LAUNCH_AUTOMATICALLY=false"
-      - "JOB_NAME=frequent"
-      - "HERITRIX_USER=heritrix"
-      - "HERITRIX_PASSWORD=test"
-      - "CLAMD_HOST=clamd"
-      - "KAFKA_BOOTSTRAP_SERVERS=kafka:9092"
-      - "KAFKA_CRAWLED_TOPIC=frequent-crawl-log"
-      - "KAFKA_TOCRAWL_TOPIC=uris-to-crawl"
-      - "WRENDER_ENDPOINT=http://wrender:8010/render"
-      - "CDXSERVER_ENDPOINT=http://cdxserver:8080/fc"
-
   # Kafka
   kafka:
     image: wurstmeister/kafka:1.1.0
@@ -66,4 +28,23 @@ services:
     image: wurstmeister/zookeeper
     ports:
      - "2181:2181"
+
+  # Database to put tracking/stats/etc.
+  crdb:
+    image: cockroachdb/cockroach:v19.1.1
+    command: start --insecure
+    ports:
+      - "8080:8080"
+      - "26257:26257"
+
+  # Helper for managing database schema migrations etc.
+  # If the DB is running you can use `docker-compose run dbmate up` `docker-compose run dbmate down`
+  dbmate:
+    image: amacneil/dbmate
+    command: up
+    environment:
+      - "DATABASE_URL=postgres://root@crdb:26257/defaultdb?sslmode=disable"
+    volumes:
+      - ./db:/db
+    restart: on-failure
 

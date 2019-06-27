@@ -20,6 +20,8 @@ in Python 3 but be compatible with both where possible.
   946  pip install virtualenv
   947  virtualenv venv
   948  source venv/bin/activate
+       pip install --no-cache https://github.com/ukwa/hapy/archive/master.zip
+       pip install --no-cache https://github.com/ukwa/python-w3act/archive/master.zip
   949  pip install -r requirements.txt
   953  yum install snappy-devel
   954  pip install -r requirements.txt
