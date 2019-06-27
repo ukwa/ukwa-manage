@@ -56,34 +56,6 @@ def state_file(date, tag, suffix, on_hdfs=False, use_gzip=False, use_webhdfs=Fal
 # These helpers help set up database targets for fine-grained task outputs
 # --------------------------------------------------------------------------
 
-def taskdb_target(task_group, task_result, kind='access'):
-    # Set the task group and ID:
-    if kind == 'ingest':
-        target = PostgresTarget(
-            host='ingest',
-            database='ingest_task_state',
-            user='ingest',
-            password='ingest',
-            table=task_group,
-            update_id=task_result
-        )
-        # Set the actual DB table to use:
-        target.marker_table = "ingest_task_state"
-    else:
-        target = PostgresTarget(
-            host='access',
-            database='access_task_state',
-            user='access',
-            password='access',
-            table=task_group,
-            update_id=task_result
-        )
-        # Set the actual DB table to use:
-        target.marker_table = "access_task_state"
-
-    return target
-
-
 class CopyToTableInDB(CopyToTable):
     """
     Abstract class that fixes which tables are used

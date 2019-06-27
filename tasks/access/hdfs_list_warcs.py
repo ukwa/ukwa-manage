@@ -11,10 +11,12 @@ import datetime
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.webhdfs
-from tasks.common import state_file
+import psycopg2
+from tasks.analyse.hdfs_analysis import CrawlStream, HdfsPathParser
 from tasks.analyse.hdfs_analysis import CopyFileListToHDFS, ListAllFilesOnHDFSToLocalFile
+from tasks.common import state_file
 from lib.webhdfs import webhdfs
-from lib.pathparsers import CrawlStream, HdfsPathParser
+from lib.targets import AccessTaskDBTarget
 
 logger = logging.getLogger('luigi-interface')
 
@@ -82,6 +84,61 @@ class DownloadHDFSFileList(luigi.Task):
                 shutil.copyfileobj(f_in, f_out)
             logger.info("Decompressed %s" % self.dated_state_file().path)
             logger.info("Using temp path %s" % temp_output_path)
+
+
+class UpdateWarcsDatabase(luigi.Task):
+    """
+    Lists the WARCS and arranges them by date:
+    """
+    date = luigi.DateParameter(default=datetime.date.today())
+    task_namespace = 'access.update'
+
+    def requires(self):
+        return DownloadHDFSFileList(self.date, self.stream)
+
+    #def complete(self):
+    #    return False
+
+    def output(self):
+        return AccessTaskDBTarget(self.task_namespace, self.task_id)
+
+    def run(self):
+        # Set up a DB connection for this:
+        conn = psycopg2.connect("dbname=ukwa_manage user=root host=crdb port=26257")
+        cur = conn.cursor()
+        refresh_date = datetime.datetime.utcnow()
+
+        # Go through the data and assemble the resources for each crawl:
+        filenames = []
+        with self.input().open('r') as fin:
+            reader = csv.DictReader(fin, fieldnames=ListAllFilesOnHDFSToLocalFile.fieldnames())
+            first_line = reader.next()
+            for item in reader:
+                # Parse file paths and names:
+                p = HdfsPathParser(item)
+                # Look at WARCS in this stream:
+                if p.stream == self.stream and p.kind == 'warcs' and p.file_name.endswith(".warc.gz"):
+                    # UPSERT so additional data for existing records is retained:
+                    cur.execute("UPSERT INTO crawl_files "
+                                "(filename, job_name, job_launch, full_path, extension, size, type, created_at, last_seen_at) "
+                                "VALUES "
+                                "(%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                (p.file_name, p.job, p.launch, p.file_path, p.file_ext, p.file_size, p.kind,
+                                 p.timestamp, refresh_date))
+                    filenames.append(p.file_path)
+
+        # FIXME also check last_seen_at date and warn if anything appears to have gone missing?
+
+        # And shut down:
+        cur.close()
+        conn.close()
+
+        # Sanity check:
+        if len(filenames) == 0:
+            raise Exception("No filenames generated! Something went wrong!")
+
+        # Record we completed successfully:
+        self.output().touch()
 
 
 class ListWarcFileSets(luigi.Task):

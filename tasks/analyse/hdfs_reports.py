@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 from tasks.analyse.hdfs_analysis import ListParsedPaths
 from tasks.preserve.hdfs_scan_status import GatherBlockScanReports
-from lib.targets import ReportTarget, TaskTarget
+from lib.targets import ReportTarget, AccessTaskDBTarget
 
 
 # Utility for pretty-printing in e.g. TB (not TiB):
@@ -33,7 +33,7 @@ class GenerateHDFSReports(luigi.Task):
     """
     date = luigi.DateParameter(default=datetime.date.today())
 
-    task_namespace = "ingest.report"
+    task_namespace = "analyse.report"
 
     def requires(self):
         return {
@@ -42,7 +42,7 @@ class GenerateHDFSReports(luigi.Task):
         }
 
     def output(self):
-        return TaskTarget('reports', 'hdfs-reports', self.date)
+        return AccessTaskDBTarget(self.task_namespace, self.task_id)
 
     def run(self):
         # Set up the input file:
@@ -98,10 +98,8 @@ class GenerateHDFSReports(luigi.Task):
                 totals = totals.join(counts)
                 totals.to_csv(f_out)
 
-
-            # Tag all as done:
-        with self.output().open('w') as f_out:
-            f_out.write("DONE")
+        # Tag all as done:
+        self.output().touch()
 
 
 if __name__ == '__main__':

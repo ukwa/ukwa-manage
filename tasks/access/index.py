@@ -10,15 +10,16 @@ import random
 import warcio
 import urllib
 import surt
-from tasks.ingest.w3act import CrawlFeed
+from tasks.crawl.w3act import CrawlFeed
 from urllib.parse import quote_plus
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
 from tasks.access.hdfs_list_warcs import ListWarcsForDate, NoWARCsToday
-from tasks.common import state_file, CopyToTableInDB, taskdb_target
+from tasks.common import state_file, CopyToTableInDB
 from lib.webhdfs import WebHdfsPlainFormat, webhdfs
-from lib.pathparsers import CrawlStream
+from lib.targets import AccessTaskDBTarget
+from tasks.analyse.hdfs_analysis import CrawlStream
 from prometheus_client import CollectorRegistry, Gauge
 
 logger = logging.getLogger('luigi-interface')
@@ -250,7 +251,8 @@ class CheckCdxIndex(luigi.WrapperTask):
                 self.checked_total += 1
 
     def output(self):
-        return taskdb_target("warc_set_verified","%s INDEXED OK" % self.input_file)
+        # FIXME add interposed target to update shared WARC DB
+        return AccessTaskDBTarget("warc_set_verified","%s INDEXED OK" % self.input_file)
 
     def run(self):
         # If all the requirements are there, the whole set must be fine.
@@ -276,10 +278,10 @@ class CdxIndexAndVerify(luigi.Task):
 
     def output(self):
         if isinstance(self.input(), NoWARCsToday):
-            return taskdb_target("warc_set_indexed_and_verified", "0 WARCs on %s OK" % self.target_date)
+            return AccessTaskDBTarget("warc_set_indexed_and_verified", "0 WARCs on %s OK" % self.target_date)
         else:
             logger.info("Checking is complete: %s" % self.input().path)
-            return taskdb_target("warc_set_indexed_and_verified","%s OK" % self.input().path)
+            return AccessTaskDBTarget("warc_set_indexed_and_verified","%s OK" % self.input().path)
 
     def run(self):
         # Some days have no data, so we can skip them:

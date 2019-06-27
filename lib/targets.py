@@ -2,11 +2,13 @@ import os
 import posixpath
 import luigi
 import luigi.contrib.hdfs
-from lib.pathparsers import CrawlStream
+from tasks.analyse.hdfs_analysis import CrawlStream
 from lib.webhdfs import WebHdfsPlainFormat
+from luigi.contrib.postgres import PostgresTarget
+
 
 """
-These classes define our standad concepts and Luigi Targets for events and outputs.
+These classes define our standard concepts and Luigi Targets for events and outputs.
 """
 
 
@@ -150,3 +152,40 @@ class HdfsTaskTarget(luigi.contrib.hdfs.HdfsTarget):
             target_format = luigi.contrib.hdfs.PlainFormat()
 
         super(HdfsTaskTarget, self).__init__(path=full_path, format=target_format)
+
+
+class IngestTaskDBTarget(PostgresTarget):
+    """
+    A helper for storing task-complete flags in a dedicated database.
+    """
+    def __init__(self,task_group, task_result):
+        # Initialise:
+        super(PostgresTarget, self).__init__(
+            host='ingest',
+            database='ingest_task_state',
+            user='ingest',
+            password='ingest',
+            table=task_group,
+            update_id=task_result
+        )
+        # Set the actual DB table to use:
+        self.marker_table = "ingest_task_state"
+
+
+class AccessTaskDBTarget(PostgresTarget):
+    """
+    A helper for storing task-complete flags in a dedicated database.
+    """
+    def __init__(self, task_group, task_result):
+        # Initialise:
+        super(PostgresTarget, self).__init__(
+            host='access',
+            database='access_task_state',
+            user='access',
+            password='access',
+            table=task_group,
+            update_id=task_result
+        )
+        # Set the actual DB table to use:
+        self.marker_table = "access_task_state"
+

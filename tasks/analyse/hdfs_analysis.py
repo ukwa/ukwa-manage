@@ -1,6 +1,7 @@
 import os
 import re
 import csv
+import enum
 import json
 import gzip
 import shutil
@@ -12,7 +13,6 @@ import luigi.contrib.hdfs
 import luigi.contrib.webhdfs
 from prometheus_client import CollectorRegistry, Gauge
 from tasks.common import state_file
-from lib.pathparsers import HdfsPathParser, CrawlStream
 from lib.targets import CrawlPackageTarget, CrawlReportTarget, ReportTarget
 
 logger = logging.getLogger('luigi-interface')
@@ -22,6 +22,147 @@ DEFAULT_BUFFER_SIZE = 1024*1000
 """
 Tasks relating to listing HDFS content and reporting on it.
 """
+
+
+class HdfsPathParser(object):
+    """
+    This class takes a HDFS file path and determines what, if any, crawl it belongs to, etc.
+    """
+
+    @staticmethod
+    def field_names():
+        """This returns the extended set of field names that this class derives from the basic listing."""
+        return ['recognised', 'collection', 'stream','job', 'kind', 'permissions', 'number_of_replicas', 'user_id', 'group_id', 'file_size', 'modified_at', 'timestamp', 'file_path', 'file_name', 'file_ext']
+
+    def __init__(self, item):
+        """
+        Given a string containing the absolute HDFS file path, parse it to work our what kind of thing it is.
+
+        Determines crawl job, launch, kind of file, etc.
+
+        For WCT-era selective content, the job is the Target ID and the launch is the Instance ID.
+
+        :param file_path:
+        """
+
+        # Perform basic processing:
+        # ------------------------------------------------
+        # To be captured later
+        self.recognised = False
+        self.collection = None
+        self.stream = None
+        self.job = None
+        self.kind = 'unknown'
+        # From the item listing:
+        self.permissions = item['permissions']
+        self.number_of_replicas = item['number_of_replicas']
+        self.user_id = item['userid']
+        self.group_id = item['groupid']
+        self.file_size = item['filesize']
+        self.modified_at = item['modified_at']
+        self.file_path = item['filename']
+        # Derived:
+        self.file_name = os.path.basename(self.file_path)
+        first_dot_at = self.file_name.find('.')
+        if first_dot_at != -1:
+            self.file_ext = self.file_name[first_dot_at:]
+        else:
+            self.file_ext = None
+        self.timestamp_datetime = datetime.datetime.strptime(item['modified_at'], "%Y-%m-%dT%H:%M:%S")
+        self.timestamp = self.timestamp_datetime.isoformat()
+
+        # Look for different filename patterns:
+        # ------------------------------------------------
+
+        mfc = re.search('^/heritrix/output/(warcs|viral|logs)/([a-z\-0-9]+)[-/]([0-9]{12,14})/([^\/]+)$', self.file_path)
+        mdc = re.search('^/heritrix/output/(warcs|viral|logs)/(dc|crawl)[0-3]\-([0-9]{8}|[0-9]{14})/([^\/]+)$', self.file_path)
+        mby = re.search('^/data/([0-9])+/([0-9])+/(DLX/|Logs/|WARCS/|)([^\/]+)$', self.file_path)
+        if mdc:
+            self.recognised = True
+            self.stream = CrawlStream.domain
+            (self.kind, self.job, self.launch, self.file_name) = mdc.groups()
+            self.job = 'domain'  # Overriding old job name.
+            # Cope with variation in folder naming - all DC crawlers launched on the same day:
+            if len(self.launch) > 8:
+                self.launch = self.launch[0:8]
+            self.launch_datetime = datetime.datetime.strptime(self.launch, "%Y%m%d")
+        elif mfc:
+            self.recognised = True
+            self.stream = CrawlStream.frequent
+            (self.kind, self.job, self.launch, self.file_name) = mfc.groups()
+            self.launch_datetime = datetime.datetime.strptime(self.launch, "%Y%m%d%H%M%S")
+        elif mby:
+            self.recognised = True
+            self.stream = CrawlStream.selective
+            # In this case the job is the Target ID and the launch is the Instance ID:
+            (self.job, self.launch, self.kind, self.file_name) = mby.groups()
+            self.kind = self.kind.lower().strip('/')
+            if self.kind == '':
+                self.kind = 'unknown'
+            self.launch_datetime = None
+        elif self.file_path.startswith('/_to_be_deleted/'):
+            self.recognised = True
+            self.kind = 'to-be-deleted'
+            self.file_name = os.path.basename(self.file_path)
+
+        # Specify the collection, based on stream:
+        if self.stream == CrawlStream.frequent or self.stream == CrawlStream.domain:
+            self.collection = 'npld'
+        elif self.stream == CrawlStream.selective:
+            self.collection = 'selective'
+
+        # Now Add data based on file name...
+        # ------------------------------------------------
+
+        # Attempt to parse file timestamp out of filename,
+        # Store ISO formatted date in self.timestamp, datetime object in self.timestamp_datetime
+        mwarc = re.search('^.*-([12][0-9]{16})-.*\.warc\.gz$', self.file_name)
+        if mwarc:
+            self.timestamp_datetime = datetime.datetime.strptime(mwarc.group(1), "%Y%m%d%H%M%S%f")
+            self.timestamp = self.timestamp_datetime.isoformat()
+        else:
+            if self.stream and self.launch_datetime:
+                # fall back on launch datetime:
+                self.timestamp_datetime = self.launch_datetime
+                self.timestamp = self.timestamp_datetime.isoformat()
+
+        # Distinguish 'bad' crawl files, e.g. warc.gz.open files that are down as warcs
+        if self.kind == 'warcs':
+            if not self.file_name.endswith(".warc.gz"):
+                # The older selective crawls allowed CDX files alongside the WARCs:
+                if self.collection == 'selective' and self.file_name.endswith(".warc.cdx"):
+                    self.kind = 'cdx'
+                else:
+                    self.kind = 'warcs-invalid'
+
+        # Distinguish crawl logs from other logs...
+        if self.kind == 'logs':
+            if self.file_name.startswith("crawl.log"):
+                self.kind = 'crawl-logs'
+
+    def to_dict(self):
+        d = dict()
+        for f in self.field_names():
+            d[f] = str(getattr(self,f,""))
+        return d
+
+
+class CrawlStream(enum.Enum):
+    """
+    An enumeration of the different crawl streams.
+    """
+
+    selective = 1
+    """'selective' is permissions-based collection. e.g. Pre-NPLD collections."""
+
+    frequent = 2
+    """ 'frequent' covers NPLD crawls of curated sites."""
+
+    domain = 3
+    """ 'domain' refers to NPLD domain crawls."""
+
+    def __str__(self):
+        return self.name
 
 
 class DatedStateFileTask(luigi.Task):
@@ -61,7 +202,7 @@ class ListAllFilesOnHDFSToLocalFile(DatedStateFileTask):
     It set up to run once a day, as input to downstream reporting or analysis processes.
     """
     date = luigi.DateParameter(default=datetime.date.today())
-    task_namespace = "ingest.hdfs"
+    task_namespace = "analyse.hdfs"
 
     tag = 'hdfs'
     name = 'all-files-list'
@@ -161,7 +302,7 @@ class ListParsedPaths(DatedStateFileTask):
     tag = 'hdfs'
     name = 'parsed-paths'
 
-    task_namespace = "ingest.listings"
+    task_namespace = "analyse.hdfs"
 
     def requires(self):
         return ListAllFilesOnHDFSToLocalFile(self.date)
@@ -191,7 +332,7 @@ class CopyFileListToHDFS(luigi.Task):
     This puts a copy of the file list onto HDFS
     """
     date = luigi.DateParameter(default=datetime.date.today())
-    task_namespace = "ingest.hdfs"
+    task_namespace = "analyse.hdfs"
 
     def requires(self):
         return ListAllFilesOnHDFSToLocalFile(self.date)
@@ -215,7 +356,7 @@ class ListEmptyFiles(luigi.Task):
     Takes the full file list and extracts the empty files, as these should be checked.
     """
     date = luigi.DateParameter(default=datetime.date.today())
-    task_namespace = "ingest.hdfs"
+    task_namespace = "analyse.hdfs"
 
     def requires(self):
         return ListAllFilesOnHDFSToLocalFile(self.date)
@@ -241,7 +382,7 @@ class ListDuplicateFiles(luigi.Task):
     List all files on HDFS that appear to be duplicates.
     """
     date = luigi.DateParameter(default=datetime.date.today())
-    task_namespace = "ingest.hdfs"
+    task_namespace = "analyse.hdfs"
 
     total_unduplicated = 0
     total_duplicated = 0
@@ -283,7 +424,7 @@ class ListByCrawl(luigi.Task):
     """
     date = luigi.DateParameter(default=datetime.date.today())
 
-    task_namespace = "ingest.report"
+    task_namespace = "analyse.report"
 
     totals = {}
     collections = {}
@@ -447,7 +588,7 @@ class GenerateHDFSSummaries(luigi.WrapperTask):
     """
     A 'Wrapper Task' that invokes the summaries of HDFS we are interested in.
     """
-    task_namespace = "ingest.report"
+    task_namespace = "analyse.report"
 
     def requires(self):
         return [ CopyFileListToHDFS(), ListDuplicateFiles(), ListEmptyFiles(), ListByCrawl(), ListParsedPaths() ]
@@ -458,5 +599,5 @@ if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.INFO)
     #luigi.run(['ListUKWAWebArchiveFilesOnHDFS', '--local-scheduler'])
-    luigi.run(['ingest.listings.ListParsedPaths', '--local-scheduler', '--date', '2018-02-12'])
+    luigi.run(['analyse.hdfs.ListParsedPaths', '--local-scheduler', '--date', '2018-02-12'])
     #luigi.run(['ListEmptyFilesOnHDFS', '--local-scheduler'])

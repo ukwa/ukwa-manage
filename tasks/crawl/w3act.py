@@ -1,8 +1,11 @@
 import os
 import json
+import shutil
 import luigi
+import tempfile
 import datetime
 from w3act.w3act import w3act
+from w3act.cli_csv import get_csv, csv_to_zip
 from tasks.common import logger, state_file
 
 # Define environment variable names here:
@@ -13,6 +16,37 @@ ENV_ACT_PASSWORD = 'ACT_PASSWORD'
 ACT_URL = os.environ[ENV_ACT_URL]
 ACT_USER = os.environ[ENV_ACT_USER]
 ACT_PASSWORD = os.environ[ENV_ACT_PASSWORD]
+
+
+class GetW3actAsCsvZip(luigi.Task):
+    """
+    Connect to the W3ACT database and dump the whole thing as CSV files.
+    """
+
+    def output(self):
+        return state_file(self.date,'w3act', 'db-csv.zip')
+
+    def run(self):
+        # Setup connection params
+        params = {
+            'password': os.environ.get("W3ACT_PSQL_PASSWORD", None),
+            'database': self.db_name,
+            'user': self.db_user,
+            'host': self.db_host,
+            'port': self.db_port
+        }
+        # And pull down the data tables as CSV:
+        csv_dir = tempfile.mkdtemp()
+        get_csv(csv_dir, params=params)
+        zip_file = csv_to_zip(csv_dir)
+
+        # Move it to the output location (using Luigi helper)
+        # https://luigi.readthedocs.io/en/stable/api/luigi.target.html#luigi.target.FileSystemTarget.temporary_path
+        with self.output().temporary_path() as temp_output_path:
+            shutil.move(zip_file, temp_output_path)
+
+        # And delete the temp dir:
+        shutil.rmtree(csv_dir)
 
 
 class CrawlFeed(luigi.Task):
