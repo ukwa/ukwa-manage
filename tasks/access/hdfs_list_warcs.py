@@ -12,6 +12,7 @@ import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.webhdfs
 import psycopg2
+from psycopg2.extras import execute_values
 from tasks.analyse.hdfs_analysis import CrawlStream, HdfsPathParser
 from tasks.analyse.hdfs_analysis import CopyFileListToHDFS, ListAllFilesOnHDFSToLocalFile
 from tasks.common import state_file
@@ -93,6 +94,8 @@ class UpdateWarcsDatabase(luigi.Task):
     date = luigi.DateParameter(default=datetime.date.today())
     task_namespace = 'access.update'
 
+    total = 0
+
     def requires(self):
         return DownloadHDFSFileList(self.date)
 
@@ -102,6 +105,19 @@ class UpdateWarcsDatabase(luigi.Task):
     def output(self):
         return AccessTaskDBTarget(self.task_namespace, self.task_id)
 
+    def entry_generator(self, reader):
+        refresh_date = datetime.datetime.utcnow().isoformat()
+        for item in reader:
+            # Parse file paths and names:
+            p = HdfsPathParser(item)
+            # Look at WARCS:
+            if p.kind == 'warcs' and p.file_name.endswith(".warc.gz"):
+                f_timestamp = None
+                if p.timestamp:
+                    f_timestamp = p.timestamp
+                self.total += 1
+                yield (p.file_name, p.job, p.launch, p.file_path, p.file_ext, p.file_size, p.kind, f_timestamp, refresh_date)
+
     def run(self):
         print("Connect")
         # Set up a DB connection for this:
@@ -109,32 +125,22 @@ class UpdateWarcsDatabase(luigi.Task):
 
         # Make each statement commit immediately.
         conn.set_session(autocommit=True)
-
         cur = conn.cursor()
-        refresh_date = datetime.datetime.utcnow().isoformat()
 
         # Go through the data and assemble the resources for each crawl:
-        filenames = []
+        self.total = 0
         print("open up")
         with self.input().open('r') as fin:
             reader = csv.DictReader(fin, fieldnames=ListAllFilesOnHDFSToLocalFile.fieldnames())
             first_line = next(reader)
-            for item in reader:
-                # Parse file paths and names:
-                p = HdfsPathParser(item)
-                # Look at WARCS:
-                if p.kind == 'warcs' and p.file_name.endswith(".warc.gz"):
-                    f_timestamp = None
-                    if p.timestamp:
-                        f_timestamp = p.timestamp
-                    # UPSERT so additional data for existing records is retained:
-                    cur.execute("UPSERT INTO crawl_files "
-                                "(filename, job_name, job_launch, full_path, extension, size, type, created_at, last_seen_at) "
-                                "VALUES "
-                                "(%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                                (p.file_name, p.job, p.launch, p.file_path, p.file_ext, p.file_size, p.kind,
-                                 f_timestamp, refresh_date))
-                    filenames.append(p.file_path)
+            # Use batch insertion helper:
+            execute_values(
+                cur,
+                # UPSERT so additional data for existing records is retained:
+                """UPSERT INTO crawl_files (filename, job_name, job_launch, full_path, extension, size, type, created_at, last_seen_at) VALUES %s""",
+                self.entry_generator(reader),
+                page_size=1000
+            )
 
         # FIXME also check last_seen_at date and warn if anything appears to have gone missing?
 
@@ -143,7 +149,7 @@ class UpdateWarcsDatabase(luigi.Task):
         conn.close()
 
         # Sanity check:
-        if len(filenames) == 0:
+        if self.total == 0:
             raise Exception("No filenames generated! Something went wrong!")
 
         # Record we completed successfully:
