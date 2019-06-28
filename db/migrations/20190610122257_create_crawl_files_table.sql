@@ -8,7 +8,7 @@
 CREATE TABLE crawl_files (
   filename TEXT,                   -- The filename
   job_name TEXT,                   -- The crawl job name
-  job_launch TIMESTAMP,            -- The timestamp of the job launch for this file.
+  job_launch TEXT,                 -- The id of the job launch for this crawl, usually a timestamp
   full_path TEXT,                  -- Full path of file on HDFS
   extension TEXT,                  -- The file extension (to help understand files uncategorized by type)
   type TEXT, --- file_type,        -- e.g. 'warc'
@@ -31,10 +31,10 @@ CREATE INDEX ON crawl_files (filename);
 CREATE INDEX ON crawl_files (digest);
 CREATE INDEX ON crawl_files (full_path);
 CREATE INDEX ON crawl_files (created_at);
-CREATE INDEX ON crawl_files (ppid);
+CREATE INDEX ON crawl_files (last_seen_at);
 CREATE INDEX ON crawl_files (cdx_index_status);
 CREATE INDEX ON crawl_files (solr_index_status);
-CREATE INDEX ON crawl_files GIN (stats); -- Use an inverted index for JSONB of stats
+CREATE INDEX ON crawl_files USING GIN (stats); -- Use an inverted index for JSONB of stats
 
 
 -- migrate:down

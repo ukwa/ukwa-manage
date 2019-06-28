@@ -2,7 +2,6 @@ import os
 import posixpath
 import luigi
 import luigi.contrib.hdfs
-from tasks.analyse.hdfs_analysis import CrawlStream
 from lib.webhdfs import WebHdfsPlainFormat
 from luigi.contrib.postgres import PostgresTarget
 
@@ -160,7 +159,7 @@ class IngestTaskDBTarget(PostgresTarget):
     """
     def __init__(self,task_group, task_result):
         # Initialise:
-        super(PostgresTarget, self).__init__(
+        super(IngestTaskDBTarget, self).__init__(
             host='ingest',
             database='ingest_task_state',
             user='ingest',
@@ -178,7 +177,7 @@ class AccessTaskDBTarget(PostgresTarget):
     """
     def __init__(self, task_group, task_result):
         # Initialise:
-        super(PostgresTarget, self).__init__(
+        super(AccessTaskDBTarget, self).__init__(
             host='access',
             database='access_task_state',
             user='access',

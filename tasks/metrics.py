@@ -1,7 +1,7 @@
 import luigi
 import logging
 from prometheus_client import CollectorRegistry, Gauge
-from prometheus_client.core import _floatToGoString
+from prometheus_client.utils import floatToGoString
 
 # --------------------------------------------------------------------------
 # Metrics collection
@@ -47,5 +47,5 @@ def generate_latest_with_timestamps(registry, timestamp):
                      for k, v in sorted(labels.items())]))
             else:
                 labelstr = ''
-            output.append('{0}{1} {2} {3}\n'.format(name, labelstr, _floatToGoString(value), timestamp))
+            output.append('{0}{1} {2} {3}\n'.format(name, labelstr, floatToGoString(value), timestamp))
     return ''.join(output).encode('utf-8')

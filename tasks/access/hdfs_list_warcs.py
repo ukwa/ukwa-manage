@@ -80,7 +80,7 @@ class DownloadHDFSFileList(luigi.Task):
             # Also make an uncompressed version:
             logger.info("Decompressing %s" % self.dated_state_file().path)
             logger.info("Using temp path %s" % temp_output_path)
-            with gzip.open(temp_output_path, 'rb') as f_in, self.output().open('w') as f_out:
+            with gzip.open(temp_output_path, 'rb') as f_in, open(self.output().path, 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
             logger.info("Decompressed %s" % self.dated_state_file().path)
             logger.info("Using temp path %s" % temp_output_path)
@@ -94,7 +94,7 @@ class UpdateWarcsDatabase(luigi.Task):
     task_namespace = 'access.update'
 
     def requires(self):
-        return DownloadHDFSFileList(self.date, self.stream)
+        return DownloadHDFSFileList(self.date)
 
     #def complete(self):
     #    return False
@@ -103,28 +103,37 @@ class UpdateWarcsDatabase(luigi.Task):
         return AccessTaskDBTarget(self.task_namespace, self.task_id)
 
     def run(self):
+        print("Connect")
         # Set up a DB connection for this:
-        conn = psycopg2.connect("dbname=ukwa_manage user=root host=crdb port=26257")
+        conn = psycopg2.connect("dbname=ukwa_manage user=root host=bigcdx port=26257")
+
+        # Make each statement commit immediately.
+        conn.set_session(autocommit=True)
+
         cur = conn.cursor()
-        refresh_date = datetime.datetime.utcnow()
+        refresh_date = datetime.datetime.utcnow().isoformat()
 
         # Go through the data and assemble the resources for each crawl:
         filenames = []
+        print("open up")
         with self.input().open('r') as fin:
             reader = csv.DictReader(fin, fieldnames=ListAllFilesOnHDFSToLocalFile.fieldnames())
-            first_line = reader.next()
+            first_line = next(reader)
             for item in reader:
                 # Parse file paths and names:
                 p = HdfsPathParser(item)
-                # Look at WARCS in this stream:
-                if p.stream == self.stream and p.kind == 'warcs' and p.file_name.endswith(".warc.gz"):
+                # Look at WARCS:
+                if p.kind == 'warcs' and p.file_name.endswith(".warc.gz"):
+                    f_timestamp = None
+                    if p.timestamp:
+                        f_timestamp = p.timestamp
                     # UPSERT so additional data for existing records is retained:
                     cur.execute("UPSERT INTO crawl_files "
                                 "(filename, job_name, job_launch, full_path, extension, size, type, created_at, last_seen_at) "
                                 "VALUES "
                                 "(%s, %s, %s, %s, %s, %s, %s, %s, %s)",
                                 (p.file_name, p.job, p.launch, p.file_path, p.file_ext, p.file_size, p.kind,
-                                 p.timestamp, refresh_date))
+                                 f_timestamp, refresh_date))
                     filenames.append(p.file_path)
 
         # FIXME also check last_seen_at date and warn if anything appears to have gone missing?

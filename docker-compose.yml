@@ -43,7 +43,7 @@ services:
     image: amacneil/dbmate
     command: up
     environment:
-      - "DATABASE_URL=postgres://root@crdb:26257/defaultdb?sslmode=disable"
+      - "DATABASE_URL=postgres://root@192.168.45.21:26257/ukwa_manage?sslmode=disable"
     volumes:
       - ./db:/db
     restart: on-failure
