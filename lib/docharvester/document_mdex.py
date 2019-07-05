@@ -59,7 +59,7 @@ class DocumentMDEx(object):
             if t['watched']:
                 a_match = False
                 for seed in t['seeds']:
-                    if tsurt.startswith(url_to_surt(seed)):
+                    if tsurt.startswith(url_to_surt(seed, host_only=True)):
                         a_match = True
                 if a_match:
                     matches.append(t)
