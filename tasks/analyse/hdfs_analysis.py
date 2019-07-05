@@ -70,61 +70,14 @@ class HdfsPathParser(object):
             self.file_ext = None
         self.timestamp_datetime = datetime.datetime.strptime(item['modified_at'], "%Y-%m-%dT%H:%M:%S")
         self.timestamp = self.timestamp_datetime.isoformat()
+        self.launch_datetime = None
 
         # Look for different filename patterns:
         # ------------------------------------------------
+        self.analyse_file_path()
 
-        mfc = re.search('^/heritrix/output/(warcs|viral|logs)/([a-z\-0-9]+)[-/]([0-9]{12,14})/([^\/]+)$', self.file_path)
-        mdc = re.search('^/heritrix/output/(warcs|viral|logs)/(dc|crawl)[0-3]\-([0-9]{8}|[0-9]{14})/([^\/]+)$', self.file_path)
-        mby = re.search('^/data/([0-9]+)/([0-9]+)/(DLX/|Logs/|WARCS/|)([^\/]+)$', self.file_path)
-        if mdc:
-            self.recognised = True
-            self.stream = CrawlStream.domain
-            (self.kind, self.job, self.launch, self.file_name) = mdc.groups()
-            self.job = 'domain'  # Overriding old job name.
-            # Cope with variation in folder naming - all DC crawlers launched on the same day:
-            if len(self.launch) > 8:
-                self.launch = self.launch[0:8]
-            self.launch_datetime = datetime.datetime.strptime(self.launch, "%Y%m%d")
-        elif mfc:
-            self.recognised = True
-            self.stream = CrawlStream.frequent
-            (self.kind, self.job, self.launch, self.file_name) = mfc.groups()
-            self.launch_datetime = datetime.datetime.strptime(self.launch, "%Y%m%d%H%M%S")
-        elif mby:
-            self.recognised = True
-            self.stream = CrawlStream.selective
-            # In this case the job is the Target ID and the launch is the Instance ID:
-            (self.job, self.launch, self.kind, self.file_name) = mby.groups()
-            self.kind = self.kind.lower().strip('/')
-            if self.kind == '':
-                self.kind = 'unknown'
-            self.launch_datetime = None
-        elif self.file_path.startswith('/_to_be_deleted/'):
-            self.recognised = True
-            self.kind = 'to-be-deleted'
-            self.file_name = os.path.basename(self.file_path)
-
-        # Specify the collection, based on stream:
-        if self.stream == CrawlStream.frequent or self.stream == CrawlStream.domain:
-            self.collection = 'npld'
-        elif self.stream == CrawlStream.selective:
-            self.collection = 'selective'
-
-        # Now Add data based on file name...
+        # Now Add data based on file kind and file name...
         # ------------------------------------------------
-
-        # Attempt to parse file timestamp out of filename,
-        # Store ISO formatted date in self.timestamp, datetime object in self.timestamp_datetime
-        mwarc = re.search('^.*-([12][0-9]{16})-.*\.warc\.gz$', self.file_name)
-        if mwarc:
-            self.timestamp_datetime = datetime.datetime.strptime(mwarc.group(1), "%Y%m%d%H%M%S%f")
-            self.timestamp = self.timestamp_datetime.isoformat()
-        else:
-            if self.stream and self.launch_datetime:
-                # fall back on launch datetime:
-                self.timestamp_datetime = self.launch_datetime
-                self.timestamp = self.timestamp_datetime.isoformat()
 
         # Distinguish 'bad' crawl files, e.g. warc.gz.open files that are down as warcs
         if self.kind == 'warcs':
@@ -134,11 +87,104 @@ class HdfsPathParser(object):
                     self.kind = 'cdx'
                 else:
                     self.kind = 'warcs-invalid'
+            else:
+                # Attempt to parse file timestamp out of filename,
+                # Store ISO formatted date in self.timestamp, datetime object in self.timestamp_datetime
+                mwarc = re.search('^.*-([12][0-9]{16})-.*\.warc\.gz$', self.file_name)
+                if mwarc:
+                    self.timestamp_datetime = datetime.datetime.strptime(mwarc.group(1), "%Y%m%d%H%M%S%f")
+                    self.timestamp = self.timestamp_datetime.isoformat()
+                else:
+                    if self.stream and self.launch_datetime:
+                        # fall back on launch datetime:
+                        self.timestamp_datetime = self.launch_datetime
+                        self.timestamp = self.timestamp_datetime.isoformat()
 
         # Distinguish crawl logs from other logs...
         if self.kind == 'logs':
             if self.file_name.startswith("crawl.log"):
                 self.kind = 'crawl-logs'
+
+    def analyse_file_path(self):
+        """
+        This function analyses the file path to classify the item.
+        """
+        
+        #
+        # Selective era layout /data/<target-id>/<instance-id>/<kind>
+        #
+        if re.search('^/data/', self.file_path ):
+            self.collection = 'selective'
+            self.stream = CrawlStream.selective
+            mby  = re.search('^/data/([0-9]+)/([0-9]+)/(DLX/|Logs/|WARCS/|)([^\/]+)$', self.file_path)
+            if mby:
+                self.recognised = True
+                # In this case the job is the Target ID and the launch is the Instance ID:
+                (self.job, self.launch, self.kind, self.file_name) = mby.groups()
+                self.kind = self.kind.lower().strip('/')
+                if self.kind == '':
+                    self.kind = 'unknown'
+                self.launch_datetime = None
+                
+        # 
+        # First NPLD era file layout /heritrix/output/(warcs|viral|logs)/<job>...
+        #
+        elif re.search('^/heritrix/output/(warcs|viral|logs)/.*', self.file_path ):
+            self.collection = 'npld'
+            # Original domain-crawl layout: kind/job (need to look for this first)
+            mdc  = re.search('^/heritrix/output/(warcs|viral|logs)/(dc|crawl)[0-3]\-([0-9]{8}|[0-9]{14})/([^\/]+)$', self.file_path)
+            # original frequent crawl layout: kind/job/launch-id
+            mfc  = re.search('^/heritrix/output/(warcs|viral|logs)/([a-z\-0-9]+)[-/]([0-9]{12,14})/([^\/]+)$', self.file_path)
+            if mdc:
+                self.recognised = True
+                self.stream = CrawlStream.domain
+                (self.kind, self.job, self.launch, self.file_name) = mdc.groups()
+                self.job = 'domain'  # Overriding old job name.
+                # Cope with variation in folder naming - all DC crawlers launched on the same day:
+                if len(self.launch) > 8:
+                    self.launch = self.launch[0:8]
+                self.launch_datetime = datetime.datetime.strptime(self.launch, "%Y%m%d")
+            elif mfc:
+                self.recognised = True
+                self.stream = CrawlStream.frequent
+                (self.kind, self.job, self.launch, self.file_name) = mfc.groups()
+                self.launch_datetime = datetime.datetime.strptime(self.launch, "%Y%m%d%H%M%S")
+
+        # 
+        # Second NPLD era file layout /heritrix/output/<job>/<launch>(warcs|viral|logs)/...
+        #
+        elif re.search('^/heritrix/output/(dc2.+|frequent.*)/.*', self.file_path ):
+            self.collection = 'npld2'
+            # 2019 frequent-crawl layout: job/launch-id/kind (same as DC now?
+            mfc2 = re.search('^/heritrix/output/([a-z\-0-9]+)/([0-9]{12,14})/(warcs|viral|logs)/([^\/]+)$', self.file_path)
+            if mfc2:
+                self.recognised = True
+                (self.job, self.launch, self.kind, self.file_name) = mfc2.groups()
+                # Recognise domain crawls:
+                if self.job.startswith('dc2'):
+                    self.stream = CrawlStream.domain
+                else:
+                    self.stream = CrawlStream.frequent
+                # Cope with variation in folder naming - all DC crawlers launched on the same day:
+                if len(self.launch) > 8:
+                    self.launch = self.launch[0:8]
+                self.launch_datetime = datetime.datetime.strptime(self.launch, "%Y%m%d")
+                
+        # 
+        # Files stored but intended for deletion.
+        #
+        elif self.file_path.startswith('/_to_be_deleted/'):
+            self.recognised = True
+            self.kind = 'to-be-deleted'
+            self.file_name = os.path.basename(self.file_path)
+            
+        #
+        # If un-matched, default to classifying by top-level folder.
+        #
+        else:
+            self.collection = self.file_path.split(os.path.sep)[1]
+            self.file_name = os.path.basename(self.file_path)
+        
 
     def to_dict(self):
         d = dict()
