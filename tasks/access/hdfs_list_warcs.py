@@ -13,7 +13,7 @@ import luigi.contrib.hdfs
 import luigi.contrib.webhdfs
 import psycopg2
 from psycopg2.extras import execute_values
-from tasks.analyse.hdfs_analysis import CrawlStream, HdfsPathParser
+from tasks.analyse.hdfs_path_parser import HdfsPathParser, CrawlStream
 from tasks.analyse.hdfs_analysis import CopyFileListToHDFS, ListAllFilesOnHDFSToLocalFile
 from tasks.common import state_file
 from lib.webhdfs import webhdfs

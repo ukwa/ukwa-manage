@@ -8,7 +8,7 @@ from luigi.contrib.hdfs.format import Plain, PlainDir
 
 from tasks.analyse.crawl_logs.log_analysis_hadoop import AnalyseLogFile, SummariseLogFiles
 from tasks.analyse.crawl_logs.documents import ExtractDocumentAndPost
-from tasks.ingest.w3act import CrawlFeed
+from tasks.crawl.w3act import CrawlFeed
 from tasks.common import state_file, logger
 from lib.webhdfs import webhdfs
 from lib.targets import TaskTarget
