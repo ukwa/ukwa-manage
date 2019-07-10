@@ -4,20 +4,19 @@ import enum
 import logging
 import datetime
 
+# Headers in the original HDFS file listing (before paths are parsed)
+file_list_headers = ['permissions', 'number_of_replicas', 'userid', 'groupid', 'filesize', 'modified_at', 'filename']
+
 
 class HdfsPathParser(object):
     """
     This class takes a HDFS file path and determines what, if any, crawl it belongs to, etc.
-
-    The analyse_file_path code does most of the work.
-
     """
 
     @staticmethod
     def field_names():
         """This returns the extended set of field names that this class derives from the basic listing."""
-        return ['recognised', 'collection', 'stream', 'job', 'kind', 'permissions', 'number_of_replicas', 'user_id',
-                'group_id', 'file_size', 'modified_at', 'timestamp', 'file_path', 'file_name', 'file_ext']
+        return ['recognised', 'collection', 'stream','job', 'kind', 'permissions', 'number_of_replicas', 'user_id', 'group_id', 'file_size', 'modified_at', 'timestamp', 'file_path', 'file_name', 'file_ext']
 
     def __init__(self, item):
         """
@@ -94,14 +93,14 @@ class HdfsPathParser(object):
         """
         This function analyses the file path to classify the item.
         """
-
+        
         #
         # Selective era layout /data/<target-id>/<instance-id>/<kind>
         #
-        if re.search('^/data/', self.file_path):
+        if re.search('^/data/', self.file_path ):
             self.collection = 'selective'
             self.stream = CrawlStream.selective
-            mby = re.search('^/data/([0-9]+)/([0-9]+)/(DLX/|Logs/|WARCS/|)([^\/]+)$', self.file_path)
+            mby  = re.search('^/data/([0-9]+)/([0-9]+)/(DLX/|Logs/|WARCS/|)([^\/]+)$', self.file_path)
             if mby:
                 self.recognised = True
                 # In this case the job is the Target ID and the launch is the Instance ID:
@@ -110,18 +109,16 @@ class HdfsPathParser(object):
                 if self.kind == '':
                     self.kind = 'unknown'
                 self.launch_datetime = None
-
-        #
+                
+        # 
         # First NPLD era file layout /heritrix/output/(warcs|viral|logs)/<job>...
         #
-        elif re.search('^/heritrix/output/(warcs|viral|logs)/.*', self.file_path):
+        elif re.search('^/heritrix/output/(warcs|viral|logs)/.*', self.file_path ):
             self.collection = 'npld'
             # Original domain-crawl layout: kind/job (need to look for this first)
-            mdc = re.search('^/heritrix/output/(warcs|viral|logs)/(dc|crawl)[0-3]\-([0-9]{8}|[0-9]{14})/([^\/]+)$',
-                            self.file_path)
+            mdc  = re.search('^/heritrix/output/(warcs|viral|logs)/(dc|crawl)[0-3]\-([0-9]{8}|[0-9]{14})/([^\/]+)$', self.file_path)
             # original frequent crawl layout: kind/job/launch-id
-            mfc = re.search('^/heritrix/output/(warcs|viral|logs)/([a-z\-0-9]+)[-/]([0-9]{12,14})/([^\/]+)$',
-                            self.file_path)
+            mfc  = re.search('^/heritrix/output/(warcs|viral|logs)/([a-z\-0-9]+)[-/]([0-9]{12,14})/([^\/]+)$', self.file_path)
             if mdc:
                 self.recognised = True
                 self.stream = CrawlStream.domain
@@ -137,14 +134,13 @@ class HdfsPathParser(object):
                 (self.kind, self.job, self.launch, self.file_name) = mfc.groups()
                 self.launch_datetime = datetime.datetime.strptime(self.launch, "%Y%m%d%H%M%S")
 
-        #
+        # 
         # Second NPLD era file layout /heritrix/output/<job>/<launch>(warcs|viral|logs)/...
         #
-        elif re.search('^/heritrix/output/(dc2.+|frequent.*)/.*', self.file_path):
+        elif re.search('^/heritrix/output/(dc2.+|frequent.*)/.*', self.file_path ):
             self.collection = 'npld2'
             # 2019 frequent-crawl layout: job/launch-id/kind (same as DC now?
-            mfc2 = re.search('^/heritrix/output/([a-z\-0-9]+)/([0-9]{12,14})/(warcs|viral|logs)/([^\/]+)$',
-                             self.file_path)
+            mfc2 = re.search('^/heritrix/output/([a-z\-0-9]+)/([0-9]{12,14})/(warcs|viral|logs)/([^\/]+)$', self.file_path)
             if mfc2:
                 self.recognised = True
                 (self.job, self.launch, self.kind, self.file_name) = mfc2.groups()
@@ -157,26 +153,27 @@ class HdfsPathParser(object):
                 if len(self.launch) > 8:
                     self.launch = self.launch[0:8]
                 self.launch_datetime = datetime.datetime.strptime(self.launch, "%Y%m%d")
-
-        #
+                
+        # 
         # Files stored but intended for deletion.
         #
         elif self.file_path.startswith('/_to_be_deleted/'):
             self.recognised = True
             self.kind = 'to-be-deleted'
             self.file_name = os.path.basename(self.file_path)
-
+            
         #
         # If un-matched, default to classifying by top-level folder.
         #
         else:
             self.collection = self.file_path.split(os.path.sep)[1]
             self.file_name = os.path.basename(self.file_path)
+        
 
     def to_dict(self):
         d = dict()
         for f in self.field_names():
-            d[f] = str(getattr(self, f, ""))
+            d[f] = str(getattr(self,f,""))
         return d
 
 
@@ -196,5 +193,4 @@ class CrawlStream(enum.Enum):
 
     def __str__(self):
         return self.name
-
 
