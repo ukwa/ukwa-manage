@@ -8,6 +8,7 @@ import shutil
 import logging
 import datetime
 import subprocess
+import papermill as pm
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.webhdfs
@@ -155,7 +156,7 @@ class ListAllFilesOnHDFSToLocalFile(DatedStateFileTask):
 
 class ListParsedPaths(DatedStateFileTask):
     """
-    Identifies in the crawl output files and arranges them by crawl.
+    Identifies in the files on HDFS and classifies them appropriately
     """
     date = luigi.DateParameter(default=datetime.date.today())
 
@@ -168,23 +169,20 @@ class ListParsedPaths(DatedStateFileTask):
         return ListAllFilesOnHDFSToLocalFile(self.date)
 
     def run(self):
-        with self.output().open('w') as fout:
-            # Set up output file:
-            writer = csv.DictWriter(fout, fieldnames=HdfsPathParser.field_names())
-            writer.writeheader()
-            with self.input().open('r') as fin:
-                reader = csv.DictReader(fin, fieldnames=ListAllFilesOnHDFSToLocalFile.fieldnames())
-                for item in reader:
-                    # Skip the first line:
-                    if item['filesize'] == 'filesize':
-                        continue
-                    # Output the enriched version:
-                    p = HdfsPathParser(item)
-                    writer.writerow(p.to_dict())
-
+        # Change into this directory:
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        os.chdir(dir_path)
         # Record a dated flag file to show the work is done.
-        with self.dated_state_file().open('w') as fout:
-            fout.write(json.dumps("DONE"))
+        with self.dated_stage_file().temporary_path() as out_path:
+            # Perform this analysis by running the appropriate notebook:
+            pm.execute_notebook(
+                './hdfs_path_parser.ipynb',
+                out_path,
+                parameters = dict(
+                    file_list_csv = self.input().path
+                    parsed_files_csv = self.output().path
+                )
+            )
 
 
 class CopyFileListToHDFS(luigi.Task):
@@ -199,6 +197,30 @@ class CopyFileListToHDFS(luigi.Task):
 
     def output(self):
         return state_file(self.date,'hdfs','all-files-list.csv.gz', on_hdfs=True)
+
+    def run(self):
+        # Make a compressed version of the file:
+        gzip_local = '%s.gz' % self.input().path
+        with self.input().open('r') as f_in, gzip.open(gzip_local, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+
+        # Read the compressed file in and write it to HDFS:
+        with open(gzip_local,'rb') as f_in, self.output().open('w') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+
+
+class CopyParsedFileListToHDFS(luigi.Task):
+    """
+    This puts a copy of the file list onto HDFS
+    """
+    date = luigi.DateParameter(default=datetime.date.today())
+    task_namespace = "analyse.hdfs"
+
+    def requires(self):
+        return ListParsedPaths(self.date)
+
+    def output(self):
+        return state_file(self.date,'hdfs','parsed-files-list.csv.gz', on_hdfs=True)
 
     def run(self):
         # Make a compressed version of the file:
