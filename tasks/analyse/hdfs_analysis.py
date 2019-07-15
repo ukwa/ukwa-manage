@@ -15,7 +15,6 @@ import luigi.contrib.webhdfs
 from prometheus_client import CollectorRegistry, Gauge
 from tasks.common import state_file
 from lib.targets import CrawlPackageTarget, CrawlReportTarget, ReportTarget
-from tasks.analyse.hdfs_path_parser import HdfsPathParser, CrawlStream
 
 logger = logging.getLogger('luigi-interface')
 
@@ -40,8 +39,8 @@ class DatedStateFileTask(luigi.Task):
     def state_file(self, state_date, ext='csv'):
         return state_file(state_date,self.tag,'%s.%s' % (self.name, ext), on_hdfs=self.on_hdfs)
 
-    def dated_state_file(self):
-        return self.state_file(self.date, ext='json')
+    def dated_state_file(self, ext='json'):
+        return self.state_file(self.date, ext=ext)
 
     def complete(self):
         # Check the dated file exists
@@ -173,13 +172,13 @@ class ListParsedPaths(DatedStateFileTask):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         os.chdir(dir_path)
         # Record a dated flag file to show the work is done.
-        with self.dated_stage_file().temporary_path() as out_path:
+        with self.dated_state_file(ext='ipynb').temporary_path() as dated_out_path:
             # Perform this analysis by running the appropriate notebook:
             pm.execute_notebook(
                 './hdfs_path_parser.ipynb',
-                out_path,
+                dated_out_path,
                 parameters = dict(
-                    file_list_csv = self.input().path
+                    file_list_csv = self.input().path,
                     parsed_files_csv = self.output().path
                 )
             )
@@ -312,7 +311,7 @@ class ListByCrawl(luigi.Task):
     collections = {}
 
     def requires(self):
-        return ListAllFilesOnHDFSToLocalFile(self.date)
+        return ListParsedPaths(self.date)
 
     #def complete(self):
     #    return False
@@ -327,13 +326,11 @@ class ListByCrawl(luigi.Task):
         unparsed_dirs = set()
         with self.input().open('r') as fin:
             reader = csv.DictReader(fin, fieldnames=ListAllFilesOnHDFSToLocalFile.fieldnames())
-            for item in reader:
-                # Skip the first line:
-                if item['filesize'] == 'filesize':
-                    continue
+            # Skip the first line:
+            next(reader)
 
-                # Parse file paths and names:
-                p = HdfsPathParser(item)
+            for p in reader:
+                # Process this line:
                 collection = 'no-collection'
                 stream = 'no-stream'
 
@@ -355,11 +352,11 @@ class ListByCrawl(luigi.Task):
                     crawls[p.job][p.launch]['total_files'] = 0
 
                     # Determine the collection and store information at that level:
-                    if p.stream == CrawlStream.frequent or p.stream == CrawlStream.domain:
+                    if p.stream == 'frequent' or p.stream == 'domain':
                         collection = 'npld'
                         crawls[p.job][p.launch]['categories'] = ['legal-deposit crawls', '%s crawl' % p.job.split('-')[0]]
                         crawls[p.job][p.launch]['title'] = "NPLD %s crawl, launched %s" % (p.job, launched)
-                    elif p.stream == CrawlStream.selective:
+                    elif p.stream == 'selective':
                         collection = 'selective'
                         crawls[p.job][p.launch]['categories'] = ['selective crawls',
                                                                  '%s crawl' % p.job.split('-')[0]]
@@ -372,16 +369,16 @@ class ListByCrawl(luigi.Task):
                         'path': p.file_path,
                         'kind': p.kind,
                         'timestamp': p.timestamp_datetime.isoformat(),
-                        'filesize': item['filesize'],
-                        'modified_at': item['modified_at']
+                        'filesize': p['filesize'],
+                        'modified_at': p['modified_at']
                     }
                     crawls[p.job][p.launch]['files'].append(file_info)
                     crawls[p.job][p.launch]['total_files'] += 1
 
                 if not p.recognised:
                     #logger.warning("Could not parse: %s" % item['filename'])
-                    unparsed.append(item['filename'])
-                    unparsed_dirs.add(os.path.dirname(item['filename']))
+                    unparsed.append(p['filename'])
+                    unparsed_dirs.add(os.path.dirname(p['filename']))
 
                 # Also count up files and bytes:
                 if p.stream:
@@ -392,12 +389,12 @@ class ListByCrawl(luigi.Task):
                     self.collections[stream] = collection
                 # Totals for all files:
                 self.totals[stream]['all']['count'] += 1
-                self.totals[stream]['all']['bytes'] += int(item['filesize'])
+                self.totals[stream]['all']['bytes'] += int(p['filesize'])
                 # Totals broken down by kind:
                 if p.kind not in self.totals[stream]:
                     self.totals[stream][p.kind] = { 'count': 0, 'bytes': 0}
                 self.totals[stream][p.kind]['count'] += 1
-                self.totals[stream][p.kind]['bytes'] += int(item['filesize'])
+                self.totals[stream][p.kind]['bytes'] += int(p['filesize'])
 
         # Now emit a file for each, remembering the filenames as we go:
         filenames = []

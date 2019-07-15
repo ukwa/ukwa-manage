@@ -512,8 +512,6 @@ class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
 
         yield host, json.dumps(current_host_data)
 
-   
-
 
 class ListDeadSeeds(luigi.contrib.hadoop.JobTask):
 
