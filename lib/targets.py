@@ -1,10 +1,13 @@
 import os
+import logging
 import posixpath
 import luigi
 import luigi.contrib.hdfs
 from lib.webhdfs import WebHdfsPlainFormat
 from luigi.contrib.postgres import PostgresTarget
+from tasks.common import state_file
 
+logger = logging.getLogger('luigi-interface')
 
 """
 These classes define our standard concepts and Luigi Targets for events and outputs.
@@ -178,7 +181,7 @@ class AccessTaskDBTarget(PostgresTarget):
     def __init__(self, task_group, task_result):
         # Initialise:
         super(AccessTaskDBTarget, self).__init__(
-            host='access',
+            host=os.environ.get('ACCESS_TASKDB_HOST','access'),
             database='access_task_state',
             user='access',
             password='access',
@@ -187,4 +190,34 @@ class AccessTaskDBTarget(PostgresTarget):
         )
         # Set the actual DB table to use:
         self.marker_table = "access_task_state"
+
+
+class DatedStateFileTask(luigi.Task):
+    """
+    This specialisation of a general luigi Task support having two separate files - a small 'dated' overall task
+    status file that manages a much larger 'current' file that contains detailed data.
+    """
+
+    on_hdfs = False
+    output_ext = 'csv'
+    dated_ext = 'json'
+
+    def output(self):
+        return self._state_file('current', ext=self.output_ext)
+
+    def _state_file(self, state_date, ext):
+        return state_file(state_date,self.tag,'%s.%s' % (self.name, ext), on_hdfs=self.on_hdfs)
+
+    def dated_state_file(self):
+        return self._state_file(self.date, ext=self.dated_ext)
+
+    def complete(self):
+        # Check the dated file exists
+        dated_target = self.dated_state_file()
+        logger.info("Checking %s exists..." % dated_target.path)
+        exists = dated_target.exists()
+        if not exists:
+            return False
+        return True
+
 

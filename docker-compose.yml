@@ -2,32 +2,17 @@ version: "3.2"
 
 services:
 
-  # Kafka
-  kafka:
-    image: wurstmeister/kafka:1.1.0
-    ports:
-      - "9092:9092"
+  # PostgreSQL for storing task state
+  taskdb:
+    image: postgres:9.6.2
     environment:
-      KAFKA_ADVERTISED_HOST_NAME: kafka
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT://:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_NUM_RECOVERY_THREADS_PER_DATA_DIR: 10
-      LOG_RETENTION_HOURS: -1
-      LOG_RETENTION_BYTES: -1
-      NUM_PARTITIONS: 128
-      KAFKA_CREATE_TOPICS: "uris.tocrawl.fc:128:1 --config=compression.type=snappy,uris.crawled.fc:64:1 --config=compression.type=snappy,uris.discarded.fc:64:1 --config=compression.type=snappy"
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
-      LOG4J_LOGGER_KAFKA: WARN
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-
-  # Needs a Zookeeper too
-  # ----
-  zookeeper:
-    image: wurstmeister/zookeeper
+      - "POSTGRES_USER=access"
+      - "POSTGRES_PASSWORD=access"
+      - "POSTGRES_DB=access_task_state"
     ports:
-     - "2181:2181"
+      - "5432:5432"
+    volumes:
+      - taskdb-data:/var/lib/postgresql/data
 
   # Database to put tracking/stats/etc.
   trackdb:
@@ -43,4 +28,5 @@ services:
 
 volumes:
   trackdb-data:
+  taskdb-data:
 
