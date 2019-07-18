@@ -123,11 +123,12 @@ class UpdateWarcsDatabase(luigi.Task):
     """
     date = luigi.DateParameter(default=datetime.date.today())
     trackdb = luigi.Parameter(default='http://localhost:8983/solr/tracking')
-    clear_trackdb = luigi.BoolParameter(default=True)
+    clear_trackdb = luigi.BoolParameter(default=False) # Should only be use in testing as this will delete downstream state.
 
     task_namespace = 'analyse.hdfs'
 
     total = 0
+    batch_size = 5000
 
     def requires(self):
         return ListParsedPaths(self.date)
@@ -165,7 +166,7 @@ class UpdateWarcsDatabase(luigi.Task):
                 'layout_s': item['layout']
             }
             bunch.append(doc)
-            if len(bunch) >= 1000:
+            if len(bunch) >= self.batch_size:
                 self.total += len(bunch)
                 yield bunch
                 bunch = []
@@ -186,10 +187,16 @@ class UpdateWarcsDatabase(luigi.Task):
         # Go through the data and assemble the resources for each crawl:
         self.total = 0
         print("open up")
+        fields = {}
         with self.input().open('r') as fin:
             reader = csv.DictReader(fin)
             for bunch in self.entry_generator(reader):
-                solr.add(bunch)
+                # Generate the list of fields up update (avoid replacing whole document)
+                if len(fields) == 0:
+                    for key in bunch[0]:
+                        fields[key] = 'set'
+                # Perform the update:
+                solr.add(bunch, fieldUpdates=fields)
                 logger.info("Posted %i records..." % self.total)
 
         # And make it visible:
