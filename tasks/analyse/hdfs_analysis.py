@@ -159,7 +159,6 @@ class UpdateWarcsDatabase(luigi.Task):
                 'hdfs_group_s': item['group_id'],
                 'modified_at_dt': "%sZ" % item['modified_at'],
                 'timestamp_dt': "%sZ" % item['timestamp'],
-                'year_s': item['timestamp'][0:4],
                 'year_i': item['timestamp'][0:4],
                 'recognised_b': item['recognised'],
                 'kind_s': item['kind'],
