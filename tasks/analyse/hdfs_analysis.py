@@ -141,6 +141,9 @@ class UpdateWarcsDatabase(luigi.Task):
 
     def entry_generator(self, reader):
         refresh_date = datetime.datetime.utcnow().isoformat()
+        if not refresh_date.endswith('Z'):
+            refresh_date = "%sZ" % refresh_date
+
         bunch = []
         for item in reader:
             doc = {
