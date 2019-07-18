@@ -194,7 +194,8 @@ class UpdateWarcsDatabase(luigi.Task):
                 # Generate the list of fields up update (avoid replacing whole document)
                 if len(fields) == 0:
                     for key in bunch[0]:
-                        fields[key] = 'set'
+                        if key != 'id':
+                            fields[key] = 'set'
                 # Perform the update:
                 solr.add(bunch, fieldUpdates=fields)
                 logger.info("Posted %i records..." % self.total)
