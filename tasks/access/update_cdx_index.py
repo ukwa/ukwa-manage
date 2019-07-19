@@ -38,8 +38,9 @@ class CopyToHDFS(luigi.Task):
     def run(self):
         # Read the file in and write it to HDFS
         input = luigi.LocalTarget(path=self.input_file)
-        with input.open('r') as reader:
-            with self.output().open('w') as writer:
+        with input.open('rb') as reader:
+            with self.output().open('wb') as writer:
+                logger.warning("Copying % to HDFS %s" % (self.input().path, self.output().path))
                 # Copy the input to the output:
                 shutil.copyfileobj(reader, writer)
 
