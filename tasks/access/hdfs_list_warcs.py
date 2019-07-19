@@ -31,7 +31,7 @@ class ListWarcsForDateRange(luigi.Task):
     start_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(7))
     end_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
     stream = luigi.Parameter(default='frequent')
-    status_field = luigi.Parameter(default='cdx_status_ss')
+    status_field = luigi.Parameter(default='cdx_index_ss')
     status_value = luigi.Parameter(default='data-heritrix')
     limit = luigi.IntParameter(default=1000) # Max number of items to return.
 
@@ -53,7 +53,7 @@ class ListWarcsForDateRange(luigi.Task):
             self.status_value
         )
         logger.info("Query = %s" % q)
-        # Limit to no more that 1000 at once:
+        # Limit to no more than e.g. 1000 at once:
         params = {
             'rows': self.limit
         }
