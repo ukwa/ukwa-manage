@@ -38,11 +38,12 @@ class CopyToHDFS(luigi.Task):
     def run(self):
         # Read the file in and write it to HDFS
         input = luigi.LocalTarget(path=self.input_file)
-        with input.open('rb') as reader:
+        with input.open('r') as reader:
             with self.output().open('w') as writer:
                 logger.warning("Copying %s to HDFS %s" % (input.path, self.output().path))
-                # Copy the input to the output:
-                shutil.copyfileobj(reader, writer)
+                for line in reader.readlines():
+                    writer.write(line)
+                    writer.write('\n')
 
 
 class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
