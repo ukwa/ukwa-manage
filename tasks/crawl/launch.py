@@ -17,11 +17,14 @@ import datetime
 import time
 import json
 import luigi
-from tasks.ingest.w3act import CrawlFeed
-from tasks.common import logger, state_file, taskdb_target, CopyToTableInIngestDB
+import logging
+from tasks.crawl.w3act import CrawlFeed
+from lib.targets import IngestTaskDBTarget
 from prometheus_client import CollectorRegistry, Gauge
 from crawlstreams import enqueue
 
+
+logger = logging.getLogger('luigi-interface')
 
 class UpdateScopeFiles(luigi.Task):
     """
@@ -38,7 +41,7 @@ class UpdateScopeFiles(luigi.Task):
         }
 
     def output(self):
-        return taskdb_target('crawl', self.task_id, kind='ingest')
+        return IngestTaskDBTarget('crawl', self.task_id, kind='ingest')
 
     def run(self):
         # Load the targets:
@@ -89,7 +92,7 @@ class LaunchCrawls(luigi.Task):
         return CrawlFeed(frequency=self.frequency, date=self.date)
 
     def output(self):
-        return taskdb_target('crawl', self.task_id, kind='ingest')
+        return IngestTaskDBTarget('crawl', self.task_id, kind='ingest')
 
     def run(self):
         # Load the targets:
@@ -238,7 +241,7 @@ class LaunchCrawls(luigi.Task):
                 launch_timestamp = time.strftime("%Y%m%d%H%M%S", time.gmtime(time.mktime(now.timetuple())))
 
                 # And send launch message, always resetting any crawl quotas:
-                self.launcher.launch(seed, source, isSeed, forceFetch=True, sheets=sheets, reset_quotas=True, launch_ts=launch_timestamp)
+                self.launcher.launch(seed, source, isSeed, forceFetch=True, sheets=sheets, reset_quotas=True, launch_ts=launch_timestamp, inherit_launch_ts=False)
                 counter = counter + 1
                 self.i_launches = self.i_launches + 1
 
