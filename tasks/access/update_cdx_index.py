@@ -150,7 +150,7 @@ class CheckCdxIndexForWARC(luigi.Task):
                 self.records += 1
 
                 # Only look at valid response records:
-                if record.rec_type == 'response' and b'application/http' in record.content_type:
+                if record.rec_type == 'response' and 'application/http' in record.content_type:
                     record_url = record.rec_headers.get_header('WARC-Target-URI')
                     # Skip ridiculously long URIs
                     if len(record_url) > 2000:
