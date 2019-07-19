@@ -8,7 +8,7 @@ import xml.dom.minidom
 from xml.parsers.expat import ExpatError
 import random
 import warcio
-import urllib
+from urllib.request import urlopen
 from urllib.parse import quote_plus, urlparse
 import luigi
 import luigi.contrib.hdfs
@@ -203,7 +203,7 @@ class CheckCdxIndexForWARC(luigi.Task):
                 q = "type:urlquery url:" + quote_plus(url) + (" limit:%i offset:%i" % (batch, offset))
                 cdx_query_url = "%s?q=%s" % (self.cdx_server, quote_plus(q))
                 logger.info("Getting %s" % cdx_query_url)
-                f = urllib.urlopen(cdx_query_url)
+                f = urlopen(cdx_query_url)
                 content = f.read()
                 f.close()
                 # Grab the capture dates:
