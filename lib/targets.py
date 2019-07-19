@@ -236,10 +236,10 @@ class TrackingDBStatusField(luigi.Target):
             value (str): The value the field should hold to indicate task completion
             trackdb (str): URL of the Solr tracking database
         """
-        self.trackdb = trackdb or self.DEFAULT_TRACKDB
         self.doc_id = doc_id
         self.field = field
         self.value = value
+        self.trackdb = trackdb or self.DEFAULT_TRACKDB
 
         # Setup connection:
         self.solr = pysolr.Solr(self.trackdb, always_commit=True)

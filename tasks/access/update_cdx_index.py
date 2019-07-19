@@ -1,7 +1,6 @@
 import os
 import re
 import json
-import shutil
 import logging
 import datetime
 import xml.dom.minidom
@@ -9,17 +8,14 @@ from xml.parsers.expat import ExpatError
 import random
 import warcio
 import urllib
-import surt
-from tasks.crawl.w3act import CrawlFeed
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
-from tasks.access.hdfs_list_warcs import ListWarcsForDate, NoWARCsToday
+from tasks.access.hdfs_list_warcs import ListWarcsForDateRange, NoWARCsToday
 from tasks.common import state_file, CopyToTableInDB
 from lib.webhdfs import WebHdfsPlainFormat, webhdfs
-from lib.targets import AccessTaskDBTarget
-from tasks.analyse.hdfs_analysis import CrawlStream
+from lib.targets import AccessTaskDBTarget, TrackingDBStatusField
 from prometheus_client import CollectorRegistry, Gauge
 
 logger = logging.getLogger('luigi-interface')
@@ -27,13 +23,7 @@ logger = logging.getLogger('luigi-interface')
 
 class CopyToHDFS(luigi.Task):
     """
-    This task lists all files on HDFS (skipping directories).
-
-    As this can be a very large list, it avoids reading it all into memory. It
-    parses each line, and creates a JSON item for each, outputting the result in
-    [JSON Lines format](http://jsonlines.org/).
-
-    It set up to run once a day, as input to downstream reporting or analysis processes.
+    This task takes a list of files and copies it up to HDFS to be an input for a task.
     """
     input_file = luigi.Parameter()
     tag = luigi.Parameter()
@@ -125,24 +115,26 @@ class TellingReader():
         return self.pos
 
 
-class CheckCdxIndexForWARC(CopyToTableInDB):
+class CheckCdxIndexForWARC(luigi.Task):
     input_file = luigi.Parameter()
     sampling_rate = luigi.IntParameter(default=500)
     cdx_server = luigi.Parameter(default='http://bigcdx:8080/data-heritrix')
     max_records_to_check = luigi.IntParameter(default=10)
     task_namespace = "access.index"
 
-    table = 'index_result_table'
-    columns = (('warc_path', 'text'),
-               ('records_checked', 'int'),
-               ('records_found', 'float'))
-
     count = 0
     tries = 0
     hits = 0
     records = 0
 
-    def rows(self):
+    def output(self):
+        # Set up the qualified document ID:
+        doc_id = "hdfs://hdfs:54310%s" % self.input_file
+        # Get the cdx index name our of the server path:
+        cdx_index = urlparse(self.cdx_server).path[1:]
+        return TrackingDBStatusField(doc_id=doc_id, field='cdx_index_ss', value=cdx_index)
+
+    def run(self):
         hdfs_file = luigi.contrib.hdfs.HdfsTarget(path=self.input_file, format=WebHdfsPlainFormat())
         logger.info("Opening " + hdfs_file.path)
         #fin = hdfs_file.open('r')
@@ -194,7 +186,8 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
 
         # Otherwise, the hits and tries should match (n.b. can be zero if there are no indexable records in this WARC):
         if self.hits == self.tries:
-            yield self.input_file, self.tries, self.hits
+            # Record the task complete successfully:
+            self.output().touch()
         else:
             raise Exception("For %s, only %i of %i records checked are in the CDX index!"%(self.input_file, self.hits, self.tries))
 
@@ -232,6 +225,14 @@ class CheckCdxIndexForWARC(CopyToTableInDB):
 
         return capture_dates
 
+    def get_metrics(self, registry):
+        # type: (CollectorRegistry) -> None
+
+        g = Gauge('ukwa_task_percentage_urls_cdx_verified',
+                  'Percentage of URLs verified as present in the CDX server',
+                  registry=registry)
+        g.set(100.0 * self.hits/self.tries)
+
 
 class CheckCdxIndex(luigi.WrapperTask):
     input_file = luigi.Parameter()
@@ -268,13 +269,20 @@ class CheckCdxIndex(luigi.WrapperTask):
 
 
 class CdxIndexAndVerify(luigi.Task):
-    target_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
+    start_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
+    end_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
     stream = luigi.Parameter(default='frequent')
     verify_only = luigi.BoolParameter(default=False)
     task_namespace = "access.index"
 
     def requires(self):
-        return ListWarcsForDate(target_date=self.target_date, stream=CrawlStream[self.stream])
+        return ListWarcsForDateRange(
+            start_date=self.start_date,
+            end_date=self.end_date,
+            stream=self.stream,
+            status_field='cdx_index_ss',
+            status_value='data-heritrix'
+        )
 
     def output(self):
         if isinstance(self.input(), NoWARCsToday):
@@ -304,187 +312,6 @@ class CdxIndexAndVerify(luigi.Task):
                 # Sometimes tasks get re-run...
                 if not self.output().exists():
                     self.output().touch()
-
-
-class GenerateAccessWhitelist(luigi.Task):
-    """
-    Gets the open-access whitelist needed for full-text indexing.
-    """
-    task_namespace = 'access'
-    date = luigi.DateParameter(default=datetime.date.today())
-
-    all_surts = set()
-    all_surts_and_urls = list()
-
-    RE_NONCHARS = re.compile(r"""
-    [^	# search for any characters that aren't those below
-    \w
-    :
-    /
-    \.
-    \-
-    =
-    ?
-    &
-    ~
-    %
-    +
-    @
-    ,
-    ;
-    ]
-    """, re.VERBOSE)
-    RE_SCHEME = re.compile('https?://')
-    #allSurtsFile = '/opt/wayback-whitelist.txt'
-    #w3actURLsFile = '/home/tomcat/oukwa-wayback-whitelist/w3act_urls'
-
-    def output(self):
-        return {
-            'owb': state_file(self.date,'access-data', 'access-whitelist.txt'),
-            'pywb': state_file(self.date,'access-data', 'access-whitelist.aclj')
-        }
-
-    def requires(self):
-        return CrawlFeed('all','oa')
-
-    def generate_surt(self, url):
-        if self.RE_NONCHARS.search(url):
-            logger.warn("Questionable characters found in URL [%s]" % url)
-            return None
-
-        surtVal = surt.surt(url)
-
-        #### WA: ensure SURT has scheme of original URL ------------
-        # line_scheme = RE_SCHEME.match(line)           # would allow http and https (and any others)
-        line_scheme = 'http://'  # for wayback, all schemes need to be only http
-        surt_scheme = self.RE_SCHEME.match(surtVal)
-
-        if line_scheme and not surt_scheme:
-            if re.match(r'\(', surtVal):
-                # surtVal = line_scheme.group(0) + surtVal
-                surtVal = line_scheme + surtVal
-                logger.debug("Added scheme [%s] to surt [%s]" % (line_scheme, surtVal))
-            else:
-                # surtVal = line_scheme.group(0) + '(' + surtVal
-                surtVal = line_scheme + '(' + surtVal
-                # logger.debug("Added scheme [%s] and ( to surt [%s]" % (line_scheme, surtVal))
-
-        surtVal = re.sub(r'\)/$', ',', surtVal)
-
-        return surtVal
-
-    def surts_for_cdns(self):
-        '''
-        This adds in dome hard-coded SURTs that correspond to common CDNs.
-
-        :return:
-        '''
-        cdn_surts = [
-            'http://(com,wp,s0',
-            'http://(com,wp,s1',
-            'http://(com,wp,s2',
-            'http://(com,wordpress,files,',
-            'http://(com,twimg,',
-            'http://(com,blogspot,bp,',
-            'http://(com,blogblog,img1',
-            'http://(com,blogblog,img2',
-            'http://(com,squarespace,static)',
-            'http://(net,typekit,use)',
-            'http://(com,blogger,www)/img/',
-            'http://(com,blogger,www)/static/',
-            'http://(com,blogger,www)/dyn-css/',
-            'http://(net,cloudfront,',
-            'http://(com,googleusercontent,'
-        ]
-        # Add them in:
-        for cdn_surt in cdn_surts:
-            self.all_surts.add(cdn_surt)
-            self.all_surts_and_urls.append({
-                'surt': cdn_surt,
-                'url': cdn_surt
-            })
-
-        logger.info("%s surts for CDNs added" % len(cdn_surts))
-
-    def surts_from_w3act(self):
-        # Surts from ACT:
-        with self.input().open() as f:
-            targets = json.load(f)
-        for target in targets:
-            for seed in target['seeds']:
-                act_surt = self.generate_surt(seed)
-                if act_surt is not None:
-                    self.all_surts.add(act_surt)
-                    self.all_surts_and_urls.append({
-                        'surt': act_surt,
-                        'url': seed
-                    })
-                else:
-                    logger.warning("Got no SURT from %s" % seed)
-
-    def run(self):
-        # collate surts
-        self.surts_for_cdns()
-        self.surts_from_w3act()
-
-        # And write out the SURTs:
-        with self.output()['owb'].open('w') as f:
-            for surt in sorted(self.all_surts):
-                f.write("%s\n" % surt)
-        # Also in pywb format:
-        with self.output()['pywb'].open('w') as f:
-            pywb_rules = set()
-            for item in self.all_surts_and_urls:
-                rule = {
-                    'access': 'allow',
-                    'url': item['url']
-                }
-                surt = item['surt']
-                surt = surt.replace('http://(', '', 1)
-                surt = surt.rstrip(',') # Strip any trailing comma
-                pywb_rules.add("%s - %s" % (surt, json.dumps(rule)))
-            for rule in sorted(pywb_rules, reverse=True):
-                f.write("%s\n" % rule)
-
-    def get_metrics(self,registry):
-        # type: (CollectorRegistry) -> None
-
-        g = Gauge('ukwa_url_count',
-                  'Number of URLs.',
-                  labelnames=['set'], registry=registry)
-        g.labels(set='ukwa-oa').set(len(self.all_surts))
-
-
-class UpdateAccessWhitelist(luigi.Task):
-    """
-    This takes the updated access list and puts it in the right place.
-    """
-    task_namespace = 'access'
-    date = luigi.DateParameter(default=datetime.date.today())
-    wb_oa_whitelist = luigi.Parameter(default='/root/wayback-config/open-access-whitelist.txt')
-    pywb_oa_whitelist = luigi.Parameter(default='/root/wayback-config/acl/allows.aclj')
-
-    def requires(self):
-        return GenerateAccessWhitelist(self.date)
-
-    def output(self):
-        return state_file(self.date,'access-data', 'access-whitelist-updated.txt')
-
-    def run(self):
-        # Copy the file to the deployment location (atomically):
-        temp_path = "%s.tmp" % self.wb_oa_whitelist
-        shutil.copy(self.input()['owb'].path, temp_path)
-        shutil.move(temp_path, self.wb_oa_whitelist)
-
-        # Copy the file to the deployment location (atomically):
-        temp_path = "%s.tmp" % self.pywb_oa_whitelist
-        shutil.copy(self.input()['pywb'].path, temp_path)
-        shutil.move(temp_path, self.pywb_oa_whitelist)
-
-        # Note that we've completed this work successfully
-        with self.output().open('w') as f:
-            f.write('Written SURTS from %s to %s' % (self.input()['pywb'].path, self.pywb_oa_whitelist))
-            f.write('Written SURTS from %s to %s' % (self.input()['owb'].path, self.wb_oa_whitelist))
 
 
 if __name__ == '__main__':
