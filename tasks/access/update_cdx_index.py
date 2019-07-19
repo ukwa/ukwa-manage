@@ -33,7 +33,8 @@ class CopyToHDFS(luigi.Task):
 
     def output(self):
         full_path = os.path.join(self.tag, os.path.basename(self.input_file))
-        return luigi.contrib.hdfs.HdfsTarget(full_path, format=WebHdfsPlainFormat(use_gzip=False))
+#        return luigi.contrib.hdfs.HdfsTarget(full_path, format=WebHdfsPlainFormat(use_gzip=False))
+        return luigi.contrib.hdfs.HdfsTarget(full_path, format=luigi.contrib.hdfs.hdfs_format.PlainFormat)
 
     def run(self):
         # Read the file in and write it to HDFS
