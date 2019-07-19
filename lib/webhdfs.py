@@ -163,7 +163,7 @@ class WebHdfsAtomicWritePipe(object):
             self._temp = tempfile.NamedTemporaryFile(delete=False)
             self._writer = gzip.GzipFile(fileobj=self._temp, mode='wb')
         else:
-            self._writer = self._fs.client.write(self._tmp_path, overwrite=True)
+            self._writer = self._fs.client.write(self._tmp_path, overwrite=True, encoding='utf-8')
 
         self.closed = False
 
