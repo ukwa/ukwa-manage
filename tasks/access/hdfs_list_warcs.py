@@ -38,7 +38,7 @@ class ListWarcsForDateRange(luigi.Task):
     task_namespace = 'access.list'
 
     def output(self):
-        return TaskTarget('warc-file-list','to-%s.json' % self.end_date, self.start_date)
+        return TaskTarget('warc-file-list','to-%s.txt' % self.end_date, self.start_date)
 
 
     def run(self):
