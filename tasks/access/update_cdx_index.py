@@ -12,7 +12,7 @@ from urllib.parse import quote_plus, urlparse
 import luigi
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
-from tasks.access.hdfs_list_warcs import ListWarcsForDateRange, NoWARCsToday
+from tasks.access.hdfs_list_warcs import ListWarcsForDateRange
 from tasks.common import state_file, CopyToTableInDB
 from lib.webhdfs import WebHdfsPlainFormat, webhdfs
 from lib.targets import AccessTaskDBTarget, TrackingDBStatusField
@@ -252,7 +252,6 @@ class CheckCdxIndex(luigi.WrapperTask):
                 self.checked_total += 1
 
     def output(self):
-        # FIXME add interposed target to update shared WARC DB
         return AccessTaskDBTarget("warc_set_verified","%s INDEXED OK" % self.input_file)
 
     def run(self):
@@ -269,7 +268,7 @@ class CheckCdxIndex(luigi.WrapperTask):
 
 
 class CdxIndexAndVerify(luigi.Task):
-    start_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
+    start_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(7))
     end_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
     stream = luigi.Parameter(default='frequent')
     verify_only = luigi.BoolParameter(default=False)
@@ -281,20 +280,20 @@ class CdxIndexAndVerify(luigi.Task):
             end_date=self.end_date,
             stream=self.stream,
             status_field='cdx_index_ss',
-            status_value='data-heritrix'
+            status_value='data-heritrix',
+            limit=1000
         )
 
     def output(self):
-        if isinstance(self.input(), NoWARCsToday):
-            return AccessTaskDBTarget("warc_set_indexed_and_verified", "0 WARCs on %s OK" % self.target_date)
-        else:
-            logger.info("Checking is complete: %s" % self.input().path)
-            return AccessTaskDBTarget("warc_set_indexed_and_verified","%s OK" % self.input().path)
+        logger.info("Checking is complete: %s" % self.input().path)
+        return AccessTaskDBTarget("warc_set_indexed_and_verified","%s OK" % self.input().path)
 
     def run(self):
+        # Check the file size
+        st = os.stat(self.input().path)
         # Some days have no data, so we can skip them:
-        if isinstance(self.input(), NoWARCsToday):
-            logger.info("No WARCs found for %s" % self.target_date)
+        if st.st_size == 0:
+            logger.info("No WARCs found for %s" % self.task_id)
             self.output().touch()
         else:
             # Make performing the actual indexing optional. Set --verify-only to skip the indexing step:
@@ -318,7 +317,6 @@ if __name__ == '__main__':
     import logging
 
     logging.getLogger().setLevel(logging.INFO)
-    luigi.interface.setup_interface_logging()
 
     luigi.run(['CdxIndexAndVerify', '--workers', '10'])
 

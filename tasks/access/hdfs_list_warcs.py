@@ -27,6 +27,7 @@ Tasks relating to using the list of HDFS content to update access systems.
 class ListWarcsForDateRange(luigi.Task):
     """
     Lists the WARCS with datestamps corresponding to a particular day. Defaults to last week until yesterday.
+    Dates are inclusive, so setting start and end to the same date == one day
     """
     start_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(7))
     end_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
