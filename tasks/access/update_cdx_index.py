@@ -43,7 +43,6 @@ class CopyToHDFS(luigi.Task):
                 logger.warning("Copying %s to HDFS %s" % (input.path, self.output().path))
                 for line in reader.readlines():
                     writer.write(line)
-                    writer.write('\n')
 
 
 class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
@@ -249,7 +248,7 @@ class CheckCdxIndex(luigi.WrapperTask):
         with open(str(self.input_file)) as f_in:
             for item in f_in.readlines():
                 #logger.info("Found %s" % item)
-                yield CheckCdxIndexForWARC(item)
+                yield CheckCdxIndexForWARC(item.strip())
                 self.checked_total += 1
 
     def output(self):
