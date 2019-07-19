@@ -29,7 +29,7 @@ class ListWarcsForDateRange(luigi.Task):
     Lists the WARCS with datestamps corresponding to a particular day. Defaults to yesterday.
     """
     start_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
-    end_date = luigi.DateParameter(default=datetime.date.today())
+    end_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
     stream = luigi.Parameter(default='frequent')
     status_field = luigi.Parameter(default='cdx_status_ss')
     status_value = luigi.Parameter(default='data-heritrix')
@@ -41,9 +41,10 @@ class ListWarcsForDateRange(luigi.Task):
 
 
     def run(self):
+
         # Query
         s = pysolr.Solr(url=TrackingDBStatusField.DEFAULT_TRACKDB)
-        q='stream_s:"%s" AND timestamp_dt:[%sZ TO %sZ] AND -%s:"%s"' % (
+        q='stream_s:"%s" AND timestamp_dt:[%sT00:00:00Z TO %sT23:59:59Z] AND -%s:"%s"' % (
             self.stream,
             self.start_date.isoformat(),
             self.end_date.isoformat(),
