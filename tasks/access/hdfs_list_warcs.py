@@ -26,13 +26,14 @@ Tasks relating to using the list of HDFS content to update access systems.
 
 class ListWarcsForDateRange(luigi.Task):
     """
-    Lists the WARCS with datestamps corresponding to a particular day. Defaults to yesterday.
+    Lists the WARCS with datestamps corresponding to a particular day. Defaults to last week until yesterday.
     """
-    start_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
+    start_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(7))
     end_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
     stream = luigi.Parameter(default='frequent')
     status_field = luigi.Parameter(default='cdx_status_ss')
     status_value = luigi.Parameter(default='data-heritrix')
+    limit = luigi.IntParameter(default=1000) # Max number of items to return.
 
     task_namespace = 'access.list'
 
@@ -52,7 +53,11 @@ class ListWarcsForDateRange(luigi.Task):
             self.status_value
         )
         logger.info("Query = %s" % q)
-        result = s.search(q=q)
+        # Limit to no more that 1000 at once:
+        params = {
+            'rows': self.limit
+        }
+        result = s.search(q=q, **params)
 
         # Write out:
         with self.output().open('w') as f:
