@@ -244,10 +244,9 @@ class CheckCdxIndex(luigi.WrapperTask):
     def requires(self):
         # For each input file, open it up and get some URLs and timestamps.
         with open(str(self.input_file)) as f_in:
-            items = json.load(f_in)
-            for item in items:
+            for item in f_in.readlines():
                 #logger.info("Found %s" % item)
-                yield CheckCdxIndexForWARC(item['filename'])
+                yield CheckCdxIndexForWARC(item)
                 self.checked_total += 1
 
     def output(self):
