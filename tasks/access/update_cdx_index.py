@@ -150,7 +150,7 @@ class CheckCdxIndexForWARC(luigi.Task):
                 self.records += 1
 
                 # Only look at valid response records:
-                if record.rec_type == 'response' and record.content_type and record.content_type.startswith(b'application/http'):
+                if record.rec_type == 'response' and b'application/http' in record.content_type:
                     record_url = record.rec_headers.get_header('WARC-Target-URI')
                     # Skip ridiculously long URIs
                     if len(record_url) > 2000:
@@ -230,7 +230,8 @@ class CheckCdxIndexForWARC(luigi.Task):
         g = Gauge('ukwa_task_percentage_urls_cdx_verified',
                   'Percentage of URLs verified as present in the CDX server',
                   registry=registry)
-        g.set(100.0 * self.hits/self.tries)
+        if self.tries > 0:
+            g.set(100.0 * self.hits/self.tries)
 
 
 class CheckCdxIndex(luigi.WrapperTask):
