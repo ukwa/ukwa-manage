@@ -318,7 +318,7 @@ if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.INFO)
 
-    luigi.run(['CdxIndexAndVerify', '--workers', '10'])
+    luigi.run(['access.index.CdxIndexAndVerify', '--workers', '5'])
 
 #    very = CdxIndexAndVerify(
 #        date=datetime.datetime.strptime("2018-02-16","%Y-%m-%d"),
