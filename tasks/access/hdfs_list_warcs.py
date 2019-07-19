@@ -57,7 +57,7 @@ class ListWarcsForDateRange(luigi.Task):
         # Write out:
         with self.output().open('w') as f:
             for doc in result.docs:
-                f.write(json.dumps(doc))
+                f.write(doc['file_path_s'])
                 f.write('\n')
 
 
