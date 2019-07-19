@@ -44,7 +44,7 @@ class ListWarcsForDateRange(luigi.Task):
 
         # Query
         s = pysolr.Solr(url=TrackingDBStatusField.DEFAULT_TRACKDB)
-        q='stream_s:"%s" AND timestamp_dt:[%sT00:00:00Z TO %sT23:59:59Z] AND -%s:"%s"' % (
+        q='kind_s:"warcs" AND stream_s:"%s" AND timestamp_dt:[%sT00:00:00Z TO %sT23:59:59Z] AND -%s:"%s"' % (
             self.stream,
             self.start_date.isoformat(),
             self.end_date.isoformat(),
