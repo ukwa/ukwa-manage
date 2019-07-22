@@ -36,16 +36,20 @@ class ListWarcsForDateRange(luigi.Task):
     status_value = luigi.Parameter(default='data-heritrix')
     limit = luigi.IntParameter(default=1000) # Max number of items to return.
 
+    tracking_db_url = TrackingDBStatusField.DEFAULT_TRACKDB
+
     task_namespace = 'access.list'
+
+    def requires(self):
+        return UpdateWarcsDatabase(trackdb=self.tracking_db_url)
 
     def output(self):
         return TaskTarget('warc-file-list','to-%s.txt' % self.end_date, self.start_date)
 
-
     def run(self):
 
         # Query
-        s = pysolr.Solr(url=TrackingDBStatusField.DEFAULT_TRACKDB)
+        s = pysolr.Solr(url=self.tracking_db_url)
         q='kind_s:"warcs" AND stream_s:"%s" AND timestamp_dt:[%sT00:00:00Z TO %sT23:59:59Z] AND -%s:"%s"' % (
             self.stream,
             self.start_date.isoformat(),
