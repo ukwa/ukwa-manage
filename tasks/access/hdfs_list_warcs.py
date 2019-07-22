@@ -34,17 +34,17 @@ class ListWarcsForDateRange(luigi.Task):
     stream = luigi.Parameter(default='frequent')
     status_field = luigi.Parameter(default='cdx_index_ss')
     status_value = luigi.Parameter(default='data-heritrix')
-    limit = luigi.IntParameter(default=1000) # Max number of items to return.
-
-    tracking_db_url = TrackingDBStatusField.DEFAULT_TRACKDB
+    # Max number of items to return.
+    limit = luigi.IntParameter(default=1000)
+    # Specify the Tracking DB to use to manage state:
+    tracking_db_url = luigi.Parameter(default=TrackingDBStatusField.DEFAULT_TRACKDB)
+    # Specify a fine-grained run date so we can get fresh results
+    run_date = luigi.DateMinuteParameter(default=datetime.datetime.now())
 
     task_namespace = 'access.list'
 
     def requires(self):
         return UpdateWarcsDatabase(trackdb=self.tracking_db_url)
-
-    def output(self):
-        return TaskTarget('warc-file-list','to-%s.txt' % self.end_date, self.start_date)
 
     def run(self):
 
@@ -69,6 +69,10 @@ class ListWarcsForDateRange(luigi.Task):
             for doc in result.docs:
                 f.write(doc['file_path_s'])
                 f.write('\n')
+
+    def output(self):
+        # Use the run_date as part of the output to make sure it's fresh.
+        return TaskTarget('warc-file-list','-to-%s-as-of-%s.txt' % (self.start_date, self.run_date), self.end_date)
 
 
 if __name__ == '__main__':

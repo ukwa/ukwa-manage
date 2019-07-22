@@ -31,10 +31,6 @@ class CopyToHDFS(luigi.Task):
     date = luigi.DateParameter(default=datetime.date.today())
     task_namespace = "access.hdfs"
 
-    def output(self):
-        full_path = os.path.join(self.tag, os.path.basename(self.input_file))
-        return luigi.contrib.hdfs.HdfsTarget(full_path, format=WebHdfsPlainFormat(use_gzip=False))
-
     def run(self):
         # Read the file in and write it to HDFS
         input = luigi.LocalTarget(path=self.input_file)
@@ -44,10 +40,14 @@ class CopyToHDFS(luigi.Task):
                 for line in reader.readlines():
                     writer.write(line)
 
+    def output(self):
+        full_path = os.path.join(self.tag, os.path.basename(self.input_file))
+        return luigi.contrib.hdfs.HdfsTarget(full_path, format=WebHdfsPlainFormat(use_gzip=False))
+
 
 class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
     input_file = luigi.Parameter()
-    cdx_server = luigi.Parameter(default='http://bigcdx:8080/data-heritrix')
+    cdx_service = luigi.Parameter()
     # This is used to add a timestamp to the output file, so this task can always be re-run:
     timestamp = luigi.DateSecondParameter(default=datetime.datetime.now())
     meta_flag = ''
@@ -55,12 +55,6 @@ class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
     task_namespace = "access.index"
 
     num_reducers = 5
-
-    def output(self):
-        timestamp = self.timestamp.isoformat()
-        timestamp = timestamp.replace(':','-')
-        file_prefix = os.path.splitext(os.path.basename(self.input_file))[0]
-        return state_file(self.timestamp, 'warcs2cdx', '%s-submitted-%s.txt' % (file_prefix, timestamp), on_hdfs=True )
 
     def requires(self):
         return CopyToHDFS(input_file = self.input_file, tag="warcs2cdx")
@@ -90,9 +84,15 @@ class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
             "-w",
             "-h",
             "-m", self.meta_flag,
-            "-t", self.cdx_server,
+            "-t", self.cdx_service,
             "-c", "CDX N b a m s k r M S V g"
         ]
+
+    def output(self):
+        timestamp = self.timestamp.isoformat()
+        timestamp = timestamp.replace(':','-')
+        file_prefix = os.path.splitext(os.path.basename(self.input_file))[0]
+        return state_file(self.timestamp, 'warcs2cdx', '%s-submitted-%s.txt' % (file_prefix, timestamp), on_hdfs=True )
 
 
 # Special reader to read the input stream and yield WARC records:
@@ -117,8 +117,8 @@ class TellingReader():
 
 class CheckCdxIndexForWARC(luigi.Task):
     input_file = luigi.Parameter()
+    cdx_service = luigi.Parameter()
     sampling_rate = luigi.IntParameter(default=500)
-    cdx_server = luigi.Parameter(default='http://bigcdx:8080/data-heritrix')
     max_records_to_check = luigi.IntParameter(default=10)
     task_namespace = "access.index"
 
@@ -126,13 +126,6 @@ class CheckCdxIndexForWARC(luigi.Task):
     tries = 0
     hits = 0
     records = 0
-
-    def output(self):
-        # Set up the qualified document ID:
-        doc_id = "hdfs://hdfs:54310%s" % self.input_file
-        # Get the cdx index name our of the server path:
-        cdx_index = urlparse(self.cdx_server).path[1:]
-        return TrackingDBStatusField(doc_id=doc_id, field='cdx_index_ss', value=cdx_index)
 
     def run(self):
         hdfs_file = luigi.contrib.hdfs.HdfsTarget(path=self.input_file, format=WebHdfsPlainFormat())
@@ -202,7 +195,7 @@ class CheckCdxIndexForWARC(luigi.Task):
             try:
                 # Get a batch:
                 q = "type:urlquery url:" + quote_plus(url) + (" limit:%i offset:%i" % (batch, offset))
-                cdx_query_url = "%s?q=%s" % (self.cdx_server, quote_plus(q))
+                cdx_query_url = "%s?q=%s" % (self.cdx_service, quote_plus(q))
                 logger.info("Getting %s" % cdx_query_url)
                 f = urlopen(cdx_query_url)
                 content = f.read()
@@ -234,11 +227,18 @@ class CheckCdxIndexForWARC(luigi.Task):
         if self.tries > 0:
             g.set(100.0 * self.hits/self.tries)
 
+    def output(self):
+        # Set up the qualified document ID:
+        doc_id = "hdfs://hdfs:54310%s" % self.input_file
+        # Get the cdx index name our of the server path:
+        cdx_index = urlparse(self.cdx_service).path[1:]
+        return TrackingDBStatusField(doc_id=doc_id, field='cdx_index_ss', value=cdx_index)
+
 
 class CheckCdxIndex(luigi.WrapperTask):
     input_file = luigi.Parameter()
+    cdx_service = luigi.Parameter()
     sampling_rate = luigi.IntParameter(default=500)
-    cdx_server = luigi.Parameter(default='http://bigcdx:8080/data-heritrix')
     task_namespace = "access.index"
 
     checked_total = 0
@@ -248,11 +248,8 @@ class CheckCdxIndex(luigi.WrapperTask):
         with open(str(self.input_file)) as f_in:
             for item in f_in.readlines():
                 #logger.info("Found %s" % item)
-                yield CheckCdxIndexForWARC(item.strip())
+                yield CheckCdxIndexForWARC(input_file=item.strip(), cdx_service=self.cdx_service)
                 self.checked_total += 1
-
-    def output(self):
-        return AccessTaskDBTarget("warc_set_verified","%s INDEXED OK" % self.input_file)
 
     def run(self):
         # If all the requirements are there, the whole set must be fine.
@@ -266,44 +263,55 @@ class CheckCdxIndex(luigi.WrapperTask):
                   registry=registry)
         g.set(self.checked_total)
 
+    def output(self):
+        return AccessTaskDBTarget("warc_set_verified","%s INDEXED OK" % self.input_file)
+
 
 class CdxIndexAndVerify(luigi.Task):
     start_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(7))
     end_date = luigi.DateParameter(default=datetime.date.today() - datetime.timedelta(1))
     stream = luigi.Parameter(default='frequent')
     verify_only = luigi.BoolParameter(default=False)
+    cdx_service = luigi.Parameter(default=
+                                  os.environ.get('CDX_SERVICE_URL', 'http://bigcdx:8080/data-heritrix'))
+    # Specify a Tracking DB to manage state:
+    tracking_db_url = luigi.Parameter(default=
+                                      os.environ.get('TRACKING_DB_SOLR_URL', 'http://localhost:8983/solr/tracking'))
+    # Specify a fine-grained run date so we can get fresh results
+    run_date = luigi.DateMinuteParameter(default=datetime.datetime.now())
+
     task_namespace = "access.index"
 
     def requires(self):
+        # Extract just the name of the index itself:
+        cdx_index_name= urlparse(self.cdx_service).path[1:]
+        # Use this as a flag in the tracking DB:
         return ListWarcsForDateRange(
             start_date=self.start_date,
             end_date=self.end_date,
             stream=self.stream,
-            status_field='cdx_index_ss',
-            status_value='data-heritrix',
-            limit=1000
+            status_field='cdx_index_ss', # Field used to indicate indexing status
+            status_value=cdx_index_name,
+            limit=1000,
+            tracking_db_url=self.tracking_db_url
         )
-
-    def output(self):
-        logger.info("Checking is complete: %s" % self.input().path)
-        return AccessTaskDBTarget("warc_set_indexed_and_verified","%s OK" % self.input().path)
 
     def run(self):
         # Check the file size
         st = os.stat(self.input().path)
         # Some days have no data, so we can skip them:
         if st.st_size == 0:
-            logger.info("No WARCs found for %s" % self.task_id)
+            logger.info("No unprocessed WARCs found for %s" % self.task_id)
             self.output().touch()
         else:
             # Make performing the actual indexing optional. Set --verify-only to skip the indexing step:
             if not self.verify_only:
                 # Yield a Hadoop job to run the indexer:
-                index_task = CdxIndexer(self.input().path)
+                index_task = CdxIndexer(input_file=self.input().path, cdx_service=self.cdx_service)
                 yield index_task
 
             # Then run the verification job again to check it worked:
-            verify_task = CheckCdxIndex(input_file=self.input().path)
+            verify_task = CheckCdxIndex(input_file=self.input().path, cdx_service=self.cdx_service)
             yield verify_task
 
             # If it worked, record it here:
@@ -311,6 +319,10 @@ class CdxIndexAndVerify(luigi.Task):
                 # Sometimes tasks get re-run...
                 if not self.output().exists():
                     self.output().touch()
+
+    def output(self):
+        logger.info("Checking is complete: %s" % self.input().path)
+        return AccessTaskDBTarget("warc_set_indexed_and_verified","%s OK" % self.input().path)
 
 
 if __name__ == '__main__':
