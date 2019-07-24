@@ -23,6 +23,11 @@ class GetW3actAsCsvZip(luigi.Task):
     Connect to the W3ACT database and dump the whole thing as CSV files.
     """
     date = luigi.DateParameter(default=datetime.date.today())
+    db_name = luigi.Parameter(default='w3act')
+    db_user = luigi.Parameter(default='w3act')
+    db_host = luigi.Parameter(default='ingest')
+    db_port = luigi.IntParameter(default='5434')
+    
     task_namespace = 'w3act'
 
     def output(self):
