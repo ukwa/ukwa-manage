@@ -77,9 +77,9 @@ class CopyW3actZipToHDFS(luigi.Task):
             shutil.copyfileobj(f_in, f_out)
 
 
-class GenerateTargetsFromCsv(luigi.Task):
+class GenerateW3actJsonFromCsv(luigi.Task):
     """
-    This puts a copy of the file list onto HDFS
+    This emits the Targets as JSON Lines
     """
     date = luigi.DateParameter(default=datetime.date.today())
     task_namespace = 'w3act'
@@ -88,7 +88,7 @@ class GenerateTargetsFromCsv(luigi.Task):
         return GetW3actAsCsvZip(self.date)
 
     def output(self):
-        return state_file(self.date,'w3act','all-targets.jsonl')
+        return state_file(self.date,'w3act','all.json')
 
     def run(self):
         # Unpack the CSV:
@@ -96,14 +96,12 @@ class GenerateTargetsFromCsv(luigi.Task):
         shutil.unpack_archive(self.input().path, tmp_dir)
         csv_dir = os.path.join(tmp_dir, 'w3act-db-csv')
 
-        # Turn into Targets
-        targets = load_csv(csv_dir)
+        # Turn into json
+        all = load_csv(csv_dir)
 
         # Write out as JSON Lines
         with self.output().open('w') as f_out:
-            for t in targets:
-                f_out.write(json.dumps(targets[t]))
-                f_out.write("\n")
+            json.dump(all, f_out, indent=2)
 
 
 class CrawlFeed(luigi.Task):
