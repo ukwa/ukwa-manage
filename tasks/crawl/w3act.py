@@ -27,7 +27,7 @@ class GetW3actAsCsvZip(luigi.Task):
     db_user = luigi.Parameter(default='w3act')
     db_host = luigi.Parameter(default='ingest')
     db_port = luigi.IntParameter(default='5434')
-    
+
     task_namespace = 'w3act'
 
     def output(self):
@@ -71,7 +71,7 @@ class CopyW3actZipToHDFS(luigi.Task):
 
     def run(self):
         # Read the file in and write it to HDFS:
-        with self.input().open() as f_in, self.output().open('w') as f_out:
+        with open(self.input().path, 'rb') as f_in, self.output().open('w') as f_out:
             shutil.copyfileobj(f_in, f_out)
 
 
