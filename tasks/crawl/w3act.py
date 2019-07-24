@@ -103,7 +103,7 @@ class GenerateTargetsFromCsv(luigi.Task):
         with self.output().open('w') as f_out:
             for t in targets:
                 f_out.write(json.dumps(t).encode('utf-8'))
-                f_out.write('\n')
+                f_out.write(b"\n")
 
 
 class CrawlFeed(luigi.Task):
