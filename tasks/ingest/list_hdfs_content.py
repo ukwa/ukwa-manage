@@ -125,7 +125,7 @@ class CopyFileListToHDFS(luigi.Task):
     This puts a copy of the file list onto HDFS
     """
     date = luigi.DateParameter(default=datetime.date.today())
-    task_namespace = "analyse.hdfs"
+    task_namespace = "ingest.hdfs"
 
     def requires(self):
         return ListAllFilesOnHDFSToLocalFile(self.date)

@@ -22,6 +22,8 @@ class GetW3actAsCsvZip(luigi.Task):
     """
     Connect to the W3ACT database and dump the whole thing as CSV files.
     """
+    date = luigi.DateParameter(default=datetime.date.today())
+    task_namespace = 'w3act'
 
     def output(self):
         return state_file(self.date,'w3act', 'db-csv.zip')
@@ -47,6 +49,25 @@ class GetW3actAsCsvZip(luigi.Task):
 
         # And delete the temp dir:
         shutil.rmtree(csv_dir)
+
+
+class CopyW3actZipToHDFS(luigi.Task):
+    """
+    This puts a copy of the file list onto HDFS
+    """
+    date = luigi.DateParameter(default=datetime.date.today())
+    task_namespace = 'w3act'
+
+    def requires(self):
+        return GetW3actAsCsvZip(self.date)
+
+    def output(self):
+        return state_file(self.date,'w3act','db-csv.zip', on_hdfs=True)
+
+    def run(self):
+        # Read the file in and write it to HDFS:
+        with self.input().open() as f_in, self.output().open('w') as f_out:
+            shutil.copyfileobj(f_in, f_out)
 
 
 class CrawlFeed(luigi.Task):

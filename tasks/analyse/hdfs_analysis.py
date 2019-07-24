@@ -133,9 +133,6 @@ class UpdateWarcsDatabase(luigi.Task):
     def requires(self):
         return ListParsedPaths(self.date)
 
-    def complete(self):
-        return False
-
     def output(self):
         return AccessTaskDBTarget(self.task_namespace, self.task_id)
 
