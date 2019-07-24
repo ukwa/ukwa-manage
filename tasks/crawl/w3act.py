@@ -88,7 +88,7 @@ class GenerateTargetsFromCsv(luigi.Task):
         return GetW3actAsCsvZip(self.date)
 
     def output(self):
-        return state_file(self.date,'w3act','all-targets.jsonl', on_hdfs=True)
+        return state_file(self.date,'w3act','all-targets.jsonl')
 
     def run(self):
         # Unpack the CSV:
