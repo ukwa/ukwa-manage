@@ -43,7 +43,9 @@ class GetW3actAsCsvZip(luigi.Task):
             'port': self.db_port
         }
         # And pull down the data tables as CSV:
-        csv_dir = tempfile.mkdtemp()
+        tmp_dir = tempfile.mkdtemp()
+        csv_dir = os.path.join(tmp_dir, 'w3act-db-csv')
+        os.mkdir(csv_dir)
         get_csv(csv_dir, params=params)
         zip_file = csv_to_zip(csv_dir)
 
@@ -53,7 +55,7 @@ class GetW3actAsCsvZip(luigi.Task):
             shutil.move(zip_file, temp_output_path)
 
         # And delete the temp dir:
-        shutil.rmtree(csv_dir)
+        shutil.rmtree(tmp_dir)
 
 
 class CopyW3actZipToHDFS(luigi.Task):
