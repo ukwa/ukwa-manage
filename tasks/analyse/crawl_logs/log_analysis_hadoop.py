@@ -231,9 +231,6 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
 
     Should run locally if run with only local inputs.
 
-
-
-
     """
 
     task_namespace = 'analyse'
@@ -318,7 +315,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
                     if pkey.startswith('sum:') and properties[pkey] != '-':
                         summaries[pkey] = summaries.get(pkey, 0) + int(properties[pkey])
                         continue
-                    # Otherwise, efault behaviour is to count occurrences of key-value pairs.
+                    # Otherwise, default behaviour is to count occurrences of key-value pairs.
                     if properties[pkey]:
                         # Build a composite key for keys that have non-empty values:
                         prop = "%s:%s" % (pkey, properties[pkey])
@@ -328,6 +325,61 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
                     summaries[prop] = summaries.get(prop, 0) + 1
 
             yield key, json.dumps(summaries)
+
+
+class ExtractLogsForHost(luigi.contrib.hadoop.JobTask):
+    """
+    Map-Reduce job that scans a log file and extracts just the logs for a particular host.
+
+    Should run locally if run with only local inputs.
+
+    """
+
+    task_namespace = 'analyse'
+    job = luigi.Parameter()
+    launch_id = luigi.Parameter()
+    log_paths = luigi.ListParameter()
+    host = luigi.Parameter()
+    from_hdfs = luigi.BoolParameter(default=False)
+
+    # Using one output file ensures the whole output is sorted but is not suitable for very large crawls.
+    n_reduce_tasks = luigi.Parameter(default=1)
+
+    def requires(self):
+        reqs = []
+        for log_path in self.log_paths:
+            logger.info("LOG FILE TO PROCESS: %s" % log_path)
+            reqs.append(InputFile(log_path, self.from_hdfs))
+        return reqs
+
+    def output(self):
+        out_name = "task-state/%s/%s/crawl-logs-%s.analysis.tsjson" % (self.job, self.launch_id, self.host)
+        if self.from_hdfs:
+            return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=PlainDir)
+        else:
+            return luigi.LocalTarget(path=out_name)
+
+    def extra_modules(self):
+        return [lib, dateutil, six]#,surt,tldextract,idna,requests,urllib3,certifi,chardet,requests_file,six]
+
+    def mapper(self, line):
+        # Parse:
+        log = CrawlLogLine(line)
+        # Emit matching lines keyed by event timestamp
+        if log.host() == self.host:
+            yield "%s" % log.start_time_plus_duration, line
+
+    def reducer(self, key, values):
+        """
+        A pass-through reducer.
+
+        :param key:
+        :param values:
+        :return:
+        """
+        # Just pass documents through:
+        for value in values:
+            yield key, value
 
 
 class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
