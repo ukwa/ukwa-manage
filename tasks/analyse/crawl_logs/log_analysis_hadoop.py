@@ -394,7 +394,6 @@ class ExtractLogsByHost(luigi.contrib.hadoop.JobTask):
     job = luigi.Parameter()
     launch_id = luigi.Parameter()
     log_paths = luigi.ListParameter()
-    host = luigi.Parameter()
     lines = luigi.IntParameter(default=5)
     from_hdfs = luigi.BoolParameter(default=False)
 
