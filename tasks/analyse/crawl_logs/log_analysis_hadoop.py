@@ -100,7 +100,7 @@ class CrawlLogLine(object):
 
 class CrawlLogExtractors(object):
 
-    def __init__(self, job, launch, from_hdfs, targets_path = None):
+    def __init__(self, job, launch, from_hdfs, targets_path=None):
         self.job = job
         self.launch_id = launch
         # Setup targets if provided:
@@ -260,7 +260,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
 
     def init_mapper(self):
         # Set up...
-        self.extractor = CrawlLogExtractors(self.job, self.launch_id, self.targets_path, self.from_hdfs)
+        self.extractor = CrawlLogExtractors(self.job, self.launch_id, self.from_hdfs, targets_path=self.targets_path )
 
     def jobconfs(self):
         """
