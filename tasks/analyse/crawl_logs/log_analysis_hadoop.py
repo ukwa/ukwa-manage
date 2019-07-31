@@ -408,7 +408,7 @@ class ExtractLogsByHost(luigi.contrib.hadoop.JobTask):
         return reqs
 
     def output(self):
-        out_name = "task-state/%s/%s/crawl-logs-%s.analysis.tsjson" % (self.job, self.launch_id, self.host)
+        out_name = "task-state/%s/%s/crawl-logs-by-host-%s-lines.analysis.tsjson" % (self.job, self.launch_id, self.lines)
         if self.from_hdfs:
             return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=PlainDir)
         else:
