@@ -10,7 +10,7 @@ import luigi.contrib.hadoop
 from luigi.contrib.hdfs.format import Plain, PlainDir
 from lib.surt import url_to_surt
 
-import lib, dateutil # Imported so extra_modules MR-bundle can access them
+import lib, dateutil, six # Imported so extra_modules MR-bundle can access them
 #import surt, tldextract, idna, requests, urllib3, certifi, chardet, requests_file, six # Unfortunately the surt module has a LOT of dependencies.
 
 
@@ -256,7 +256,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
             return luigi.LocalTarget(path=out_name)
 
     def extra_modules(self):
-        return [lib, dateutil]#,surt,tldextract,idna,requests,urllib3,certifi,chardet,requests_file,six]
+        return [lib, dateutil, six]#,surt,tldextract,idna,requests,urllib3,certifi,chardet,requests_file,six]
 
     def init_mapper(self):
         # Set up...
