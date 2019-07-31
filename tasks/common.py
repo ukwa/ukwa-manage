@@ -41,6 +41,9 @@ def state_file(date, tag, suffix, on_hdfs=False, use_gzip=False, use_webhdfs=Fal
             date.strftime("%Y-%m"),
             '%s-%s-%s' % (date.strftime("%Y-%m-%d"), tag, suffix))
 
+    # Replace any awkward characters
+    full_path = full_path.replace(":","_")
+
     if on_hdfs:
         if use_webhdfs:
             return luigi.contrib.hdfs.HdfsTarget(path=full_path, format=WebHdfsPlainFormat(use_gzip=use_gzip))

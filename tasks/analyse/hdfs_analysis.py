@@ -196,7 +196,7 @@ class UpdateWarcsDatabase(luigi.Task):
                         if key != 'id':
                             fields[key] = 'set'
                 # Perform the update, commit within 30 seconds please:
-                solr.add(bunch, fieldUpdates=fields, commitWithin=30000)
+                solr.add(bunch, fieldUpdates=fields, commitWithin="30000")
                 logger.info("Posted %i records..." % self.total)
 
         # And make it visible:
