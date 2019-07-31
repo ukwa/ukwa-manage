@@ -170,7 +170,7 @@ class CrawlLogExtractors(object):
         :return:
         """
         # Skip non-downloads:
-        if log.status_code == '-' or log.status_code == '' or int(log.status_code) / 100 != 2:
+        if log.status_code == '-' or log.status_code == '' or int(int(log.status_code) / 100) != 2:
             return
         # Check the URL and Content-Type:
         if "application/pdf" in log.mime:
@@ -292,7 +292,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
         if doc:
             yield "DOCUMENT,%s" % log.start_time_plus_duration, doc
         # Check for dead seeds:
-        if (int(log.status_code) / 100 != 2 and int(log.status_code) / 100 != 3  # 2xx/3xx are okay!
+        if (int(int(log.status_code) / 100) != 2 and int(int(log.status_code) / 100) != 3  # 2xx/3xx are okay!
                 and log.hop_path == "-" and log.via == "-"):  # seed
             yield "DEAD_SEED,%s,%s" % (log.url, log.start_time_plus_duration), line
 
