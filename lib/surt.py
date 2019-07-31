@@ -1,5 +1,5 @@
 import os
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 
 def url_to_surt(in_url, host_only=False):

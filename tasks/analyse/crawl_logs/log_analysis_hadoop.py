@@ -10,7 +10,7 @@ import luigi.contrib.hadoop
 from luigi.contrib.hdfs.format import Plain, PlainDir
 from lib.surt import url_to_surt
 
-import lib # Imported so extra_modules MR-bundle can access them
+import lib, dateutil, six # Imported so extra_modules MR-bundle can access them
 #import surt, tldextract, idna, requests, urllib3, certifi, chardet, requests_file, six # Unfortunately the surt module has a LOT of dependencies.
 
 
@@ -55,9 +55,7 @@ class CrawlLogLine(object):
             'status_code': self.status_code,
             'content_type': self.mime,
             'hop': self.hop_path[-1:],
-            'sum:content_length': self.content_length,
-            'host': self.host(),
-            'source': self.source
+            'sum:content_length': self.content_length
         }
         # Add in annotations:
         for annot in self.annotations:
@@ -67,6 +65,9 @@ class CrawlLogLine(object):
                 prefix = 'tries:'
             elif self.re_ip.match(annot):
                 prefix = "ip:"
+            # Skip high-cardinality annotations:
+            if annot.startswith('launchTimestamp:'):
+                continue
             # Only emit lines with annotations:
             if annot != "-":
                 stats["%s%s" % (prefix, annot)] = ""
@@ -100,7 +101,7 @@ class CrawlLogLine(object):
 
 class CrawlLogExtractors(object):
 
-    def __init__(self, job, launch, from_hdfs, targets_path = None):
+    def __init__(self, job, launch, from_hdfs, targets_path=None):
         self.job = job
         self.launch_id = launch
         # Setup targets if provided:
@@ -209,6 +210,12 @@ class InputFile(luigi.ExternalTask):
         else:
             return luigi.LocalTarget(path=self.path)
 
+    def complete(self):
+        """
+        Always assume the files are there, don't bother checking (thus permissing wildcard inputs).
+        :return: True
+        """
+        return True
 
 class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
     """
@@ -225,7 +232,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
     job = luigi.Parameter()
     launch_id = luigi.Parameter()
     log_paths = luigi.ListParameter()
-    targets_path = luigi.Parameter()
+    targets_path = luigi.Parameter(default=None)
     from_hdfs = luigi.BoolParameter(default=False)
 
     # This can be set to 1 if there is intended to be one output file. The usual Luigi default is 25.
@@ -250,11 +257,11 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
             return luigi.LocalTarget(path=out_name)
 
     def extra_modules(self):
-        return [lib]#,surt,tldextract,idna,requests,urllib3,certifi,chardet,requests_file,six]
+        return [lib, dateutil, six]#,surt,tldextract,idna,requests,urllib3,certifi,chardet,requests_file,six]
 
     def init_mapper(self):
         # Set up...
-        self.extractor = CrawlLogExtractors(self.job, self.launch_id, self.targets_path, self.from_hdfs)
+        self.extractor = CrawlLogExtractors(self.job, self.launch_id, self.from_hdfs, targets_path=self.targets_path )
 
     def jobconfs(self):
         """
