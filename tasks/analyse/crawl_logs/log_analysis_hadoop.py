@@ -13,10 +13,6 @@ from lib.surt import url_to_surt
 import lib # Imported so extra_modules MR-bundle can access them
 #import surt, tldextract, idna, requests, urllib3, certifi, chardet, requests_file, six # Unfortunately the surt module has a LOT of dependencies.
 
-import requests
-
-SLACK_WEBHOOK_URL = os.environ.get('SLACK_WEBHOOK_URL','https://hooks.slack.com/services/Token1/Token2/Token3')
-
 
 logger = logging.getLogger(__name__)
 
@@ -104,22 +100,26 @@ class CrawlLogLine(object):
 
 class CrawlLogExtractors(object):
 
-    def __init__(self, job, launch, targets_path, from_hdfs):
+    def __init__(self, job, launch, from_hdfs, targets_path = None):
         self.job = job
         self.launch_id = launch
-        # Setup targets:
-        if from_hdfs:
-            hdfs_client = luigi.contrib.hdfs.HdfsClientApache1()
-            logger.warning("Loading targets using client: %s" % hdfs_client)
-            logger.warning("Loading targets from HDFS: %s" % targets_path)
-            targets = luigi.contrib.hdfs.HdfsTarget(path=targets_path, format=Plain, fs=hdfs_client)
+        # Setup targets if provided:
+        if targets_path:
+            if from_hdfs:
+                hdfs_client = luigi.contrib.hdfs.HdfsClientApache1()
+                logger.warning("Loading targets using client: %s" % hdfs_client)
+                logger.warning("Loading targets from HDFS: %s" % targets_path)
+                targets = luigi.contrib.hdfs.HdfsTarget(path=targets_path, format=Plain, fs=hdfs_client)
+            else:
+                logger.warning("Loading targets from local FS: %s" % targets_path)
+                targets = luigi.LocalTarget(path=targets_path)
+            # Find the unique watched seeds list:
+            logger.warning("Loading: %s" % targets)
+            logger.warning("Loading path: %s" % targets.path)
+            targets = json.load(targets.open())
         else:
-            logger.warning("Loading targets from local FS: %s" % targets_path)
-            targets = luigi.LocalTarget(path=targets_path)
-        # Find the unique watched seeds list:
-        logger.warning("Loading: %s" % targets)
-        logger.warning("Loading path: %s" % targets.path)
-        targets = json.load(targets.open())
+            targets = []
+        # Assemble the Watched SURTs:
         target_map = {}
         watched = set()
         for t in targets:
@@ -216,58 +216,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
 
     Should run locally if run with only local inputs.
 
-    Input:
 
-    {
-        "annotations": "ip:173.236.225.186,duplicate:digest",
-        "content_digest": "sha1:44KA4PQA5TYRAXDIVJIAFD72RN55OQHJ",
-        "content_length": 324,
-        "extra_info": {},
-        "hop_path": "IE",
-        "host": "acid.matkelly.com",
-        "jobName": "frequent",
-        "mimetype": "text/html",
-        "seed": "WTID:12321444",
-        "size": 511,
-        "start_time_plus_duration": "20160127211938966+230",
-        "status_code": 404,
-        "thread": 189,
-        "timestamp": "2016-01-27T21:19:39.200Z",
-        "url": "http://acid.matkelly.com/img.png",
-        "via": "http://acid.matkelly.com/",
-        "warc_filename": "BL-20160127211918391-00001-35~ce37d8d00c1f~8443.warc.gz",
-        "warc_offset": 36748
-    }
-
-    Note that 'seed' is actually the source tag, and is set up to contain the original (Watched) Target ID.
-
-    Output:
-
-    [
-    {
-    "id_watched_target":<long>,
-    "wayback_timestamp":<String>,
-    "landing_page_url":<String>,
-    "document_url":<String>,
-    "filename":<String>,
-    "size":<long>
-    },
-    <further documents>
-    ]
-
-    See https://github.com/ukwa/w3act/wiki/Document-REST-Endpoint
-
-    i.e.
-
-    seed -> id_watched_target
-    start_time_plus_duration -> wayback_timestamp
-    via -> landing_page_url
-    url -> document_url (and filename)
-    content_length -> size
-
-    Note that, if necessary, this process to refer to the
-    cdx-server and wayback to get more information about
-    the crawled data and improve the landing page and filename data.
 
 
     """
@@ -321,16 +270,16 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
     def mapper(self, line):
         # Parse:
         log = CrawlLogLine(line)
-        # Extract basic data for summaries:
-        yield "TOTAL", json.dumps(log.stats())
-        yield "BY-HOUR %s" % log.hour(), json.dumps(log.stats())
-        yield "BY-HOST %s" % log.host(), json.dumps(log.stats())
-        yield "BY-SOURCE %s" % log.source, json.dumps(log.stats())
-        yield "BY-TARGET %s" % self.extractor.target_id(log), json.dumps(log.stats())
+        # Extract basic data for summaries, keyed for later aggregation:
+        yield "BY-HOUR-HOST-SOURCE %s %s %s" % (log.hour(), log.host(), log.source), json.dumps(log.stats())
         # Scan for documents, yield sorted in crawl order:
         doc = self.extractor.extract_documents(log)
         if doc:
             yield "DOCUMENT-%s" % log.start_time_plus_duration, doc
+        # Check for dead seeds:
+        if (int(log.status_code) / 100 != 2 and int(log.status_code) / 100 != 3  # 2xx/3xx are okay!
+                and log.hop_path == "-" and log.via == "-"):  # seed
+            yield "DEAD-SEED %s %s" % (log.url, log.start_time_plus_duration), line
 
     def reducer(self, key, values):
         """
@@ -657,65 +606,6 @@ class CountStatusCodes(luigi.contrib.hadoop.JobTask):
         yield status, str(i) 
             
             
-class ReportToSlackStatusCodes(luigi.Task):
-    """
-    Wrapper for the task it is reporting; forward output to Slack Webhook 
-    """
-
-    log_paths = luigi.ListParameter()
-    job = luigi.Parameter()
-    launch_id = luigi.Parameter()
-    on_hdfs = luigi.BoolParameter(default=False)
-
-    task_namespace = 'analyse'
-    
-    def requires(self):
-        return CountStatusCodes(self.log_paths, self.job, self.launch_id, self.on_hdfs)
-
-    def run(self):
-        with self.input().open() as report_file:
-            content = report_file.read()           
-        SlackHook("Status Codes Aggregated", content)
-        
-        
-class ReportToSlackDeadSeeds(luigi.Task):
-    """
-    Wrapper for the task it is reporting; forward output to Slack Webhook 
-    """
-
-    log_paths = luigi.ListParameter()
-    job = luigi.Parameter()
-    launch_id = luigi.Parameter()
-    on_hdfs = luigi.BoolParameter(default=False)
-
-    task_namespace = 'analyse'
-    
-    def requires(self):
-        return ListDeadSeeds(self.log_paths, self.job, self.launch_id, self.on_hdfs)
-
-    def run(self):
-        with self.input().open() as report_file:
-            content = report_file.read()           
-        SlackHook("Latest Dead Seeds", content)        
-
-      
-def SlackHook(title, content):
-    if title == "": title = "Crawl Log Analytics"
-    
-    slack_data = {'text': title + "\nNothing reported."}
-    if content: 
-        slack_data["text"] = title + "\n" + content       
-
-    response = requests.post(
-        SLACK_WEBHOOK_URL, data=json.dumps(slack_data),
-        headers={'Content-Type': 'application/json'}
-    )
-    if response.status_code != 200:
-        raise ValueError(
-            'Request to slack returned an error %s, the response is:\n%s'
-            % (response.status_code, response.text)
-        )
-        
 
             
 if __name__ == '__main__':
@@ -723,11 +613,15 @@ if __name__ == '__main__':
     #           '--log-paths', '[ "test/logs/fragment-of-a-crawl.log" ]',
     #           '--local-scheduler'])
 
-    luigi.run(['analyse.SummariseLogFiles', '--job', 'dc', '--launch-id', '20170515',
-              '--log-paths', '[ "/heritrix/output/logs/dc0-20170515/crawl.log.cp00001-20170610062435" ]',
-               '--on-hdfs', '--local-scheduler'])
+    #luigi.run(['analyse.SummariseLogFiles', '--job', 'dc', '--launch-id', '20170515',
+    #          '--log-paths', '[ "/heritrix/output/logs/dc0-20170515/crawl.log.cp00001-20170610062435" ]',
+    #           '--on-hdfs', '--local-scheduler'])
 
-    #luigi.run(['analyse.AnalyseLogFile', '--job', 'weekly', '--launch-id', '20170220090024',
+    luigi.run(['analyse.AnalyseLogFile', '--job', 'dc2019', '--launch-id', '20190714151618',
+               '--log-paths', '[ "/heritrix/output/dc2019/20190714151618/logs/crawl.log.*" ]',
+               '--local-scheduler'])
+
+    #luigi.run(['analyse.AnalyseLogFile', '--job', 'dc', '--launch-id', '20170220090024',
     #           '--log-paths', '[ "/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20170211224931", "/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl.log.cp00001-20130605082749" ]',
     #           '--targets-path', '/Users/andy/Documents/workspace/pulse/python-shepherd/tasks/process/extract/test-data/crawl-feed.2017-01-02T2100.frequent',
     #           '--local-scheduler'])
