@@ -209,6 +209,12 @@ class InputFile(luigi.ExternalTask):
         else:
             return luigi.LocalTarget(path=self.path)
 
+    def complete(self):
+        """
+        Always assume the files are there, don't bother checking (thus permissing wildcard inputs).
+        :return: True
+        """
+        return True
 
 class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
     """
