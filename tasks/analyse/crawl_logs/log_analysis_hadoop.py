@@ -90,7 +90,15 @@ class CrawlLogLine(object):
 
         :return:
         """
-        return "%s:00:00" % self.timestamp[:13]
+        return "%s:00:00Z" % self.timestamp[:13]
+
+    def day(self):
+        """
+        Rounds-down to the day.
+
+        :return:
+        """
+        return "%sT00:00:00Z" % self.timestamp[:10]
 
     def date(self):
         return self.parse_date(self.timestamp)
@@ -278,7 +286,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
         # Parse:
         log = CrawlLogLine(line)
         # Extract basic data for summaries, keyed for later aggregation:
-        yield "BY_HOUR_HOST_SOURCE,%s,%s,%s" % (log.hour(), log.host(), log.source), json.dumps(log.stats())
+        yield "BY_DAY_HOST_SOURCE,%s,%s,%s" % (log.day(), log.host(), log.source), json.dumps(log.stats())
         # Scan for documents, yield sorted in crawl order:
         doc = self.extractor.extract_documents(log)
         if doc:
