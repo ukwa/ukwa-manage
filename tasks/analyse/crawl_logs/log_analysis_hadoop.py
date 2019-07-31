@@ -382,6 +382,98 @@ class ExtractLogsForHost(luigi.contrib.hadoop.JobTask):
             yield key, value
 
 
+class ExtractLogsByHost(luigi.contrib.hadoop.JobTask):
+    """
+    Map-Reduce job that scans a log file and extracts just the logs for a particular host.
+
+    Should run locally if run with only local inputs.
+
+    """
+
+    task_namespace = 'analyse'
+    job = luigi.Parameter()
+    launch_id = luigi.Parameter()
+    log_paths = luigi.ListParameter()
+    host = luigi.Parameter()
+    lines = luigi.IntParameter(default=5)
+    from_hdfs = luigi.BoolParameter(default=False)
+
+    # Using one output file ensures the whole output is sorted but is not suitable for very large crawls.
+    n_reduce_tasks = luigi.Parameter(default=50)
+
+    def requires(self):
+        reqs = []
+        for log_path in self.log_paths:
+            logger.info("LOG FILE TO PROCESS: %s" % log_path)
+            reqs.append(InputFile(log_path, self.from_hdfs))
+        return reqs
+
+    def output(self):
+        out_name = "task-state/%s/%s/crawl-logs-%s.analysis.tsjson" % (self.job, self.launch_id, self.host)
+        if self.from_hdfs:
+            return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=PlainDir)
+        else:
+            return luigi.LocalTarget(path=out_name)
+
+    def extra_modules(self):
+        return [lib, dateutil, six]#,surt,tldextract,idna,requests,urllib3,certifi,chardet,requests_file,six]
+
+    def mapper(self, line):
+        # Parse:
+        log = CrawlLogLine(line)
+        # Emit lines keyed by host and event timestamp
+        yield "%s|%s" % (log.host(), log.timestamp), line
+
+    # For tracking lines emitted:
+    current_host = None
+    lines_emitted = 0
+
+    def reducer(self, key, values):
+        """
+        A pass-through reducer, should split and emit the host part of the key
+
+        :param key:
+        :param values:
+        :return:
+        """
+
+        # Get the host part of the key
+        host = key.split('|')[0]
+        # keep track of the host we're handling:
+        if self.current_host != host:
+            self.current_host = host
+            self.lines_emitted = 0
+        for value in values:
+            # Limit the lines we emit for each host:
+            if self.lines_emitted < self.lines:
+                self.lines_emitted += 1
+                yield host, value
+
+    # The following is ensures data is partitioned by the host, but ordered by host and timestamp within that.
+
+    def extra_streaming_arguments(self):
+        return [("-partitioner","org.apache.hadoop.mapred.lib.KeyFieldBasedPartitioner")]
+
+    def jobconfs(self):
+        '''
+        Extend the job configuration to support the keys and partitioning we want.
+        :return:
+        '''
+        jc = super(ExtractLogsByHost, self).jobconfs()
+
+        # Ensure the first three fields are all treated as the key:
+        jc.append("map.output.key.field.separator=|")
+        #jc.append("stream.num.map.output.key.fields=3")
+        # Ensure only the host part of the key (first value) is used for partitioning:
+        jc.append("mapred.text.key.partitioner.options=-k1,1")
+        # Compress the output and the mapper output:
+        #jc.append("mapred.output.compress=true")
+        #jc.append("mapred.compress.map.output=true")
+        #jc.append("mapred.output.compression.codec=org.apache.hadoop.io.compress.GzipCodec")
+
+        return jc
+
+
 class SummariseLogFiles(luigi.contrib.hadoop.JobTask):
     """
     Based on old code developed for TRAC issue 2478.
