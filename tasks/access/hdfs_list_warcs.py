@@ -34,6 +34,8 @@ class ListWarcsForDateRange(luigi.Task):
     stream = luigi.Parameter(default='frequent')
     status_field = luigi.Parameter(default='cdx_index_ss')
     status_value = luigi.Parameter(default='data-heritrix')
+    # Kind of data to list (usually WARCS)
+    kind = luigi.Parameter(default='warcs')
     # Max number of items to return.
     limit = luigi.IntParameter(default=1000)
     # Specify the Tracking DB to use to manage state:
@@ -50,7 +52,8 @@ class ListWarcsForDateRange(luigi.Task):
 
         # Query
         s = pysolr.Solr(url=self.tracking_db_url)
-        q='kind_s:"warcs" AND stream_s:"%s" AND timestamp_dt:[%sT00:00:00Z TO %sT23:59:59Z] AND -%s:"%s"' % (
+        q='kind_s:"%s" AND stream_s:"%s" AND timestamp_dt:[%sT00:00:00Z TO %sT23:59:59Z] AND -%s:"%s"' % (
+            self.kind,
             self.stream,
             self.start_date.isoformat(),
             self.end_date.isoformat(),
