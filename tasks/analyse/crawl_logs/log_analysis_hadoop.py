@@ -55,9 +55,7 @@ class CrawlLogLine(object):
             'status_code': self.status_code,
             'content_type': self.mime,
             'hop': self.hop_path[-1:],
-            'sum:content_length': self.content_length,
-            'host': self.host(),
-            'source': self.source
+            'sum:content_length': self.content_length
         }
         # Add in annotations:
         for annot in self.annotations:
@@ -67,6 +65,9 @@ class CrawlLogLine(object):
                 prefix = 'tries:'
             elif self.re_ip.match(annot):
                 prefix = "ip:"
+            # Skip high-cardinality annotations:
+            if annot.startswith('launchTimestamp:'):
+                continue
             # Only emit lines with annotations:
             if annot != "-":
                 stats["%s%s" % (prefix, annot)] = ""
