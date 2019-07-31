@@ -278,15 +278,15 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
         # Parse:
         log = CrawlLogLine(line)
         # Extract basic data for summaries, keyed for later aggregation:
-        yield "BY-HOUR-HOST-SOURCE %s %s %s" % (log.hour(), log.host(), log.source), json.dumps(log.stats())
+        yield "BY_HOUR_HOST_SOURCE,%s,%s,%s" % (log.hour(), log.host(), log.source), json.dumps(log.stats())
         # Scan for documents, yield sorted in crawl order:
         doc = self.extractor.extract_documents(log)
         if doc:
-            yield "DOCUMENT-%s" % log.start_time_plus_duration, doc
+            yield "DOCUMENT,%s" % log.start_time_plus_duration, doc
         # Check for dead seeds:
         if (int(log.status_code) / 100 != 2 and int(log.status_code) / 100 != 3  # 2xx/3xx are okay!
                 and log.hop_path == "-" and log.via == "-"):  # seed
-            yield "DEAD-SEED %s %s" % (log.url, log.start_time_plus_duration), line
+            yield "DEAD_SEED,%s,%s" % (log.url, log.start_time_plus_duration), line
 
     def reducer(self, key, values):
         """
@@ -297,7 +297,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
         :return:
         """
         # Just pass documents through:
-        if key.startswith("DOCUMENT"):
+        if key.startswith("DOCUMENT") or key.startswith("DEAD_SEED"):
             for value in values:
                 yield key, value
         else:
