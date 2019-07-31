@@ -225,7 +225,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
     job = luigi.Parameter()
     launch_id = luigi.Parameter()
     log_paths = luigi.ListParameter()
-    targets_path = luigi.Parameter()
+    targets_path = luigi.Parameter(default=None)
     from_hdfs = luigi.BoolParameter(default=False)
 
     # This can be set to 1 if there is intended to be one output file. The usual Luigi default is 25.
