@@ -46,7 +46,7 @@ class MoveWarcProxFiles(luigi.Task):
     def get_metrics(self,registry):
         # type: (CollectorRegistry) -> None
 
-        g = Gauge('moved_files_count',
+        g = Gauge('ukwa_files_moved_total_count',
                   'Total number of files moved by this task.',
                   labelnames=['kind'], registry=registry)
         g.labels(kind='warcprox-warcs').set(self.total_moved)
