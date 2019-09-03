@@ -1,6 +1,7 @@
 import os
 import re
 import luigi
+import shutil
 import datetime
 from lib.targets import IngestTaskDBTarget
 
@@ -11,12 +12,11 @@ class MoveWarcProxFiles(luigi.Task):
     prefix = luigi.Parameter(default="/mnt/gluster/fc")
 
     def output(self):
-        return IngestTaskDBTarget('mv-warcprox-files', self.task_id, kind='ingest')
-
+        return IngestTaskDBTarget('mv-warcprox-files', self.task_id)
 
     def run(self):
         # Expected filenaming:
-        p = re.compile("BL-....-WEBRENDER-/([a-z\-0-9]+)-([0-9]{14})-([a-z\-0-9]+)\.warc\.gz")
+        p = re.compile("BL-....-WEBRENDER-([a-z\-0-9]+)-([0-9]{14})-([a-z\-0-9]+)\.warc\.gz")
         # List all matching files in source directory:
         webrender_path = os.path.join(self.prefix, './heritrix/wren/')
         for file_path in os.listdir(webrender_path):
@@ -24,7 +24,13 @@ class MoveWarcProxFiles(luigi.Task):
                 file_name = os.path.basename(file_path)
                 matches = p.search(file_name)
                 if len(matches) > 0:
-                    print( "%s/heritrix/output/%s/%s/warcs" %( self.prefix, matches.group(1), matches.group(2) ))
+                    destination_folder_path = "%s/heritrix/output/%s/%s/warcs" %( self.prefix, matches.group(1), matches.group(2))
+                    if not os.path.exists(destination_folder_path):
+                        raise Exception("Expected destination folder does not exist! :: %s" % destination_folder_path)
+                    if not os.path.isdir(destination_folder_path):
+                        raise Exception("Expected destination folder is not a folder! :: %s" % destination_folder_path)
+                    destination_file_path = os.path.join(destination_folder_path, file_name)
+                    print(file_path, destination_folder_path )
 
 
         # Record that all went well:
