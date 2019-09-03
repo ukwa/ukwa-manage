@@ -4,12 +4,16 @@ import luigi
 import shutil
 import datetime
 from lib.targets import IngestTaskDBTarget
+from prometheus_client import CollectorRegistry, Gauge
+
 
 class MoveWarcProxFiles(luigi.Task):
 
     task_namespace = 'ingest'
     date = luigi.DateHourParameter(default=datetime.datetime.today())
     prefix = luigi.Parameter(default="/mnt/gluster/fc")
+
+    total_moved = 0
 
     def output(self):
         return IngestTaskDBTarget('mv-warcprox-files', self.task_id)
@@ -22,7 +26,6 @@ class MoveWarcProxFiles(luigi.Task):
         for file_path in os.listdir(webrender_path):
             if file_path.endswith('.warc.gz'):
                 file_name = os.path.basename(file_path)
-                print(file_name)
                 matches = p.search(file_name)
                 if matches:
                     destination_folder_path = "%s/heritrix/output/%s/%s/warcs" %( self.prefix, matches.group(1), matches.group(2))
@@ -35,9 +38,19 @@ class MoveWarcProxFiles(luigi.Task):
                     if os.path.exists(destination_file_path):
                         raise Exception("Destination file already exists! :: %s" % destination_file_path)
                     shutil.move( source_file_path, destination_file_path )
+                    self.total_moved += 1
 
         # Record that all went well:
         self.output().touch()
+
+    def get_metrics(self,registry):
+        # type: (CollectorRegistry) -> None
+
+        g = Gauge('moved_files_count',
+                  'Total number of files moved by this task.',
+                  labelnames=['kind'], registry=registry)
+        g.labels(kind='warcprox-warcs').set(self.total_moved)
+
 
 if __name__ == '__main__':
     luigi.run(['ingest.MoveWarcProxFiles', '--local-scheduler'])
