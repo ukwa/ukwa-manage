@@ -153,38 +153,38 @@ class LaunchCrawls(luigi.Task):
                             now.isoweekday(), startDate.isoweekday()))
 
                 elif schedule['frequency'] == "MONTHLY":
-                    if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day:
+                    if now.day == startDate.day:
                         self.launch_by_hour(now, startDate, endDate, t, source, 'MONTHLY')
                     else:
-                        logger.debug("MONTHLY: isoweekday %s differs from schedule %s" % (
-                            now.isoweekday(), startDate.isoweekday()))
+                        logger.debug("MONTHLY: date %s does not match schedule %s" % (
+                            now, startDate))
                         logger.debug("MONTHLY: day %s differs from schedule %s" % (now.day, startDate.day))
 
                 elif schedule['frequency'] == "QUARTERLY":
-                    if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day and now.month % 3 == startDate.month % 3:
+                    if now.day == startDate.day and now.month % 3 == startDate.month % 3:
                         self.launch_by_hour(now, startDate, endDate, t, source, 'QUARTERLY')
                     else:
-                        logger.debug("QUARTERLY: isoweekday %s differs from schedule %s" % (
-                            now.isoweekday(), startDate.isoweekday()))
+                        logger.debug("QUARTERLY: date %s does not match schedule %s" % (
+                            now, startDate))
                         logger.debug(
-                            "QUARTERLY: month3 %s differs from schedule %s" % (now.month % 3, startDate.month % 3))
+                            "QUARTERLY: month3 %s versus schedule %s" % (now.month % 3, startDate.month % 3))
 
                 elif schedule['frequency'] == "SIXMONTHLY":
-                    if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day and now.month % 6 == startDate.month % 6:
+                    if now.day == startDate.day and now.month % 6 == startDate.month % 6:
                         self.launch_by_hour(now, startDate, endDate, t, source, 'SIXMONTHLY')
                     else:
-                        logger.debug("SIXMONTHLY: isoweekday %s differs from schedule %s" % (
-                        now.isoweekday(), startDate.isoweekday()))
+                        logger.debug("SIXMONTHLY: date %s does not match schedule %s" % (
+                            now, startDate))
                         logger.debug(
-                            "SIXMONTHLY: month6 %s differs from schedule %s" % (now.month % 6, startDate.month % 6))
+                            "SIXMONTHLY: month6 %s versus schedule %s" % (now.month % 6, startDate.month % 6))
 
                 elif schedule['frequency'] == "ANNUAL":
-                    if now.isoweekday() == startDate.isoweekday() and now.day == startDate.day and now.month == startDate.month:
+                    if now.day == startDate.day and now.month == startDate.month:
                         self.launch_by_hour(now, startDate, endDate, t, source, 'ANNUAL')
                     else:
-                        logger.debug("ANNUAL: isoweekday %s differs from schedule %s" % (
-                            now.isoweekday(), startDate.isoweekday()))
-                        logger.debug("ANNUAL: month %s differs from schedule %s" % (now.month, startDate.month))
+                        logger.debug("ANNUAL: date %s does not match schedule %s" % (
+                            now, startDate))
+                        logger.debug("ANNUAL: month %s versus schedule %s" % (now.month, startDate.month))
                 else:
                     logger.error("Don't understand crawl frequency " + schedule['frequency'])
 
