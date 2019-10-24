@@ -5,7 +5,7 @@ import luigi
 import tempfile
 import datetime
 from w3act.w3act import w3act
-from w3act.cli_csv import get_csv, csv_to_zip, load_csv, filtered_targets
+from w3act.cli_csv import get_csv, csv_to_zip, load_csv, filtered_targets, to_crawl_feed_format
 from tasks.common import logger, state_file
 
 # Define environment variable names here:
@@ -128,12 +128,16 @@ class CrawlFeed(luigi.Task):
         # Filter by npld/bypm, crawl dates, and by frequency (all means not NEVERCRAWL?)
         targets = filtered_targets(w3a['targets'], frequency=self.frequency, terms=self.feed, include_expired=False)
 
+        feed = []
+        for target in targets:
+            feed.append(to_crawl_feed_format(target))
+
         # Check the result is sensible:
-        if targets is None or len(targets) == 0:
-            raise Exception("No target data downloaded!")
+        if feed is None or len(feed) == 0:
+            raise Exception("No feed data downloaded!")
         # Persist to disk:
         with self.output().open('w') as f:
-            f.write('{}'.format(json.dumps(targets, indent=4)))
+            f.write('{}'.format(json.dumps(feed, indent=4)))
 
 
 class CollectionList(luigi.Task):
