@@ -38,7 +38,7 @@ class GatherBlockScanReports(luigi.Task):
     for grunt in grunts:
       self.results[grunt] = {}
       rep = requests.get('http://%s:50075/blockScannerReport' % grunt )
-      for line in rep.iter_lines():
+      for line in rep.iter_lines(decode_unicode=True):
         if ":" in line:
           # Split into key-value and clean up:
           key, val = line.split(":")
