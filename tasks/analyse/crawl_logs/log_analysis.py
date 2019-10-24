@@ -31,7 +31,7 @@ class LogFilesForJobLaunch(luigi.ExternalTask):
         # Get HDFS client:
         client = luigi.contrib.hdfs.WebHdfsClient()
         # Find log files:
-        parent_path = "/heritrix/output/logs/%s/%s" % (self.job, self.launch_id)
+        parent_path = "/heritrix/output/%s/%s/logs" % (self.job, self.launch_id)
         for listed_item in client.listdir(parent_path):
             # Oddly, depending on the implementation, the listed_path may be absolute or basename-only, so fix here:
             item = os.path.basename(listed_item)
@@ -164,7 +164,7 @@ class GenerateCrawlLogReports(luigi.Task):
         output_folder = None
         # Get HDFS client:
         client = luigi.contrib.hdfs.WebHdfsClient()
-        parent_path = "/heritrix/output/logs/%s" % self.job
+        parent_path = "/heritrix/output/%s" % self.job
         for listed_item in client.listdir(parent_path):
             item = os.path.basename(listed_item)
             if output_folder is None or item > output_folder:
