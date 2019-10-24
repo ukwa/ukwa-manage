@@ -182,7 +182,7 @@ class GenerateCrawlLogReports(luigi.Task):
                 'crawl-log-report-{}-{}-{}'.format(self.job, self.launch_id, logs_count))
 
     def run(self):
-        # Set up necessary data:
+        # Set up necessary data so we know which targets are watched:
         feed = yield CrawlFeed(self.job)
         logs_count = len(self.input())
 
