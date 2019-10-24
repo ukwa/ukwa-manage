@@ -90,7 +90,15 @@ class CrawlLogLine(object):
 
         :return:
         """
-        return "%s:00:00" % self.timestamp[:13]
+        return "%s:00:00Z" % self.timestamp[:13]
+
+    def day(self):
+        """
+        Rounds-down to the day.
+
+        :return:
+        """
+        return "%sT00:00:00Z" % self.timestamp[:10]
 
     def date(self):
         return self.parse_date(self.timestamp)
@@ -162,7 +170,7 @@ class CrawlLogExtractors(object):
         :return:
         """
         # Skip non-downloads:
-        if log.status_code == '-' or log.status_code == '' or int(log.status_code) / 100 != 2:
+        if log.status_code == '-' or log.status_code == '' or int(int(log.status_code) / 100) != 2:
             return
         # Check the URL and Content-Type:
         if "application/pdf" in log.mime:
@@ -223,9 +231,6 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
 
     Should run locally if run with only local inputs.
 
-
-
-
     """
 
     task_namespace = 'analyse'
@@ -278,15 +283,15 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
         # Parse:
         log = CrawlLogLine(line)
         # Extract basic data for summaries, keyed for later aggregation:
-        yield "BY-HOUR-HOST-SOURCE %s %s %s" % (log.hour(), log.host(), log.source), json.dumps(log.stats())
+        yield "BY_DAY_HOST_SOURCE,%s,%s,%s" % (log.day(), log.host(), log.source), json.dumps(log.stats())
         # Scan for documents, yield sorted in crawl order:
         doc = self.extractor.extract_documents(log)
         if doc:
-            yield "DOCUMENT-%s" % log.start_time_plus_duration, doc
+            yield "DOCUMENT,%s" % log.start_time_plus_duration, doc
         # Check for dead seeds:
-        if (int(log.status_code) / 100 != 2 and int(log.status_code) / 100 != 3  # 2xx/3xx are okay!
+        if (int(int(log.status_code) / 100) != 2 and int(int(log.status_code) / 100) != 3  # 2xx/3xx are okay!
                 and log.hop_path == "-" and log.via == "-"):  # seed
-            yield "DEAD-SEED %s %s" % (log.url, log.start_time_plus_duration), line
+            yield "DEAD_SEED,%s,%s" % (log.url, log.start_time_plus_duration), line
 
     def reducer(self, key, values):
         """
@@ -297,7 +302,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
         :return:
         """
         # Just pass documents through:
-        if key.startswith("DOCUMENT"):
+        if key.startswith("DOCUMENT") or key.startswith("DEAD_SEED"):
             for value in values:
                 yield key, value
         else:
@@ -310,7 +315,7 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
                     if pkey.startswith('sum:') and properties[pkey] != '-':
                         summaries[pkey] = summaries.get(pkey, 0) + int(properties[pkey])
                         continue
-                    # Otherwise, efault behaviour is to count occurrences of key-value pairs.
+                    # Otherwise, default behaviour is to count occurrences of key-value pairs.
                     if properties[pkey]:
                         # Build a composite key for keys that have non-empty values:
                         prop = "%s:%s" % (pkey, properties[pkey])
@@ -320,6 +325,152 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
                     summaries[prop] = summaries.get(prop, 0) + 1
 
             yield key, json.dumps(summaries)
+
+
+class ExtractLogsForHost(luigi.contrib.hadoop.JobTask):
+    """
+    Map-Reduce job that scans a log file and extracts just the logs for a particular host.
+
+    Should run locally if run with only local inputs.
+
+    """
+
+    task_namespace = 'analyse'
+    job = luigi.Parameter()
+    launch_id = luigi.Parameter()
+    log_paths = luigi.ListParameter()
+    host = luigi.Parameter()
+    from_hdfs = luigi.BoolParameter(default=False)
+
+    # Using one output file ensures the whole output is sorted but is not suitable for very large crawls.
+    n_reduce_tasks = luigi.Parameter(default=1)
+
+    def requires(self):
+        reqs = []
+        for log_path in self.log_paths:
+            logger.info("LOG FILE TO PROCESS: %s" % log_path)
+            reqs.append(InputFile(log_path, self.from_hdfs))
+        return reqs
+
+    def output(self):
+        out_name = "task-state/%s/%s/crawl-logs-%s.analysis.tsjson" % (self.job, self.launch_id, self.host)
+        if self.from_hdfs:
+            return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=PlainDir)
+        else:
+            return luigi.LocalTarget(path=out_name)
+
+    def extra_modules(self):
+        return [lib, dateutil, six]#,surt,tldextract,idna,requests,urllib3,certifi,chardet,requests_file,six]
+
+    def mapper(self, line):
+        # Parse:
+        log = CrawlLogLine(line)
+        # Emit matching lines keyed by event timestamp
+        if log.host() == self.host:
+            yield "%s" % log.start_time_plus_duration, line
+
+    def reducer(self, key, values):
+        """
+        A pass-through reducer.
+
+        :param key:
+        :param values:
+        :return:
+        """
+        # Just pass documents through:
+        for value in values:
+            yield key, value
+
+
+class ExtractLogsByHost(luigi.contrib.hadoop.JobTask):
+    """
+    Map-Reduce job that scans a log file and extracts just the logs for a particular host.
+
+    Should run locally if run with only local inputs.
+
+    """
+
+    task_namespace = 'analyse'
+    job = luigi.Parameter()
+    launch_id = luigi.Parameter()
+    log_paths = luigi.ListParameter()
+    lines = luigi.IntParameter(default=5)
+    from_hdfs = luigi.BoolParameter(default=False)
+
+    # Using one output file ensures the whole output is sorted but is not suitable for very large crawls.
+    n_reduce_tasks = luigi.Parameter(default=50)
+
+    def requires(self):
+        reqs = []
+        for log_path in self.log_paths:
+            logger.info("LOG FILE TO PROCESS: %s" % log_path)
+            reqs.append(InputFile(log_path, self.from_hdfs))
+        return reqs
+
+    def output(self):
+        out_name = "task-state/%s/%s/crawl-logs-by-host-%s-lines.analysis.tsjson" % (self.job, self.launch_id, self.lines)
+        if self.from_hdfs:
+            return luigi.contrib.hdfs.HdfsTarget(path=out_name, format=PlainDir)
+        else:
+            return luigi.LocalTarget(path=out_name)
+
+    def extra_modules(self):
+        return [lib, dateutil, six]#,surt,tldextract,idna,requests,urllib3,certifi,chardet,requests_file,six]
+
+    def mapper(self, line):
+        # Parse:
+        log = CrawlLogLine(line)
+        # Emit lines keyed by host and event timestamp
+        yield "%s|%s" % (log.host(), log.timestamp), line
+
+    # For tracking lines emitted:
+    current_host = None
+    lines_emitted = 0
+
+    def reducer(self, key, values):
+        """
+        A pass-through reducer, should split and emit the host part of the key
+
+        :param key:
+        :param values:
+        :return:
+        """
+
+        # Get the host part of the key
+        host = key.split('|')[0]
+        # keep track of the host we're handling:
+        if self.current_host != host:
+            self.current_host = host
+            self.lines_emitted = 0
+        for value in values:
+            # Limit the lines we emit for each host:
+            if self.lines_emitted < self.lines:
+                self.lines_emitted += 1
+                yield host, value
+
+    # The following is ensures data is partitioned by the host, but ordered by host and timestamp within that.
+
+    def extra_streaming_arguments(self):
+        return [("-partitioner","org.apache.hadoop.mapred.lib.KeyFieldBasedPartitioner")]
+
+    def jobconfs(self):
+        '''
+        Extend the job configuration to support the keys and partitioning we want.
+        :return:
+        '''
+        jc = super(ExtractLogsByHost, self).jobconfs()
+
+        # Ensure the first three fields are all treated as the key:
+        jc.append("map.output.key.field.separator=|")
+        #jc.append("stream.num.map.output.key.fields=3")
+        # Ensure only the host part of the key (first value) is used for partitioning:
+        jc.append("mapred.text.key.partitioner.options=-k1,1")
+        # Compress the output and the mapper output:
+        #jc.append("mapred.output.compress=true")
+        #jc.append("mapred.compress.map.output=true")
+        #jc.append("mapred.output.compression.codec=org.apache.hadoop.io.compress.GzipCodec")
+
+        return jc
 
 
 class SummariseLogFiles(luigi.contrib.hadoop.JobTask):

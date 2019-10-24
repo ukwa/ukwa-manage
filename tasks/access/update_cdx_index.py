@@ -27,7 +27,7 @@ class CopyToHDFS(luigi.Task):
     This task takes a list of files and copies it up to HDFS to be an input for a task.
     """
     input_file = luigi.Parameter()
-    tag = luigi.Parameter()
+    prefix = luigi.Parameter()
     date = luigi.DateParameter(default=datetime.date.today())
     task_namespace = "access.hdfs"
 
@@ -41,8 +41,7 @@ class CopyToHDFS(luigi.Task):
                     writer.write(line)
 
     def output(self):
-        full_path = os.path.join(self.tag, os.path.basename(self.input_file))
-        full_path = full_path.replace(":","_")
+        full_path = os.path.join(self.prefix, os.path.basename(self.input_file))
         return luigi.contrib.hdfs.HdfsTarget(full_path, format=WebHdfsPlainFormat(use_gzip=False))
 
 
@@ -58,7 +57,7 @@ class CdxIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
     num_reducers = 5
 
     def requires(self):
-        return CopyToHDFS(input_file = self.input_file, tag="warcs2cdx")
+        return CopyToHDFS(input_file = self.input_file, prefix="/9_processing/warcs2cdx/")
 
     def ssh(self):
         return { 'host': 'mapred',
