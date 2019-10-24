@@ -14,7 +14,7 @@ import time
 import json
 import logging
 import requests
-from urlparse import urljoin, urlparse
+from urllib.parse import urlparse
 from lxml import html
 from lib.surt import url_to_surt
 
