@@ -9,7 +9,7 @@ from tasks.analyse.hdfs_analysis import GenerateHDFSSummaries
 from tasks.analyse.hdfs_reports import GenerateHDFSReports
 from tasks.backup.postgresql import BackupProductionW3ACTPostgres, BackupProductionShinePostgres
 from tasks.access.search import PopulateBetaCollectionsSolr, GenerateIndexAnnotations, GenerateW3ACTTitleExport
-from tasks.access.index import UpdateAccessWhitelist
+from tasks.access.generate_acl_files import UpdateAccessWhitelist
 
 
 class DailyIngestTasks(luigi.WrapperTask):
