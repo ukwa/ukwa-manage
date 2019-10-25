@@ -127,14 +127,14 @@ class LaunchCrawls(luigi.Task):
             # Check the scheduling:
             for schedule in t['schedules']:
                 # Skip if target schedule outside of start/end range
-                startDate = datetime.datetime.utcfromtimestamp(schedule['startDate'] / 1000)
+                startDate = datetime.datetime.strptime(schedule['startDate'], "%Y-%m-%d %H:%M:%S")
                 logger.debug("Target schedule start date: %s" % str(startDate))
                 if (now < startDate):
                     logger.debug("Start date %s not yet reached" % startDate)
                     continue
                 endDate = 'N/S'
                 if schedule['endDate']:
-                    endDate = datetime.datetime.utcfromtimestamp(schedule['endDate'] / 1000)
+                    endDate = datetime.datetime.strptime(schedule['endDate'], "%Y-%m-%d %H:%M:%S")
                     if now > endDate:
                         logger.debug("End date %s passed" % endDate)
                         continue

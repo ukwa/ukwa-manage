@@ -31,7 +31,7 @@ class GetW3actAsCsvZip(luigi.Task):
     task_namespace = 'w3act'
 
     def output(self):
-        return state_file(self.date,'w3act', 'db-csv.zip')
+        return state_file(self.date,'w3act-csv', 'db-csv.zip')
 
     def run(self):
         # Setup connection params
@@ -69,7 +69,7 @@ class CopyW3actZipToHDFS(luigi.Task):
         return GetW3actAsCsvZip(self.date)
 
     def output(self):
-        return state_file(self.date,'w3act','db-csv.zip', on_hdfs=True)
+        return state_file(self.date,'w3act-csv','db-csv.zip', on_hdfs=True)
 
     def run(self):
         # Read the file in and write it to HDFS:
@@ -88,7 +88,7 @@ class GenerateW3actJsonFromCsv(luigi.Task):
         return GetW3actAsCsvZip(self.date)
 
     def output(self):
-        return state_file(self.date,'w3act','all.json')
+        return state_file(self.date,'w3act-csv','all.json')
 
     def run(self):
         # Unpack the CSV:
@@ -118,7 +118,7 @@ class CrawlFeed(luigi.Task):
         return GenerateW3actJsonFromCsv(self.date)
 
     def output(self):
-        return state_file(self.date,'w3act', 'crawl-feed-%s.%s.json' % (self.feed, self.frequency))
+        return state_file(self.date,'w3act-csv', 'crawl-feed-%s.%s.json' % (self.feed, self.frequency))
 
     def run(self):
         # Load all the data including targets:
