@@ -127,11 +127,14 @@ class LaunchCrawls(luigi.Task):
             # Check the scheduling:
             for schedule in t['schedules']:
                 # Skip if target schedule outside of start/end range
-                startDate = datetime.datetime.strptime(schedule['startDate'], "%Y-%m-%d %H:%M:%S")
-                logger.debug("Target schedule start date: %s" % str(startDate))
-                if (now < startDate):
-                    logger.debug("Start date %s not yet reached" % startDate)
-                    continue
+                if schedule['startDate']:
+                    startDate = datetime.datetime.strptime(schedule['startDate'], "%Y-%m-%d %H:%M:%S")
+                    logger.debug("Target schedule start date: %s" % str(startDate))
+                    if (now < startDate):
+                        logger.debug("Start date %s not yet reached" % startDate)
+                        continue
+                else:
+                    logger.debug("Skipping target schedule start date: %s" % str(startDate))
                 endDate = 'N/S'
                 if schedule['endDate']:
                     endDate = datetime.datetime.strptime(schedule['endDate'], "%Y-%m-%d %H:%M:%S")
@@ -185,6 +188,8 @@ class LaunchCrawls(luigi.Task):
                         logger.debug("ANNUAL: date %s does not match schedule %s" % (
                             now, startDate))
                         logger.debug("ANNUAL: month %s versus schedule %s" % (now.month, startDate.month))
+                elif schedule['frequency'] == "DOMAINCRAWL":
+                    logger.debug("Skipping crawl frequency " + schedule['frequency'])
                 else:
                     logger.error("Don't understand crawl frequency " + schedule['frequency'])
 
