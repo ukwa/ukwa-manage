@@ -2,10 +2,9 @@ import logging
 import xml.dom.minidom
 from xml.parsers.expat import ExpatError
 import urllib
-from urllib import quote_plus  # python 2
 from requests.utils import quote
 import requests
-# from urllib.parse import quote_plus # python 3
+from urllib.parse import quote_plus
 
 logger = logging.getLogger(__name__)
 
