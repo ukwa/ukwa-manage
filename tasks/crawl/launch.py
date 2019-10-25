@@ -41,7 +41,7 @@ class UpdateScopeFiles(luigi.Task):
         }
 
     def output(self):
-        return IngestTaskDBTarget('crawl', self.task_id, kind='ingest')
+        return IngestTaskDBTarget('crawl', self.task_id)
 
     def run(self):
         # Load the targets:
@@ -92,7 +92,7 @@ class LaunchCrawls(luigi.Task):
         return CrawlFeed(frequency=self.frequency, date=self.date)
 
     def output(self):
-        return IngestTaskDBTarget('crawl', self.task_id, kind='ingest')
+        return IngestTaskDBTarget('crawl', self.task_id)
 
     def run(self):
         # Load the targets:
