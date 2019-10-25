@@ -61,7 +61,7 @@ class SyncToHdfs(luigi.Task):
         # Read local:
         local = luigi.LocalTarget(path=self.source_path)
         with local.open('r') as reader:
-            local_hash = hashlib.sha512(reader.read()).hexdigest()
+            local_hash = hashlib.sha512(reader.read().encode('utf-8')).hexdigest()
             logger.info("LOCAL HASH: %s" % local_hash)
         # Read from HDFS
         client = luigi.contrib.hdfs.WebHdfsClient()
@@ -125,7 +125,7 @@ class AnalyseAndProcessDocuments(luigi.Task):
                 tasks = []
                 for line in in_file:
                     #logger.info("Got line: %s" % line)
-                    prefix, docjson = line.strip().split("\t", 1)
+                    prefix, docjson = line.decode('utf-8').strip().split("\t", 1)
                     if prefix.startswith("DOCUMENT"):
                         doc = json.loads(docjson)
                         #logger.info("Got doc: %s" % doc['document_url'])
@@ -183,7 +183,7 @@ class GenerateCrawlLogReports(luigi.Task):
 
     def run(self):
         # Set up necessary data so we know which targets are watched:
-        feed = yield CrawlFeed(self.job)
+        feed = yield CrawlFeed('all')
         logs_count = len(self.input())
 
         # Cache targets in an appropriately unique filename (as unique as this task):

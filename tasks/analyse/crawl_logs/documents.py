@@ -156,7 +156,7 @@ class ExtractDocumentAndPost(luigi.Task):
 
     def output(self):
         hasher = hashlib.md5()
-        hasher.update(self.doc['document_url'])
+        hasher.update(self.doc['document_url'].encode('utf-8'))
         return self.document_target(urlparse(self.doc['document_url']).hostname, hasher.hexdigest())
 
     def run(self):
