@@ -10,7 +10,7 @@ import tldextract
 from xml import etree
 #import ssdeep
 from lib.cdx import CdxIndex
-from tasks.ingest.w3act import TargetList, SubjectList, CollectionList
+from tasks.crawl.w3act import TargetList, SubjectList, CollectionList
 from tasks.common import state_file
 from jinja2 import Environment, PackageLoader
 from prometheus_client import CollectorRegistry, Gauge

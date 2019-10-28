@@ -9,9 +9,9 @@ import xml.dom.minidom
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 
-from lib.w3act.w3act import w3act
+from w3act.w3act import w3act
 from lib.docharvester.document_mdex import DocumentMDEx
-from tasks.ingest.w3act import CrawlFeed, ENV_ACT_PASSWORD, ENV_ACT_URL, ENV_ACT_USER
+from tasks.crawl.w3act import CrawlFeed, ENV_ACT_PASSWORD, ENV_ACT_URL, ENV_ACT_USER
 from lib.targets import TaskTarget
 
 logger = logging.getLogger(__name__)
@@ -156,7 +156,7 @@ class ExtractDocumentAndPost(luigi.Task):
 
     def output(self):
         hasher = hashlib.md5()
-        hasher.update(self.doc['document_url'])
+        hasher.update(self.doc['document_url'].encode('utf-8'))
         return self.document_target(urlparse(self.doc['document_url']).hostname, hasher.hexdigest())
 
     def run(self):

@@ -31,7 +31,7 @@ class LogFilesForJobLaunch(luigi.ExternalTask):
         # Get HDFS client:
         client = luigi.contrib.hdfs.WebHdfsClient()
         # Find log files:
-        parent_path = "/heritrix/output/logs/%s/%s" % (self.job, self.launch_id)
+        parent_path = "/heritrix/output/%s/%s/logs" % (self.job, self.launch_id)
         for listed_item in client.listdir(parent_path):
             # Oddly, depending on the implementation, the listed_path may be absolute or basename-only, so fix here:
             item = os.path.basename(listed_item)
@@ -61,7 +61,7 @@ class SyncToHdfs(luigi.Task):
         # Read local:
         local = luigi.LocalTarget(path=self.source_path)
         with local.open('r') as reader:
-            local_hash = hashlib.sha512(reader.read()).hexdigest()
+            local_hash = hashlib.sha512(reader.read().encode('utf-8')).hexdigest()
             logger.info("LOCAL HASH: %s" % local_hash)
         # Read from HDFS
         client = luigi.contrib.hdfs.WebHdfsClient()
@@ -125,7 +125,7 @@ class AnalyseAndProcessDocuments(luigi.Task):
                 tasks = []
                 for line in in_file:
                     #logger.info("Got line: %s" % line)
-                    prefix, docjson = line.strip().split("\t", 1)
+                    prefix, docjson = line.decode('utf-8').strip().split("\t", 1)
                     if prefix.startswith("DOCUMENT"):
                         doc = json.loads(docjson)
                         #logger.info("Got doc: %s" % doc['document_url'])
@@ -164,7 +164,7 @@ class GenerateCrawlLogReports(luigi.Task):
         output_folder = None
         # Get HDFS client:
         client = luigi.contrib.hdfs.WebHdfsClient()
-        parent_path = "/heritrix/output/logs/%s" % self.job
+        parent_path = "/heritrix/output/%s" % self.job
         for listed_item in client.listdir(parent_path):
             item = os.path.basename(listed_item)
             if output_folder is None or item > output_folder:
@@ -182,8 +182,8 @@ class GenerateCrawlLogReports(luigi.Task):
                 'crawl-log-report-{}-{}-{}'.format(self.job, self.launch_id, logs_count))
 
     def run(self):
-        # Set up necessary data:
-        feed = yield CrawlFeed(self.job)
+        # Set up necessary data so we know which targets are watched:
+        feed = yield CrawlFeed('all')
         logs_count = len(self.input())
 
         # Cache targets in an appropriately unique filename (as unique as this task):
