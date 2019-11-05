@@ -80,7 +80,7 @@ class BackupProductionW3ACTPostgres(luigi.Task):
         return luigi.contrib.hdfs.HdfsTarget(path=bkp_path, format=PlainFormat())
 
     def run(self):
-        with self.input().open('rb') as reader:
+        with open(self.input().path, 'rb') as reader:
            with self.output().open('w') as writer:
                 for chunk in reader:
                     writer.write(chunk)
@@ -124,7 +124,7 @@ class BackupProductionShinePostgres(luigi.Task):
         return luigi.contrib.hdfs.HdfsTarget(path=bkp_path, format=PlainFormat())
 
     def run(self):
-        with self.input().open('rb') as reader:
+        with open(self.input().path, 'rb') as reader:
             with self.output().open('w') as writer:
                 for chunk in reader:
                     writer.write(chunk)

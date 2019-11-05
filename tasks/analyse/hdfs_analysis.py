@@ -226,15 +226,15 @@ class ListEmptyFiles(luigi.Task):
         return state_file(self.date, 'hdfs', 'empty-files-list.csv')
 
     def run(self):
-        with self.output().open('w') as fout:
-            # Set up output file:
-            writer = csv.DictWriter(fout, fieldnames=ListParsedPaths.fieldnames())
-            writer.writeheader()
-            with self.input().open('r') as fin:
-                reader = csv.DictReader(fin, fieldnames=ListParsedPaths.fieldnames())
+        with self.input().open('r') as fin:
+            reader = csv.DictReader(fin)
+            with self.output().open('w') as fout:
+                # Set up output file:
+                writer = csv.DictWriter(fout, fieldnames=reader.fieldnames)
+                writer.writeheader()
                 for item in reader:
                     # Archive file names:
-                    if not item['permissions'].startswith('d') and item['filesize'] == "0":
+                    if not item['permissions'].startswith('d') and item['file_size'] == "0":
                         writer.writerow(item)
 
 
@@ -257,14 +257,14 @@ class ListDuplicateFiles(luigi.Task):
     def run(self):
         filenames = {}
         with self.input().open('r') as fin:
-            reader = csv.DictReader(fin, fieldnames=ListParsedPaths.fieldnames())
+            reader = csv.DictReader(fin)
             for item in reader:
                 # Archive file names:
-                basename = os.path.basename(item['filename'])
+                basename = os.path.basename(item['file_name'])
                 if basename not in filenames:
-                    filenames[basename] = [item['filename']]
+                    filenames[basename] = [item['file_name']]
                 else:
-                    filenames[basename].append(item['filename'])
+                    filenames[basename].append(item['file_name'])
 
         # And emit duplicates:
         self.total_duplicated = 0
@@ -305,9 +305,7 @@ class ListByCrawl(luigi.Task):
         unparsed = []
         unparsed_dirs = set()
         with self.input().open('r') as fin:
-            reader = csv.DictReader(fin, fieldnames=ListParsedPaths.fieldnames())
-            # Skip the first line:
-            next(reader)
+            reader = csv.DictReader(fin)
 
             for p in reader:
                 # Process this line:
@@ -315,66 +313,66 @@ class ListByCrawl(luigi.Task):
                 stream = 'no-stream'
 
                 # Store the job details:
-                if p.recognised and p.job:
-                    if p.job not in crawls:
-                        crawls[p.job] = {}
-                    if p.launch not in crawls[p.job]:
-                        crawls[p.job][p.launch] = {}
+                if p['recognised'] and p['job']:
+                    if p['job'] not in crawls:
+                        crawls[p['job']] = {}
+                    if p['launch'] not in crawls[p['job']]:
+                        crawls[p['job']][p['launch']] = {}
                     # Store the launch data:
-                    if p.launch_datetime:
-                        crawls[p.job][p.launch]['date'] = p.launch_datetime.isoformat()
-                        crawls[p.job][p.launch]['launch_datetime'] = p.launch_datetime.isoformat()
-                        launched = p.launch_datetime.strftime("%d %b %Y")
+                    if p['launch_datetime']:
+                        crawls[p['job']][p['launch']]['date'] = p['launch_datetime'].isoformat()
+                        crawls[p['job']][p['launch']]['launch_datetime'] = p['launch_datetime'].isoformat()
+                        launched = p['launch_datetime'].strftime("%d %b %Y")
                     else:
                         launched = '?'
-                    crawls[p.job][p.launch]['stream'] = p.stream
-                    crawls[p.job][p.launch]['tags'] = ['crawl-%s' % p.stream.name, 'crawl-%s-%s' % (p.stream.name, p.job)]
-                    crawls[p.job][p.launch]['total_files'] = 0
+                    crawls[p['job']][p['launch']]['stream'] = p['stream']
+                    crawls[p['job']][p['launch']]['tags'] = ['crawl-%s' % p['stream'].name, 'crawl-%s-%s' % (p['stream'].name, p['job'])]
+                    crawls[p['job']][p['launch']]['total_files'] = 0
 
                     # Determine the collection and store information at that level:
-                    if p.stream == 'frequent' or p.stream == 'domain':
+                    if p['stream'] == 'frequent' or p['stream'] == 'domain':
                         collection = 'npld'
-                        crawls[p.job][p.launch]['categories'] = ['legal-deposit crawls', '%s crawl' % p.job.split('-')[0]]
-                        crawls[p.job][p.launch]['title'] = "NPLD %s crawl, launched %s" % (p.job, launched)
-                    elif p.stream == 'selective':
+                        crawls[p['job']][p['launch']]['categories'] = ['legal-deposit crawls', '%s crawl' % p['job'].split('-')[0]]
+                        crawls[p['job']][p['launch']]['title'] = "NPLD %s crawl, launched %s" % (p['job'], launched)
+                    elif p['stream'] == 'selective':
                         collection = 'selective'
-                        crawls[p.job][p.launch]['categories'] = ['selective crawls',
-                                                                 '%s crawl' % p.job.split('-')[0]]
-                        crawls[p.job][p.launch]['title'] = "Selective %s crawl, launched %s" % (p.job, launched)
+                        crawls[p['job']][p['launch']]['categories'] = ['selective crawls',
+                                                                 '%s crawl' % p['job'].split('-')[0]]
+                        crawls[p['job']][p['launch']]['title'] = "Selective %s crawl, launched %s" % (p['job'], launched)
 
                     # Append this item:
-                    if 'files' not in crawls[p.job][p.launch]:
-                        crawls[p.job][p.launch]['files'] = []
+                    if 'files' not in crawls[p['job']][p['launch']]:
+                        crawls[p['job']][p['launch']]['files'] = []
                     file_info = {
-                        'path': p.file_path,
-                        'kind': p.kind,
-                        'timestamp': p.timestamp_datetime.isoformat(),
-                        'filesize': p['filesize'],
+                        'path': p['file_path'],
+                        'kind': p['kind'],
+                        'timestamp': p['timestamp_datetime'].isoformat(),
+                        'filesize': p['file_size'],
                         'modified_at': p['modified_at']
                     }
-                    crawls[p.job][p.launch]['files'].append(file_info)
-                    crawls[p.job][p.launch]['total_files'] += 1
+                    crawls[p['job']][p['launch']]['files'].append(file_info)
+                    crawls[p['job']][p['launch']]['total_files'] += 1
 
-                if not p.recognised:
+                if not p['recognised']:
                     #logger.warning("Could not parse: %s" % item['filename'])
-                    unparsed.append(p['filename'])
-                    unparsed_dirs.add(os.path.dirname(p['filename']))
+                    unparsed.append(p['file_name'])
+                    unparsed_dirs.add(os.path.dirname(p['file_name']))
 
                 # Also count up files and bytes:
-                if p.stream:
-                    stream = p.stream.name
+                if p['stream']:
+                    stream = p['stream'].name
                 if stream not in self.totals:
                     self.totals[stream] = {}
                     self.totals[stream]['all'] = {'count': 0, 'bytes': 0}
                     self.collections[stream] = collection
                 # Totals for all files:
                 self.totals[stream]['all']['count'] += 1
-                self.totals[stream]['all']['bytes'] += int(p['filesize'])
+                self.totals[stream]['all']['bytes'] += int(p['file_size'])
                 # Totals broken down by kind:
-                if p.kind not in self.totals[stream]:
-                    self.totals[stream][p.kind] = { 'count': 0, 'bytes': 0}
-                self.totals[stream][p.kind]['count'] += 1
-                self.totals[stream][p.kind]['bytes'] += int(p['filesize'])
+                if p['kind'] not in self.totals[stream]:
+                    self.totals[stream][p['kind']] = { 'count': 0, 'bytes': 0}
+                self.totals[stream][p['kind']]['count'] += 1
+                self.totals[stream][p['kind']]['bytes'] += int(p['file_size'])
 
         # Now emit a file for each, remembering the filenames as we go:
         filenames = []
