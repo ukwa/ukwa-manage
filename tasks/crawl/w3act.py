@@ -111,7 +111,7 @@ class CrawlFeed(luigi.Task):
     """
     task_namespace = 'w3act'
     frequency = luigi.Parameter(default=None)
-    feed = luigi.Parameter(default='ld')
+    feed = luigi.Parameter(default='npld')
     date = luigi.DateHourParameter(default=datetime.datetime.today())
 
     def requires(self):

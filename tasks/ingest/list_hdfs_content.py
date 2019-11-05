@@ -55,7 +55,7 @@ class ListAllFilesOnHDFSToLocalFile(DatedStateFileTask):
             writer = csv.DictWriter(fout, fieldnames=ListAllFilesOnHDFSToLocalFile.fieldnames())
             writer.writeheader()
             # Set up listing process
-            process = subprocess.Popen(command, stdout=subprocess.PIPE)
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, universal_newlines=True)
             for line in iter(process.stdout.readline, ''):
                 if "lsr: DEPRECATED: Please use 'ls -R' instead." in line:
                     logger.warning(line)
@@ -76,7 +76,7 @@ class ListAllFilesOnHDFSToLocalFile(DatedStateFileTask):
                     if permissions[0] != 'd':
                         self.total_files += 1
                         self.total_bytes += int(filesize)
-                        if number_of_replicas < 3:
+                        if int(number_of_replicas) < 3:
                             self.total_under_replicated += 1
                         # Write out as CSV:
                         writer.writerow(info)
@@ -136,7 +136,7 @@ class CopyFileListToHDFS(luigi.Task):
     def run(self):
         # Make a compressed version of the file:
         gzip_local = '%s.gz' % self.input().path
-        with self.input().open('r') as f_in, gzip.open(gzip_local, 'wb') as f_out:
+        with open(self.input().path, 'rb') as f_in, gzip.open(gzip_local, 'wb') as f_out:
             shutil.copyfileobj(f_in, f_out)
 
         # Read the compressed file in and write it to HDFS:
