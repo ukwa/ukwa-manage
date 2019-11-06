@@ -380,7 +380,7 @@ class Heritrix3Collector(object):
 
 
 def dict_values_to_floats(d, k, excluding=list()):
-    if d.has_key(k):
+    if k in d:
         for sk in d[k]:
             if not sk in excluding:
                 d[k][sk] = float(d[k][sk])
@@ -397,7 +397,7 @@ def get_h3_status(args):
         logger.info("Getting status for job %s on %s" % (job_name, server_url))
         info = h.get_job_info(job_name)
         state['details'] = info
-        if info.has_key('job'):
+        if 'job' in info:
             state['status'] = info['job'].get("crawlControllerState", None)
             if not state['status']:
                 state['status'] = info['job'].get("statusDescription", None)

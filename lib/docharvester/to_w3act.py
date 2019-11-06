@@ -137,7 +137,7 @@ def send_document_to_w3act(cl, wayback_url, act):
     Passed a document crawl log entry, POSTs it to W3ACT.
     """
     logger.debug("Message received: %s." % cl)
-    if cl.has_key('launch_message'):
+    if 'launch_message' in cl:
         logger.warning("Discarding message delivered to wrong queue: %s" % cl)
         return
     url = cl["url"]

@@ -132,7 +132,7 @@ class DocumentMDEx(object):
             logger.info("GOT %s" % self.doc)
 
         # Look up which Target this URL should be associated with:
-        if self.targets and self.doc.has_key('landing_page_url'):
+        if self.targets and 'landing_page_url' in self.doc:
             logger.info("Looking for match for %s source %s and publishers '%s'" % (self.doc['landing_page_url'], self.source, self.doc.get('publishers',[])))
             self.doc['target_id'] = self.find_watched_target_for(self.doc['landing_page_url'], self.source, self.doc.get('publishers', []))
         
@@ -196,7 +196,7 @@ class DocumentMDEx(object):
         success = False
         while tries > 0:
             r = requests.head(url=self.doc_wb_url(), allow_redirects=True)
-            if r.links.has_key('up'):
+            if 'up' in r.links:
                 lpu = r.links['up']
                 self.doc["landing_page_url"] = lpu['url']
                 success = True
@@ -268,7 +268,7 @@ class DocumentMDEx(object):
             # This is allowed to be empty if we are deferring to the default, and majot problems should throw errors earlier.
             if matches == 0:
                 raise Exception("Document HREF matching failed! Can't find %s" % self.doc)
-            #if not self.doc.has_key('title') or self.doc['title']:
+            #if not 'title' in self.doc or self.doc['title']:
             #    raise Exception('Title extraction failed! Metadata extraction for this target should be reviewed.')
     
         
