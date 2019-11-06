@@ -146,7 +146,7 @@ class ExtractDocumentAndPost(luigi.Task):
 
     def requires(self):
         return {
-            'targets': CrawlFeed(self.job),
+            'targets': CrawlFeed('all'),
             'available' : AvailableInWayback(self.doc['document_url'], self.doc['wayback_timestamp'])
         }
 
