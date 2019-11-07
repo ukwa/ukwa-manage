@@ -1,9 +1,7 @@
 import logging
 import xml.dom.minidom
 from xml.parsers.expat import ExpatError
-import urllib
-from requests.utils import quote
-import requests
+import urllib.request
 from urllib.parse import quote_plus
 
 logger = logging.getLogger(__name__)
@@ -35,7 +33,7 @@ class CdxIndex():
                 q = "type:urlquery url:" + quote_plus(url) + (" limit:%i offset:%i" % (batch, offset))
                 cdx_query_url = "%s?q=%s" % (self.cdx_server, quote_plus(q))
                 logger.info("Getting %s" % cdx_query_url)
-                f = urllib.urlopen(cdx_query_url)
+                f = urllib.request.urlopen(cdx_query_url)
                 content = f.read()
                 f.close()
                 # Grab the capture dates:
