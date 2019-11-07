@@ -58,11 +58,11 @@ class GenerateIndexAnnotations(luigi.Task):
 
         # And add date ranges:
         annotations['collectionDateRanges'][collection_name] = {}
-        if collection['startDate']:
+        if collection['start_date']:
             annotations['collectionDateRanges'][collection_name]['start'] = collection['start_date']
         else:
             annotations['collectionDateRanges'][collection_name]['start'] = None
-        if collection['endDate']:
+        if collection['end_date']:
             annotations['collectionDateRanges'][collection_name]['end'] = collection['end_date']
         else:
             annotations['collectionDateRanges'][collection_name]['end'] = None
@@ -198,7 +198,7 @@ class GenerateW3ACTTitleExport(luigi.Task):
             record_id = "%s/%s" % (wayback_date_str, base64.b64encode(hashlib.md5(url.encode('utf-8')).digest()))
             title = target['title']
             # set the rights and wayback_url depending on licence
-            if target.get('hasOpenAccessLicense', True):
+            if target.get('isOA', False):
                 rights = '***Free access'
                 wayback_url = 'https://www.webarchive.org.uk/wayback/archive/' + wayback_date_str + '/' + url
             else:
@@ -327,7 +327,7 @@ class UpdateCollectionsSolr(luigi.Task):
                 # Determine license status:
                 licenses = []
                 if target.get('isOA', False):
-                    licenses = [l["id"] for l in target["licenses"]]
+                    licenses = target["licenses"]
                     # Use a special value to indicate an inherited license:
                     if len(licenses) == 0:
                         licenses = ['1000']
