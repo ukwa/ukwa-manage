@@ -35,17 +35,16 @@ class GenerateIndexAnnotations(luigi.Task):
         # assemble full collection name:
         collection_name = "%s%s" % (prefix, collection['name'])
         # deal with all targets:
-        for tid in collection['targetIds']:
+        for tid in collection['target_ids']:
             if tid not in targets_by_id:
                 logger.error("Target %i not found in targets list!" % tid)
                 continue
             target = targets_by_id[tid]
-            scope = target['field_scope']
+            scope = target['scope']
             if scope is None:
-                logger.error("Scope not set for %s - %s!" % (tid, target['fieldUrls']) )
+                logger.error("Scope not set for %s - %s!" % (tid, target['urls']) )
                 continue
-            for fieldUrl in target['fieldUrls']:
-                url = fieldUrl['url']
+            for url in target['urls']:
                 ann = annotations['collections'][scope].get(url, {'collection': collection_name, 'collections': [], 'subject': []})
                 if collection_name not in ann['collections']:
                     ann['collections'].append(collection_name)
@@ -60,11 +59,11 @@ class GenerateIndexAnnotations(luigi.Task):
         # And add date ranges:
         annotations['collectionDateRanges'][collection_name] = {}
         if collection['startDate']:
-            annotations['collectionDateRanges'][collection_name]['start'] = datetime.datetime.utcfromtimestamp(collection['startDate'] / 1e3).isoformat()
+            annotations['collectionDateRanges'][collection_name]['start'] = collection['start_date']
         else:
             annotations['collectionDateRanges'][collection_name]['start'] = None
         if collection['endDate']:
-            annotations['collectionDateRanges'][collection_name]['end'] = datetime.datetime.utcfromtimestamp(collection['endDate'] / 1e3).isoformat()
+            annotations['collectionDateRanges'][collection_name]['end'] = collection['end_date']
         else:
             annotations['collectionDateRanges'][collection_name]['end'] = None
 
@@ -151,38 +150,38 @@ class GenerateW3ACTTitleExport(luigi.Task):
         collections_by_id = {}
         for col in collections:
             collections_by_id[int(col['id'])] = col
-            if col['field_publish']:
+            if col['publish']:
                 self.collection_published_count += 1
 
         # Index subjects by ID:
         subjects_by_id = {}
         for sub in subjects:
             subjects_by_id[int(sub['id'])] = sub
-            if sub['field_publish']:
+            if sub['publish']:
                 self.subject_published_count += 1
 
         # Convert to records:
         records = []
         for target in targets:
             # Skip blocked items:
-            if target['field_crawl_frequency'] == 'NEVERCRAWL':
+            if target['crawl_frequency'] == 'NEVERCRAWL':
                 logger.warning("The Target '%s' is blocked (NEVERCRAWL)." % target['title'])
                 self.blocked_record_count += 1
                 continue
             # Skip items that have no crawl permission?
             # hasOpenAccessLicense == False, and inScopeForLegalDeposit == False ?
             # Skip items with no URLs:
-            if len(target['fieldUrls']) == 0:
+            if len(target['urls']) == 0:
                 continue
             # Get the url, use the first:
-            url = target['fieldUrls'][0]['url']
+            url = target['urls'][0]
             # Extract the domain:
             parsed_url = tldextract.extract(url)
             publisher = parsed_url.registered_domain
             # Lookup in CDX:
             wayback_date_str = CdxIndex().get_first_capture_date(url) # Get date in '20130401120000' form.
             if wayback_date_str is None:
-                logger.warning("The URL '%s' is not yet available, inScopeForLegalDeposit = %s" % (url, target['inScopeForLegalDeposit']))
+                logger.warning("The URL '%s' is not yet available, inScopeForLegalDeposit = %s" % (url, target['isNPLD']))
                 self.missing_record_count += 1
                 continue
             wayback_date = datetime.datetime.strptime(wayback_date_str, '%Y%m%d%H%M%S')
@@ -299,7 +298,7 @@ class UpdateCollectionsSolr(luigi.Task):
 
     @staticmethod
     def add_collection(s, targets_by_id, col, parent_id):
-        if col['field_publish']:
+        if col['publish']:
             print("Publishing...", col['name'])
 
             # add a document to the Solr index
@@ -314,19 +313,19 @@ class UpdateCollectionsSolr(luigi.Task):
             ], commit=False)
 
             # Look up all Targets within this Collection and add them.
-            for tid in col['targetIds']:
+            for tid in col['target_ids']:
                 target = targets_by_id.get(tid, None)
                 if not target:
                     logger.error("Warning! Could not find target %i" % tid)
                     continue
 
                 # Skip items with no URLs:
-                if len(target['fieldUrls']) == 0:
+                if len(target['urls']) == 0:
                     continue
 
                 # Determine license status:
                 licenses = []
-                if target.get('hasOpenAccessLicense', False):
+                if target.get('isOA', False):
                     licenses = [l["id"] for l in target["licenses"]]
                     # Use a special value to indicate an inherited license:
                     if len(licenses) == 0:
@@ -339,11 +338,11 @@ class UpdateCollectionsSolr(luigi.Task):
                     "parentId": col['id'],
                     "title": target["title"],
                     "description": target["description"],
-                    "url": target["fieldUrls"][0]["url"],
-                    "additionalUrl": [t["url"] for t in target["fieldUrls"] if t["position"] > 0],
+                    "url": target["urls"][0],
+                    "additionalUrl": target["urls"][1:],
                     "language": target["language"],
-                    "startDate": target["crawlStartDateISO"],
-                    "endDate": target["crawlEndDateISO"],
+                    "startDate": target["crawl_start_date"],
+                    "endDate": target["crawl_end_date"],
                     "licenses": licenses
                 }], commit=False)
 
@@ -390,7 +389,7 @@ class PopulateBetaCollectionsSolr(luigi.WrapperTask):
     task_namespace = 'discovery'
 
     def requires(self):
-        return UpdateCollectionsSolr(solr_endpoint='http://ukwadev2:8983/solr/collections')
+        return UpdateCollectionsSolr(solr_endpoint='http://access:9020/solr/collections')
 
 
 if __name__ == '__main__':
