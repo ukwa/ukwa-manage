@@ -46,8 +46,8 @@ class GenerateAccessWhitelist(luigi.Task):
 
     def output(self):
         return {
-            'owb': state_file(self.date,'access-data', 'access-whitelist.txt'),
-            'pywb': state_file(self.date,'access-data', 'access-whitelist.aclj')
+            'owb': state_file(self.date,'access-data', 'access-whitelist-beta.txt'),
+            'pywb': state_file(self.date,'access-data', 'access-whitelist-beta.aclj')
         }
 
     def requires(self):
