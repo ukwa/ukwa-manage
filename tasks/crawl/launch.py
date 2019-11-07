@@ -134,7 +134,8 @@ class LaunchCrawls(luigi.Task):
                         logger.debug("Start date %s not yet reached" % startDate)
                         continue
                 else:
-                    logger.debug("Skipping target schedule start date: %s" % str(startDate))
+                    logger.debug("Skipping target schedule start date: %s" % schedule['startDate'])
+                    continue
                 endDate = 'N/S'
                 if schedule['endDate']:
                     endDate = datetime.datetime.strptime(schedule['endDate'], "%Y-%m-%d %H:%M:%S")
