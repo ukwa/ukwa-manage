@@ -171,7 +171,8 @@ class GenerateW3ACTTitleExport(luigi.Task):
             # Skip items that have no crawl permission?
             # hasOpenAccessLicense == False, and inScopeForLegalDeposit == False ?
             # Skip items with no URLs:
-            if len(target['urls']) == 0:
+            if len(target.get('urls',[])) == 0:
+                logger.warning("Skipping %s" % target.get('title', 'NO TITLE'))
                 continue
             # Get the url, use the first:
             url = target['urls'][0]
