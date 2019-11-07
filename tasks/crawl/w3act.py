@@ -152,7 +152,7 @@ class CollectionList(luigi.Task):
             w3a = json.load(f_in)
 
         # Persist to disk:
-        collections = w3a['collections'].values()
+        collections = list(w3a['collections'].values())
         with self.output().open('w') as f:
             f.write('{}'.format(json.dumps(collections , indent=4)))
 
@@ -178,7 +178,7 @@ class SubjectList(luigi.Task):
             w3a = json.load(f_in)
 
         # Persist to disk:
-        subjects = w3a['subjects'].values()
+        subjects = list(w3a['subjects'].values())
         with self.output().open('w') as f:
             f.write('{}'.format(json.dumps(subjects, indent=4)))
 
@@ -204,7 +204,7 @@ class TargetList(luigi.Task):
             w3a = json.load(f_in)
 
         # Persist to disk:
-        targets = w3a['targets'].values()
+        targets = list(w3a['targets'].values())
         with self.output().open('w') as f:
             f.write('{}'.format(json.dumps(targets, indent=4)))
 
