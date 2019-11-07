@@ -49,7 +49,7 @@ class GenerateIndexAnnotations(luigi.Task):
                 if collection_name not in ann['collections']:
                     ann['collections'].append(collection_name)
                 # And subjects:
-                for sid in target['subjectIds']:
+                for sid in target['subject_ids']:
                     subject_name = self.subjects_by_id[sid]['name']
                     if subject_name not in ann['subject']:
                         ann['subject'].append(subject_name)
@@ -214,8 +214,8 @@ class GenerateW3ACTTitleExport(luigi.Task):
                 'wayback_url': wayback_url
             }
             # Add any collection:
-            if len(target['subjectIds']) > 0:
-                sub0 = subjects_by_id.get(int(target['subjectIds'][0]), {})
+            if len(target['subject_ids']) > 0:
+                sub0 = subjects_by_id.get(int(target['subject_ids'][0]), {})
                 rec['subject'] = sub0.get('name', None)
 
             # And append record to the set:
