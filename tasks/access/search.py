@@ -41,7 +41,7 @@ class GenerateIndexAnnotations(luigi.Task):
                 continue
             target = targets_by_id[tid]
             scope = target['scope']
-            if scope is None:
+            if scope is None or scope == '':
                 logger.error("Scope not set for %s - %s!" % (tid, target['urls']) )
                 continue
             for url in target['urls']:
