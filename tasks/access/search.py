@@ -44,7 +44,7 @@ class GenerateIndexAnnotations(luigi.Task):
             if scope is None or scope == '':
                 logger.error("Scope not set for %s - %s!" % (tid, target['urls']) )
                 continue
-            for url in target['urls']:
+            for url in target.get('urls',[]):
                 ann = annotations['collections'][scope].get(url, {'collection': collection_name, 'collections': [], 'subject': []})
                 if collection_name not in ann['collections']:
                     ann['collections'].append(collection_name)
