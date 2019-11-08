@@ -321,7 +321,7 @@ class UpdateCollectionsSolr(luigi.Task):
                     continue
 
                 # Skip items with no URLs:
-                if len(target['urls']) == 0:
+                if len(target.get('urls',[])) == 0:
                     continue
 
                 # Determine license status:
