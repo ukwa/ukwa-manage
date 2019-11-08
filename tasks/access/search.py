@@ -314,7 +314,7 @@ class UpdateCollectionsSolr(luigi.Task):
             ], commit=False)
 
             # Look up all Targets within this Collection and add them.
-            for tid in col['target_ids']:
+            for tid in col.get('target_ids',[]):
                 target = targets_by_id.get(tid, None)
                 if not target:
                     logger.error("Warning! Could not find target %i" % tid)
