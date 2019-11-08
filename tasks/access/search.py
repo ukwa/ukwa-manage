@@ -35,7 +35,7 @@ class GenerateIndexAnnotations(luigi.Task):
         # assemble full collection name:
         collection_name = "%s%s" % (prefix, collection['name'])
         # deal with all targets:
-        for tid in collection['target_ids']:
+        for tid in collection.get('target_ids',[]):
             if tid not in targets_by_id:
                 logger.error("Target %i not found in targets list!" % tid)
                 continue
