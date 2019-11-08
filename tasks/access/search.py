@@ -327,7 +327,7 @@ class UpdateCollectionsSolr(luigi.Task):
                 # Determine license status:
                 licenses = []
                 if target.get('isOA', False):
-                    licenses = target["licenses"]
+                    licenses = target.get("license_ids",[])
                     # Use a special value to indicate an inherited license:
                     if len(licenses) == 0:
                         licenses = ['1000']
