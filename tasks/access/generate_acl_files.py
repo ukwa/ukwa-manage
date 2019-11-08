@@ -4,7 +4,7 @@ import shutil
 import logging
 import datetime
 import surt
-from tasks.crawl.w3act import CrawlFeed
+from tasks.crawl.w3act import CrawlFeedAllOpenAccess
 import luigi.contrib.hadoop_jar
 from tasks.common import state_file, CopyToTableInDB
 from prometheus_client import CollectorRegistry, Gauge
@@ -51,7 +51,7 @@ class GenerateAccessWhitelist(luigi.Task):
         }
 
     def requires(self):
-        return CrawlFeed('all','oa')
+        return CrawlFeedAllOpenAccess()
 
     def generate_surt(self, url):
         if self.RE_NONCHARS.search(url):
