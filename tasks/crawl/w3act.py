@@ -140,6 +140,40 @@ class CrawlFeed(luigi.Task):
             f.write('{}'.format(json.dumps(feed, indent=4)))
 
 
+class CrawlFeedAllOpenAccess(luigi.Task):
+    """
+    Get the feed of targets to crawl at a given frequency. Only core metadata per target, and
+    only includes scheduled targets.
+    """
+    task_namespace = 'w3act'
+    date = luigi.DateHourParameter(default=datetime.datetime.today())
+
+    def requires(self):
+        return GenerateW3actJsonFromCsv(self.date)
+
+    def output(self):
+        return state_file(self.date, 'w3act-csv', 'crawl-feed-but-all-oa.json')
+
+    def run(self):
+        # Load all the data including targets:
+        with self.input().open() as f_in:
+            w3a = json.load(f_in)
+
+        # Filter out to all valid OA stuff:
+        targets = filtered_targets(w3a['targets'], frequency='all', terms='oa', include_expired=True, include_hidden=False)
+
+        feed = []
+        for target in targets:
+            feed.append(to_crawl_feed_format(target))
+
+        # Check the result is sensible:
+        if feed is None or len(feed) == 0:
+            raise Exception("No feed data downloaded!")
+        # Persist to disk:
+        with self.output().open('w') as f:
+            f.write('{}'.format(json.dumps(feed, indent=4)))
+
+
 class CollectionList(luigi.Task):
     """
     Get the lists of all collections.
