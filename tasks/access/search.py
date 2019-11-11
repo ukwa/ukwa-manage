@@ -386,7 +386,7 @@ class UpdateCollectionsSolr(luigi.Task):
             f.write('{}'.format(json.dumps(collections, indent=4)))
 
 
-class PopulateBetaCollectionsSolr(luigi.WrapperTask):
+class PopulateCollectionsSolr(luigi.WrapperTask):
     task_namespace = 'discovery'
 
     def requires(self):
@@ -395,4 +395,4 @@ class PopulateBetaCollectionsSolr(luigi.WrapperTask):
 
 if __name__ == '__main__':
     #luigi.run(['discovery.UpdateCollectionsSolr',  '--date', '2017-04-28', '--local-scheduler'])
-    luigi.run(['discovery.PopulateBetaCollectionsSolr', '--local-scheduler'])
+    luigi.run(['discovery.PopulateCollectionsSolr', '--local-scheduler'])
