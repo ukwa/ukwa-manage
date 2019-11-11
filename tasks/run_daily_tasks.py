@@ -9,7 +9,7 @@ from tasks.ingest.list_hdfs_content import CopyFileListToHDFS
 from tasks.analyse.hdfs_analysis import GenerateHDFSSummaries
 from tasks.analyse.hdfs_reports import GenerateHDFSReports
 from tasks.backup.postgresql import BackupProductionW3ACTPostgres, BackupProductionShinePostgres
-from tasks.access.search import PopulateBetaCollectionsSolr, GenerateIndexAnnotations, GenerateW3ACTTitleExport
+from tasks.access.search import PopulateCollectionsSolr, GenerateIndexAnnotations, GenerateW3ACTTitleExport
 from tasks.access.generate_acl_files import UpdateAccessWhitelist
 from tasks.common import state_file
 
@@ -34,7 +34,7 @@ class DailyAccessTasks(luigi.WrapperTask):
     def requires(self):
         return [UpdateAccessWhitelist(),
                 GenerateIndexAnnotations(),
-                PopulateBetaCollectionsSolr(),
+                PopulateCollectionsSolr(),
                 GenerateW3ACTTitleExport()]
 
 
