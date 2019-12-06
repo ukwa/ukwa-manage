@@ -219,12 +219,9 @@ class LaunchCrawls(luigi.Task):
                 freq, t['title'], t['id'], now, startDate, endDate))
             counter = 0
             for seed in t['seeds']:
-                # For now, only treat the first URL as a scope-defining seed that we force a re-crawl for:
-                # FIXME Can likely relax this once we separate aliases from seeds, so seeds won't be used for URLs that end up in the same place.
-                if counter == 0:
-                    isSeed = True
-                else:
-                    isSeed = False
+                # Assume all are true seeds, which will over-crawl where sites have aliases that are being treated as seeds.
+                # TODO Add handling of aliases
+                isSeed = True
 
                 # Set-up sheets
                 sheets = []
