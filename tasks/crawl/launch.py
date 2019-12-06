@@ -194,6 +194,10 @@ class LaunchCrawls(luigi.Task):
                 else:
                     logger.error("Don't understand crawl frequency " + schedule['frequency'])
 
+        logger.info("Closing the launcher to ensure everything is pushed to Kafka...")
+        self.launcher.flush()
+        #self.launcher.close()
+
         logger.info("Completed. Launches this hour: %s" % self.i_launches)
         # Record that all went well:
         self.output().touch()
