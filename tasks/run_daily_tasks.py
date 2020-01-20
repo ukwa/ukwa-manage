@@ -34,8 +34,8 @@ class DailyAccessTasks(luigi.WrapperTask):
     def requires(self):
         return [UpdateAccessWhitelist(),
                 GenerateIndexAnnotations(),
-                PopulateCollectionsSolr(),
-                GenerateW3ACTTitleExport()]
+                PopulateCollectionsSolr()]#,
+                #GenerateW3ACTTitleExport()]
 
 
 if __name__ == '__main__':

@@ -273,10 +273,10 @@ class CdxIndexAndVerify(luigi.Task):
     stream = luigi.Parameter(default='frequent')
     verify_only = luigi.BoolParameter(default=False)
     cdx_service = luigi.Parameter(default=
-                                  os.environ.get('CDX_SERVICE_URL', 'http://bigcdx:8080/data-heritrix'))
+                                  os.environ.get('CDX_SERVICE_URL'))
     # Specify a Tracking DB to manage state:
     tracking_db_url = luigi.Parameter(default=
-                                      os.environ.get('TRACKING_DB_SOLR_URL', 'http://localhost:8983/solr/tracking'))
+                                      os.environ.get('TRACKING_DB_SOLR_URL'))
     # Specify a fine-grained run date so we can get fresh results
     run_date = luigi.DateMinuteParameter(default=datetime.datetime.now())
 
