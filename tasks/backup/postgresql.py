@@ -62,10 +62,10 @@ class BackupProductionW3ACTPostgres(luigi.Task):
     and then pushes the backup file up to HDFS.
     """
     task_namespace = 'backup'
-    host = luigi.Parameter(default='crawler03')
-    service = luigi.Parameter(default='pulsefeprod_postgres_1')
+    host = luigi.Parameter(default='ingest')
+    service = luigi.Parameter(default='ife_prod_postgres')
     db = luigi.Parameter(default='w3act')
-    remote_host_backup_folder = luigi.Parameter(default='/data/prod/postgresql')
+    remote_host_backup_folder = luigi.Parameter(default='/data/prod/w3act/postgresql')
     hdfs_backup_folder = luigi.Parameter(default='/2_backups/')
     date = luigi.DateParameter(default=datetime.date.today())
     

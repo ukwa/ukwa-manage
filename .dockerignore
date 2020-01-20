@@ -1,8 +1,9 @@
+legacy
+test
 venv*
-venv-manage-2/*
-legacy/*
-prototype/*
-doc/*
-build/*
-task-state/*
-notebooks/*
+.git
+build
+tast-state
+prototype
+notebooks
+docs
