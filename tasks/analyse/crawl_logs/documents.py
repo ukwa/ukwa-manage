@@ -9,7 +9,7 @@ import xml.dom.minidom
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 
-from w3act.w3act import w3act
+from w3act.client import w3act
 from lib.docharvester.document_mdex import DocumentMDEx
 from tasks.crawl.w3act import CrawlFeed, ENV_ACT_PASSWORD, ENV_ACT_URL, ENV_ACT_USER
 from lib.targets import TaskTarget
