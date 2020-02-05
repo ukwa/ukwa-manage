@@ -20,6 +20,19 @@ logger = logging.getLogger(__name__)
 ENV_WAYBACK_URL_PREFIX = 'WAYBACK_URL_PREFIX'
 ENV_CDXSERVER_ENDPOINT = 'CDXSERVER_ENDPOINT'
 
+# Set up a common W3ACT connection to try to avoid constant re-logging-in
+w3act_client = None
+w3act_url = None
+
+def get_w3act(wurl):
+    global w3act_client, w3act_url
+    if w3act_client is None or w3act_url != wurl:
+        # Look up credentials and log into W3ACT:
+        act_user = os.environ[ENV_ACT_USER]
+        act_password = os.environ[ENV_ACT_PASSWORD]
+        w3act_client = w3act(w3act_url, act_user, act_password)
+    return w3act_client
+
 
 class AvailableInWayback(luigi.ExternalTask):
     """
@@ -160,10 +173,8 @@ class ExtractDocumentAndPost(luigi.Task):
         return self.document_target(urlparse(self.doc['document_url']).hostname, hasher.hexdigest())
 
     def run(self):
-        # Look up credentials and log into W3ACT:
-        act_user = os.environ[ENV_ACT_USER]
-        act_password = os.environ[ENV_ACT_PASSWORD]
-        w = w3act(self.w3act, act_user, act_password)
+        # Set up a W3ACT client:
+        w = get_w3act(self.w3act)
 
         # Lookup Target and extract any additional metadata:
         targets = json.load(self.input()['targets'].open('r'))
