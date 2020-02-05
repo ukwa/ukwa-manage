@@ -31,6 +31,7 @@ def get_w3act(wurl):
         act_user = os.environ[ENV_ACT_USER]
         act_password = os.environ[ENV_ACT_PASSWORD]
         w3act_client = w3act(w3act_url, act_user, act_password)
+        w3act_url = wurl
     return w3act_client
 
 
