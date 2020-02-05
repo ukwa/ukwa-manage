@@ -246,9 +246,14 @@ class LaunchCrawls(luigi.Task):
 
                 # Set up the launch_ts: (Should be startDate but if that happens to be in the future this will all break)
                 launch_timestamp = time.strftime("%Y%m%d%H%M%S", time.gmtime(time.mktime(now.timetuple())))
+                
+                # How many parallel queues:
+                parallel_queues = 1
+                if 'twitter.com' in seed:
+                    parallel_queues = 2
 
                 # And send launch message, always resetting any crawl quotas:
-                self.launcher.launch(seed, source, isSeed, forceFetch=True, sheets=sheets, reset_quotas=True, launch_ts=launch_timestamp, inherit_launch_ts=False)
+                self.launcher.launch(seed, source, isSeed, forceFetch=True, sheets=sheets, reset_quotas=True, launch_ts=launch_timestamp, inherit_launch_ts=False,parallel_queues=parallel_queues)
                 counter = counter + 1
                 self.i_launches = self.i_launches + 1
 
