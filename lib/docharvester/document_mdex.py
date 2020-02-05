@@ -158,7 +158,7 @@ class DocumentMDEx(object):
         ''' Default extractor uses landing page for title etc.'''
         # Grab the landing page URL as HTML
         logger.info("Getting %s" % self.lp_wb_url())
-        r = requests.get(self.lp_wb_url(), stream=True)
+        r = requests.get(self.lp_wb_url(), stream=True, verify=False)
         h = html.fromstring(r.content)
         h.make_links_absolute(self.doc["landing_page_url"])
         logger.info("Looking for links...")

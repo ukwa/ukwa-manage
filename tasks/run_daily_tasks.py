@@ -11,6 +11,7 @@ from tasks.analyse.hdfs_reports import GenerateHDFSReports
 from tasks.backup.postgresql import BackupProductionW3ACTPostgres, BackupProductionShinePostgres
 from tasks.access.search import PopulateCollectionsSolr, GenerateIndexAnnotations, GenerateW3ACTTitleExport
 from tasks.access.generate_acl_files import UpdateAccessWhitelist
+from tasks.crawl.w3act import GenerateW3actJsonFromCsv
 from tasks.common import state_file
 
 
@@ -23,7 +24,8 @@ class DailyIngestTasks(luigi.WrapperTask):
                 BackupProductionShinePostgres(),
                 CopyFileListToHDFS(),
                 #GenerateHDFSSummaries(),
-                GenerateHDFSReports()]
+                GenerateHDFSReports(),
+                GenerateW3actJsonFromCsv()]
 
 
 class DailyAccessTasks(luigi.WrapperTask):

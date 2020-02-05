@@ -9,7 +9,7 @@ import xml.dom.minidom
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
 
-from w3act.w3act import w3act
+from w3act.client import w3act
 from lib.docharvester.document_mdex import DocumentMDEx
 from tasks.crawl.w3act import CrawlFeed, ENV_ACT_PASSWORD, ENV_ACT_URL, ENV_ACT_USER
 from lib.targets import TaskTarget
@@ -19,6 +19,20 @@ logger = logging.getLogger(__name__)
 # Define environment variable names here:
 ENV_WAYBACK_URL_PREFIX = 'WAYBACK_URL_PREFIX'
 ENV_CDXSERVER_ENDPOINT = 'CDXSERVER_ENDPOINT'
+
+# Set up a common W3ACT connection to try to avoid constant re-logging-in
+w3act_client = None
+w3act_url = None
+
+def get_w3act(wurl):
+    global w3act_client, w3act_url
+    if w3act_client is None or w3act_url != wurl:
+        # Look up credentials and log into W3ACT:
+        act_user = os.environ[ENV_ACT_USER]
+        act_password = os.environ[ENV_ACT_PASSWORD]
+        w3act_client = w3act(w3act_url, act_user, act_password)
+        w3act_url = wurl
+    return w3act_client
 
 
 class AvailableInWayback(luigi.ExternalTask):
@@ -160,10 +174,8 @@ class ExtractDocumentAndPost(luigi.Task):
         return self.document_target(urlparse(self.doc['document_url']).hostname, hasher.hexdigest())
 
     def run(self):
-        # Look up credentials and log into W3ACT:
-        act_user = os.environ[ENV_ACT_USER]
-        act_password = os.environ[ENV_ACT_PASSWORD]
-        w = w3act(self.w3act, act_user, act_password)
+        # Set up a W3ACT client:
+        w = get_w3act(self.w3act)
 
         # Lookup Target and extract any additional metadata:
         targets = json.load(self.input()['targets'].open('r'))

@@ -4,7 +4,6 @@ import shutil
 import luigi
 import tempfile
 import datetime
-from w3act.w3act import w3act
 from w3act.cli_csv import get_csv, csv_to_zip, load_csv, filtered_targets, to_crawl_feed_format
 from tasks.common import logger, state_file
 
