@@ -27,11 +27,12 @@ w3act_url = None
 def get_w3act(wurl):
     global w3act_client, w3act_url
     if w3act_client is None or w3act_url != wurl:
+        # Set the URL:
+        w3act_url = wurl
         # Look up credentials and log into W3ACT:
         act_user = os.environ[ENV_ACT_USER]
         act_password = os.environ[ENV_ACT_PASSWORD]
         w3act_client = w3act(w3act_url, act_user, act_password)
-        w3act_url = wurl
     return w3act_client
 
 
