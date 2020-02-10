@@ -5,12 +5,35 @@ import datetime
 import logging
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
+import luigi.contrib.ssh
 
 from tasks.access.hdfs_list_warcs import ListWarcsForDateRange
-from tasks.access.update_cdx_index import CopyToHDFS
-from tasks.common import state_file
+from lib.webhdfs import WebHdfsPlainFormat
 
 logger = logging.getLogger('luigi-interface')
+
+
+class CopyToRemote(luigi.Task):
+	# Copy file argument to destination directory argument on server argument
+	input_file = luigi.Parameter()
+	dest_dir = luigi.Parameter()
+	host = luigi.Parameter()
+
+	def ssh(self):
+		return {'host': 'mapred2', 'key_file': '~/.ssh/id_rsa', 'username': 'hdfs'}
+
+	def run(self):
+		logger.info("Uploading {} to {};{}".format(self.input_file, self.host, self.dest_dir))
+		self.output().put(self.input_file)
+
+	def output(self):
+		fpfile = self.dest_dir + os.path.basename(self.input_file)
+		return luigi.contrib.ssh.RemoteTarget(path=fpfile, host=self.host)
+
+class SolrVerify(luigi.Task):
+	warcs_file = luigi.Parameter()
+	solr_api = luigi.Parameter()
+	task_namespace = "access.index"
 
 class SolrIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
 	warcs_file = luigi.Parameter()
@@ -18,19 +41,16 @@ class SolrIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
 	stream = luigi.Parameter()
 	year = luigi.Parameter()
 	task_namespace = "access.index"
-	# This is used to add a timestamp to the output file, so this task can always be re-run:
-	timestamp = luigi.DateSecondParameter(default=datetime.datetime.now())
+	# Although date is a parameter in CopyToHDFS, it's not used. Thus it is added here to the prefix
+	ymdhms = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+	mapred_dir = '/home/hdfs/gitlab/discovery_supervisor/warcs2solr/'
+	hdfs_processing_dir = '/9_processing/warcs2solr/'
 	# These are the annotation and whitelist files on the mapred2 server
-	mapred_dir = '/home/hdfs/gitlab/discovery_supervisor/warcs2solr'
 	annotations = 'annotations.json'
 	whitelist = 'openAccessSurts.txt'
 
 	def requires(self):
-		logger.debug("---- SolrIndexer requires: self.warcs_file {}".format(self.warcs_file))
-		# Although date is a parameter in CopyToHDFS, it's not used. Thus it is added here
-		# to the prefix
-		today = str(datetime.date.today())
-		return CopyToHDFS(input_file=self.warcs_file, prefix="/9_processing/warcs2solr/" + today + '/')
+		return CopyToRemote(input_file=self.warcs_file, dest_dir=self.mapred_dir, host='mapred2')
 
 	def ssh(self):
 		return {'host': 'mapred2', 'key_file': '~/.ssh/id_rsa', 'username': 'hdfs'}
@@ -42,6 +62,9 @@ class SolrIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
 		return 'uk.bl.wa.hadoop.indexer.WARCIndexerRunner'
 
 	def args(self):
+		# derive mapreduce job arguments
+		annotation_fpfile = self.mapred_dir + self.annotations
+		whitelist_fpfile = self.mapred_dir + self.whitelist
 		warc_config = 'warc-'
 		if self.stream == 'domain':
 			warc_config += 'npld-dc' + self.year
@@ -49,26 +72,22 @@ class SolrIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
 			warc_config += '-selective'
 		else:
 			warc_config += 'npld-fc' + self.year
-		warc_config += '.conf'
-		logger.debug("---- SolrIndexer args: -files {}/{},{}/{}".format(self.mapred_dir, self.annotations, self.mapred_dir, self.whitelist))
-		logger.debug("---- SolrIndexer args: warc_config {}/{}".format(self.mapred_dir, warc_config))
+		warc_config_fpfile = self.mapred_dir + warc_config + '.conf'
+		output_dir = self.hdfs_processing_dir + self.ymdhms + '/output/log'
 		return [
-			'-Dmapred.compress.map.output=true',
-			'-Dmapred.reduce.max.attempts=2',
-			"-files {}/{},{}/{}".format(self.mapred_dir, self.annotations, self.mapred_dir, self.whitelist),
-			"-c {}/{}".format(self.mapred_dir, warc_config),
-			"-i {}".format(self.input().path),
-			"-o {}/output/log".format(self.input().path),
-			'-a'
+			"-Dmapred.compress.map.output=true",
+			"-Dmapred.reduce.max.attempts=2",
+			"-files", annotation_fpfile + ',' + whitelist_fpfile,
+			"-c", warc_config_fpfile,
+			"-i", self.input().path,
+			"-o", output_dir,
+			"-a"
 		]
 
 	def output(self):
-		timestamp = self.timestamp.isoformat()
-		timestamp = timestamp.replace(':','-')
-		file_prefix = os.path.splitext(os.path.basename(self.warcs_file))[0]
-		logger.debug("---- SolrIndexer output: file_prefix {}".format(file_prefix))
-		logger.debug("---- SolrIndexer output: timestamp {}".format(timestamp))
-		return state_file(self.timestamp, 'warcs2solr', "{}-submitted-{}.txt".format(file_prefix, timestamp), on_hdfs=True)
+		full_path = self.hdfs_processing_dir + self.ymdhms + '/output/_SUCCESS'
+		return luigi.contrib.hdfs.HdfsTarget(full_path, format=WebHdfsPlainFormat(use_gzip=False))
+
 
 class SolrIndexAndVerify(luigi.Task):
 	tracking_db_url = luigi.Parameter()
@@ -91,10 +110,9 @@ class SolrIndexAndVerify(luigi.Task):
 			stream=self.stream,
 			status_field=self.status_field,
 			status_value=self.stream + '-' + self.year,
-			limit=10,
+			limit=20,
 			tracking_db_url=self.tracking_db_url
 		)
-
 
 	# Index list of WARCs into main Solr search service.
 	# Ensure WARCs now in Solr.
@@ -103,16 +121,31 @@ class SolrIndexAndVerify(luigi.Task):
 		# test some data received
 		listsize = os.stat(self.input().path)
 		if listsize.st_size == 0:
-			logger.info("---- SolrIndexAndVerify run: No WARCs listed for {} {}".format(self.stream, self.year))
+			logger.warning("No WARCs listed for {} {}".format(self.stream, self.year))
 			self.output().touch()
 
 		else:
-			logger.info("---- SolrIndexAndVerify run: Submitting WARCs for {} {} into {}".format(self.stream, self.year, self.solr_api))
-			logger.info("---- SolrIndexAndVerify run: WARCs list: {}".format(self.input().path))
 			# Submit MapReduce job of WARCs list for Solr search service
+			logger.info("Submitting WARCs for {} {} into {}".format(self.stream, self.year, self.solr_api))
+			logger.info("List of WARCs to be submitted: {}".format(self.input().path))
 			solr_index_task = SolrIndexer(warcs_file=self.input().path, solr_api=self.solr_api, stream=self.stream, year=self.year)
 			yield solr_index_task
-		
+			if not solr_index_task.complete():
+				logger.error("SOMETHING WENT WRONG WITH SOLR INDEXING")
+
+			else:
+				# Verifying WARCs in Solr
+				logger.info("Verifying submitted WARCs in Solr")
+				solr_verify_task = SolrVerify(warcs_file=self.input().path, solr_api=self.solr_api)
+				yield solr_verify_task
+
+				if not solr_verify_task.complete():
+					logger.error("SOMETHING WENT WRONG WITH SOLR INDEX VERIFYING")
+
+				# Mark WARCs in trackdb as indexed into Solr
+
+				# mark luigi task as done
+				self.output().touch()
 
 	def output(self):
 		logger.debug('---- SolrIndexAndVerify output: ----------------------------------')

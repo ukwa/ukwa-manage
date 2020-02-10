@@ -2,6 +2,7 @@
 .pydevproject
 .settings
 
+*.swp
 *.pyc
 *.egg-info
 build
