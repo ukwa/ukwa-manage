@@ -17,46 +17,46 @@ class CopyToRemote(luigi.Task):
 	# Copy file argument to destination directory argument on server argument
 	input_file = luigi.Parameter()
 	dest_dir = luigi.Parameter()
-	host = luigi.Parameter()
-
-	def ssh(self):
-		return {'host': 'mapred2', 'key_file': '~/.ssh/id_rsa', 'username': 'hdfs'}
+	mapred_host = luigi.Parameter()
 
 	def run(self):
-		logger.info("Uploading {} to {};{}".format(self.input_file, self.host, self.dest_dir))
+		logger.info("Uploading {} to {};{}".format(self.input_file, self.mapred_host, self.dest_dir))
 		self.output().put(self.input_file)
 
 	def output(self):
 		fpfile = self.dest_dir + os.path.basename(self.input_file)
-		return luigi.contrib.ssh.RemoteTarget(path=fpfile, host=self.host)
+		return luigi.contrib.ssh.RemoteTarget(path=fpfile, host=self.mapred_host)
 
-class SolrVerify(luigi.Task):
-	warcs_file = luigi.Parameter()
-	solr_api = luigi.Parameter()
-	task_namespace = "access.index"
+#class SolrVerify(luigi.Task):
+#	warcs_file = luigi.Parameter()
+#	solr_api = luigi.Parameter()
+#	task_namespace = "access.index"
 
 class SolrIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
 	warcs_file = luigi.Parameter()
-	solr_api = luigi.Parameter()
 	stream = luigi.Parameter()
 	year = luigi.Parameter()
+	mapred_host = luigi.Parameter()
+	mapred_user = luigi.Parameter()
+	mapred_dir = luigi.Parameter()
+	# These are the annotation and whitelist files on the mapreduce server
+	annotations = luigi.Parameter()
+	whitelist = luigi.Parameter()
+	warc_indexer_jar = luigi.Parameter()
+	hdfs_processing_dir = luigi.Parameter()
+	solr_api = luigi.Parameter()
+
 	task_namespace = "access.index"
-	# Although date is a parameter in CopyToHDFS, it's not used. Thus it is added here to the prefix
 	ymdhms = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-	mapred_dir = '/home/hdfs/gitlab/discovery_supervisor/warcs2solr/'
-	hdfs_processing_dir = '/9_processing/warcs2solr/'
-	# These are the annotation and whitelist files on the mapred2 server
-	annotations = 'annotations.json'
-	whitelist = 'openAccessSurts.txt'
 
 	def requires(self):
-		return CopyToRemote(input_file=self.warcs_file, dest_dir=self.mapred_dir, host='mapred2')
+		return CopyToRemote(input_file=self.warcs_file, dest_dir=self.mapred_dir, mapred_host=self.mapred_host)
 
 	def ssh(self):
-		return {'host': 'mapred2', 'key_file': '~/.ssh/id_rsa', 'username': 'hdfs'}
+		return {'host': self.mapred_host, 'key_file': '~/.ssh/id_rsa', 'username': self.mapred_user}
 
 	def jar(self):
-		return '/home/hdfs/gitlab/discovery_supervisor/warcs2solr/warc-hadoop-indexer-3.0.0-job.jar'
+		return self.warc_indexer_jar
 
 	def main(self):
 		return 'uk.bl.wa.hadoop.indexer.WARCIndexerRunner'
@@ -73,7 +73,7 @@ class SolrIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
 		else:
 			warc_config += 'npld-fc' + self.year
 		warc_config_fpfile = self.mapred_dir + warc_config + '.conf'
-		output_dir = self.hdfs_processing_dir + self.ymdhms + '/output/log'
+		output_dir = self.hdfs_processing_dir + self.ymdhms + '/'
 		return [
 			"-Dmapred.compress.map.output=true",
 			"-Dmapred.reduce.max.attempts=2",
@@ -85,7 +85,7 @@ class SolrIndexer(luigi.contrib.hadoop_jar.HadoopJarJobTask):
 		]
 
 	def output(self):
-		full_path = self.hdfs_processing_dir + self.ymdhms + '/output/_SUCCESS'
+		full_path = self.hdfs_processing_dir + self.ymdhms + '/_SUCCESS'
 		return luigi.contrib.hdfs.HdfsTarget(full_path, format=WebHdfsPlainFormat(use_gzip=False))
 
 
@@ -93,6 +93,13 @@ class SolrIndexAndVerify(luigi.Task):
 	tracking_db_url = luigi.Parameter()
 	stream = luigi.Parameter()
 	year = luigi.Parameter()
+	mapred_host = luigi.Parameter()
+	mapred_user = luigi.Parameter()
+	mapred_dir = luigi.Parameter()
+	annotations = luigi.Parameter()
+	whitelist = luigi.Parameter()
+	warc_indexer_jar = luigi.Parameter()
+	hdfs_processing_dir = luigi.Parameter()
 	solr_api = luigi.Parameter()
 	# task_namespace defines scope of class. Without defining this, other classes
 	# could call this class inside their scope, which would be wrong.
@@ -128,7 +135,12 @@ class SolrIndexAndVerify(luigi.Task):
 			# Submit MapReduce job of WARCs list for Solr search service
 			logger.info("Submitting WARCs for {} {} into {}".format(self.stream, self.year, self.solr_api))
 			logger.info("List of WARCs to be submitted: {}".format(self.input().path))
-			solr_index_task = SolrIndexer(warcs_file=self.input().path, solr_api=self.solr_api, stream=self.stream, year=self.year)
+			solr_index_task = SolrIndexer(
+				warcs_file=self.input().path, stream=self.stream, year=self.year, solr_api=self.solr_api,
+				mapred_host=self.mapred_host, mapred_user=self.mapred_user, mapred_dir=self.mapred_dir,
+				annotations=self.annotations, whitelist=self.whitelist,  warc_indexer_jar=self.warc_indexer_jar,
+				hdfs_processing_dir=self.hdfs_processing_dir
+			)
 			yield solr_index_task
 			if not solr_index_task.complete():
 				logger.error("SOMETHING WENT WRONG WITH SOLR INDEXING")
