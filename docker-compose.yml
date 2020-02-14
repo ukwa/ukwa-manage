@@ -16,17 +16,15 @@ services:
 
   # Database to put tracking/stats/etc.
   trackdb:
-    image: solr:8.1-slim
+    image: solr:8.4-slim
     ports:
      - "8983:8983"
     volumes:
-      - trackdb-data:/var/solr
+      - ${DATA_TRACKDB}:/var/solr
     entrypoint:
       - docker-entrypoint.sh
       - solr-precreate
       - tracking
 
 volumes:
-  trackdb-data:
   taskdb-data:
-
