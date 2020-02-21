@@ -114,7 +114,7 @@ class SolrIndexWarcs(luigi.Task):
 			stream=self.stream,
 			status_field=self.status_field,
 			status_value=self.stream + '-' + self.year,
-			limit=10,
+			limit=1000,
 			tracking_db_url=self.tracking_db_url
 		)
 
