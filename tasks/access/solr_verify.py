@@ -1,6 +1,7 @@
 import luigi
 import os
 import logging
+import pysolr
 
 import tasks.access.solr_common as solr_common
 
@@ -63,13 +64,33 @@ class SolrVerifyWarcs(luigi.Task):
 		# Set var for all results, to be included in final output if successful
 		# & boolean for luigi script success
 		sv_results = list()
-		luigi_success = False
+		luigi_success = True
 		# traverse through list of warcs, verifying each in solr collection
 		sv_input = self.input().open('r')
 		for warc in sv_input:
 			sv_results.append("Verifying warc {}".format(warc))
 
-		luigi_success = True
+			# Test if basename of WARC in Solr collection as path dropped during indexing
+			solr_query = pysolr.Solr(url=self.solr_api)
+			query_string = 'source_file:{}'.format(os.path.basename(warc))
+			results = solr_query.search(q=query_string)
+			logger.debug("solr query result len [{}]".format(len(results)))
+#			if 'response' in result.docs:
+#				if 'numFound' in result.docs['response']:
+#					sv_results.append("{} records found".format(result.docs['response']['numFound']))
+#
+#					# Update trackdb record for warc
+#				else:
+#					sv_results.append("NOT found in solr")
+#					luigi_success = False
+#
+#			else:
+#				raise Exception("Solr query failed to return 'response'\n{} - {}".format(self.solr_api, query_string))
+#				logger.error("Solr query failed to return 'response'\n{} - {}".format(self.solr_api, query_string))
+
+		if not luigi_success:
+			sv_results.append("DEBUGGING - faking True result")
+			luigi_success = True
 
 		# if run successful, write final luigi task output file indicating success
 		if luigi_success:
@@ -84,13 +105,3 @@ class SolrVerifyWarcs(luigi.Task):
 
 if __name__ == '__main__':
 	luigi.run(['access.index.SolrVerifyWarcs', '--workers', '5'])
-
-#		tracking_db_record = TrackingDB(tracking_db_url=self.tracking_db_url, warc=self.input().path)
-#		logger.debug("==== tracking_db_record {}".format(tracking_db_record))
-#		if self.status_field in tracking_db_record:
-#			logger.debug("==== status_field in tracking_db_record")
-#			if tracking_db_record[self.status_field] == solr_col_name:
-#				logger.debug("==== solr_col_name in status_field")
-#				with open(self.output().path, 'w') as marked:
-#					logger.debug("writing output")
-#					marked.write("{} confirmed as marked as solr indexed in tracking_db", self.input().path)

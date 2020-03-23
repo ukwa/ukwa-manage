@@ -11,78 +11,6 @@ import tasks.access.solr_common as solr_common
 logger = logging.getLogger('luigi-interface')
 
 
-class CopyToRemote(luigi.Task):
-	# Copy file argument to destination directory argument on server argument
-	input_file = luigi.Parameter()
-	dest_dir = luigi.Parameter()
-	mapred_user = luigi.Parameter()
-	mapred_host = luigi.Parameter()
-
-	def run(self):
-		self.output().put(self.input_file)
-
-	def output(self):
-		fpfile = self.dest_dir + os.path.basename(self.input_file)
-		return luigi.contrib.ssh.RemoteTarget(path=fpfile, username=self.mapred_user, host=self.mapred_host)
-
-class MRSolrWARCSubmitter(luigi.contrib.hadoop_jar.HadoopJarJobTask):
-	warcs_file = luigi.Parameter()
-	stream = luigi.Parameter()
-	year = luigi.Parameter()
-	mapred_host = luigi.Parameter()
-	mapred_user = luigi.Parameter()
-	mapred_dir = luigi.Parameter()
-	# These are the annotation and whitelist files on the mapreduce server
-	annotations = luigi.Parameter()
-	whitelist = luigi.Parameter()
-	warc_indexer_jar = luigi.Parameter()
-	hdfs_processing_dir = luigi.Parameter()
-	solr_api = luigi.Parameter()
-
-	task_namespace = "access.index"
-	ymdhms = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-
-	def requires(self):
-		return CopyToRemote(input_file=self.warcs_file, dest_dir=self.mapred_dir, 
-			mapred_user=self.mapred_user, mapred_host=self.mapred_host)
-
-	def ssh(self):
-		return {'host': self.mapred_host, 'key_file': '~/.ssh/id_rsa', 'username': self.mapred_user}
-
-	def jar(self):
-		return self.warc_indexer_jar
-
-	def main(self):
-		return 'uk.bl.wa.hadoop.indexer.WARCIndexerRunner'
-
-	def args(self):
-		# derive mapreduce job arguments
-		annotation_fpfile = self.mapred_dir + self.annotations
-		whitelist_fpfile = self.mapred_dir + self.whitelist
-		warc_config = 'warc-'
-		if self.stream == 'domain':
-			warc_config += 'npld-dc' + self.year
-		elif self.stream == 'selective':
-			warc_config += '-selective'
-		else:
-			warc_config += 'npld-fc' + self.year
-		warc_config_fpfile = self.mapred_dir + warc_config + '.conf'
-		output_dir = self.hdfs_processing_dir + self.ymdhms + '/'
-		return [
-			"-Dmapred.compress.map.output=true",
-			"-Dmapred.reduce.max.attempts=2",
-			"-files", annotation_fpfile + ',' + whitelist_fpfile,
-			"-c", warc_config_fpfile,
-			"-i", self.input().path,
-			"-o", output_dir,
-			"-a",
-			"-w"
-		]
-
-	def output(self):
-		return luigi.contrib.hdfs.HdfsTarget(path=self.hdfs_processing_dir + self.ymdhms + '/_SUCCESS', format=luigi.contrib.hdfs.PlainFormat())
-
-
 class SolrIndexWarcs(luigi.Task):
 	'''
 	This luigi task:
@@ -128,7 +56,7 @@ class SolrIndexWarcs(luigi.Task):
 			status_value=self.solr_col_name,
 			limit=self.limit,
 			sort=self.sort_value,
-			output_file=self.tmpdir + 'solr_index-' + self.solr_col_name + '-warcs_list_from_trackdb'
+			output_file=self.tmpdir + 'solr_index-' + self.solr_col_name + '-warcs_list_from_trackdb-' + self.ymdhms
 		)
 
 	# Index list of WARCs into Solr search service.
@@ -137,14 +65,12 @@ class SolrIndexWarcs(luigi.Task):
 		listsize = os.stat(self.input().path)
 		if listsize.st_size == 0:
 			logger.warning("==== No WARCs listed for {} {}".format(self.stream, self.year))
-			with open(self.output().path, 'w') as out:
-				out.write("No WARCs listed for {} {}".format(self.stream, self.year))
 
 		else:
 			# Submit MapReduce job of WARCs list for Solr search service
 			logger.info("---- Submitting WARCs for {} {} into {}".format(self.stream, self.year, self.solr_api))
 			logger.info("---- List of WARCs to be submitted: {}".format(self.input().path))
-			solr_index_task = MRSolrWARCSubmitter(
+			solr_index_task = solr_common.MRSolrWARCSubmitter(
 				warcs_file=self.input().path,
 				stream=self.stream,
 				year=self.year,
@@ -158,6 +84,10 @@ class SolrIndexWarcs(luigi.Task):
 				hdfs_processing_dir=self.hdfs_processing_dir
 			)
 			yield solr_index_task
+
+			# generate luigi task output file
+			with open(self.output().path, 'w') as out:
+				out.write("WARC file indexed into {}: {}".format(self.solr_col_name, self.input().path))
 
 	def output(self):
 		return luigi.LocalTarget("{}solr_index-{}-success".format(self.tmpdir, self.solr_col_name))
