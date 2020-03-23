@@ -1,15 +1,10 @@
 import luigi
 import os
-import re
 import datetime
 import logging
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
 import luigi.contrib.ssh
-
-from tasks.access.hdfs_list_warcs import ListWarcsForDateRange
-from lib.webhdfs import WebHdfsPlainFormat
-from lib.targets import TrackingDBStatusField
 
 import tasks.access.solr_common as solr_common
 
@@ -30,7 +25,7 @@ class CopyToRemote(luigi.Task):
 		fpfile = self.dest_dir + os.path.basename(self.input_file)
 		return luigi.contrib.ssh.RemoteTarget(path=fpfile, username=self.mapred_user, host=self.mapred_host)
 
-class SolrSubmitter(luigi.contrib.hadoop_jar.HadoopJarJobTask):
+class MRSolrWARCSubmitter(luigi.contrib.hadoop_jar.HadoopJarJobTask):
 	warcs_file = luigi.Parameter()
 	stream = luigi.Parameter()
 	year = luigi.Parameter()
@@ -95,8 +90,6 @@ class SolrIndexWarcs(luigi.Task):
 	2) Submits this list of WARCs into the solr collection calculated from stream and year
 	'''
 	tracking_db_url = luigi.Parameter()
-	stream = luigi.Parameter()
-	year = luigi.Parameter()
 	mapred_host = luigi.Parameter()
 	mapred_user = luigi.Parameter()
 	mapred_dir = luigi.Parameter()
@@ -105,6 +98,8 @@ class SolrIndexWarcs(luigi.Task):
 	warc_indexer_jar = luigi.Parameter()
 	hdfs_processing_dir = luigi.Parameter()
 	solr_api = luigi.Parameter()
+	stream = luigi.Parameter()
+	year = luigi.Parameter()
 	limit = luigi.Parameter()
 
 	# task_namespace defines scope of class. Without defining this, other classes
@@ -133,7 +128,7 @@ class SolrIndexWarcs(luigi.Task):
 			status_value=self.solr_col_name,
 			limit=self.limit,
 			sort=self.sort_value,
-			output_file=self.tmpdir + 'solr_index' + self.solr_col_name + '-warcs_list_from_trackdb'
+			output_file=self.tmpdir + 'solr_index-' + self.solr_col_name + '-warcs_list_from_trackdb'
 		)
 
 	# Index list of WARCs into Solr search service.
@@ -149,10 +144,17 @@ class SolrIndexWarcs(luigi.Task):
 			# Submit MapReduce job of WARCs list for Solr search service
 			logger.info("---- Submitting WARCs for {} {} into {}".format(self.stream, self.year, self.solr_api))
 			logger.info("---- List of WARCs to be submitted: {}".format(self.input().path))
-			solr_index_task = SolrSubmitter(
-				warcs_file=self.input().path, stream=self.stream, year=self.year, solr_api=self.solr_api,
-				mapred_host=self.mapred_host, mapred_user=self.mapred_user, mapred_dir=self.mapred_dir,
-				annotations=self.annotations, whitelist=self.whitelist,  warc_indexer_jar=self.warc_indexer_jar,
+			solr_index_task = MRSolrWARCSubmitter(
+				warcs_file=self.input().path,
+				stream=self.stream,
+				year=self.year,
+				solr_api=self.solr_api,
+				mapred_host=self.mapred_host,
+				mapred_user=self.mapred_user,
+				mapred_dir=self.mapred_dir,
+				annotations=self.annotations,
+				whitelist=self.whitelist,
+				warc_indexer_jar=self.warc_indexer_jar,
 				hdfs_processing_dir=self.hdfs_processing_dir
 			)
 			yield solr_index_task

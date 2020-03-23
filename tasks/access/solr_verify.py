@@ -1,9 +1,6 @@
 import luigi
 import os
-import re
-import datetime
 import logging
-import pysolr
 
 import tasks.access.solr_common as solr_common
 
@@ -56,7 +53,7 @@ class SolrVerifyWarcs(luigi.Task):
 			status_value=self.solr_col_name,
 			limit=self.limit,
 			sort=self.sort_value,
-			output_file=self.tmpdir + 'solr_verify' + self.solr_col_name + '-warcs_list_from_trackdb'
+			output_file=self.tmpdir + 'solr_verify-' + self.solr_col_name + '-warcs_list_from_trackdb'
 		)
 
 	# Index list of WARCs into main Solr search service.
@@ -65,12 +62,12 @@ class SolrVerifyWarcs(luigi.Task):
 	def run(self):
 		# Set var for all results, to be included in final output if successful
 		# & boolean for luigi script success
-		svr = list()
+		sv_results = list()
 		luigi_success = False
 		# traverse through list of warcs, verifying each in solr collection
 		sv_input = self.input().open('r')
 		for warc in sv_input:
-			svr.append("Verifying warc {}".format(warc))
+			sv_results.append("Verifying warc {}".format(warc))
 
 		luigi_success = True
 
@@ -78,7 +75,7 @@ class SolrVerifyWarcs(luigi.Task):
 		if luigi_success:
 			with open(self.output().path, 'w') as success:
 				success.write("{} verified and marked as solr indexed in tracking_db\n".format(self.input().path))
-				for line in svr:
+				for line in sv_results:
 					success.write("{}".format(line))
 
 	def output(self):
