@@ -1,7 +1,8 @@
 import luigi
 import os
 import logging
-import pysolr
+import requests
+import json
 
 import tasks.access.solr_common as solr_common
 
@@ -62,42 +63,60 @@ class SolrVerifyWarcs(luigi.Task):
 	# Flag WARCs as in Solr.
 	def run(self):
 		# Set var for all results, to be included in final output if successful
-		# & boolean for luigi script success
 		sv_results = list()
-		luigi_success = True
+		warcs_count = warcs_found_count = warcs_missing_count = 0
+
 		# traverse through list of warcs, verifying each in solr collection
 		sv_input = self.input().open('r')
 		for warc in sv_input:
-			sv_results.append("Verifying warc {}".format(warc))
+			warcs_count += 1
+			warc = warc.rstrip('\n')
+			base_warc = os.path.basename(warc)
+			hdfs_warc = 'hdfs://hdfs:54310' + warc
+			sv_results.append("Verifying warc {}: ".format(base_warc))
 
-			# Test if basename of WARC in Solr collection as path dropped during indexing
-			solr_query = pysolr.Solr(url=self.solr_api)
-			query_string = 'source_file:{}'.format(os.path.basename(warc))
-			results = solr_query.search(q=query_string)
-			logger.debug("solr query result len [{}]".format(len(results)))
-#			if 'response' in result.docs:
-#				if 'numFound' in result.docs['response']:
-#					sv_results.append("{} records found".format(result.docs['response']['numFound']))
-#
-#					# Update trackdb record for warc
-#				else:
-#					sv_results.append("NOT found in solr")
-#					luigi_success = False
-#
-#			else:
-#				raise Exception("Solr query failed to return 'response'\n{} - {}".format(self.solr_api, query_string))
-#				logger.error("Solr query failed to return 'response'\n{} - {}".format(self.solr_api, query_string))
+			# set solr collection search terms
+			solr_query_url = self.solr_api + 'select'
+			query_string = { 'q':"source_file:{}".format(base_warc), 'rows':1, 'wt':'json' }
 
-		if not luigi_success:
-			sv_results.append("DEBUGGING - faking True result")
-			luigi_success = True
+			# gain solr collection search response
+			response = ''
+			try:
+				r = requests.get(url=solr_query_url, params=query_string)
+				response = r.json()['response']
+			except Exception as e:
+				raise Exception("Issue with data from solr collection {}: {}".format(solr_query_url, r.status_code))
 
-		# if run successful, write final luigi task output file indicating success
-		if luigi_success:
-			with open(self.output().path, 'w') as success:
-				success.write("{} verified and marked as solr indexed in tracking_db\n".format(self.input().path))
-				for line in sv_results:
-					success.write("{}".format(line))
+			if response['numFound'] > 0:
+				warcs_found_count += 1
+				sv_results.append("\n{} records found\n".format(response['numFound']))
+
+				# Update trackdb record for warc
+				update_trackdb_url = self.tracking_db_url + '/update?commit=true'
+				post_headers = {'Content-Type': 'application/json'}
+				post_data = { 'id': hdfs_warc, self.status_field: {'add': self.solr_col_name} }
+
+				# gain tracking_db search response
+				response = ''
+				try:
+					r = requests.post(url=update_trackdb_url, headers=post_headers, json=[post_data])
+					response = r.json()
+					sv_results.append("trackdb post response {}\n".format(response))
+				except Exception as e:
+					raise Exception("Issue with posting data to trackdb")
+					sv_results.append("Issue with posting data to trackdb\n")
+
+			else:
+				warcs_missing_count += 1
+				sv_results.append("NOT found in solr\n")
+
+		# write final luigi task output file indicating success
+		with open(self.output().path, 'w') as success:
+			for line in sv_results:
+				success.write("{}".format(line))
+			success.write("{} warcs checked, {} in solr, {} not in solr.\n".format(
+				warcs_count, warcs_found_count, warcs_missing_count))
+			success.write("Fin\n")
 
 	def output(self):
 		return luigi.LocalTarget("{}solr_verify-{}-success".format(self.tmpdir, self.solr_col_name))

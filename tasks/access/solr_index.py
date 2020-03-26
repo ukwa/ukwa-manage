@@ -87,7 +87,7 @@ class SolrIndexWarcs(luigi.Task):
 
 			# generate luigi task output file
 			with open(self.output().path, 'w') as out:
-				out.write("WARC file indexed into {}: {}".format(self.solr_col_name, self.input().path))
+				out.write("WARC file indexed into {}: {}\n".format(self.solr_col_name, self.input().path))
 
 	def output(self):
 		return luigi.LocalTarget("{}solr_index-{}-success".format(self.tmpdir, self.solr_col_name))

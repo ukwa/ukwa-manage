@@ -2,7 +2,8 @@ import luigi
 import logging
 import datetime
 import os
-import pysolr
+import requests
+import json
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop_jar
 import luigi.contrib.ssh
@@ -62,22 +63,32 @@ class TrackDBSolrQuery(luigi.Task):
 	kind = 'warcs'
 
 	def run(self):
-		# set solr search parameters
-		solr_query = pysolr.Solr(url=self.tracking_db_url)
-		query_string = "kind_s:{} AND stream_s:{} AND year_i:{} AND {}:{}".format(
-			self.kind, self.stream, self.year, self.status_field, self.status_value)
-		params = {'rows':self.limit, 'sort':self.sort}
+		# set solr search terms
+		solr_query_url = self.tracking_db_url + '/query'
+		query_string = {
+			'q':"kind_s:{} AND stream_s:{} AND year_i:{} AND {}:{}".format(
+				self.kind, self.stream, self.year, self.status_field, self.status_value),
+			'rows':self.limit,
+			'sort':self.sort
+		}
+		# gain tracking_db search response
+		response = ''
+		try:
+			r = requests.post(url=solr_query_url, data=query_string)
+			response = r.json()['response']
+		except Exception as e:
+			raise Exception("Issue with data returned from trackdb solr query")
 
-		# perform solr search
-		result = solr_query.search(q=query_string, **params)
-
-		# write output
-		with self.output().open('w') as res:
-			try:
-				for doc in result.docs:
-					res.write(doc['file_path_s'] + '\n')
-			except Exception as e:
-				raise Exception("Issue with data returned from trackdb solr query")
+		# if warcs returned from search, write output
+		if response['numFound'] > 0:
+			with self.output().open('w') as res:
+				try:
+					for doc in response['docs']:
+						res.write(doc['file_path_s'] + '\n')
+				except Exception as e:
+					raise Exception("Issue with response['docs'] from trackdb solr query")
+		else:
+			raise Exception("No warcs returned from tracking_db query")
 
 	def output(self):
 		return luigi.LocalTarget("{}".format(self.output_file))
