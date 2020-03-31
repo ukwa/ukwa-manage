@@ -17,6 +17,7 @@ Flask==1.0.3
 future==0.17.1
 gunicorn==19.9.0
 hapy-heritrix===-.-.-
+hdfs===2.5.8
 idna==2.8
 ipykernel==5.1.1
 ipython==7.6.1
