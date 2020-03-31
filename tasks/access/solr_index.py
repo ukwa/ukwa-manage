@@ -56,7 +56,7 @@ class SolrIndexWarcs(luigi.Task):
 			status_value=self.solr_col_name,
 			limit=self.limit,
 			sort=self.sort_value,
-			output_file=self.tmpdir + 'solr_index-' + self.solr_col_name + '-warcs_list_from_trackdb-'
+			output_file=self.tmpdir + 'solr_index-' + self.solr_col_name + '-warcs_list_from_trackdb'
 		)
 
 	# Index list of WARCs into Solr search service.
