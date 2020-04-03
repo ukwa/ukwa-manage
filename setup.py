@@ -20,7 +20,8 @@ setup(
     long_description=open('README.md').read(),
     entry_points={
         'console_scripts': [
-            'targets=scripts.targets:main'
+            'targets=scripts.targets:main',
+            'trackdb=lib.trackdb.cmd:main'
         ]
     }
 )

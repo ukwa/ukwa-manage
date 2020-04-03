@@ -9,10 +9,11 @@ in Python 3 but be compatible with both where possible.
 
 ### Set up a Python 2.7 environment
 
-    sudo pip install virtualenv
-    virtualenv -p python2.7 venv
-    source venv/bin/activate
-    pip install -r requirements.txt
+```
+  sudo pip install virtualenv
+  virtualenv -p python2.7 venv
+  source venv/bin/activate
+  pip install -r requirements.txt
 
   942  cd github/
   943  git clone https://github.com/ukwa/ukwa-manage.git
@@ -20,13 +21,13 @@ in Python 3 but be compatible with both where possible.
   946  pip install virtualenv
   947  virtualenv venv
   948  source venv/bin/activate
-       pip install --no-cache https://github.com/ukwa/hapy/archive/master.zip
-       pip install --no-cache https://github.com/ukwa/python-w3act/archive/master.zip
+    pip install --no-cache https://github.com/ukwa/hapy/archive/master.zip
+    pip install --no-cache https://github.com/ukwa/python-w3act/archive/master.zip
   949  pip install -r requirements.txt
   953  yum install snappy-devel
   954  pip install -r requirements.txt
   955  python scripts/crawlstreams.py -k crawler04:9094 -q uris.tocrawl.dc
-
+```
 
 ### Code and configuration
 
