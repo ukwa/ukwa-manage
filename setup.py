@@ -21,7 +21,8 @@ setup(
     entry_points={
         'console_scripts': [
             'targets=scripts.targets:main',
-            'trackdb=lib.trackdb.cmd:main'
+            'trackdb=lib.trackdb.cmd:main',
+            'store=lib.store.cmd:main'
         ]
     }
 )
