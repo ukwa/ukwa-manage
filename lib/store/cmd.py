@@ -7,6 +7,8 @@ import logging
 import argparse
 from lib.store.webhdfs import WebHDFSStore
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
+
 logger = logging.getLogger(__name__)
 
 # Defaults to using the production HDFS (via 'safe' gateway):

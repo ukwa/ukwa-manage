@@ -27,12 +27,32 @@ def check_sha512_hash(path, file_hash):
 
 def calculate_sha512_local(path):
     with open(path, 'rb') as reader:
-        file_hash = hashlib.sha512(reader.read()).hexdigest()
-
-    # Check it looks right:
-    check_sha512_hash(path, file_hash)
+        file_hash = calculate_reader_hash(reader, path)
 
     return file_hash
+
+def calculate_reader_hash(reader, path="unknown-path"):
+    """
+    Reads a file-like object in chunks, building up the SHA512 hash.
+
+    :param reader: A file-like object that allows the data to be read
+    :param path: The path of this file-like object, for reporting purposes
+    :return:
+    """
+    sha = hashlib.sha512()
+    while True:
+        data = reader.read(10485760)
+        if not data:
+            reader.close()
+            break
+        sha.update(data)
+    path_hash = sha.hexdigest()
+
+    # check hash is not obviously wrong:
+    check_sha512_hash(path, path_hash)
+
+    # return it:
+    return path_hash
 
 
 class WebHDFSStore(object):
@@ -59,6 +79,7 @@ class WebHDFSStore(object):
         #
         # TODO Allow upload  to overwrite truncated files?
         #
+        
         # Check if the destination file exists and raise an exception if so:
         if self.exists(hdfs_path):
             raise Exception("Path %s already exists! This should never happen!" % hdfs_path)
@@ -106,11 +127,8 @@ class WebHDFSStore(object):
         Calculate the SHA512 hash of a single file on HDFS
         '''
         with self.client.read(path) as reader:
-            file_hash = hashlib.sha512(reader.read()).hexdigest()
+            file_hash = calculate_reader_hash(reader, path)
         
-        # Check it looks right:
-        check_sha512_hash(path, file_hash)
-
         return file_hash
 
     def list(self, path):

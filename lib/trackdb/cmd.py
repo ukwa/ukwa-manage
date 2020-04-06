@@ -7,6 +7,8 @@ import logging
 import argparse
 from lib.trackdb.solr import SolrTrackDB
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
+
 logger = logging.getLogger(__name__)
 
 # Defaults to using the DEV TrackDB Solr backend:
@@ -55,9 +57,6 @@ def main():
     parser_up.add_argument('--remove', metavar=('field','value'), help='Remove the specified value from the field.', nargs=2)
     parser_up.add_argument('--inc', metavar=('field','increment'), help='Increment the specified field, e.g. "--inc counter 1".', nargs=2)
     parser_up.add_argument('id', type=str, help='The record ID to use.')
-
-# trackdb warcs update --set cdx_index_ss data-heritrix_unverified hdfs://identifier
-# trackdb warcs update --remove cdx_index_ss data-heritrix_unverified --set cdx_index_ss data-heritrix hdfs://identifier
 
     # And PARSE it:
     args = parser.parse_args()
