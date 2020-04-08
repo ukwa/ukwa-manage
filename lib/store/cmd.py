@@ -14,6 +14,8 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s: %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Defaults to using the production HDFS (via 'safe' gateway):
+# TODO Switch to a variable store URI for different backends.
+DEFAULT_STORE = os.environ.get("STORE_URI", "webhdfs://access@hdfs.api.wa.bl.uk/")
 DEFAULT_WEBHDFS = os.environ.get("WEBHDFS_URL", "http://hdfs.api.wa.bl.uk/")
 DEFAULT_WEBHDFS_USER = os.environ.get("WEBHDFS_USERNAME", "access")
 
@@ -35,25 +37,25 @@ def main():
     # Use sub-parsers for different operations:
     subparsers = parser.add_subparsers(dest="op")
 
-    # Add a parser for the 'get' subcommand:
+    # 'get' subcommand - retrieves files from the store:
     parser_get = subparsers.add_parser('get', help='Get a file from the store.')
     parser_get.add_argument('--offset', type=int, help='The byte offset to start reading from (default is 0).')
     parser_get.add_argument('--length', type=int, help='The number of bytes to read. (default is to read the whole thing)')
     parser_get.add_argument('path', type=str, help='The file to get.')
     parser_get.add_argument('local_path', type=str, help='The local file to copy to (use "-" for STDOUT).')
 
-    # Add a parser for the 'list' subcommand:
+    # 'list' subcommand - list what's in the store:
     parser_list = subparsers.add_parser('list', help='List a folder on the store.')
     parser_list.add_argument('-r', '--recursive', action='store_true', help='List files recursively (directories are not listed).')
     parser_list.add_argument('path', type=str, help='The path to list.')
 
-    # Add a parser for the 'update' subcommand:
+    # 'put' subcommand - upload a file or folder to the store:
     parser_up = subparsers.add_parser('put', help='Put a local file into the store.')
     parser_up.add_argument('local_path', type=str, help='The local path to read.')
     parser_up.add_argument('path', type=str, help='The store path to write to.')
 
-    # Add a parser for the 'get' subcommand:
-    parser_rm = subparsers.add_parser('rm', help='Delete a file from the store.')
+    # 'delete' subcommand - delete a file from the store:
+    parser_rm = subparsers.add_parser('delete', help='Delete a file from the store.')
     parser_rm.add_argument('path', type=str, help='The file to delete.')
 
     # And PARSE it:

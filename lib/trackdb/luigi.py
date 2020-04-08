@@ -1,78 +1,38 @@
 import os
 import luigi
-import pysolr
+from lib.trackdb.solr import SolrTrackDB
 
-class TrackingDBStatusField(luigi.Target):
+DEFAULT_TRACKDB = os.environ.get("TRACKDB_URL","http://trackdb.dapi.wa.bl.uk/solr/tracking")
 
-    DEFAULT_TRACKDB = os.environ.get('TRACKING_DB_SOLR_URL', 'http://localhost:8983/solr/tracking')
+class TrackingDBTaskTarget(luigi.Target):
 
     def __init__(
-        self, doc_id, field, value, trackdb=None
+        self, task_id, field, value, trackdb=None
     ):
         """
         Args:
-            doc_id (str): The ID of the document to update
+            task_id (str): The ID of the task to update
             field (str): The field to use to record the status
             value (str): The value the field should hold to indicate task completion
-            trackdb (str): URL of the Solr tracking database
+            trackdb (str): URL of the Solr tracking database (optional)
         """
-        self.doc_id = doc_id
+        self.doc_id = "task:%s" % task_id
         self.field = field
         self.value = value
-        self.trackdb = trackdb or self.DEFAULT_TRACKDB
 
         # Setup connection:
-        self.solr = pysolr.Solr(self.trackdb, always_commit=True)
+        trackdb = trackdb or self.DEFAULT_TRACKDB
+        self.tdb = SolrTrackDB(DEFAULT_TRACKDB, kind="tasks")
 
     def exists(self):
-        result = self.solr.search(q='id:"%s" AND %s:"%s"' % (self.doc_id, self.field, self.value))
-        if result.hits == 0:
-            return False
-        else:
-            return True
+        result = self.tdb.get(self.task_id)
+        if result:
+            if result[self.field] != self.value:
+                return True
+        return False
 
     def touch(self):
-        doc = {'id': self.doc_id, self.field: self.value}
-        result = self.solr.add([doc], fieldUpdates={self.field: 'set'}, softCommit=True)
-        print(result)
-
-    def open(self, mode):
-        raise NotImplementedError("Cannot open() TrackingDBStatusField")
-
-
-class TrackingDBTaskStatusField(luigi.Target):
-
-    DEFAULT_TRACKDB = os.environ.get('TRACKING_DB_SOLR_URL', 'http://localhost:8983/solr/tracking')
-
-    def __init__(
-        self, task, field, value, trackdb=None
-    ):
-        """
-        Args:
-            task (luigi.Task): The task we are recording
-            field (str): The field to use to record the status
-            value (str): The value the field should hold to indicate task completion
-            trackdb (str): URL of the Solr tracking database
-        """
-        self.doc_id = task.id
-        self.field = field
-        self.value = value
-        self.trackdb = trackdb or self.DEFAULT_TRACKDB
-
-        # Setup connection:
-        self.solr = pysolr.Solr(self.trackdb, always_commit=True)
-
-    def exists(self):
-        result = self.solr.search(q='id:"%s" AND %s:"%s"' % (self.doc_id, self.field, self.value))
-        if result.hits == 0:
-            return False
-        else:
-            return True
-
-    def touch(self):
-        doc = {'id': self.doc_id, self.field: self.value}
-        result = self.solr.add([doc], fieldUpdates={self.field: 'set'}, softCommit=True)
-        print(result)
+        self.tdb.update(self.task_id, self.field, self.value, action='set')
 
     def open(self, mode):
         raise NotImplementedError("Cannot open() TrackingDBStatusField")

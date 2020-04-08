@@ -166,9 +166,9 @@ class WebHDFSStore(object):
         return success
 
     def move(self, local_path, hdfs_path):
-        # Perform the PUT
+        # Perform the PUT first:
         success = self.put(local_path,hdfs_path)
-        # And delete the local file:
+        # And delete the local file if that worked:
         if success == True:
             os.remove(local_path)
 
@@ -234,10 +234,12 @@ class WebHDFSStore(object):
 
     def rm(self, path):
         # And delete from HDFS (usually prevented by API proxy)
+        # Hard-coded to never act recursively - if you want that, do it manually via the back-end.
         self.client.delete(path, recursive=False)
 
     def read(self, path, offset=0, length=None):
         # NOTE our WebHDFS service is very old and uses 'len' not 'length' for controlling the response length:
+        # The API proxy we use attempts to remedy this by mapping any 'length' parameter to 'len'.
         with self.client.read(path, offset=offset, length=length) as reader:
             while True:
                 data = reader.read(10485760)

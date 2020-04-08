@@ -1,9 +1,0 @@
-[
-  {
-    "id": "domain",
-    "job_name": "frequent",
-    "deployment": "domain",
-    "function": "ingest",
-    "dns_sd_name": "heritrix-worker"
-  }
-]

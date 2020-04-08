@@ -16,6 +16,9 @@ class SolrTrackDB():
     def __init__(self, trackdb_url, kind='warcs'):
         self.trackdb_url = trackdb_url
         self.kind = kind
+        # Set up the update configuration:
+        self.update_trackdb_url = self.trackdb_url + '/update?softCommit=true&commitWithin=5000'
+        
 
     def list(self, stream=None, year=None, field_value=None, sort='timestamp_dt desc', limit=100):
         # set solr search terms
@@ -66,13 +69,12 @@ class SolrTrackDB():
 
     def update(self, id, field, value, action='add-distinct'):
         # Update trackdb record for warc
-        update_trackdb_url = self.trackdb_url + '/update?commitWithin=1000'
         post_headers = {'Content-Type': 'application/json'}
         post_data = { 'id': id, field: { action: value} }
 
         # gain tracking_db search response
-        logger.info("SolrTrackDB.update: %s %s" %(update_trackdb_url, post_data))
-        r = requests.post(url=update_trackdb_url, headers=post_headers, json=[post_data])
+        logger.info("SolrTrackDB.update: %s %s" %(self.update_trackdb_url, post_data))
+        r = requests.post(url=self.update_trackdb_url, headers=post_headers, json=[post_data])
         if r.status_code == 200:
             response = r.json()
         else:

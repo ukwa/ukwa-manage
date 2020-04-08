@@ -1,9 +1,0 @@
-[
-  {
-    "id": "frequent",
-    "job_name": "frequent",
-    "deployment": "frequent",
-    "function": "ingest",
-    "url": "https://heritrix-worker:8443/"
-  }
-]
