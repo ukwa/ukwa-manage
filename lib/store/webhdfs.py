@@ -235,3 +235,12 @@ class WebHDFSStore(object):
     def rm(self, path):
         # And delete from HDFS (usually prevented by API proxy)
         self.client.delete(path, recursive=False)
+
+    def read(self, path, offset=0, length=None):
+        # NOTE our WebHDFS service is very old and uses 'len' not 'length' for controlling the response length:
+        with self.client.read(path, offset=offset, length=length) as reader:
+            while True:
+                data = reader.read(10485760)
+                if not data:
+                    break
+                yield data

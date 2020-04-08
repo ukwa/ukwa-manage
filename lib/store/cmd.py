@@ -9,7 +9,7 @@ import logging
 import argparse
 from lib.store.webhdfs import WebHDFSStore
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,10 @@ def main():
 
     # Add a parser for the 'get' subcommand:
     parser_get = subparsers.add_parser('get', help='Get a file from the store.')
+    parser_get.add_argument('--offset', type=int, help='The byte offset to start reading from (default is 0).')
+    parser_get.add_argument('--length', type=int, help='The number of bytes to read. (default is to read the whole thing)')
     parser_get.add_argument('path', type=str, help='The file to get.')
+    parser_get.add_argument('local_path', type=str, help='The local file to copy to (use "-" for STDOUT).')
 
     # Add a parser for the 'list' subcommand:
     parser_list = subparsers.add_parser('list', help='List a folder on the store.')
@@ -67,8 +70,18 @@ def main():
         for info in st.list(args.path, args.recursive):
             writer.writerow(info)
     elif args.op == 'get':
-        stream = st.get(args.path)
-        print(json.dumps(stream, indent=args.indent))
+        reader = st.read(args.path, offset = args.offset, length = args.length)
+        if args.local_path == '-':
+            for data in reader:
+                sys.stdout.buffer.write(data)
+        else:
+            if os.path.exists(args.local_path):
+                raise Exception("Path %s already exists! Refusing to overwrite.")
+            else:
+                with open(args.local_path, 'wb') as f:
+                    for data in reader:
+                        f.write(data)
+
     elif args.op == 'put':
         st.put(args.local_path, args.path)
     elif args.op == 'rm':
