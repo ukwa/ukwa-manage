@@ -15,7 +15,7 @@ hadoop fs -rmr $JOB_OUTPUT
 hadoop fs -put $1 $JOB_INPUT
 
 # Run the job (using 5 reducers):
-hadoop jar warc-hadoop-recordreaders-3.1.0-SNAPSHOT-job.jar \
+hadoop jar /host/tasks/jars/warc-hadoop-recordreaders-3.1.0-SNAPSHOT-job.jar \
     uk.bl.wa.hadoop.mapreduce.cdx.ArchiveCDXGenerator \
     -Dmapred.compress.map.output=true \
     -Dmapred.output.compress=true \

@@ -82,3 +82,58 @@ $ warcio extract --payload temp.warc.gz 0 > file.pdf
 
 So now we have the PDF.
 
+TO DO
+=====
+
+Priorities:
+
+1. Validating TrackDB with HDFS listing, indexing. Then moving W3ACT.
+2. Extracting full-texts from EThOS theses.
+
+
+- webarchive-discovery:
+    - DONE: JSONL files as an alternative output... (Re-purposing MDX code.) 
+    - DONE: Extract record range properly.
+    - DROID mark problem still present, truncation of file?
+    - print exception on closure of the hashcash?
+    - Truncation too soon?
+    - GC Overhead exception to handle?
+    - Disable preflight for this.
+
+
+2020-04-09 20:33:39 ERROR AbstractPayloadAnalyser:77 - uk.bl.wa.parsers.ApachePreflightParser.parse(): Stream Closed
+java.io.IOException: Stream Closed
+	at java.io.RandomAccessFile.readBytes(Native Method)
+	at java.io.RandomAccessFile.read(RandomAccessFile.java:377)
+	at org.jwat.common.RandomAccessFileInputStream.read(RandomAccessFileInputStream.java:105)
+	at java.io.BufferedInputStream.fill(BufferedInputStream.java:246)
+	at java.io.BufferedInputStream.read1(BufferedInputStream.java:286)
+	at java.io.BufferedInputStream.read(BufferedInputStream.java:345)
+	at java.io.FilterInputStream.read(FilterInputStream.java:107)
+	at org.apache.pdfbox.io.IOUtils.copy(IOUtils.java:66)
+	at org.apache.pdfbox.io.RandomAccessBufferedFileInputStream.createTmpFile(RandomAccessBufferedFileInputStream.java:126)
+	at org.apache.pdfbox.io.RandomAccessBufferedFileInputStream.<init>(RandomAccessBufferedFileInputStream.java:113)
+	at org.apache.pdfbox.preflight.parser.PreflightParser.<init>(PreflightParser.java:164)
+	at uk.bl.wa.parsers.ApachePreflightParser.parse(ApachePreflightParser.java:97)
+	at uk.bl.wa.analyser.payload.AbstractPayloadAnalyser$ParseRunner.run(AbstractPayloadAnalyser.java:75)
+	at java.lang.Thread.run(Thread.java:745)
+
+
+- Windex:
+    - Allow windex to help retrieve record or payload from the Store? Much more convenient.
+
+WHILE Switching to TrackDBTaskTarget for tasks...
+- TrackDB:
+    - Allow import of HDFS records.
+    - Allow more generic {key: value} updates? (Same as above?)
+- TASK: Generate HDFS file listings. Import listings to TrackDB: classify, send to Solr as updates.
+- TASK: CDX indexing.
+- TASK: CDX verification.
+- TASK: Solr indexing (leave verification for now?)
+- TASK: Backup W3ACT.
+- Move ACL, collection solr, indexer annotations and TLR to the python-w3act codebase.
+- TASK: Generates all the W3ACT derivatives.
+- Store:
+    - Add flag to the upload-with-checks method, to handle optional local file deletion.
+    - Add threaded uploads to store.put of a folder, test on EThOS.
+- Setup warc-server properly, across local crawler files (NFS) and HDFS?
