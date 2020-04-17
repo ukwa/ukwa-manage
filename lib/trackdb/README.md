@@ -92,7 +92,7 @@ Note that we're using the Docker image to run the tasks, to avoid having to inst
 The files can now be listed using:
 
 ```
-docker run -i anjackson/ukwa-manage:trackdb-lib store list /1_data/ethos/warcs > ethos-warcs.txt
+docker run -i anjackson/ukwa-manage:trackdb-lib store list -I /1_data/ethos/warcs > ethos-warcs.ids
 docker run -i anjackson/ukwa-manage:trackdb-lib store list -j /1_data/ethos/warcs > ethos-warcs.jsonl
 ```
 
@@ -101,3 +101,9 @@ The JSONL format can be imported into TrackDB (defaults to used the DEV TrackDB)
 ```
 cat ethos-warcs.jsonl | docker run -i anjackson/ukwa-manage:trackdb-lib trackdb files import -
 ```
+
+```
+cat ethos-warcs.ids | trackdb files update --set stream_s ethos -
+cat ethos-warcs.ids | trackdb files update --set kind_s warcs -
+```
+

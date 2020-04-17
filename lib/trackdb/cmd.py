@@ -47,7 +47,7 @@ def main():
 
     # Add a parser for the 'get' subcommand:
     parser_get = subparsers.add_parser('get', help='Get a single record from the TrackDB.')
-    parser_get.add_argument('id', type=str, help='The id to look up.')
+    parser_get.add_argument('id', type=str, help='The record ID to look up, or "-" to read a list of IDs from STDIN.')
 
     # Add a parser for the 'import' subcommand:
     parser_get = subparsers.add_parser('import', help='Import JSONL documents into TrackDB.')
@@ -63,7 +63,7 @@ def main():
     parser_up.add_argument('--add', metavar=('field','value'), help='Add the given value to a field. Always uses add-distinct', nargs=2)
     parser_up.add_argument('--remove', metavar=('field','value'), help='Remove the specified value from the field.', nargs=2)
     parser_up.add_argument('--inc', metavar=('field','increment'), help='Increment the specified field, e.g. "--inc counter 1".', nargs=2)
-    parser_up.add_argument('id', type=str, help='The record ID to use.')
+    parser_up.add_argument('id', type=str, help='The record ID to update, or "-" to read a list of IDs from STDIN.')
 
     # And PARSE it:
     args = parser.parse_args()
@@ -78,8 +78,8 @@ def main():
     # Ops:
     logger.debug("Got args: %s" % args)
     if args.op == 'list':
-        docs = tdb.list(args.filter_by_stream, args.filter_by_year, args.filter_by_field)
-        print(json.dumps(docs, indent=args.indent))
+        for doc in tdb.list(args.filter_by_stream, args.filter_by_year, args.filter_by_field):
+            print(json.dumps(doc, indent=args.indent))
     elif args.op == 'import':
         if args.input_file == '-':
             tdb.import_jsonl(sys.stdin.buffer)
@@ -91,14 +91,21 @@ def main():
         if doc:
             print(json.dumps(doc, indent=args.indent))
     elif args.op == 'update':
-        if args.set:
-            tdb.update(args.id, args.set[0], args.set[1], action='set')
-        if args.add:
-            tdb.update(args.id, args.add[0], args.add[1], action='add-distinct')
-        if args.remove:
-            tdb.update(args.id, args.remove[0], args.remove[1], action='remove')
-        if args.inc:
-            tdb.update(args.id, args.inc[0], args.inc[1], action='remove')
+        ids = []
+        if args.id == '-':
+            for line in sys.stdin:
+                ids.append(line.strip())
+        else:
+            ids.append(args.id)
+        for id in ids:
+            if args.set:
+                tdb.update(id, args.set[0], args.set[1], action='set')
+            if args.add:
+                tdb.update(id, args.add[0], args.add[1], action='add-distinct')
+            if args.remove:
+                tdb.update(id, args.remove[0], args.remove[1], action='remove')
+            if args.inc:
+                tdb.update(id, args.inc[0], args.inc[1], action='remove')
     else:
         raise Exception("Operaton %s is not implemented!" % args.op )
 

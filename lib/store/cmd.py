@@ -49,6 +49,7 @@ def main():
     # 'list' subcommand - list what's in the store:
     parser_list = subparsers.add_parser('list', help='List a folder on the store, outputting a list of file paths by default.')
     parser_list.add_argument('-r', '--recursive', action='store_true', help='List files recursively (directories are not listed).')
+    parser_list.add_argument('-I', '--ids', action='store_true', help='List record identifiers rather than file paths.')
     parser_list.add_argument('-c', '--csv', action='store_true', help='List in CSV format rather than the default.')
     parser_list.add_argument('-j', '--jsonl', action='store_true', help='List in JSONL format rather than the default.')
     parser_list.add_argument('path', type=str, help='The path to list.')
@@ -88,6 +89,9 @@ def main():
         elif args.jsonl:
             for info in st.list(args.path, args.recursive):
                 print(json.dumps(info))
+        elif args.ids:
+            for info in st.list(args.path, args.recursive):
+                print(info['id'])
         else:
             for info in st.list(args.path, args.recursive):
                 print(info['file_path_s'])
