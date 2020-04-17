@@ -24,9 +24,16 @@ class SolrTrackDB():
     def _jsonl_doc_generator(self, input_reader):
         for line in input_reader:
             item = json.loads(line)
-            item['kind_s'] = self.kind
+            # Provide the kind, if not set already in the item:
+            if not 'kind_s' in item:
+                item['kind_s'] = self.kind
+            # Enforce ID conventios for particular types:
             if self.kind == 'documents':
-                item['id'] = 'document:document_url:%s' % item['document_url']
+                if not 'id' in item:
+                    item['id'] = 'document:document_url:%s' % item['document_url']
+            if self.kind == 'files':
+                if not 'id' in item:
+                    raise Exception("When importing files you must supply an id for each!")
             else:
                 raise Exception("Cannot import %s records yet!" % self.kind)
             # And return

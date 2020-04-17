@@ -37,11 +37,12 @@ def main():
         type=str,
         help='Filter by any additional field and value, in the form field:value.')
     parser.add_argument('kind', 
-        choices= ['warcs', 'logs', 'launches', 'documents'], 
-        help='The kind of thing to track.', default='[* TO *]')
+        choices= ['files', 'warcs', 'logs', 'launches', 'documents'], 
+        help='The kind of entities to operate on. The \'files\' type is used to import records from HDFS listings.', required=True)
 
     # Use sub-parsers for different operations:
     subparsers = parser.add_subparsers(dest="op")
+    subparsers.required = True
 
     # Add a parser for the 'get' subcommand:
     parser_get = subparsers.add_parser('get', help='Get a single record from the TrackDB.')
@@ -74,7 +75,7 @@ def main():
     tdb = SolrTrackDB(args.trackdb_url, kind=args.kind)
 
     # Ops:
-    logger.info("Got args: %s" % args)
+    logger.debug("Got args: %s" % args)
     if args.op == 'list':
         docs = tdb.list(args.filter_by_stream, args.filter_by_year, args.filter_by_field)
         print(json.dumps(docs, indent=args.indent))
@@ -92,13 +93,13 @@ def main():
         if args.set:
             tdb.update(args.id, args.set[0], args.set[1], action='set')
         if args.add:
-            tdb.update(args.id, args.add[0], args.add[1])
+            tdb.update(args.id, args.add[0], args.add[1], action='add-distinct')
         if args.remove:
             tdb.update(args.id, args.remove[0], args.remove[1], action='remove')
         if args.inc:
             tdb.update(args.id, args.inc[0], args.inc[1], action='remove')
     else:
-        raise Exception("Not implemented!")
+        raise Exception("Operaton %s is not implemented!" % args.op )
 
 
 if __name__ == "__main__":
