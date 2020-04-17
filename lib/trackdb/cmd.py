@@ -2,6 +2,7 @@
 This contains the core TrackDB code for managing queries and updates to the Tracking Database
 '''
 import os
+import sys
 import json
 import logging
 import argparse
@@ -38,7 +39,7 @@ def main():
         help='Filter by any additional field and value, in the form field:value.')
     parser.add_argument('kind', 
         choices= ['files', 'warcs', 'logs', 'launches', 'documents'], 
-        help='The kind of entities to operate on. The \'files\' type is used to import records from HDFS listings.', required=True)
+        help='The kind of entities to operate on. The \'files\' type is used to import records from HDFS listings.')
 
     # Use sub-parsers for different operations:
     subparsers = parser.add_subparsers(dest="op")
@@ -54,7 +55,7 @@ def main():
 
     # Add a parser for the 'list' subcommand:
     parser_list = subparsers.add_parser('list', help='Get a list of records from the TrackDB.')
-    parser_list.add_argument('--limit', type=int, default=10, help='The maximum number of records to return.')
+    parser_list.add_argument('-l', '--limit', type=int, default=100, help='The maximum number of records to return.')
 
     # Add a parser for the 'update' subcommand:
     parser_up = subparsers.add_parser('update', help='Create or update on a record in the TrackDB.')
@@ -81,7 +82,7 @@ def main():
         print(json.dumps(docs, indent=args.indent))
     elif args.op == 'import':
         if args.input_file == '-':
-            tdb.import_jsonl(sys.STDIN)
+            tdb.import_jsonl(sys.stdin.buffer)
         else:
             with open(args.input_file) as f:
                 tdb.import_jsonl(f)

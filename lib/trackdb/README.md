@@ -10,10 +10,24 @@ The `trackdb` command
 
 For example, to control the process of CDX indexing, we need to know where the WARCs are, and have a convention for recording which ones have been indexed into which CDX services.  We do this by populating the Tracking Database with records for every file, and classifying the relevant `warc.gz` files as `kind_s:warcs` so they can be picked out. The `store` library is used to list the contents of the store, and then `trackdb` is used to classify the files and record them in the Tracking Database.
 
+First, we list the files, classify them into warcs/logs/etc. and generate a big batch of metadata in line-separated JSON format...
+
     store list --recursive / > hdfs-file-listing.jsonl
+
+But as that uses WebHDFS, listing _all files_ is rather slow. Alternatively, a standard Hadoop recursive file listing can be used and post-processed to get the same result:
+
+    hadoop fs -lsr / > hdfs-file-listing.lsr
+    store lsr-to-jsonl hdfs-file-listing.lsr hdfs-file-listing.jsonl
+
+Once we have that, we can import them into the TrackDB:
+
     trackdb import files hdfs-file-listing.jsonl
 
-This processes the file list to classify the items, and imports the resulting records into the Tracking Database.
+We can query the TrackDB to see what we have. Some common queries and reports are built into the `trackdb` tool.
+
+    ...TBA...
+
+
 
 For CDX indexing, we have chosed to add a multivalued status field to record what we're doing, and called it `cdx_index_ss`. The WARCs on the storage service start off having no value of this field, and this fact is used to identify those that require indexing. After indexing, we set `cdx_index_ss:[COLLECTION_unverified]` to indicate that we've indexed the WARC into a CDX collection called `COLLECTION`, but not checked the index worked (yet). After checking it worked, we will classify the warcs as `cdx_index_ss:[COLLECTION]`.
 
@@ -21,11 +35,11 @@ So, to get a list of WARCs that have not yet been indexed:
 
     trackdb list warcs --no-field cdx_index_ss > warcs-to-index.txt
 
-These lists can be filtered and limited in various ways (see `trackdb -h` for details):
+These lists return the 100 most recent matching files by default, and can be filtered and limited in various ways (see `trackdb -h` for details):
 
-    trackdb list warcs --stream frequent --year 2020 --no-field cdx_index_ss > warcs-to-index.txt
+    trackdb list warcs --limit 50 --stream frequent --year 2020 --no-field cdx_index_ss > warcs-to-index.txt
 
-...this limits the list to files from the `frequent` crawl stream, from the given date range.
+...this limits the list to the 50 most recent files from the `frequent` crawl stream, from the given date range, which have yet to be CDX indexed.
 
 These commands can be used to generate a list of WARCs to pass to the CDX indexer Hadoop job:
 
@@ -58,27 +72,32 @@ Or again as a piped list:
 The records for all those WARCs now shows `cdx_index_ss:[data-heritrix]`, indicating that the given WARC has been indexed and verified as being present in the `data-heritrix` CDX index service.
 
 
-TBMoved
-=======
+Example: Manually Processing a WARC collection
+----------------------------------------------
 
-We can query the CDX from the command-line:
+We collected some WARCs for EThOS as an experiment. 
 
-```
-$ windex -C ethos cdx-query http://theses.gla.ac.uk/1158/1/2009ibrahamphd.pdf
-uk,ac,gla,theses)/1158/1/2009ibrahamphd.pdf 20200404014648 http://theses.gla.ac.uk/1158/1/2009ibrahamphd.pdf application/pdf 200 FH7MXPURQT7S75IVEUUFWPA2XPOTY3VW - - 7803924 643334769 /1_data/ethos/warcs/WARCPROX-20200404014942362-00230-mja43xl7.warc.gz
-```
-
-Now we use the filename, offset and length to grab the WARC record:
+A script like this was used to upload them:
 
 ```
-$ store get --offset 643334769 --length 7803924 /1_data/ethos/warcs/WARCPROX-20200404014942362-00230-mja43xl7.warc.gz temp.warc.gz
+#!/bin/bash
+for WARC in warcs/*
+do
+  docker run -i -v /mnt/lr10/warcprox/warcs:/warcs anjackson/ukwa-manage:trackdb-lib store put ${WARC} /1_data/ethos/${WARC}
+done
 ```
 
-This gets the WARC record (and oddly, all following ones?!)
+Note that we're using the Docker image to run the tasks, to avoid having to install the software on the host machine.
+
+The files can now be listed using:
 
 ```
-$ warcio extract --payload temp.warc.gz 0 > file.pdf
+docker run -i anjackson/ukwa-manage:trackdb-lib store list /1_data/ethos/warcs > ethos-warcs.txt
+docker run -i anjackson/ukwa-manage:trackdb-lib store list -j /1_data/ethos/warcs > ethos-warcs.jsonl
 ```
 
-So now we have the PDF.
+The JSONL format can be imported into TrackDB (defaults to used the DEV TrackDB).
 
+```
+cat ethos-warcs.jsonl | docker run -i anjackson/ukwa-manage:trackdb-lib trackdb files import -
+```
