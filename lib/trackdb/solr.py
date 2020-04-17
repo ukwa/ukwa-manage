@@ -8,17 +8,55 @@ See https://lucene.apache.org/solr/guide/7_3/updating-parts-of-documents.html
 '''
 import requests
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
 class SolrTrackDB():
 
-    def __init__(self, trackdb_url, kind='warcs'):
+    def __init__(self, trackdb_url, kind='warcs', update_batch_size=1000):
         self.trackdb_url = trackdb_url
         self.kind = kind
+        self.batch_size = update_batch_size
         # Set up the update configuration:
-        self.update_trackdb_url = self.trackdb_url + '/update?softCommit=true&commitWithin=5000'
-        
+        self.update_trackdb_url = self.trackdb_url + '/update?softCommit=true'
+
+    def _jsonl_doc_generator(self, input_reader):
+        for line in input_reader:
+            item = json.loads(line)
+            item['kind_s'] = self.kind
+            if self.kind == 'documents':
+                item['id'] = 'document:document_url:%s' % item['document_url']
+            else:
+                raise Exception("Cannot import %s records yet!" % self.kind)
+            # And return
+            yield item
+
+    def _send_as_updates(self, batch):
+        # Convert the plain dicts into Solr update documents:
+        as_updates = []
+        for item in batch:
+            update_item = {}
+            for key in item:
+                if key == 'id':
+                    update_item[key] = item[key]
+                else:
+                    update_item[key] = { 'set': item[key] }
+            as_updates.append(update_item)
+
+        # And post the batch:
+        self._send_update(batch)
+
+    def import_jsonl(self, input_reader):
+        batch = []
+        for item in self._jsonl_doc_generator(input_reader):
+            batch.append(item)
+            if len(batch) > self.batch_size:
+                self._send_as_updates(batch)
+                batch = []
+        # And send the final batch if there is one:
+        if len(batch) > 0:
+            self._send_as_updates(batch)
 
     def list(self, stream=None, year=None, field_value=None, sort='timestamp_dt desc', limit=100):
         # set solr search terms
@@ -67,15 +105,21 @@ class SolrTrackDB():
         else:
             raise Exception("Solr returned an error! HTTP %i\n%s" %(r.status_code, r.text))
 
-    def update(self, id, field, value, action='add-distinct'):
-        # Update trackdb record for warc
+    def _send_update(self, post_data):
+        # Covert the list of docs to JSONLines:
+        #post_data = ""
+        #for item in docs:
+        #    post_data += ("%s\n" % json.dumps(item))
+        # Set up the POST and check it worked
         post_headers = {'Content-Type': 'application/json'}
-        post_data = { 'id': id, field: { action: value} }
-
-        # gain tracking_db search response
-        logger.info("SolrTrackDB.update: %s %s" %(self.update_trackdb_url, post_data))
-        r = requests.post(url=self.update_trackdb_url, headers=post_headers, json=[post_data])
+        logger.info("SolrTrackDB.update: %s %s" %(self.update_trackdb_url, str(post_data)[0:1000]))
+        r = requests.post(url=self.update_trackdb_url, headers=post_headers, json=post_data)
         if r.status_code == 200:
             response = r.json()
         else:
             raise Exception("Solr returned an error! HTTP %i\n%s" %(r.status_code, r.text))
+
+    def update(self, id, field, value, action='add-distinct'):
+        # Update trackdb record for warc
+        post_data = [{ 'id': id, field: { action: value} }]
+        self._send_update(post_data)

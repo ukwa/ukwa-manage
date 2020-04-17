@@ -7,7 +7,7 @@ import logging
 import argparse
 from lib.trackdb.solr import SolrTrackDB
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,7 @@ def main():
     # Common arguments:
     parser.add_argument('-t', '--trackdb-url', type=str, help='The TrackDB URL to talk to (defaults to %s).' % DEFAULT_TRACKDB, 
         default=DEFAULT_TRACKDB)
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose logging.')
     parser.add_argument('--dry-run', action='store_true', help='Do not modify the TrackDB.')
     parser.add_argument('-i', '--indent', type=int, help='Number of spaces to indent when emitting JSON.')
     parser.add_argument('--filter-by-stream', 
@@ -36,7 +37,7 @@ def main():
         type=str,
         help='Filter by any additional field and value, in the form field:value.')
     parser.add_argument('kind', 
-        choices= ['warcs', 'logs', 'launches'], 
+        choices= ['warcs', 'logs', 'launches', 'documents'], 
         help='The kind of thing to track.', default='[* TO *]')
 
     # Use sub-parsers for different operations:
@@ -45,6 +46,10 @@ def main():
     # Add a parser for the 'get' subcommand:
     parser_get = subparsers.add_parser('get', help='Get a single record from the TrackDB.')
     parser_get.add_argument('id', type=str, help='The id to look up.')
+
+    # Add a parser for the 'import' subcommand:
+    parser_get = subparsers.add_parser('import', help='Import JSONL documents into TrackDB.')
+    parser_get.add_argument('input_file', type=str, help='The file to read, use "-" for STDIN.')
 
     # Add a parser for the 'list' subcommand:
     parser_list = subparsers.add_parser('list', help='Get a list of records from the TrackDB.')
@@ -61,6 +66,10 @@ def main():
     # And PARSE it:
     args = parser.parse_args()
 
+    # Set up verbose logging:
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+
     # Set up Solr client:
     tdb = SolrTrackDB(args.trackdb_url, kind=args.kind)
 
@@ -69,9 +78,16 @@ def main():
     if args.op == 'list':
         docs = tdb.list(args.filter_by_stream, args.filter_by_year, args.filter_by_field)
         print(json.dumps(docs, indent=args.indent))
+    elif args.op == 'import':
+        if args.input_file == '-':
+            tdb.import_jsonl(sys.STDIN)
+        else:
+            with open(args.input_file) as f:
+                tdb.import_jsonl(f)
     elif args.op == 'get':
         doc = tdb.get(args.id)
-        print(json.dumps(doc, indent=args.indent))
+        if doc:
+            print(json.dumps(doc, indent=args.indent))
     elif args.op == 'update':
         if args.set:
             tdb.update(args.id, args.set[0], args.set[1], action='set')
