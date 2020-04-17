@@ -47,9 +47,10 @@ def main():
     parser_get.add_argument('local_path', type=str, help='The local file to copy to (use "-" for STDOUT).')
 
     # 'list' subcommand - list what's in the store:
-    parser_list = subparsers.add_parser('list', help='List a folder on the store, outputting in JSONL format by default.')
+    parser_list = subparsers.add_parser('list', help='List a folder on the store, outputting a list of file paths by default.')
     parser_list.add_argument('-r', '--recursive', action='store_true', help='List files recursively (directories are not listed).')
-    parser_list.add_argument('-c', '--csv', action='store_true', help='List in CSV format rather than the default JSONL.')
+    parser_list.add_argument('-c', '--csv', action='store_true', help='List in CSV format rather than the default.')
+    parser_list.add_argument('-j', '--jsonl', action='store_true', help='List in JSONL format rather than the default.')
     parser_list.add_argument('path', type=str, help='The path to list.')
 
     # 'put' subcommand - upload a file or folder to the store:
@@ -84,9 +85,12 @@ def main():
             writer.writeheader()
             for info in st.list(args.path, args.recursive):
                 writer.writerow(info)
-        else:
+        elif args.jsonl:
             for info in st.list(args.path, args.recursive):
                 print(json.dumps(info))
+        else:
+            for info in st.list(args.path, args.recursive):
+                print(info['file_path_s'])
     elif args.op == 'get':
         reader = st.read(args.path, offset = args.offset, length = args.length)
         if args.local_path == '-':

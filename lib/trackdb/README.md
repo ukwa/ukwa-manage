@@ -10,8 +10,8 @@ The `trackdb` command
 
 For example, to control the process of CDX indexing, we need to know where the WARCs are, and have a convention for recording which ones have been indexed into which CDX services.  We do this by populating the Tracking Database with records for every file, and classifying the relevant `warc.gz` files as `kind_s:warcs` so they can be picked out. The `store` library is used to list the contents of the store, and then `trackdb` is used to classify the files and record them in the Tracking Database.
 
-    store list --recursive / > hdfs-file-listing.txt
-    trackdb import files hdfs-file-listing.txt
+    store list --recursive / > hdfs-file-listing.jsonl
+    trackdb import files hdfs-file-listing.jsonl
 
 This processes the file list to classify the items, and imports the resulting records into the Tracking Database.
 
@@ -82,41 +82,3 @@ $ warcio extract --payload temp.warc.gz 0 > file.pdf
 
 So now we have the PDF.
 
-TO DO
-=====
-
-Priorities:
-
-1. Validating TrackDB with HDFS listing, indexing. Then moving W3ACT.
-2. Extracting full-texts from EThOS theses.
-
-
-- webarchive-discovery:
-    - DONE: JSONL files as an alternative output... (Re-purposing MDX code.) 
-    - DONE: Extract record range properly.
-    - DROID mark problem still present, truncation of file?
-    - print exception on closure of the hashcash?
-    - Truncation too soon? 100M -> 1000M DONE?
-    - GC Overhead exception to handle? 
-    - Disable preflight for this. DONE?
-
-
-- Windex:
-    - Allow windex to help retrieve record or payload from the Store? Much more convenient.
-
-WHILE Switching to TrackDBTaskTarget for tasks...
-- TrackDB:
-    - Allow export of HDFS records for moving between services.
-    - Allow import of HDFS records as updates.
-    - Allow more generic {key: value} updates? (Same as above?)
-- TASK: Generate HDFS file listings. Import listings to TrackDB: classify, send to Solr as updates.
-- TASK: CDX indexing.
-- TASK: CDX verification.
-- TASK: Solr indexing (leave verification for now?)
-- TASK: Backup W3ACT.
-- Move ACL, collection solr, indexer annotations and TLR to the python-w3act codebase.
-- TASK: Generates all the W3ACT derivatives.
-- Store:
-    - Add flag to the upload-with-checks method, to handle optional local file deletion.
-    - Add threaded uploads to store.put of a folder, test on EThOS.
-- Setup warc-server properly, across local crawler files (NFS) and HDFS?
