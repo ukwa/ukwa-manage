@@ -115,7 +115,7 @@ def main():
     elif args.op == 'lsr-to-jsonl':
         # Input
         if args.input_lsr == '-':
-            reader = sys.stdin.buffer
+            reader = sys.stdin
         else:
             reader = open(args.input_lsr, 'r')
         # Output
