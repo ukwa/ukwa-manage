@@ -25,18 +25,21 @@ def main():
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose logging.')
     parser.add_argument('--dry-run', action='store_true', help='Do not modify the TrackDB.')
     parser.add_argument('-i', '--indent', type=int, help='Number of spaces to indent when emitting JSON.')
-    parser.add_argument('--filter-by-stream', 
+    parser.add_argument('--stream', 
         choices= ['frequent', 'domain', 'webrecorder'], 
         help='Filter the results by stream.', default='[* TO *]')
-    parser.add_argument('--filter-by-collection', 
-        choices= ['npld', 'bypm'], 
-        help='Filter the results by the collection, NPLD or by-permission.', default='[* TO *]')
-    parser.add_argument('--filter-by-year', 
+    # Not implemented yet:
+    #parser.add_argument('--collection', 
+    #    choices= ['npld', 'bypm'], 
+    #    help='Filter the results by the collection, NPLD or by-permission.', default='[* TO *]')
+    parser.add_argument('--year', 
         type=int,
         help='Filter down by date.')
-    parser.add_argument('--filter-by-field', 
+    parser.add_argument('--field', 
         type=str,
-        help='Filter by any additional field and value, in the form field:value.')
+        metavar=('FIELD', 'VALUE'),
+        nargs=2,
+        help='Filter by any additional field and value. Use the value \'_NONE_\' to look for unset values.')
     parser.add_argument('kind', 
         choices= ['files', 'warcs', 'logs', 'launches', 'documents'], 
         help='The kind of entities to operate on. The \'files\' type is used to import records from HDFS listings.')
@@ -54,7 +57,9 @@ def main():
     parser_get.add_argument('input_file', type=str, help='The file to read, use "-" for STDIN.')
 
     # Add a parser for the 'list' subcommand:
-    parser_list = subparsers.add_parser('list', help='Get a list of records from the TrackDB.')
+    parser_list = subparsers.add_parser('list', help='Get a list of records from the TrackDB, output as JSONL by default.')
+    parser_list.add_argument('--ids-only', action='store_true', help='Just output recod IDs as plain text.')
+    #parser_list.add_argument('-j', '--jsonl', action='store_true', help='Detailed output in JSONL format.')
     parser_list.add_argument('-l', '--limit', type=int, default=100, help='The maximum number of records to return.')
 
     # Add a parser for the 'update' subcommand:
@@ -78,14 +83,17 @@ def main():
     # Ops:
     logger.debug("Got args: %s" % args)
     if args.op == 'list':
-        for doc in tdb.list(args.filter_by_stream, args.filter_by_year, args.filter_by_field):
-            print(json.dumps(doc, indent=args.indent))
+        for doc in tdb.list(args.stream, args.year, args.field, limit=args.limit):
+            if args.ids_only:
+                print(doc['id'])
+            else:
+                print(json.dumps(doc, indent=args.indent))
     elif args.op == 'import':
         if args.input_file == '-':
-            tdb.import_jsonl(sys.stdin.buffer)
+            tdb.import_jsonl_reader(sys.stdin.buffer)
         else:
             with open(args.input_file) as f:
-                tdb.import_jsonl(f)
+                tdb.import_jsonl_reader(f)
     elif args.op == 'get':
         doc = tdb.get(args.id)
         if doc:

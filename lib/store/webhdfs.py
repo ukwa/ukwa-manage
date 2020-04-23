@@ -17,6 +17,8 @@ from lib.store.hdfs_layout import HdfsPathParser
 DEFAULT_WEBHDFS = "http://hdfs.api.wa.bl.uk/"
 DEFAULT_WEBHDFS_USER = "access"
 
+HDFS_ID_PREFIX = "hdfs://hdfs:54310"
+
 logger = logging.getLogger(__name__)
 
 def permissions_octal_to_string(octal):
@@ -197,7 +199,7 @@ class WebHDFSStore(object):
             permissions = status['permission']
         # And return as a 'standard' dict:
         return {
-                'id': 'hdfs://hdfs:54310%s' % item['file_path'],
+                'id': '%s%s' % (HDFS_ID_PREFIX, item['file_path']),
                 'refresh_date_dt': self.refresh_date,
                 'file_path_s': item['file_path'],
                 'file_size_l': item['file_size'],

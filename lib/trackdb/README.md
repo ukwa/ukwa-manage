@@ -31,31 +31,33 @@ We can query the TrackDB to see what we have. Some common queries and reports ar
 
 For CDX indexing, we have chosed to add a multivalued status field to record what we're doing, and called it `cdx_index_ss`. The WARCs on the storage service start off having no value of this field, and this fact is used to identify those that require indexing. After indexing, we set `cdx_index_ss:[COLLECTION_unverified]` to indicate that we've indexed the WARC into a CDX collection called `COLLECTION`, but not checked the index worked (yet). After checking it worked, we will classify the warcs as `cdx_index_ss:[COLLECTION]`.
 
-So, to get a list of WARCs that have not yet been indexed:
+So, to get a list of records for WARCs that have not yet been indexed:
 
-    trackdb list warcs --no-field cdx_index_ss > warcs-to-index.txt
+    trackdb warcs --field cdx_index_ss _NONE_ list > warcs-to-index.jsonl
 
-These lists return the 100 most recent matching files by default, and can be filtered and limited in various ways (see `trackdb -h` for details):
+This lists return the 100 most recent matching files by default, and can be filtered and limited in various ways (see `trackdb -h` for details):
 
-    trackdb list warcs --limit 50 --stream frequent --year 2020 --no-field cdx_index_ss > warcs-to-index.txt
+    trackdb warcs --stream frequent --year 2020 --field cdx_index_ss _NONE_ list --limit 1000 > warcs-to-index.jsonl
 
-...this limits the list to the 50 most recent files from the `frequent` crawl stream, from the given date range, which have yet to be CDX indexed.
+...this limits the list to the 1000 most recent files from the `frequent` crawl stream, from the given date range, which have yet to be CDX indexed. The command returns detailed information in JSONL format by default, but here we just output the file paths and the corresponding IDs:
 
-These commands can be used to generate a list of WARCs to pass to the CDX indexer Hadoop job:
+    trackdb warcs --stream frequent --year 2020 --field cdx_index_ss _NONE_ list --limit 1000 --ids-only > warcs-to-index-ids.txt
 
-    windex cdx-hadoop-job --cdx-server http://cdx.api.wa.bl.uk/ --collection data-heritrix warcs-to-index.txt
+These list of WARC IDs can then be passed to the CDX indexer Hadoop job:
+
+    windex cdx-hadoop-job --cdx-server http://cdx.api.wa.bl.uk/ --collection data-heritrix warcs-to-index-ids.txt
 
 After that completes successfully, we can update the status of each individual WARC to be `cdx_index_ss:data-heritrix_unverified`, e.g. 
 
-    trackdb update warcs --add cdx_index_ss data-heritrix_unverified /1_data/test.warc.gz
+    trackdb update warcs --add cdx_index_ss data-heritrix_unverified hdfs://hdfs:54310/1_data/test.warc.gz
 
 Or use `-` to indicate a list of HDFS identifiers to be processed in the same way:
 
-    cat warcs-to-index.txt | trackdb warcs update --add cdx_index_ss data-heritrix_unverified -
+    cat warcs-to-index-ids.txt | trackdb warcs update --add cdx_index_ss data-heritrix_unverified -
 
 We can now list items awaiting verification:
 
-    trackdb list warcs --field cdx_index_ss:data-heritrix_unverified > warcs-to-verify.txt
+    trackdb list warcs --field cdx_index_ss data-heritrix_unverified > warcs-to-verify.txt
 
 And verify them:
 

@@ -12,6 +12,9 @@ import json
 
 logger = logging.getLogger(__name__)
 
+HDFS_KINDS = ['files', 'warcs', 'logs']
+HDFS_PREFIX = 'hdfs://' # Used to sanity-check HDFS IDs on import.
+
 class SolrTrackDB():
 
     def __init__(self, trackdb_url, kind='warcs', update_batch_size=1000):
@@ -27,13 +30,15 @@ class SolrTrackDB():
             # Provide the kind, if not set already in the item:
             if not 'kind_s' in item:
                 item['kind_s'] = self.kind
-            # Enforce ID conventios for particular types:
+            # Enforce ID conventions for particular types:
             if self.kind == 'documents':
                 if not 'id' in item:
                     item['id'] = 'document:document_url:%s' % item['document_url']
-            if self.kind == 'files':
+            if self.kind in HDFS_KINDS:
                 if not 'id' in item:
                     raise Exception("When importing files you must supply an id for each!")
+                if not item['id'].startswith(HDFS_PREFIX):
+                    raise Exception("When importing files the ID must start with '%s'!" % HDFS_PREFIX)
             else:
                 raise Exception("Cannot import %s records yet!" % self.kind)
             # And return
@@ -54,9 +59,12 @@ class SolrTrackDB():
         # And post the batch:
         self._send_update(batch)
 
-    def import_jsonl(self, input_reader):
+    def import_jsonl_reader(self, input_reader):
+        self.import_jsonl(self._jsonl_doc_generator(input_reader))
+
+    def import_jsonl(self, item_generator):
         batch = []
-        for item in self._jsonl_doc_generator(input_reader):
+        for item in item_generator:
             batch.append(item)
             if len(batch) > self.batch_size:
                 self._send_as_updates(batch)
@@ -79,9 +87,12 @@ class SolrTrackDB():
         if year:
             query_string['q'] += ' AND year_i:%s' % year
         if field_value:
-            query_string['q'] += ' AND {}'.format(field_value)
+            if field_value[1] == '_NONE_':
+                query_string['q'] += ' AND -{}:[* TO *]'.format(field_value[0])
+            else:
+                query_string['q'] += ' AND {}:"{}"'.format(field_value[0], field_value[1])
         # gain tracking_db search response
-        logger.warn("SolrTrackDB.list: %s %s" %(solr_query_url, query_string))
+        logger.info("SolrTrackDB.list: %s %s" %(solr_query_url, query_string))
         r = requests.post(url=solr_query_url, data=query_string)
         if r.status_code == 200:
             response = r.json()['response']
@@ -126,7 +137,11 @@ class SolrTrackDB():
         else:
             raise Exception("Solr returned an error! HTTP %i\n%s" %(r.status_code, r.text))
 
-    def update(self, id, field, value, action='add-distinct'):
-        # Update trackdb record for warc
-        post_data = [{ 'id': id, field: { action: value} }]
-        self._send_update(post_data)
+    def _update_generator(self, ids, field, value, action):
+        for id in ids:
+            # Update TrackDB record for records based on ID:
+            yield { 'id': id, field: { action: value } } 
+        
+    def update(self, ids, field, value, action='add-distinct'):
+        self.import_jsonl(self._update_generator(ids, field, value, action))
+
