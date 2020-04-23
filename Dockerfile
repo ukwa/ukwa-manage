@@ -23,6 +23,6 @@ COPY lib /ukwa-manage/lib
 COPY tasks /ukwa-manage/tasks
 RUN cd /ukwa-manage && python setup.py install
 
-
-
+# Also copy in shell script helpers:
+COPY scripts/* /usr/local/bin/
 
