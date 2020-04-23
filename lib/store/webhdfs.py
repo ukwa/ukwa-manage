@@ -156,7 +156,7 @@ class WebHDFSStore(object):
         hdfs_hash = self.calculate_sha512(hdfs_path)
         logger.info("HDFS %s hash is %s " % (hdfs_path, hdfs_hash))
         if local_hash != hdfs_hash:
-            raise Exception("Local & HDFS hashes do not match for %s" % self.path)
+            raise Exception("Local & HDFS hashes do not match for %s" % local_path)
         else:
             logger.info("Hashes are equal!")
             success = True
