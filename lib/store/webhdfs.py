@@ -129,7 +129,7 @@ class WebHDFSStore(object):
             logger.warning("Path %s already exists! No upload will be attempted." % hdfs_path)
         else:
             # Upload to a temporary path:
-            tmp_path = "_%s_temp" % hdfs_path
+            tmp_path = "%s_temp_" % hdfs_path
 
             # Now upload the file, allowing overwrites as this is a temporary file and
             # simultanous updates should not be possible:
