@@ -7,8 +7,8 @@
 #     docker run -ti -e W3ACT_PSQL_PASSWORD --network w3act_default ukwa/ukwa-manage w3act-to-hdfs.sh
 #
 
-# Exit when any simple command or piped command fails:
-set -e -o pipefail
+# Exit when any (simple) command fails:
+set -e
 
 # Make a folder for the CSV dump:
 mkdir w3act-db-csv
