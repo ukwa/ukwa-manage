@@ -65,7 +65,7 @@ pyzmq==18.0.2
 requests==2.22.0
 requests-file==1.4.3
 six==1.12.0
-surt==0.3.0
+surt==0.3.1
 tenacity==5.0.4
 testpath==0.4.2
 textwrap3==0.9.2
