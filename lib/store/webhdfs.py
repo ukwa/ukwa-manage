@@ -81,14 +81,14 @@ class WebHDFSStore(object):
         self.webhdfs_user = webhdfs_user
         self.client = InsecureClient(self.webhdfs_url, self.webhdfs_user)
 
-    def put(self, local_path, hdfs_path):
+    def put(self, local_path, hdfs_path, backup_and_replace=False):
         # Get the status of the destination:
         dest_status = self.client.status(hdfs_path, strict=False)
 
         # Handle files or directories:
         if os.path.isfile(local_path):
             hdfs_path = self._combine_paths(dest_status, local_path, hdfs_path)
-            self._upload_file(local_path, hdfs_path)
+            self._upload_file(local_path, hdfs_path, backup_and_replace)
         elif os.path.isdir(local_path):
             # TODO, if it's a directory
             raise Exception("Cannot upload anything other than single files at this time!")
@@ -105,7 +105,7 @@ class WebHDFSStore(object):
             # Otherwise, just return the path:
             return hdfs_path
 
-    def _upload_file(self, local_path, hdfs_path):
+    def _upload_file(self, local_path, hdfs_path, backup_and_replace=False):
         """
         Copy up to HDFS, making it suitably atomic by using a temporary filename during upload.
 
@@ -126,8 +126,9 @@ class WebHDFSStore(object):
         # TODO Allow upload  to overwrite truncated files?
         #
 
-        # Check if the destination file exists and just perform hash-check if so:
-        if self.exists(hdfs_path):
+        # Check if the destination file exists:
+        already_exists = self.exists(hdfs_path)
+        if already_exists and not backup_and_replace:
             logger.warning("Path %s already exists! No upload will be attempted." % hdfs_path)
         else:
             # Upload to a temporary path:
@@ -142,6 +143,13 @@ class WebHDFSStore(object):
                     if not data:
                         break
                     writer.write(data)
+            
+            # If set, backup-and-replace as needed:
+            if backup_and_replace and already_exists:
+                date_stamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+                backup_path = "%s.bkp_%s" %( hdfs_path, date_stamp)
+                logger.warning("Renaming %s to %s..."% (hdfs_path, backup_path))
+                self.client.rename(hdfs_path, backup_path)
 
             # Move the uploaded file into the right place:
             logger.info("Renaming %s to %s..."% (tmp_path, hdfs_path))
@@ -253,10 +261,13 @@ class WebHDFSStore(object):
         # Hard-coded to never act recursively - if you want that, do it manually via the back-end.
         self.client.delete(path, recursive=False)
 
-    def read(self, path, offset=0, length=None):
+    def stream(self, path, offset=0, length=None):
         # NOTE our WebHDFS service is very old and uses 'len' not 'length' for controlling the response length:
         # The API proxy we use attempts to remedy this by mapping any 'length' parameter to 'len'.
-        with self.client.read(path, offset=offset, length=length) as reader:
+        return self.client.read(path, offset=offset, length=length)
+
+    def read(self, path, offset=0, length=None):
+        with self.stream(path,offset, length) as reader:
             while True:
                 data = reader.read(10485760)
                 if not data:

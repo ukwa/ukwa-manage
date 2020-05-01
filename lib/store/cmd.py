@@ -56,6 +56,7 @@ def main():
 
     # 'put' subcommand - upload a file or folder to the store:
     parser_up = subparsers.add_parser('put', help='Put a local file into the store.')
+    parser_up.add_argument('-B', '--backup-and-replace', action='store_true', help='If the file already exists, move it aside using a dated backup file and replace it with the new file.')
     parser_up.add_argument('local_path', type=str, help='The local path to read.')
     parser_up.add_argument('path', type=str, help='The store path to write to.')
 
@@ -109,7 +110,7 @@ def main():
                         f.write(data)
 
     elif args.op == 'put':
-        st.put(args.local_path, args.path)
+        st.put(args.local_path, args.path, args.backup_and_replace)
     elif args.op == 'rm':
         st.rm(args.path)
     elif args.op == 'lsr-to-jsonl':
