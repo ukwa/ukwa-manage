@@ -45,7 +45,7 @@ This lists return the 100 most recent matching files by default, and can be filt
 
 These list of WARC IDs can then be passed to the CDX indexer Hadoop job:
 
-    windex cdx-hadoop-job --cdx-server http://cdx.api.wa.bl.uk/ --collection data-heritrix warcs-to-index-ids.txt
+    windex cdx-index --cdx-server http://cdx.api.wa.bl.uk/ --collection data-heritrix warcs-to-index-ids.txt
 
 After that completes successfully, we can update the status of each individual WARC to be `cdx_index_ss:data-heritrix_unverified`, e.g. 
 
@@ -61,7 +61,7 @@ We can now list items awaiting verification:
 
 And verify them:
 
-    cdx verify warcs-to-verify.txt TBC
+    windex cdx-verify warcs-to-verify.txt TBC
 
 Then when each has been verified, update the record accordingly:
 
