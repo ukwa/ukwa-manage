@@ -7,7 +7,7 @@ set -e
 YEAR="2020"
 STREAM="frequent"
 CDX_COLLECTION="data-heritrix"
-CDX_SERVER="http://cdx.dapi.wa.bl.uk/${CDX_COLLECTION}"
+CDX_SERVER="http://cdx.dapi.wa.bl.uk/"
 TRACKDB_URL="http://trackdb.dapi.wa.bl.uk/solr/tracking"
 
 # Get the folder this script is in:
@@ -19,7 +19,7 @@ trackdb warcs --stream $STREAM --year $YEAR --field cdx_index_ss _NONE_ list --l
 
 # Run the Hadoop job using this list:
 echo "Running Hadoop job..."
-${DIR}/cdx-index-job.sh warcs-to-index.ids ${CDX_SERVER}
+windex --cdx-service ${CDX_SERVER} --cdx-collection ${CDX_COLLECTION} cdx-index warcs-to-index.ids
 
 # If all is well, update the TrackDB (skipping verification for now):
 echo "Marking WARCs as indexed..."

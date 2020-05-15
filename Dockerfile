@@ -32,11 +32,12 @@ COPY MANIFEST.in /ukwa-manage/
 COPY lib /ukwa-manage/lib
 RUN cd /ukwa-manage && python setup.py install
 
-# Also copy in shell script helpers:
+# Also copy in shell script helpers and configuration:
 COPY scripts/* /usr/local/bin/
+COPY mrjob.conf /etc/mrjob.conf
 
 # Copy in the JARs from the dependent container:
-COPY --from=dep-env /jars/* /usr/local/bin/
+#COPY --from=dep-env /jars/* /usr/local/bin/
 
 # Switch back to access user for running code:
 USER access

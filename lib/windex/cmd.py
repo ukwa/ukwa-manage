@@ -4,12 +4,15 @@ This contains the core TrackDB code for managing queries and updates to the Trac
 import os
 import json
 import logging
+import subprocess
 import argparse
+import tempfile
 import urllib.parse
 from lib.windex.cdx import CdxIndex
 from lib.windex.trace import follow_redirects
+from lib.windex.mr_cdx_job import MRCdxIndexerJarJob
 
-logging.basicConfig(level=logging.WARNING, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +25,7 @@ def main():
     parser = argparse.ArgumentParser(prog='windex')
 
     # Common arguments:
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose logging.')
     parser.add_argument('-c', '--cdx-service', type=str, 
         help='The CDX Service to talk to (defaults to %s).' % DEFAULT_CDX_SERVER, 
         default=DEFAULT_CDX_SERVER)
@@ -44,9 +48,14 @@ def main():
 
     # Add a parser for the 'list' subcommand:
     parser_cdx_job = subparsers.add_parser('cdx-index', help='Run a Hadoop job to update the CDX service.')
-    parser_cdx_job.add_argument('warc-list.ids', type=str, help='A file containing a list of IDs/HDFS paths of WARC files to be indexed (full HDFS paths).')
+    parser_cdx_job.add_argument('input_file', type=str, help='A file containing a list of TrackDB IDs of WARC files to be indexed.')
 
+    # And PARSE:
     args = parser.parse_args()
+
+    # Set up verbose logging:
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)    
 
     # Ops:
     logger.info("Got args: %s" % args)
@@ -69,12 +78,36 @@ def main():
                     print("%s\t%s" % (result,url))
 
     elif args.op == 'cdx-index':
-        # UNCLEAR HOW BEST TO DO THIS DUE TO AWKWARD DEPENDENCIES
-        # It needs to run a Hadoop job, with the heavy JARs.
-        # It needs to cope with a list of IDs.
-        # It needs to take the list of WARCs on STDIN.
-        # Hence, it needs to NOT run from here. I think?!?!?!?
-        raise Exception("Not implemented!")
+        with tempfile.NamedTemporaryFile('w+') as fpaths:
+            # This needs to read the TrackDB IDs in the input file and convert to a set of plain paths:
+            with open(args.input_file) as fin:
+                for line in fin.readlines():
+                    path = line.strip()
+                    if path.startswith('hdfs:'):
+                        path = urllib.parse.urlparse(path).path
+                    fpaths.write("%s\n" % path)
+
+            # Make sure temp file is up to date:
+            fpaths.flush()
+                    
+            #hdfs_in = '/9_processing/warcs2cdx/warcs-list.txt'
+            hdfs_out = '/9_processing/warcs2cdx/output'
+
+            # Remove old input/output:
+            #subprocess.check_call("hadoop fs -rm %s" % hdfs_in)
+            subprocess.call(["hadoop", "fs", "-rmr", hdfs_out])
+
+            # Then run the JAR job:
+            mr_job = MRCdxIndexerJarJob(args=[
+                '-r', 'hadoop',
+                '--cdx-endpoint', 'http://cdx.dapi.wa.bl.uk/data-heritrix',
+                fpaths.name,
+                ])
+            with mr_job.make_runner() as runner:
+                runner.run()
+                for key, value in mr_job.parse_output(runner.cat_output()):
+                    print(key,value)
+
     else:
         raise Exception("Not implemented!")
 
