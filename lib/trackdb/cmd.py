@@ -105,15 +105,15 @@ def main():
                 ids.append(line.strip())
         else:
             ids.append(args.id)
-        for id in ids:
-            if args.set:
-                tdb.update(id, args.set[0], args.set[1], action='set')
-            if args.add:
-                tdb.update(id, args.add[0], args.add[1], action='add-distinct')
-            if args.remove:
-                tdb.update(id, args.remove[0], args.remove[1], action='remove')
-            if args.inc:
-                tdb.update(id, args.inc[0], args.inc[1], action='remove')
+        # And run the updates:
+        if args.set:
+            tdb.update(ids, args.set[0], args.set[1], action='set')
+        if args.add:
+            tdb.update(ids, args.add[0], args.add[1], action='add-distinct')
+        if args.remove:
+            tdb.update(ids, args.remove[0], args.remove[1], action='remove')
+        if args.inc:
+            tdb.update(ids, args.inc[0], args.inc[1], action='remove')
     else:
         raise Exception("Operaton %s is not implemented!" % args.op )
 

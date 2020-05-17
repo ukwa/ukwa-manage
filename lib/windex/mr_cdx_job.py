@@ -1,7 +1,10 @@
 from mrjob.job import MRJob
 from mrjob.step import JarStep, INPUT, OUTPUT, GENERIC_ARGS
+from mrjob.protocol import TextProtocol
 
 class MRCdxIndexerJarJob(MRJob):
+
+    OUTPUT_PROTOCOL = TextProtocol
 
     jar_path = '/usr/local/bin/warc-hadoop-recordreaders-job.jar'
     num_reducers = 5
@@ -25,7 +28,7 @@ class MRCdxIndexerJarJob(MRJob):
             jar=self.jar_path,
             main_class='uk.bl.wa.hadoop.mapreduce.cdx.ArchiveCDXGenerator',
             args=[
-                GENERIC_ARGS,
+                GENERIC_ARGS, # This ensures the various jobconf etc. params are included.
                 '-i', INPUT,
                 '-o', OUTPUT,
                 '-r', str(self.options.num_reducers), # n.b. if you pass as int it fails mysteriously, use str!

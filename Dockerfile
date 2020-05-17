@@ -37,7 +37,7 @@ COPY scripts/* /usr/local/bin/
 COPY mrjob.conf /etc/mrjob.conf
 
 # Copy in the JARs from the dependent container:
-#COPY --from=dep-env /jars/* /usr/local/bin/
+COPY --from=dep-env /jars/* /usr/local/bin/
 
 # Switch back to access user for running code:
 USER access

@@ -97,16 +97,24 @@ def main():
             #subprocess.check_call("hadoop fs -rm %s" % hdfs_in)
             subprocess.call(["hadoop", "fs", "-rmr", hdfs_out])
 
-            # Then run the JAR job:
+            # Set up the CDX indexer map-reduce job:
             mr_job = MRCdxIndexerJarJob(args=[
                 '-r', 'hadoop',
                 '--cdx-endpoint', 'http://cdx.dapi.wa.bl.uk/data-heritrix',
-                fpaths.name,
+                fpaths.name, # < local input file, mrjob will upload it
                 ])
+
+            # Run and gather output:
+            stats = {}
             with mr_job.make_runner() as runner:
                 runner.run()
                 for key, value in mr_job.parse_output(runner.cat_output()):
+                    i = stats.get(key, 0)
+                    stats[key] = i + int(value)
                     print(key,value)
+
+            # And print the totals:
+            print(json.dumps(stats))
 
     else:
         raise Exception("Not implemented!")
