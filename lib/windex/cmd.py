@@ -7,61 +7,116 @@ import logging
 import subprocess
 import argparse
 import tempfile
+import datetime
 import urllib.parse
+
+# For querying TrackDB status:
+from lib.trackdb.solr import SolrTrackDB
+from lib.trackdb.cmd import DEFAULT_TRACKDB
+
+# Specific code relating to index work
 from lib.windex.cdx import CdxIndex
 from lib.windex.trace import follow_redirects
-from lib.windex.mr_cdx_job import MRCdxIndexerJarJob
+from lib.windex.mr_cdx_job import run_cdx_index_job
+from lib.windex.mr_solr_job import run_solr_index_job
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
 
 logger = logging.getLogger(__name__)
 
 # Default CDX service to work with:
-DEFAULT_CDX_SERVER = os.environ.get("CDX_SERVER","http://cdx.api.wa.bl.uk/")
-DEFAULT_CDX_COLLECTION = os.environ.get("CDX_COLLECTION","data-heritrix")
+DEFAULT_CDX_SERVER = os.environ.get("CDX_SERVER","http://cdx.dapi.wa.bl.uk/")
+DEFAULT_CDX_COLLECTION = os.environ.get("CDX_COLLECTION","test-collection")
 
+# Default SOLR
+DEFAULT_SOLR_ZOOKEEPERS = os.environ.get("SOLR_ZOOKEEPERS", "dev-zk1:2181,dev-zk2:2181,dev-zk3:2181")
+DEFAULT_SOLR_COLLECTION = os.environ.get("SOLR_COLLECTION", "test-collection")
+
+# Other defaults
+DEFAULT_BATCH_SIZE = 100
+
+# MAIN
 def main():
     # Set up a parser:
-    parser = argparse.ArgumentParser(prog='windex')
+    root_parser = argparse.ArgumentParser(prog='windex')
 
-    # Common arguments:
-    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose logging.')
-    parser.add_argument('-c', '--cdx-service', type=str, 
-        help='The CDX Service to talk to (defaults to %s).' % DEFAULT_CDX_SERVER, 
+    # Common arguments, by group:
+    common_parser = argparse.ArgumentParser(add_help=False)
+    common_parser.add_argument('-v', '--verbose',  action='count', default=0, help='Logging level; add more -v for more logging.')
+
+    # TrackDB args:
+    trackdb_parser = argparse.ArgumentParser(add_help=False)
+    trackdb_parser.add_argument('-t', '--trackdb-url', type=str, help='The TrackDB URL to talk to.', 
+        default=DEFAULT_TRACKDB)
+    trackdb_parser.add_argument('-S', '--stream', 
+        choices= ['frequent', 'domain', 'webrecorder'], 
+        default='frequent',
+        help='Which content stream to look for.')
+    trackdb_parser.add_argument('-Y', '--year', 
+        default=datetime.date.today().year,
+        type=int, help="Which year to query for.")
+
+    # CDX Server args:
+    cdx_parser = argparse.ArgumentParser(add_help=False)
+    cdx_parser.add_argument('-c', '--cdx-service', type=str, 
+        help='The CDX Service to talk to.',
         default=DEFAULT_CDX_SERVER)
-    parser.add_argument('-C', '--cdx-collection', type=str, 
-        help='The CDX Collection to work with (defaults to %s).' % DEFAULT_CDX_COLLECTION, 
+    cdx_parser.add_argument('-C', '--cdx-collection', type=str, 
+        help='The CDX Collection to work with.', 
         default=DEFAULT_CDX_COLLECTION)
-    parser.add_argument('-i', '--indent', type=int, help='Number of spaces to indent when emitting JSON.')
 
     # Use sub-parsers for different operations:
-    subparsers = parser.add_subparsers(dest="op")
+    subparsers = root_parser.add_subparsers(dest="op")
 
     # Add a parser for the 'query' subcommand:
-    parser_cdx = subparsers.add_parser('cdx-query', help='Look up a URL.')
-    #parser_cdx.add_argument('--first', type=int, help='Number of spaces to indent when emitting JSON.')
+    parser_cdx = subparsers.add_parser('cdx-query', 
+        help='Look up a URL.', 
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[cdx_parser])
+    parser_cdx.add_argument('-i', '--indent', type=int, help='Number of spaces to indent when emitting JSON.')
     parser_cdx.add_argument('url', type=str, help='The URL to look up.')
 
     # Add a parser for the 'trace' subcommand:
-    parser_cdx = subparsers.add_parser('trace', help='Look up a URL, and follow redirects.')
-    parser_cdx.add_argument('input_file', type=str, help='File containing the list of URLs to look up.')
+    parser_trace = subparsers.add_parser('trace', 
+        help='Look up a URL, and follow redirects.', 
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[cdx_parser])
+    parser_trace.add_argument('input_file', type=str, help='File containing the list of URLs to look up.')
 
     # Add a parser for the 'list' subcommand:
-    parser_cdx_job = subparsers.add_parser('cdx-index', help='Run a Hadoop job to update the CDX service.')
-    parser_cdx_job.add_argument('input_file', type=str, help='A file containing a list of TrackDB IDs of WARC files to be indexed.')
+    parser_index_cdx = subparsers.add_parser('cdx-index', 
+        help="Index WARCs into a CDX service.", 
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[common_parser, trackdb_parser, cdx_parser])
+    parser_index_cdx.add_argument('-B', '--batch-size', type=int, help='Number files to process in each run.', default=DEFAULT_BATCH_SIZE)
+
+    parser_index_solr = subparsers.add_parser('solr-index', 
+        help="Index WARCs into a Solr service.", 
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter, 
+        parents=[common_parser, trackdb_parser])
+    parser_index_solr.add_argument('-B', '--batch-size', type=int, help='Number files to process in each run.', default=DEFAULT_BATCH_SIZE)
+    parser_index_solr.add_argument('-Z', '--zks', help="Zookeepers to talk to, as comma-separated lost of HOST:PORT", default=DEFAULT_SOLR_ZOOKEEPERS)
+    parser_index_solr.add_argument('-C', '--solr-collection', help="The SolrCloud collection to index into.", default=DEFAULT_SOLR_COLLECTION)
+    parser_index_solr.add_argument('config', help="The indexer configuration file to use.")
+    parser_index_solr.add_argument('annotations', help="The annotations file to use with the indexer.")
+    parser_index_solr.add_argument('oa-surts', help="The Open Access SURTS file to use with the indexer.")
 
     # And PARSE:
-    args = parser.parse_args()
+    args = root_parser.parse_args()
+
+    # Set up full CDX endpoint URL:
+    cdx_url = urllib.parse.urljoin(args.cdx_service, args.cdx_collection)
 
     # Set up verbose logging:
-    if args.verbose:
+    if args.verbose == 1:
+        logging.getLogger().setLevel(logging.INFO)    
+    elif args.verbose > 1:
         logging.getLogger().setLevel(logging.DEBUG)    
 
     # Ops:
     logger.info("Got args: %s" % args)
     if args.op == 'cdx-query':
         # Set up CDX client:
-        cdx_url = urllib.parse.urljoin(args.cdx_service, args.cdx_collection)
         cdxs = CdxIndex(cdx_url)
         # and query:
         for result in cdxs.query(args.url):
@@ -69,7 +124,6 @@ def main():
 
     elif args.op == 'trace':
         # Set up CDX client:
-        cdx_url = urllib.parse.urljoin(args.cdx_service, args.cdx_collection)
         cdxs = CdxIndex(cdx_url)
         with open(args.input_file) as fin:
             for line in fin:
@@ -77,44 +131,69 @@ def main():
                 for result in follow_redirects(cdxs, url):
                     print("%s\t%s" % (result,url))
 
-    elif args.op == 'cdx-index':
-        with tempfile.NamedTemporaryFile('w+') as fpaths:
-            # This needs to read the TrackDB IDs in the input file and convert to a set of plain paths:
-            with open(args.input_file) as fin:
-                for line in fin.readlines():
-                    path = line.strip()
-                    if path.startswith('hdfs:'):
-                        path = urllib.parse.urlparse(path).path
-                    fpaths.write("%s\n" % path)
+    elif args.op == 'cdx-index' or args.op == 'solr-index':
+        # Setup TrackDB
+        tdb = SolrTrackDB(args.trackdb_url, kind='warcs',)
+        # Perform indexing job:
+        start_time = datetime.datetime.now()
+        ids = []
+        stats = {}
+        if args.op == 'cdx-index':
+            # Get a list of items to process:
+            cdx_field = "cdx_index_ss"
+            field_value = ["-%s" % cdx_field, "%s*" % args.cdx_collection]
+            items = tdb.list(args.stream, args.year, field_value, limit=args.batch_size)
+            if len(items) > 0:
+                # Run a job to index those items:
+                stats = run_cdx_index_job(items, cdx_url)
+                # If that worked (no exception thrown), update the tracking database accordingly:
+                ids = []
+                for item in items:
+                    ids.append(item['id'])
+                # Mark as indexed, but also as unverified:
+                tdb.update(ids, cdx_field, "%s" % args.cdx_collection)
+                tdb.update(ids, cdx_field, "%s|unverified" % args.cdx_collection)
+                # Add fields to store:
+                stats['cdx_endpoint_s'] = cdx_url
+            else:
+                logger.warn("No WARCs found to process!")
+                return
+        elif args.op == 'solr-index':
+            # Get a list of items to process:
+            solr_field = "solr_index_ss"
+            field_value = ["-%s" % solr_field, "%s*" % args.solr_collection]
+            items = tdb.list(args.stream, args.year, field_value, limit=args.batch_size)
+            if len(items) > 0:
+                # Run a job to index those items:
+                stats = run_solr_index_job(items, args.zks, args.collection, args.config, args.annotations, args.oa_surts)
+                # If that worked (no exception thrown), update the tracking database accordingly:
+                for item in items:
+                    ids.append(item['id'])
+                # Mark as indexed, but also as to-be-verified:
+                tdb.update(ids, solr_field, "%s" % args.solr_collection)
+                tdb.update(ids, solr_field, "%s|unverified" % args.solr_collection)
+                # Add fields to store:
+                stats['solr_collection_s'] = args.solr_collection
+            else:
+                logger.warn("No WARCs found to process!")
 
-            # Make sure temp file is up to date:
-            fpaths.flush()
-                    
-            #hdfs_in = '/9_processing/warcs2cdx/warcs-list.txt'
-            hdfs_out = '/9_processing/warcs2cdx/output'
-
-            # Remove old input/output:
-            #subprocess.check_call("hadoop fs -rm %s" % hdfs_in)
-            subprocess.call(["hadoop", "fs", "-rmr", hdfs_out])
-
-            # Set up the CDX indexer map-reduce job:
-            mr_job = MRCdxIndexerJarJob(args=[
-                '-r', 'hadoop',
-                '--cdx-endpoint', 'http://cdx.dapi.wa.bl.uk/data-heritrix',
-                fpaths.name, # < local input file, mrjob will upload it
-                ])
-
-            # Run and gather output:
-            stats = {}
-            with mr_job.make_runner() as runner:
-                runner.run()
-                for key, value in mr_job.parse_output(runner.cat_output()):
-                    i = stats.get(key, 0)
-                    stats[key] = i + int(value)
-                    print(key,value)
-
-            # And print the totals:
-            print(json.dumps(stats))
+        # Update event stats item in TrackDB
+        finish_time = datetime.datetime.now()
+        event = {
+            'id': 'task:%s-index-job:%s:%s:%s'% (args.index, args.stream, args.year, finish_time.isoformat()),
+            'kind_s': 'task',
+            'batch_size_i': len(ids),
+            'ids_ss' : ids,
+            'stream_s': args.stream,
+            'year_i': args.year,
+            "task_status_s": "success",
+            'started_at_dt': start_time.isoformat(),
+            'finished_at_dt': finish_time.isoformat(),
+            'runtime_secs_i': (finish_time-start_time).total_seconds()
+        }
+        for stat in stats:
+            event[stat] = stats[stat]
+        tdb.import_items([event])
 
     else:
         raise Exception("Not implemented!")

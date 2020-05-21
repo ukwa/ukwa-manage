@@ -62,6 +62,9 @@ class SolrTrackDB():
     def import_jsonl_reader(self, input_reader):
         self.import_jsonl(self._jsonl_doc_generator(input_reader))
 
+    def import_items(self, items):
+        self._send_as_updates(items)
+
     def import_jsonl(self, item_generator):
         batch = []
         for item in item_generator:
@@ -90,7 +93,7 @@ class SolrTrackDB():
             if field_value[1] == '_NONE_':
                 query_string['q'] += ' AND -{}:[* TO *]'.format(field_value[0])
             else:
-                query_string['q'] += ' AND {}:"{}"'.format(field_value[0], field_value[1])
+                query_string['q'] += ' AND {}:{}'.format(field_value[0], field_value[1])
         # gain tracking_db search response
         logger.info("SolrTrackDB.list: %s %s" %(solr_query_url, query_string))
         r = requests.post(url=solr_query_url, data=query_string)
