@@ -59,7 +59,14 @@ This works in the same way as the CDX indexing, using a tracking field called `s
     --year 2020 \
     --solr-collection fc-2020-test \
     --zks "dev-zk1:2182,dev-zk2:2182,dev-zk3:2182" \
-    --batch-size 1000
+    --batch-size 1000 \
+    warc-npld.conf \
+    annotations.json \
+    allows.txt
+
+The main difference with the CDX indexing case is that we require three additional configuration files; `warc-npld.conf`, which is the general indexer configuration file that controls which features to extract; `annotation.json`, which contains the list of additional annotations to add, e.g. which collections and subjects a URL belongs to; and `allows.txt` which provides the SURT prefixes that are considered open access.
+
+These last two configuration files should be regularly generated from W3ACT, using the [`python-w3act`](https://github.com/ukwa/python-w3act) `w3act` command.
 
 ## Queries
 
