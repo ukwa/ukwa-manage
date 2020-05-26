@@ -47,7 +47,7 @@ This lists return the 100 most recent matching files by default, and can be filt
 
 ### CDX Verification
 
-_The `cdx-verify` step has not yet been moved over to this new approach_
+_The `cdx-verify` step has not yet been moved over to this new approach._
 
 ### Solr Indexing
 

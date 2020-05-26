@@ -43,10 +43,10 @@ def run_solr_index_job(items, zks, collection, config, annotations, oa_surts):
             print("%s > %s" %(k, stats[k]))
 
         # Raise an exception if the output looks wrong:
-        if not "total_sent_records_i" in stats:
-            raise Exception("Solr job stats has no total_sent_records_i value! \n%s" % json.dumps(stats))
-        if stats['total_sent_records_i'] == 0:
-            raise Exception("Solr job stats has total_sent_records_i == 0! \n%s" % json.dumps(stats))
+        if not "num_records_i" in stats:
+            raise Exception("Solr job stats has no num_records_i value! \n%s" % json.dumps(stats))
+        if stats['num_dropped_records_i'] > 0:
+            raise Exception("Solr job stats has num_dropped_records_i > 0! \n%s" % json.dumps(stats))
 
         return stats
 
@@ -82,10 +82,11 @@ class MRSolrIndexerJarJob(MRJob):
 
     def steps(self):
         return [JarStep(
+            # Compress intermediate results but not the (brief) output:
             jobconf={
                 'mapred.compress.map.output':'true',
-                'mapred.output.compress': 'true',
-                'mapred.output.compression.codec': 'org.apache.hadoop.io.compress.GzipCodec',
+                'mapred.map.output.compression.codec': 'org.apache.hadoop.io.compress.GzipCodec',
+                'mapred.output.compress': 'false',
 			    'mapred.reduce.max.attempts': '2'
             },
             jar=self.jar_path,
