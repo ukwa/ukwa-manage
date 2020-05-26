@@ -1,3 +1,4 @@
+import os
 import json
 import tempfile
 from mrjob.job import MRJob
@@ -20,7 +21,8 @@ def run_solr_index_job(items, zks, collection, config, annotations, oa_surts):
             '--config', config,
             '--annotations', annotations,
             '--oa-surts', oa_surts,
-            fpaths.name, # < local input file
+            '--warclist', fpaths.name, # < local input file
+            config # Dummy - no input needed
             ])
 
         # Run and gather output:
@@ -35,6 +37,10 @@ def run_solr_index_job(items, zks, collection, config, annotations, oa_surts):
                 # Update counter for the stat:
                 i = stats.get(key, 0)
                 stats[key] = i + int(value)
+        
+        # Print stats:
+        for k in stats:
+            print("%s > %s" %(k, stats[k]))
 
         # Raise an exception if the output looks wrong:
         if not "total_sent_records_i" in stats:
@@ -70,6 +76,9 @@ class MRSolrIndexerJarJob(MRJob):
         self.add_passthru_arg(
             '--oa-surts', required=True,
             help="Open Access SURTs file to use to mark records as open access.")
+        self.add_passthru_arg(
+            '--warclist', required=True,
+            help="List of HDFS paths to WARCS to process.")
 
     def steps(self):
         return [JarStep(
@@ -85,13 +94,13 @@ class MRSolrIndexerJarJob(MRJob):
                 GENERIC_ARGS, # This ensures the various jobconf etc. params are included.
 			    "-files", '%s#annotations.json,%s#openAccessSurts.txt' % ( self.options.annotations, self.options.oa_surts),
 			    "-c", self.options.config,
-			    "-i", self.options.input, # Always use local file path.
+			    "-i", self.options.warclist, # Always use local file path.
 			    "-o", OUTPUT,
 			    "-a", # Apply annotations
 			    "-w", # Wait while the job runs
-                "--num-reducers", self.options.num_reducers,
+                "--num-reducers", str(self.options.num_reducers), # An 'int' fails to run!
                 "--solr-zookeepers", self.options.solr_zookeepers,
-                "--solr-collections", self.options.solr_collection
+                "--solr-collection", self.options.solr_collection
             ]
         )]
 

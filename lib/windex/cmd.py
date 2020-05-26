@@ -29,7 +29,7 @@ DEFAULT_CDX_SERVER = os.environ.get("CDX_SERVER","http://cdx.dapi.wa.bl.uk/")
 DEFAULT_CDX_COLLECTION = os.environ.get("CDX_COLLECTION","test-collection")
 
 # Default SOLR
-DEFAULT_SOLR_ZOOKEEPERS = os.environ.get("SOLR_ZOOKEEPERS", "dev-zk1:2181,dev-zk2:2181,dev-zk3:2181")
+DEFAULT_SOLR_ZOOKEEPERS = os.environ.get("SOLR_ZOOKEEPERS", "dev-zk1:2182,dev-zk2:2182,dev-zk3:2182")
 DEFAULT_SOLR_COLLECTION = os.environ.get("SOLR_COLLECTION", "test-collection")
 
 # Other defaults
@@ -99,13 +99,14 @@ def main():
     parser_index_solr.add_argument('-C', '--solr-collection', help="The SolrCloud collection to index into.", default=DEFAULT_SOLR_COLLECTION)
     parser_index_solr.add_argument('config', help="The indexer configuration file to use.")
     parser_index_solr.add_argument('annotations', help="The annotations file to use with the indexer.")
-    parser_index_solr.add_argument('oa-surts', help="The Open Access SURTS file to use with the indexer.")
+    parser_index_solr.add_argument('oasurts', help="The Open Access SURTS file to use with the indexer.")
 
     # And PARSE:
     args = root_parser.parse_args()
 
     # Set up full CDX endpoint URL:
-    cdx_url = urllib.parse.urljoin(args.cdx_service, args.cdx_collection)
+    if "cdx_service" in args:
+        cdx_url = urllib.parse.urljoin(args.cdx_service, args.cdx_collection)
 
     # Set up verbose logging:
     if args.verbose == 1:
@@ -165,7 +166,7 @@ def main():
             items = tdb.list(args.stream, args.year, field_value, limit=args.batch_size)
             if len(items) > 0:
                 # Run a job to index those items:
-                stats = run_solr_index_job(items, args.zks, args.collection, args.config, args.annotations, args.oa_surts)
+                stats = run_solr_index_job(items, args.zks, args.solr_collection, args.config, args.annotations, args.oasurts)
                 # If that worked (no exception thrown), update the tracking database accordingly:
                 for item in items:
                     ids.append(item['id'])
@@ -180,7 +181,7 @@ def main():
         # Update event stats item in TrackDB
         finish_time = datetime.datetime.now()
         event = {
-            'id': 'task:%s-index-job:%s:%s:%s'% (args.index, args.stream, args.year, finish_time.isoformat()),
+            'id': 'task:%s:%s:%s:%s'% (args.op, args.stream, args.year, finish_time.isoformat()),
             'kind_s': 'task',
             'batch_size_i': len(ids),
             'ids_ss' : ids,

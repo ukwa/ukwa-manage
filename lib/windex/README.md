@@ -1,7 +1,67 @@
 windex
 =======
 
-The web-archive index tool.
+The UKWA index management tool.
+
+n.b. by default, this tool will talk to:
+
+ - the development TrackDB (`trackdb.dapi.wa.bl.uk`)
+ - the development CDX service (`cdx.dapi.wa.bl.uk`) 
+ - the development Solr services (`dev-zk1:2182,dev-zk2:2182,dev-zk3:2182`)
+ - the production store (`hdfs.api.wa.bl.uk`)
+
+These can be overidden via environment variables or command-line arguments.
+
+
+## Running Indexing Tasks
+
+
+### CDX Indexing:
+
+For CDX indexing, we have chosed to add a multivalued status field to record what we're doing, and called it `cdx_index_ss`. 
+
+1. The WARCs on the storage service start off having no value of this field, and this fact is used to identify those that require indexing. 
+2. After indexing, we assign two values to the `cdx_index_ss` field: `<COLLECTION>` and `<COLLECTION>_unverified` to indicate that we've indexed the WARC into a CDX collection called `COLLECTION`, but not checked the index worked (yet). 
+3. Once the indexing has been verified, the `<COLLECTION>_unverified` flag can be removed.
+
+
+The `windex` tool is used to manage this process. For example,
+
+```
+  windex cdx-index \
+    --trackdb-url "http://trackdb.api.wa.bl.uk/solr/tracking" \
+    --stream frequent \
+    --year 2020 \
+    --cdx-collection data-heritrix \
+    --cdx-service "http://cdx.api.wa.bl.uk" \
+    --batch-size 1000
+
+This will talk to the production TrackDB, and get a list of the 1000 most recent WARCs from the 2020 frequent crawls that are not yet marked as contained in the `data-heritrix` CDX collection.  It then runs the Hadoopm indexing job for those WARCS, checks the output, and if all looks well, updates the TrackDB as outlined in step 2 above.
+
+Note that the `trackdb` command can be used to query the TrackDB and check what's going on. To get a list of records for WARCs that have not yet been indexed:
+
+    trackdb warcs --field cdx_index_ss _NONE_ list > warcs-to-index.jsonl
+
+This lists return the 100 most recent matching files by default, and can be filtered and limited in various ways (see `trackdb -h` for details). The command returns detailed information in JSONL format by default.
+
+
+### CDX Verification
+
+_The `cdx-verify` step has not yet been moved over to this new approach_
+
+### Solr Indexing
+
+This works in the same way as the CDX indexing, using a tracking field called `solr_index_ss` and using the SolrCloud collection name as the value. e.g. this runs a test job against the development TrackDB and SolrCloud:
+
+  windex cdx-index \
+    --trackdb-url "http://trackdb.dapi.wa.bl.uk/solr/tracking" \
+    --stream frequent \
+    --year 2020 \
+    --solr-collection fc-2020-test \
+    --zks "dev-zk1:2182,dev-zk2:2182,dev-zk3:2182" \
+    --batch-size 1000
+
+## Queries
 
 We can query the CDX from the command-line:
 
