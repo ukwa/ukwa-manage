@@ -28,13 +28,14 @@ For CDX indexing, we have chosed to add a multivalued status field to record wha
 The `windex` tool is used to manage this process. For example,
 
 ```
-  windex cdx-index \
-    --trackdb-url "http://trackdb.api.wa.bl.uk/solr/tracking" \
-    --stream frequent \
-    --year 2020 \
-    --cdx-collection data-heritrix \
-    --cdx-service "http://cdx.api.wa.bl.uk" \
-    --batch-size 1000
+windex cdx-index \
+  --trackdb-url "http://trackdb.api.wa.bl.uk/solr/tracking" \
+  --stream frequent \
+  --year 2020 \
+  --cdx-collection data-heritrix \
+  --cdx-service "http://cdx.api.wa.bl.uk" \
+  --batch-size 1000
+```
 
 This will talk to the production TrackDB, and get a list of the 1000 most recent WARCs from the 2020 frequent crawls that are not yet marked as contained in the `data-heritrix` CDX collection.  It then runs the Hadoopm indexing job for those WARCS, checks the output, and if all looks well, updates the TrackDB as outlined in step 2 above.
 
