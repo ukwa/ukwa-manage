@@ -1,5 +1,5 @@
 '''
-This contains the core TrackDB code for managing queries and updates to the Tracking Database
+This file defines the command-line interface for performing web archive indexing tasks.
 '''
 import os
 import json
