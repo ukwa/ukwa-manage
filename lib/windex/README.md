@@ -3,12 +3,14 @@ windex
 
 The UKWA index management tool.
 
+Start at [cmd.py](./cmd.py) to look at how it works.
+
 n.b. by default, this tool will talk to:
 
- - the development TrackDB (`trackdb.dapi.wa.bl.uk`)
- - the development CDX service (`cdx.dapi.wa.bl.uk`) 
- - the development Solr services (`dev-zk1:2182,dev-zk2:2182,dev-zk3:2182`)
- - the production store (`hdfs.api.wa.bl.uk`)
+- the development TrackDB (`trackdb.dapi.wa.bl.uk`)
+- the development CDX service (`cdx.dapi.wa.bl.uk`) 
+- the development Solr services (`dev-zk1:2182,dev-zk2:2182,dev-zk3:2182`)
+- the production store (`hdfs.api.wa.bl.uk`)
 
 These can be overidden via environment variables or command-line arguments.
 
