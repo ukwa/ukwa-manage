@@ -17,7 +17,7 @@ These can be overidden via environment variables or command-line arguments.
 
 ## Running Indexing Tasks
 
-Note that the following examples run the windex tool directly.  In production, the tools would usually be run inside versioned Docker containers, so the invocation is slightly more complicated. These scripts should usually be in the `ukwa-services` repository.
+Note that the following examples run the windex tool directly.  In production, the tools would usually be run inside versioned Docker containers, so the invocation is slightly more complicated. These scripts should usually be in the [`ukwa-services` repository](https://github.com/ukwa/ukwa-services).
 
 
 ### CDX Indexing:
