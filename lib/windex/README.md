@@ -59,7 +59,7 @@ _The `cdx-verify` step has not yet been moved over to this new approach._
 This works in the same way as the CDX indexing, using a tracking field called `solr_index_ss` and using the SolrCloud collection name as the value. e.g. this runs a test job against the development TrackDB and SolrCloud:
 
 ```
-  windex cdx-index \
+  windex solr-index \
     --trackdb-url "http://trackdb.dapi.wa.bl.uk/solr/tracking" \
     --stream frequent \
     --year 2020 \
