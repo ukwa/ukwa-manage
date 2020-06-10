@@ -17,6 +17,8 @@ These can be overidden via environment variables or command-line arguments.
 
 ## Running Indexing Tasks
 
+Note that the following examples run the windex tool directly.  In production, the tools would usually be run inside versioned Docker containers, so the invocation is slightly more complicated. These scripts should usually be in the `ukwa-services` repository.
+
 
 ### CDX Indexing:
 
@@ -56,6 +58,7 @@ _The `cdx-verify` step has not yet been moved over to this new approach._
 
 This works in the same way as the CDX indexing, using a tracking field called `solr_index_ss` and using the SolrCloud collection name as the value. e.g. this runs a test job against the development TrackDB and SolrCloud:
 
+```
   windex cdx-index \
     --trackdb-url "http://trackdb.dapi.wa.bl.uk/solr/tracking" \
     --stream frequent \
@@ -66,6 +69,7 @@ This works in the same way as the CDX indexing, using a tracking field called `s
     warc-npld.conf \
     annotations.json \
     allows.txt
+```
 
 The main difference with the CDX indexing case is that we require three additional configuration files; `warc-npld.conf`, which is the general indexer configuration file that controls which features to extract; `annotation.json`, which contains the list of additional annotations to add, e.g. which collections and subjects a URL belongs to; and `allows.txt` which provides the SURT prefixes that are considered open access.
 
