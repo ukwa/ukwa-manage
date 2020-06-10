@@ -1,0 +1,150 @@
+'''
+Functions for interacting with Solr, as a Tracking Database.
+
+NOTE requires Solr > 7.3 as uses 'add-distinct'
+
+See https://lucene.apache.org/solr/guide/7_3/updating-parts-of-documents.html
+
+'''
+import requests
+import logging
+import json
+
+logger = logging.getLogger(__name__)
+
+HDFS_KINDS = ['files', 'warcs', 'logs']
+HDFS_PREFIX = 'hdfs://' # Used to sanity-check HDFS IDs on import.
+
+class SolrTrackDB():
+
+    def __init__(self, trackdb_url, kind='warcs', update_batch_size=1000):
+        self.trackdb_url = trackdb_url
+        self.kind = kind
+        self.batch_size = update_batch_size
+        # Set up the update configuration:
+        self.update_trackdb_url = self.trackdb_url + '/update?softCommit=true'
+
+    def _jsonl_doc_generator(self, input_reader):
+        for line in input_reader:
+            item = json.loads(line)
+            # Provide the kind, if not set already in the item:
+            if not 'kind_s' in item:
+                item['kind_s'] = self.kind
+            # Enforce ID conventions for particular types:
+            if self.kind == 'documents':
+                if not 'id' in item:
+                    item['id'] = 'document:document_url:%s' % item['document_url']
+            if self.kind in HDFS_KINDS:
+                if not 'id' in item:
+                    raise Exception("When importing files you must supply an id for each!")
+                if not item['id'].startswith(HDFS_PREFIX):
+                    raise Exception("When importing files the ID must start with '%s'!" % HDFS_PREFIX)
+            else:
+                raise Exception("Cannot import %s records yet!" % self.kind)
+            # And return
+            yield item
+
+    def _send_as_updates(self, batch):
+        # Convert the plain dicts into Solr update documents:
+        as_updates = []
+        for item in batch:
+            update_item = {}
+            for key in item:
+                if key == 'id':
+                    update_item[key] = item[key]
+                else:
+                    update_item[key] = { 'set': item[key] }
+            as_updates.append(update_item)
+
+        # And post the batch:
+        self._send_update(batch)
+
+    def import_jsonl_reader(self, input_reader):
+        self.import_jsonl(self._jsonl_doc_generator(input_reader))
+
+    def import_items(self, items):
+        self._send_as_updates(items)
+
+    def import_jsonl(self, item_generator):
+        batch = []
+        for item in item_generator:
+            batch.append(item)
+            if len(batch) > self.batch_size:
+                self._send_as_updates(batch)
+                batch = []
+        # And send the final batch if there is one:
+        if len(batch) > 0:
+            self._send_as_updates(batch)
+
+    def list(self, stream=None, year=None, field_value=None, sort='timestamp_dt desc', limit=100):
+        # set solr search terms
+        solr_query_url = self.trackdb_url + '/query'
+        query_string = {
+            'q':'kind_s:{}'.format(self.kind),
+            'rows':limit,
+            'sort':sort
+        }
+        # Add optional fields:
+        if stream:
+            query_string['q'] += ' AND stream_s:%s' % stream
+        if year:
+            query_string['q'] += ' AND year_i:%s' % year
+        if field_value:
+            if field_value[1] == '_NONE_':
+                query_string['q'] += ' AND -{}:[* TO *]'.format(field_value[0])
+            else:
+                query_string['q'] += ' AND {}:{}'.format(field_value[0], field_value[1])
+        # gain tracking_db search response
+        logger.info("SolrTrackDB.list: %s %s" %(solr_query_url, query_string))
+        r = requests.post(url=solr_query_url, data=query_string)
+        if r.status_code == 200:
+            response = r.json()['response']
+            # return hits, if any:
+            if response['numFound'] > 0:
+                return response['docs']
+            else:
+                return []
+        else:
+            raise Exception("Solr returned an error! HTTP %i\n%s" %(r.status_code, r.text))
+
+    def get(self, id):
+        # set solr search terms
+        solr_query_url = self.trackdb_url + '/query'
+        query_string = {
+            'q':'kind_s:{} AND id:"{}"'.format(self.kind, id)
+        }
+        # gain tracking_db search response
+        logger.info("SolrTrackDB.get: %s %s" %(solr_query_url, query_string))
+        r = requests.post(url=solr_query_url, data=query_string)
+        if r.status_code == 200:
+            response = r.json()['response']
+            # return hits, if any:
+            if response['numFound'] == 1:
+                return response['docs'][0]
+            else:
+                return None
+        else:
+            raise Exception("Solr returned an error! HTTP %i\n%s" %(r.status_code, r.text))
+
+    def _send_update(self, post_data):
+        # Covert the list of docs to JSONLines:
+        #post_data = ""
+        #for item in docs:
+        #    post_data += ("%s\n" % json.dumps(item))
+        # Set up the POST and check it worked
+        post_headers = {'Content-Type': 'application/json'}
+        logger.info("SolrTrackDB.update: %s %s" %(self.update_trackdb_url, str(post_data)[0:1000]))
+        r = requests.post(url=self.update_trackdb_url, headers=post_headers, json=post_data)
+        if r.status_code == 200:
+            response = r.json()
+        else:
+            raise Exception("Solr returned an error! HTTP %i\n%s" %(r.status_code, r.text))
+
+    def _update_generator(self, ids, field, value, action):
+        for id in ids:
+            # Update TrackDB record for records based on ID:
+            yield { 'id': id, field: { action: value } } 
+        
+    def update(self, ids, field, value, action='add-distinct'):
+        self.import_jsonl(self._update_generator(ids, field, value, action))
+

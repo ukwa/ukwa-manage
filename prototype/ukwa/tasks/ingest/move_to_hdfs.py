@@ -282,7 +282,7 @@ class ScanForFilesToMove(luigi.WrapperTask):
 
     def request_move(self, item):
         logger.info("Requesting Move to HDFS for:%s" % item)
-        return MoveToHdfs(self.host, item, self.hdfs_path(item), self.delete_local, self.upload)
+        return (self.host, item, self.hdfs_path(item), self.delete_local, self.upload)
 
     def hdfs_path(self, path):
         # Chop out any local prefix:

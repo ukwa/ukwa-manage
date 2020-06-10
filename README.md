@@ -1,38 +1,121 @@
 # UKWA Manage
-Luigi tasks for managing the UK Web Archive
+Tools for managing the UK Web Archive
 
 ## Getting started
 
-n.b. we currently run Python 2.7 on the Hadoop cluster, so streaming
-Hadoop tasks need to stick to that version. Other code should be written
-in Python 3 but be compatible with both where possible.
+n.b. we currently run Python 3.7 on the Hadoop cluster, so streaming
+Hadoop tasks need to stick to that version.
 
-### Set up a Python 2.7 environment
+### Set up a Python 3.7 environment
 
-    sudo pip install virtualenv
-    virtualenv -p python2.7 venv
-    source venv/bin/activate
-    pip install -r requirements.txt
+```
+  sudo yum install snappy-devel
+  sudo pip install virtualenv
+  virtualenv -p python3.7 venv
+  source venv/bin/activate
+```
 
-  942  cd github/
-  943  git clone https://github.com/ukwa/ukwa-manage.git
-  944  cd ukwa-manage/
-  946  pip install virtualenv
-  947  virtualenv venv
-  948  source venv/bin/activate
-       pip install --no-cache https://github.com/ukwa/hapy/archive/master.zip
-       pip install --no-cache https://github.com/ukwa/python-w3act/archive/master.zip
-  949  pip install -r requirements.txt
-  953  yum install snappy-devel
-  954  pip install -r requirements.txt
-  955  python scripts/crawlstreams.py -k crawler04:9094 -q uris.tocrawl.dc
+Install UKWA modules and other required dependencies:
+
+```
+  pip install --no-cache --upgrade https://github.com/ukwa/hapy/archive/master.zip
+  pip install --no-cache --upgrade https://github.com/ukwa/python-w3act/archive/master.zip
+  pip install --no-cache --upgrade https://github.com/ukwa/crawl-streams/archive/master.zip
+  pip install -r requirements.txt
+```
+
+### Running the tools
+
+To run the tools during development:
+
+```
+  export PYTHONPATH=.
+  python lib/store/cmd.py -h
+```
+
+To install:
+
+```
+  python setup.py install
+```
+
+then e.g.
+
+```
+  store -h
+```
+
+Or they can be built and run via Docker, which is useful for runs that need to run Hadoop jobs, and for rolling out to production. e.g.
+
+```
+docker-compose build tasks
+docker-compose run tasks store -h
+```
+
+## Management Commands:
+
+The main management commands are `trackdb`, `store` and `windex`:
+
+### `trackdb`
+
+This tool is for directly working with the TrackDB, which we use to keep track of what's going on. See <lib/trackdb/README.md> for details.
+
+### `store`
+
+This tool is for working with the HDFS store via the WebHDFS API, e.g uploading and downloading files. See <lib/store/README.md> for details.
 
 
-### Code and configuration
+### `windex`
 
-The older versions of this codebase are in the `prototype` folder, so we can copy in and update tasks as we need.  The tasks we currently use are in the `tasks` folder and some shared utility code is in the `lib` folder.
+This tool is for managing our CDX and Solr indexes - e.g. running indexing jobs. It talks to the TrackDB, and can also talk to the HDFS store if needed. See <lib/windex/README.md> for details.
+
+## Code and configuration
+
+The older versions of this codebase are in the `prototype` folder, so we can copy in and update tasks as we need.  The tools are defined in sub-folders of the `lib` folder, and some Luigi tasks are defined in the `tasks` folder.
 
 A Luigi configuration file is not currently included, as we have to use two different files to provides two different levels of integration. In short, `ingest` services are given write access to HDFS via the Hadoop command line, while `access` services have limited read-only access via our proxied WebHDFS gateway.
+
+
+## Example: Manually Processing a WARC collection
+
+_This probably needs to be simplified and moved to a separate page_
+
+
+We collected some WARCs for EThOS as an experiment. 
+
+A script like this was used to upload them:
+
+```
+#!/bin/bash
+for WARC in warcs/*
+do
+  docker run -i -v /mnt/lr10/warcprox/warcs:/warcs ukwa/ukwa-manage store put ${WARC} /1_data/ethos/${WARC}
+done
+```
+
+Note that we're using the Docker image to run the tasks, to avoid having to install the software on the host machine.
+
+The files can now be listed using:
+
+```
+docker run -i ukwa/ukwa-manage store list -I /1_data/ethos/warcs > ethos-warcs.ids
+docker run -i ukwa/ukwa-manage store list -j /1_data/ethos/warcs > ethos-warcs.jsonl
+```
+
+The JSONL format can be imported into TrackDB (defaults to used the DEV TrackDB).
+
+```
+cat ethos-warcs.jsonl | docker run -i ukwa/ukwa-manage trackdb files import -
+```
+
+These can then be manipulated to set them up as a kind of content stream:
+
+```
+cat ethos-warcs.ids | trackdb files update --set stream_s ethos -
+cat ethos-warcs.ids | trackdb files update --set kind_s warcs -
+```
+
+......
 
 
 ## Heritrix Jargon
