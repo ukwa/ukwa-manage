@@ -52,12 +52,17 @@ class SolrTrackDB():
             for key in item:
                 if key == 'id':
                     update_item[key] = item[key]
+                elif key == '_version_':
+                    # Do nothing, as we don't want to send that, because it'll cause conflicts on import.
+                    pass
                 else:
+                    # Pass others as 'set' updates:
                     update_item[key] = { 'set': item[key] }
+            # Add the item to the set:
             as_updates.append(update_item)
 
-        # And post the batch:
-        self._send_update(batch)
+        # And post the batch as updates:
+        self._send_update(as_updates)
 
     def import_jsonl_reader(self, input_reader):
         self.import_jsonl(self._jsonl_doc_generator(input_reader))

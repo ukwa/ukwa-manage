@@ -13,6 +13,7 @@ import urllib.parse
 # For querying TrackDB status:
 from lib.trackdb.solr import SolrTrackDB
 from lib.trackdb.cmd import DEFAULT_TRACKDB
+from lib.trackdb.tasks import Task
 
 # Specific code relating to index work
 from lib.windex.cdx import CdxIndex
@@ -72,7 +73,7 @@ def main():
     parser_cdx = subparsers.add_parser('cdx-query', 
         help='Look up a URL.', 
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[cdx_parser])
+        parents=[common_parser, cdx_parser])
     parser_cdx.add_argument('-i', '--indent', type=int, help='Number of spaces to indent when emitting JSON.')
     parser_cdx.add_argument('url', type=str, help='The URL to look up.')
 
@@ -80,7 +81,7 @@ def main():
     parser_trace = subparsers.add_parser('trace', 
         help='Look up a URL, and follow redirects.', 
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[cdx_parser])
+        parents=[common_parser, cdx_parser])
     parser_trace.add_argument('input_file', type=str, help='File containing the list of URLs to look up.')
 
     # Add a parser for the 'list' subcommand:
@@ -135,8 +136,10 @@ def main():
     elif args.op == 'cdx-index' or args.op == 'solr-index':
         # Setup TrackDB
         tdb = SolrTrackDB(args.trackdb_url, kind='warcs',)
+        # Setup an event record:
+        t = Task(args.op)
+        t.start()
         # Perform indexing job:
-        start_time = datetime.datetime.now()
         ids = []
         stats = {}
         if args.op == 'cdx-index':
@@ -178,23 +181,20 @@ def main():
             else:
                 logger.warn("No WARCs found to process!")
 
-        # Update event stats item in TrackDB
-        finish_time = datetime.datetime.now()
-        event = {
-            'id': 'task:%s:%s:%s:%s'% (args.op, args.stream, args.year, finish_time.isoformat()),
-            'kind_s': 'task',
+        # Update event item in TrackDB
+        t.finish()
+        # Add properties:
+        props = {
             'batch_size_i': len(ids),
             'ids_ss' : ids,
             'stream_s': args.stream,
-            'year_i': args.year,
-            "task_status_s": "success",
-            'started_at_dt': start_time.isoformat(),
-            'finished_at_dt': finish_time.isoformat(),
-            'runtime_secs_i': (finish_time-start_time).total_seconds()
+            'year_i': args.year
         }
-        for stat in stats:
-            event[stat] = stats[stat]
-        tdb.import_items([event])
+        t.add(props)
+        # Add stats:
+        t.add(stats)
+        # Send to TrackDB:
+        tdb.import_items([t.as_dict()])
 
     else:
         raise Exception("Not implemented!")
