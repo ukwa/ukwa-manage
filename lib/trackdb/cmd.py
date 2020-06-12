@@ -12,9 +12,6 @@ logging.basicConfig(level=logging.WARNING, format='%(asctime)s: %(levelname)s - 
 
 logger = logging.getLogger(__name__)
 
-# Defaults to using the DEV TrackDB Solr backend:
-DEFAULT_TRACKDB = os.environ.get("TRACKDB_URL","http://trackdb.dapi.wa.bl.uk/solr/tracking")
-
 def main():
     # Set up a parser:
     parser = argparse.ArgumentParser(prog='trackdb')
@@ -23,8 +20,7 @@ def main():
     common_parser = argparse.ArgumentParser(add_help=False)
     common_parser.add_argument('-v', '--verbose',  action='count', default=0, help='Logging level; add more -v for more logging.')
 
-    common_parser.add_argument('-t', '--trackdb-url', type=str, help='The TrackDB URL to talk to.', 
-        default=DEFAULT_TRACKDB)
+    common_parser.add_argument('-t', '--trackdb-url', type=str, help='The TrackDB URL to talk to.', required=True)
     common_parser.add_argument('--dry-run', action='store_true', help='Do not modify the TrackDB.')
     common_parser.add_argument('-i', '--indent', type=int, help='Number of spaces to indent when emitting JSON.')
     common_parser.add_argument('kind', 
