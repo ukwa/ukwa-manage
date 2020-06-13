@@ -60,7 +60,7 @@ class SolrTrackDB():
                         # Pass others as 'set' updates:
                         update_item[key] = { 'set': item[key] }
                     else:
-                    update_item[key] = item[key]
+                        update_item[key] = item[key]
             # Add the item to the set:
             as_updates.append(update_item)
 
