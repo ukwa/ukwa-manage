@@ -12,7 +12,7 @@ import json
 
 logger = logging.getLogger(__name__)
 
-HDFS_KINDS = ['files', 'warcs', 'logs']
+HDFS_KINDS = ['files', 'warcs', 'logs'] # kinds of records that correspond to different HDFS files
 HDFS_PREFIX = 'hdfs://' # Used to sanity-check HDFS IDs on import.
 
 class SolrTrackDB():
@@ -34,7 +34,7 @@ class SolrTrackDB():
             if self.kind == 'documents':
                 if not 'id' in item:
                     item['id'] = 'document:document_url:%s' % item['document_url']
-            if self.kind in HDFS_KINDS:
+            elif self.kind in HDFS_KINDS:
                 if not 'id' in item:
                     raise Exception("When importing files you must supply an id for each!")
                 if not item['id'].startswith(HDFS_PREFIX):
@@ -44,7 +44,7 @@ class SolrTrackDB():
             # And return
             yield item
 
-    def _send_as_updates(self, batch):
+    def _send_batch(self, batch, as_updates=True):
         # Convert the plain dicts into Solr update documents:
         as_updates = []
         for item in batch:
@@ -56,8 +56,11 @@ class SolrTrackDB():
                     # Do nothing, as we don't want to send that, because it'll cause conflicts on import.
                     pass
                 else:
-                    # Pass others as 'set' updates:
-                    update_item[key] = { 'set': item[key] }
+                    if as_updates:
+                        # Pass others as 'set' updates:
+                        update_item[key] = { 'set': item[key] }
+                    else:
+                    update_item[key] = item[key]
             # Add the item to the set:
             as_updates.append(update_item)
 
@@ -68,18 +71,18 @@ class SolrTrackDB():
         self.import_jsonl(self._jsonl_doc_generator(input_reader))
 
     def import_items(self, items):
-        self._send_as_updates(items)
+        self._send_batch(items)
 
     def import_jsonl(self, item_generator):
         batch = []
         for item in item_generator:
             batch.append(item)
             if len(batch) > self.batch_size:
-                self._send_as_updates(batch)
+                self._send_batch(batch)
                 batch = []
         # And send the final batch if there is one:
         if len(batch) > 0:
-            self._send_as_updates(batch)
+            self._send_batch(batch)
 
     def list(self, stream=None, year=None, field_value=None, sort='timestamp_dt desc', limit=100):
         # set solr search terms
