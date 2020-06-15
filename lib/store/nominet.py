@@ -10,9 +10,9 @@ from lib.store.webhdfs import WebHDFSStore
 logger = logging.getLogger(__name__)
 
 #: the FTP server
-NOM_HOST = os.environ.['NOM_HOST']
+NOM_HOST = os.environ['NOM_HOST']
 #: the username
-NOM_USER = os.environ.['NOM_USER']
+NOM_USER = os.environ['NOM_USER']
 #: the password
 NOM_PWD = os.environ['NOM_PWD']
 
