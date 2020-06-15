@@ -136,7 +136,7 @@ def main():
     elif args.op == 'cdx-index' or args.op == 'solr-index':
         # TODO Add option to just index from a list of file (no TrackDB at all)
         # Setup TrackDB
-        tdb = SolrTrackDB(args.trackdb_url, kind='warcs',)
+        tdb = SolrTrackDB(args.trackdb_url, kind='warcs')
         # Setup an event record:
         t = Task(args.op)
         t.start()
