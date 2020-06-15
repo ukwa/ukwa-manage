@@ -47,8 +47,9 @@ def ingest_from_nominet(w):
         cnopts = pysftp.CnOpts()
         cnopts.hostkeys = None
         with pysftp.Connection(NOM_HOST, username=NOM_USER, password=NOM_PWD, cnopts=cnopts) as sftp:
-            sftp.get(file)
-            w.put(file, hdfsfile)
+            if sftp.exists(file):
+                sftp.get(file)
+                w.put(file, hdfsfile)
         file_date = add_months(file_date, 1)
 
 if __name__ == '__main__':
