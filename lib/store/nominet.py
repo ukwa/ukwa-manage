@@ -10,9 +10,9 @@ from lib.store.webhdfs import WebHDFSStore
 logger = logging.getLogger(__name__)
 
 #: the FTP server
-NOM_HOST = os.environ['NOM_HOST']
+NOM_HOST = os.environ.['NOM_HOST']
 #: the username
-NOM_USER = os.environ['NOM_USER']
+NOM_USER = os.environ.['NOM_USER']
 #: the password
 NOM_PWD = os.environ['NOM_PWD']
 
@@ -43,7 +43,10 @@ def ingest_from_nominet(w):
         file = 'domains.%s.csv.gz' % file_date.strftime('%Y%m')
         hdfsfile = "/1_data/nominet/domains.%s.csv.gz" % file_date.strftime('%Y%m')
         logger.warn("Attempting to SFTP %s -> %s" % (file, hdfsfile))
-        with pysftp.Connection(NOM_HOST, username=NOM_USER, password=NOM_PWD) as sftp:
+        # Connect, without host key verification
+        cnopts = pysftp.CnOpts()
+        cnopts.hostkeys = None
+        with pysftp.Connection(NOM_HOST, username=NOM_USER, password=NOM_PWD, cnopts=cnopts) as sftp:
             sftp.get(file)
             w.put(file, hdfsfile)
         file_date = add_months(file_date, 1)
