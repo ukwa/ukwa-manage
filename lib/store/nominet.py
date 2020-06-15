@@ -48,7 +48,7 @@ def ingest_from_nominet(w):
         while file_date < next_date:
             file = 'domains.%s.csv.gz' % file_date.strftime('%Y%m')
             hdfsfile = "/1_data/nominet/domains.%s.csv.gz" % file_date.strftime('%Y%m')
-            logger.info("Attempting to download '%s' via SFTP %s..." % file)
+            logger.info("Attempting to download '%s' via SFTP..." % file)
             if sftp.exists(file):
                 sftp.get(file)
                 logger.warn("Uploading '%s' to HDFS path '%s'..." % (file, hdfsfile))
