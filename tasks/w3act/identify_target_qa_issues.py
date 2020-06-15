@@ -11,7 +11,7 @@ Params
 -m mail recipient(s); if multiple, enclose in quotes (default needs manually coding if in public repo)
 
 Usage examples:
-[python identify...]
+[python3 identify_target_qa_issues.py...]
 
 identify_target_qa_issues.py    >>> default email address & look back days (7)
 identify_target_qa_issues.py -d 30   >>> default email address, look back 30 days
@@ -34,7 +34,7 @@ import logging
 w3act_target_url_prefix = 'https://www.webarchive.org.uk/act/targets/'
 
 # maybe not for public repos
-default_email_list = 'contact1@x,com, contact2@x,com, contact3@y,com'
+default_email_list = 'contact1@x.com, contact2@x.com, contact3@y.com'
 data_dir = './'
 #
 
