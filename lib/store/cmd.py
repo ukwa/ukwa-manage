@@ -28,11 +28,11 @@ def main():
     parser = argparse.ArgumentParser(prog='store')
 
     # Common arguments:
+    parser.add_argument('-v', '--verbose',  action='count', default=0, help='Logging level; add more -v for more logging.')
     parser.add_argument('-w', '--webhdfs-url', type=str, help='The WebHDFS URL to talk to (defaults to %s).' % DEFAULT_WEBHDFS, 
         default=DEFAULT_WEBHDFS)
     parser.add_argument('-u', '--webhdfs-user', type=str, help='The WebHDFS user to act as (defaults to %s).' % DEFAULT_WEBHDFS_USER, 
         default=DEFAULT_WEBHDFS_USER)
-    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose logging.')
     parser.add_argument('--dry-run', action='store_true', help='Do not modify the TrackDB.')
     parser.add_argument('-i', '--indent', type=int, help='Number of spaces to indent when emitting JSON.')
 
@@ -77,8 +77,10 @@ def main():
     args = parser.parse_args()
 
     # Set up verbose logging:
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+    if args.verbose == 1:
+        logging.getLogger().setLevel(logging.INFO)    
+    elif args.verbose > 1:
+        logging.getLogger().setLevel(logging.DEBUG)    
 
     # Set up client:
     st = WebHDFSStore(args.webhdfs_url, args.webhdfs_user)

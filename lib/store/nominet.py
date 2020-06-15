@@ -37,20 +37,26 @@ def add_months(date, months):
     return new_date
 
 def ingest_from_nominet(w):
-    file_date = add_months(datetime.date.today(), -4)
-    next_date = add_months(datetime.date.today(), 1)
-    while file_date < next_date:
-        file = 'domains.%s.csv.gz' % file_date.strftime('%Y%m')
-        hdfsfile = "/1_data/nominet/domains.%s.csv.gz" % file_date.strftime('%Y%m')
-        logger.warn("Attempting to SFTP %s -> %s" % (file, hdfsfile))
-        # Connect, without host key verification
-        cnopts = pysftp.CnOpts()
-        cnopts.hostkeys = None
-        with pysftp.Connection(NOM_HOST, username=NOM_USER, password=NOM_PWD, cnopts=cnopts) as sftp:
+    # Connect, without host key verification
+    cnopts = pysftp.CnOpts()
+    cnopts.hostkeys = None
+    logger.info("Connecting to %s@%s..." % (NOM_USER, NOM_HOST))
+    with pysftp.Connection(NOM_HOST, username=NOM_USER, password=NOM_PWD, cnopts=cnopts) as sftp:
+        # Iterate over recent months:
+        file_date = add_months(datetime.date.today(), -4)
+        next_date = add_months(datetime.date.today(), 1)
+        while file_date < next_date:
+            file = 'domains.%s.csv.gz' % file_date.strftime('%Y%m')
+            hdfsfile = "/1_data/nominet/domains.%s.csv.gz" % file_date.strftime('%Y%m')
+            logger.info("Attempting to download '%s' via SFTP %s..." % file)
             if sftp.exists(file):
                 sftp.get(file)
+                logger.warn("Uploading '%s' to HDFS path '%s'..." % (file, hdfsfile))
                 w.put(file, hdfsfile)
-        file_date = add_months(file_date, 1)
+            else:
+                logger.warn("No file '%s' found!" % file)
+            # Try the next month:
+            file_date = add_months(file_date, 1)
 
 if __name__ == '__main__':
     w = WebHDFSStore()
