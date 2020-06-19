@@ -12,7 +12,6 @@ import urllib.parse
 
 # For querying TrackDB status:
 from lib.trackdb.solr import SolrTrackDB
-from lib.trackdb.cmd import DEFAULT_TRACKDB
 from lib.trackdb.tasks import Task
 
 # Specific code relating to index work
@@ -47,8 +46,7 @@ def main():
 
     # TrackDB args:
     trackdb_parser = argparse.ArgumentParser(add_help=False)
-    trackdb_parser.add_argument('-t', '--trackdb-url', type=str, help='The TrackDB URL to talk to.', 
-        default=DEFAULT_TRACKDB)
+    trackdb_parser.add_argument('-t', '--trackdb-url', type=str, help='The TrackDB URL to talk to.', required=True)
     trackdb_parser.add_argument('-S', '--stream', 
         choices= ['frequent', 'domain', 'webrecorder'], 
         default='frequent',

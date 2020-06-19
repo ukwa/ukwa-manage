@@ -11,4 +11,13 @@ Run:
 
 to see the commands.
 
-By default, it talks to the prodiction HDFS API.
+By default, it talks to the production HDFS API.
+
+
+## Updating data from third-party sources
+
+```
+docker pull ukwa/ukwa-manage
+source ~/gitlab/ukwa-services-env/nominet.env
+docker run -ti -e NOM_HOST -e NOM_USER -e NOM_PWD ukwa/ukwa-manage store -u ingest nominet
+```
