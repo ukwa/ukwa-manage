@@ -11,34 +11,37 @@ def run_cdx_index_job(items, cdx_endpoint):
             fpaths.write("%s\n" % item['file_path_s'])
         # Make sure temp file is up to date:
         fpaths.flush()
-                
-        # Set up the CDX indexer map-reduce job:
-        mr_job = MRCdxIndexerJarJob(args=[
-            '-r', 'hadoop',
-            '--cdx-endpoint', cdx_endpoint,
-            fpaths.name, # < local input file, mrjob will upload it
-            ])
 
-        # Run and gather output:
-        stats = {}
-        with mr_job.make_runner() as runner:
-            runner.run()
-            for key, value in mr_job.parse_output(runner.cat_output()):
-                # Normalise key if needed:
-                key = key.lower()
-                if not key.endswith("_i"):
-                    key = "%s_i" % key
-                # Update counter for the stat:
-                i = stats.get(key, 0)
-                stats[key] = i + int(value)
+        return run_cdx_index_job_with_file(fpaths.name, cdx_endpoint)                
 
-        # Raise an exception if the output looks wrong:
-        if not "total_sent_records_i" in stats:
-            raise Exception("CDX job stats has no total_sent_records_i value! \n%s" % json.dumps(stats))
-        if stats['total_sent_records_i'] == 0:
-            raise Exception("CDX job stats has total_sent_records_i == 0! \n%s" % json.dumps(stats))
+def run_cdx_index_job_with_file(input_file, cdx_endpoint):
+    # Set up the CDX indexer map-reduce job:
+    mr_job = MRCdxIndexerJarJob(args=[
+        '-r', 'hadoop',
+        '--cdx-endpoint', cdx_endpoint,
+        input_file, # < local input file, mrjob will upload it
+        ])
 
-        return stats
+    # Run and gather output:
+    stats = {}
+    with mr_job.make_runner() as runner:
+        runner.run()
+        for key, value in mr_job.parse_output(runner.cat_output()):
+            # Normalise key if needed:
+            key = key.lower()
+            if not key.endswith("_i"):
+                key = "%s_i" % key
+            # Update counter for the stat:
+            i = stats.get(key, 0)
+            stats[key] = i + int(value)
+
+    # Raise an exception if the output looks wrong:
+    if not "total_sent_records_i" in stats:
+        raise Exception("CDX job stats has no total_sent_records_i value! \n%s" % json.dumps(stats))
+    if stats['total_sent_records_i'] == 0:
+        raise Exception("CDX job stats has total_sent_records_i == 0! \n%s" % json.dumps(stats))
+
+    return stats
 
 class MRCdxIndexerJarJob(MRJob):
 

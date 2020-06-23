@@ -9,13 +9,6 @@ from lib.store.webhdfs import WebHDFSStore
 
 logger = logging.getLogger(__name__)
 
-#: the FTP server
-NOM_HOST = os.environ['NOM_HOST']
-#: the username
-NOM_USER = os.environ['NOM_USER']
-#: the password
-NOM_PWD = os.environ['NOM_PWD']
-
 def add_months(date, months):
     months_count = date.month + months
 
@@ -37,6 +30,13 @@ def add_months(date, months):
     return new_date
 
 def ingest_from_nominet(w):
+    #: the FTP server
+    NOM_HOST = os.environ['NOM_HOST']
+    #: the username
+    NOM_USER = os.environ['NOM_USER']
+    #: the password
+    NOM_PWD = os.environ['NOM_PWD']
+
     # Connect, without host key verification
     cnopts = pysftp.CnOpts()
     cnopts.hostkeys = None

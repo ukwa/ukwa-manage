@@ -17,7 +17,7 @@ from lib.trackdb.tasks import Task
 # Specific code relating to index work
 from lib.windex.cdx import CdxIndex
 from lib.windex.trace import follow_redirects
-from lib.windex.mr_cdx_job import run_cdx_index_job
+from lib.windex.mr_cdx_job import run_cdx_index_job, run_cdx_index_job_with_file
 from lib.windex.mr_solr_job import run_solr_index_job
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
@@ -82,15 +82,23 @@ def main():
         parents=[common_parser, cdx_parser])
     parser_trace.add_argument('input_file', type=str, help='File containing the list of URLs to look up.')
 
-    # Add a parser for the 'list' subcommand:
+    # Add a parser for the 'cdx-index' subcommand:
     parser_index_cdx = subparsers.add_parser('cdx-index', 
-        help="Index WARCs into a CDX service.", 
+        help="Use TrackDB to index WARCs into a CDX service.", 
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[common_parser, trackdb_parser, cdx_parser])
     parser_index_cdx.add_argument('-B', '--batch-size', type=int, help='Number files to process in each run.', default=DEFAULT_BATCH_SIZE)
 
+    # Add a parser for the 'cdx-index-job' subcommand:
+    parser_index_cdxjob = subparsers.add_parser('cdx-index-job', 
+        help="Index WARCs listed in a file into a CDX service.", 
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[common_parser, cdx_parser])
+    parser_index_cdxjob.add_argument('input_file', help="A file containing a list of WARCs to index.")
+
+    # Add a parser for the 'solr-index' subcommand:
     parser_index_solr = subparsers.add_parser('solr-index', 
-        help="Index WARCs into a Solr service.", 
+        help="Use TrackDB to index WARCs into a Solr service.", 
         formatter_class=argparse.ArgumentDefaultsHelpFormatter, 
         parents=[common_parser, trackdb_parser])
     parser_index_solr.add_argument('-B', '--batch-size', type=int, help='Number files to process in each run.', default=DEFAULT_BATCH_SIZE)
@@ -194,6 +202,9 @@ def main():
         t.add(stats)
         # Send to TrackDB:
         tdb.import_items([t.as_dict()])
+    elif args.op == 'cdx-index-job':
+        # Run a one-off job to index some WARCs based on a list from a file:
+        run_cdx_index_job_with_file(args.input_file, cdx_url)
 
     else:
         raise Exception("Not implemented!")
