@@ -46,7 +46,7 @@ class SolrTrackDB():
 
     def _send_batch(self, batch, as_updates=True):
         # Convert the plain dicts into Solr update documents:
-        as_updates = []
+        updates = []
         for item in batch:
             update_item = {}
             for key in item:
@@ -62,10 +62,10 @@ class SolrTrackDB():
                     else:
                         update_item[key] = item[key]
             # Add the item to the set:
-            as_updates.append(update_item)
+            updates.append(update_item)
 
         # And post the batch as updates:
-        self._send_update(as_updates)
+        self._send_update(updates)
 
     def import_jsonl_reader(self, input_reader):
         self.import_jsonl(self._jsonl_doc_generator(input_reader))
