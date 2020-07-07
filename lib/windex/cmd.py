@@ -204,7 +204,8 @@ def main():
         tdb.import_items([t.as_dict()])
     elif args.op == 'cdx-index-job':
         # Run a one-off job to index some WARCs based on a list from a file:
-        run_cdx_index_job_with_file(args.input_file, cdx_url)
+        stats = run_cdx_index_job_with_file(args.input_file, cdx_url)
+        print(stats)
 
     else:
         raise Exception("Not implemented!")

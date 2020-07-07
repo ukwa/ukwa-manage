@@ -10,17 +10,21 @@ import os
 import sys
 import argparse
 import logging
+import json
 import hdfs
 import tarfile
-from StringIO import StringIO
+from io import BytesIO
 from lxml import etree
+from urllib.parse import urlparse
 
 # globals -----------------------------
-HDFS_URL='http://hdfs:14000'
-HDFS_USER='hdfs'
+HDFS_URL='http://hdfs.api.wa.bl.uk'
+HDFS_USER='access'
 SIP_ROOT="/heritrix/sips"
 NS={"mets": "http://www.loc.gov/METS/", "premis": "info:lc/xmlns/premis-v2"}
 XLINK="{http://www.w3.org/1999/xlink}"
+ID_PREFIX='hdfs://hdfs:54310'
+DOWNLOAD_TEMPLATE=''
 
 
 # functions ---------------------------
@@ -65,9 +69,11 @@ def process_xml(targz, f, xml):
         for metsfile in tree.xpath("//mets:file", namespaces=NS):
             adm_id = metsfile.attrib["ADMID"]
             if adm_id:
-                path = metsfile.xpath("mets:FLocat", namespaces=NS)[0].attrib["{}href".format(XLINK)]
-                if not path:
-                    logger.error("Path not extracted from {} {}".format(targz, f))
+                href = metsfile.xpath("mets:FLocat", namespaces=NS)[0].attrib["{}href".format(XLINK)]
+                if not href:
+                    logger.error("HREF not extracted from {} {}".format(targz, f))
+                hdfs_path = urlparse(href).path.replace('/webhdfs/v1', '', 1)
+                # Checksum:
                 checksum_type = metsfile.attrib["CHECKSUMTYPE"]
                 if not checksum_type:
                     logger.error("Checksum_type not extract from {} {}".format(targz, f))
@@ -76,7 +82,12 @@ def process_xml(targz, f, xml):
                     h = int(checksum, 16)
                 except:
                     logger.error("Checksum not hex [{}] from {} {}".format(checksum, targz, f))
-                size = metsfile.attrib["SIZE"]
+                if checksum_type == 'SHA-512':
+                    hash_urn = 'urn:hash::sha512:%s' % checksum
+                else:
+                    raise Exception("Unsupported checksum type %s!" %checksum_type )
+                # Size:                    
+                size = int(metsfile.attrib["SIZE"])
                 try:
                     if not size > 0:
                         logger.error("Weird size [{}] from {} {}".format(size, targz, f))
@@ -87,11 +98,11 @@ def process_xml(targz, f, xml):
                     logger.error("Mimetype not extracted from {} {}".format(targz, f))
 
                 files[adm_id] = {
-                    "path" : path,
-                    "mimetype" : mimetype,
-                    "size" : size,
-                    "checksum_type" : checksum_type,
-                    "checksum" : checksum,
+                    "id" : 'hdfs://hdfs:54310%s' % hdfs_path,
+                    #"sip_href_s" : href, # Not sure this adds much useful info.
+                    "sip_mimetype_s" : mimetype,
+                    "sip_size_l" : size,
+                    "sip_hash_urn_s": hash_urn
                     }
                 n_files = n_files + 1
 
@@ -127,7 +138,7 @@ def process_xml(targz, f, xml):
                         oiv = metsamdsec.xpath("mets:digiprovMD/mets:mdWrap/mets:xmlData/premis:object/premis:objectIdentifier/premis:objectIdentifierValue", namespaces=NS)
                         if oiv:
                             if len(oiv) == 1:
-                                files[adm_id]['ark'] = oiv[0].text
+                                files[adm_id]['sip_ark_s'] = oiv[0].text
                                 n_amdsecs = n_amdsecs + 1
                                 yield files[adm_id]
                             else:
@@ -157,31 +168,33 @@ def find_sip_xml(hdfsClient, outputFile):
                 # filter for only tar.gz files that are not empty
                 if file.endswith('.tar.gz'):
                     targz = "{}/{}".format(path, file)
-                    try:
-                        targzStatus = hdfsClient.status(targz, strict=False)
-                        if targzStatus['length'] > 0:
-                            sip = "%s/%s" % (path, file)
-                            sip = sip[len(SIP_ROOT) + 1:]
-                            sip = sip[:-7]
+                    targzStatus = hdfsClient.status(targz, strict=False)
+                    if targzStatus['length'] > 0:
+                        sip_path = "%s/%s" % (path, file)
+                        sip = sip_path[len(SIP_ROOT) + 1:]
+                        sip = sip[:-7]
 
-                            # untar file, traverse internal files, extract contents of .xml file for processing
-                            with hdfsClient.read(targz) as reader:
-                                t = reader.read()
-                                tar = tarfile.open(mode="r:gz", fileobj=StringIO(t))
+                        # untar file, traverse internal files, extract contents of .xml file for processing
+                        with hdfsClient.read(targz) as reader:
+                            t = reader.read()
+                            tar = tarfile.open(mode="r:gz", fileobj=BytesIO(t))
 
-                                foundMets = 0
-                                for f in tar.getmembers():
-                                    if f.name.endswith(".xml"):
-                                        foundMets += 1
-                                        xml = tar.extractfile(f).read()
-                                        for waid in process_xml(targz, f.name, xml):
-                                            out.write("{} {}\n".format(sip, waid))
+                            foundMets = 0
+                            for f in tar.getmembers():
+                                if f.name.endswith(".xml"):
+                                    foundMets += 1
+                                    xml = tar.extractfile(f).read()
+                                    for waid in process_xml(targz, f.name, xml):
+                                        waid['sip_hfds_path_s'] = sip_path
+                                        waid['sip_id_s'] = sip
+                                        out.write(json.dumps(waid))
+                                        out.write('\n')
 
-                                if foundMets == 0:
-                                    logger.error("No METS XML file found in {}".format(targz))
-                                elif foundMets > 1:
-                                    logger.error("More than one XML file found in {}".format(targz))
-                    except:
+                            if foundMets == 0:
+                                logger.error("No METS XML file found in {}".format(targz))
+                            elif foundMets > 1:
+                                logger.error("More than one XML file found in {}".format(targz))
+                    else:
                         logger.warning("Empty (zero byte) SIP package: {}".format(targz))
 
 def main():
