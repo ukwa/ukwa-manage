@@ -56,8 +56,9 @@ class SolrTrackDB():
                     # Do nothing, as we don't want to send that, because it'll cause conflicts on import.
                     pass
                 else:
-                    if as_updates:
-                        # Pass others as 'set' updates:
+                    # If we want to send updates, except those already arranged as updates (i.e. as dicts):
+                    if as_updates and not isinstance(item[key], dict):
+                        # Convert to 'set' updates:
                         update_item[key] = { 'set': item[key] }
                     else:
                         update_item[key] = item[key]
