@@ -16,11 +16,11 @@ class Task():
 
     def start(self):
         self.started_at = datetime.datetime.now()
-        self.event['started_at_dt'] = self.started_at.isoformat()
+        self.event['started_at_dt'] = "%sZ" % self.started_at.isoformat()
 
     def finish(self, status="success"):
         self.finished_at = datetime.datetime.now()    
-        self.event['finished_at_dt'] = self.finished_at.isoformat()
+        self.event['finished_at_dt'] = "%sZ" % self.finished_at.isoformat()
         self.event['task_status_s'] = status
         if self.started_at:
             self.event['runtime_secs_i'] = (self.finished_at-self.started_at).total_seconds()
