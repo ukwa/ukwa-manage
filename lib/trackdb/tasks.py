@@ -23,7 +23,7 @@ class Task():
         self.event['finished_at_dt'] = self.finished_at.isoformat()
         self.event['task_status_s'] = status
         if self.started_at:
-            self.event[runtime_secs_i] = (self.finished_at-self.started_at).total_seconds()
+            self.event['runtime_secs_i'] = (self.finished_at-self.started_at).total_seconds()
 
     def add(self, dict_to_add):
         for key in dict_to_add:
