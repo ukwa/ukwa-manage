@@ -29,7 +29,7 @@ class GatherBlockScanReports(luigi.Task):
 
   def run(self):
 
-    page = requests.get('http://194.66.232.90:50070/dfsnodelist.jsp?whatNodes=LIVE')
+    page = requests.get('http://namenode.api.wa.bl.uk/dfsnodelist.jsp?whatNodes=LIVE')
     tree = html.fromstring(page.content)
 
     grunts = tree.xpath('//td[@class="name"]/a/text()')

@@ -242,14 +242,20 @@ class AnalyseLogFile(luigi.contrib.hadoop.JobTask):
 
     # This can be set to 1 if there is intended to be one output file. The usual Luigi default is 25.
     # Using one output file ensures the whole output is sorted but is not suitable for very large crawls.
-    n_reduce_tasks = luigi.Parameter(default=25)
+    n_reduce_tasks = luigi.IntParameter(default=25)
 
     extractor = None
 
 
     def requires(self):
-        reqs = []
+        # Strip down to latest logs only:
+        latest_logs = []
         for log_path in self.log_paths:
+            latest_logs.append(str(log_path))
+        latest_logs = sorted(latest_logs)[-25:]
+        # Turn into requirements:
+        reqs = []
+        for log_path in latest_logs:
             logger.info("LOG FILE TO PROCESS: %s" % log_path)
             reqs.append(InputFile(log_path, self.from_hdfs))
         return reqs
