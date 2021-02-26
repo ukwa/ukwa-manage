@@ -7,3 +7,5 @@ tast-state
 prototype
 notebooks
 docs
+*.warc.gz
+*.warc
