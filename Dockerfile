@@ -14,6 +14,9 @@ RUN apt-get update --allow-insecure-repositories && apt-get install -y --no-inst
         g++ \
         git \
         zip \
+        rustc \
+        cargo \
+        libssl-dev \
         python3-dev \
 	&& rm -rf /var/lib/apt/lists/*
 
