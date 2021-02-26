@@ -26,3 +26,12 @@ Once we have that, we can import them into the TrackDB:
 We can query the TrackDB to see what we have. Some common queries and reports are built into the `trackdb` tool.
 
 Once populated, the TrackDB is used to drive things like indexing processes, via the [`windex` command](../windex/README.md).
+
+
+### Resetting a field
+
+Here's an example of removing a field value from a record so re-indexing can occur:
+
+```
+trackdb update -t http://solr8.api.wa.bl.uk/solr/tracking --remove cdx_index_ss data-heritrix warcs "hdfs://hdfs:54310/heritrix/output/frequent-npld/20201215145330/warcs/BL-NPLD-20210102085117132-08488-75~npld-heritrix3-worker-1~8443.warc.gz"
+```

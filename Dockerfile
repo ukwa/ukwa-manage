@@ -13,6 +13,7 @@ RUN apt-get update --allow-insecure-repositories && apt-get install -y --no-inst
         libsnappy-dev \
         g++ \
         git \
+        zip \
         python3-dev \
 	&& rm -rf /var/lib/apt/lists/*
 

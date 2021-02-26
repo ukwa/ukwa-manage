@@ -19,6 +19,7 @@ from lib.windex.cdx import CdxIndex
 from lib.windex.trace import follow_redirects
 from lib.windex.mr_cdx_job import run_cdx_index_job, run_cdx_index_job_with_file
 from lib.windex.mr_solr_job import run_solr_index_job
+from lib.windex.mr_log_job import run_log_job
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
 
@@ -91,7 +92,7 @@ def main():
 
     # Add a parser for the 'cdx-index-job' subcommand:
     parser_index_cdxjob = subparsers.add_parser('cdx-index-job', 
-        help="Index WARCs listed in a file into a CDX service.", 
+        help="Index WARCs listed in a file into a CDX service (for one-off indexing).", 
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[common_parser, cdx_parser])
     parser_index_cdxjob.add_argument('input_file', help="A file containing a list of WARCs to index.")
@@ -107,6 +108,13 @@ def main():
     parser_index_solr.add_argument('config', help="The indexer configuration file to use.")
     parser_index_solr.add_argument('annotations', help="The annotations file to use with the indexer.")
     parser_index_solr.add_argument('oasurts', help="The Open Access SURTS file to use with the indexer.")
+
+    # Add a parser for the 'log-analyse' subcommand:
+    parser_logs = subparsers.add_parser('log-analyse',
+        help="Use TrackDB and index logs",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[common_parser, trackdb_parser])
+    parser_logs.add_argument('-B', '--batch-size', type=int, help='Number log files to process in each run.', default=DEFAULT_BATCH_SIZE)    
 
     # And PARSE:
     args = root_parser.parse_args()
@@ -140,7 +148,6 @@ def main():
                     print("%s\t%s" % (result,url))
 
     elif args.op == 'cdx-index' or args.op == 'solr-index':
-        # TODO Add option to just index from a list of file (no TrackDB at all)
         # Setup TrackDB
         tdb = SolrTrackDB(args.trackdb_url, kind='warcs')
         # Setup an event record:
@@ -206,6 +213,47 @@ def main():
         # Run a one-off job to index some WARCs based on a list from a file:
         stats = run_cdx_index_job_with_file(args.input_file, cdx_url)
         print(stats)
+    elif args.op == 'log-analyse':
+        # Setup TrackDB for log files
+        tdb = SolrTrackDB(args.trackdb_url, kind='logs')
+        # Setup an event record:
+        t = Task(args.op)
+        t.start()
+        # Perform indexing job:
+        ids = []
+        stats = {}
+        # Get a list of items to process:
+        status_field = "log_analysis"
+        status_field_value = "done"
+        field_value = ["-%s" % status_field, status_field_value]
+        items = tdb.list(args.stream, args.year, field_value, limit=args.batch_size)
+        if len(items) > 0:
+            # Run a job to index those items:
+            stats = run_log_job(items)
+            # If that worked (no exception thrown), update the tracking database accordingly:
+            ids = []
+            for item in items:
+                ids.append(item['id'])
+            # Mark as indexed, but also as unverified:
+            tdb.update(ids, status_field, status_field_value)
+        else:
+            logger.warn("No files found to process!")
+            return
+
+        # Update event item in TrackDB
+        t.finish()
+        # Add properties:
+        props = {
+            'batch_size_i': len(ids),
+            'ids_ss' : ids,
+            'stream_s': args.stream,
+            'year_i': args.year
+        }
+        t.add(props)
+        # Add stats:
+        t.add(stats)
+        # Send to TrackDB:
+        tdb.import_items([t.as_dict()])
 
     else:
         raise Exception("Not implemented!")
