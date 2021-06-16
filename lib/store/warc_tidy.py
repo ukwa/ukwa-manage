@@ -1,10 +1,11 @@
 import os
 import re
+import json
 import shutil
 import logging
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
-logging.getLogger().setLevel(logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ def send_metrics(metrics):
         logger.error("No metrics PUSH_GATEWAY configured!")
 
 
-def warc_tidy_up(prefix="/mnt/gluster/fc"):
+def warc_tidy_up(prefix="/mnt/gluster/fc", output_json=True):
     logger.info("Scanning %s..." % prefix)
 
     metrics = { 
@@ -55,3 +56,6 @@ def warc_tidy_up(prefix="/mnt/gluster/fc"):
     # Update metrics
     logger.info("Moved %s files." % metrics['total_moved'])
     send_metrics(metrics)
+    # Finally, print retults as JSON if requested:
+    if output_json:
+        print(json.dumps(metrics))
