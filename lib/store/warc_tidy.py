@@ -4,6 +4,8 @@ import shutil
 import logging
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
+logging.getLogger().setLevel(logging.INFO)
+
 logger = logging.getLogger(__name__)
 
 def send_metrics(metrics):
@@ -16,7 +18,7 @@ def send_metrics(metrics):
     g.labels(kind='warcprox-warcs').set(metrics['total_moved'])
 
     if os.environ.get("PUSH_GATEWAY"):
-        push_to_gateway(os.environ.get("PUSH_GATEWAY"), job=task.get_task_family(), registry=registry)
+        push_to_gateway(os.environ.get("PUSH_GATEWAY"), job='warc_tidy', registry=registry)
     else:
         logger.error("No metrics PUSH_GATEWAY configured!")
 
