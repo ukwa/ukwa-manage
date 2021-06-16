@@ -5,8 +5,6 @@ import shutil
 import logging
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
-logging.basicConfig(level=logging.INFO)
-
 logger = logging.getLogger(__name__)
 
 def send_metrics(metrics):
