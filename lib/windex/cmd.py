@@ -20,8 +20,9 @@ from lib.windex.trace import follow_redirects
 from lib.windex.mr_cdx_job import run_cdx_index_job, run_cdx_index_job_with_file
 from lib.windex.mr_solr_job import run_solr_index_job
 from lib.windex.mr_log_job import run_log_job
+from lib.windex.index_ops import remove_solr_records
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
 
 logger = logging.getLogger(__name__)
 
@@ -114,10 +115,20 @@ def main():
         help="Use TrackDB and index logs",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[common_parser, trackdb_parser])
-    parser_logs.add_argument('-B', '--batch-size', type=int, help='Number log files to process in each run.', default=DEFAULT_BATCH_SIZE)    
+    parser_logs.add_argument('-B', '--batch-size', type=int, help='Number log files to process in each run.', default=DEFAULT_BATCH_SIZE)
+
+    # Add parse to clip records from indexes:
+    parser_index_del = subparsers.add_parser('index-delete',
+        help="Delete items from indexes.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[common_parser,cdx_parser])
+    parser_index_del.add_argument('-S', '--solr-url', help='URL of Solr service to operate on.', default=f"http://solr.api.wa.bl.uk/solr/{DEFAULT_SOLR_COLLECTION}")
+    parser_index_del.add_argument('urls_to_delete', help='Location of files listing URLs to be deleted from indexes.')
 
     # And PARSE:
     args = root_parser.parse_args()
+    if args.op == None:
+        raise Exception("No operation specified.")
 
     # Set up full CDX endpoint URL:
     if "cdx_service" in args:
@@ -255,6 +266,15 @@ def main():
         # Send to TrackDB:
         tdb.import_items([t.as_dict()])
 
+    elif args.op == 'index-delete':
+        with open(args.urls_to_delete) as f:
+            urls = f.readlines()
+        urls = [url.strip() for url in urls]
+        remove_solr_records(
+            args.solr_url,
+            "url",
+            urls
+        )
     else:
         raise Exception("Not implemented!")
 
