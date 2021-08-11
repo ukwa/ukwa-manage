@@ -252,6 +252,10 @@ class LaunchCrawls(luigi.Task):
                 if 'twitter.com' in seed:
                     parallel_queues = 2
 
+                # Allow the crawler to go real fast
+                #if 'legislation.gov.uk' in seed:
+                #    sheets.append('fast-10ps')
+
                 # And send launch message, always resetting any crawl quotas:
                 self.launcher.launch(seed, source, isSeed, forceFetch=True, sheets=sheets, reset_quotas=True, launch_ts=launch_timestamp, inherit_launch_ts=False,parallel_queues=parallel_queues)
                 counter = counter + 1
