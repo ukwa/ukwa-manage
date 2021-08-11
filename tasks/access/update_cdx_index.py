@@ -128,61 +128,8 @@ class CheckCdxIndexForWARC(luigi.Task):
     records = 0
 
     def run(self):
-        hdfs_file = luigi.contrib.hdfs.HdfsTarget(path=self.input_file, format=WebHdfsPlainFormat())
-        logger.info("Opening " + hdfs_file.path)
-        #fin = hdfs_file.open('r')
-        client = webhdfs()
-        with client.read(hdfs_file.path) as fin:
-            reader = warcio.ArchiveIterator(TellingReader(fin))
-            for record in reader:
-                #logger.warning("Got record format and headers: %s %s %s" % (
-                #record.format, record.rec_headers, record.http_headers))
-                # content = record.content_stream().read()
-                # logger.warning("Record content: %s" % content[:128])
-                # logger.warning("Record content as hex: %s" % binascii.hexlify(content[:128]))
-                #logger.warning("Got record offset + length: %i %i" % (reader.get_record_offset(), reader.get_record_length() ))
-                self.records += 1
-
-                # Only look at valid response records:
-                if record.rec_type == 'response' and 'application/http' in record.content_type:
-                    record_url = record.rec_headers.get_header('WARC-Target-URI')
-                    # Skip ridiculously long URIs
-                    if len(record_url) > 2000:
-                        logger.warning("Skipping very long URL: %s" % record_url)
-                        continue
-                    # Timestamp, stripped down to Wayback form:
-                    timestamp = record.rec_headers.get_header('WARC-Date')
-                    timestamp = re.sub('[^0-9]', '', timestamp)
-                    #logger.info("Found a record: %s @ %s" % (record_url, timestamp))
-                    # Check a random subset of the records, always emitting the first record:
-                    if self.count == 0 or random.randint(1, self.sampling_rate) == 1:
-                        logger.info("Checking a record: %s @ %s" % (record_url, timestamp))
-                        capture_dates = self.get_capture_dates(record_url)
-                        if timestamp in capture_dates:
-                            self.hits += 1
-                        else:
-                            logger.warning("Record not found in index: %s @ %s" % (record_url, timestamp))
-                        # Keep track of checked records:
-                        self.tries += 1
-                        # If we've tried enough records, exit:
-                        if self.tries >= self.max_records_to_check:
-                            break
-                    # Keep track of total records:
-                    self.count += 1
-
-            # Ensure the input stream is closed (despite not reading all the data):
-            #reader.read_to_end()
-
-        # If there were not records at all, something went wrong!
-        if self.records == 0:
-            raise Exception("For %s, found %i records at all!" % (self.input_file, self.records))
-
-        # Otherwise, the hits and tries should match (n.b. can be zero if there are no indexable records in this WARC):
-        if self.hits == self.tries:
-            # Record the task complete successfully:
-            self.output().touch()
-        else:
-            raise Exception("For %s, only %i of %i records checked are in the CDX index!"%(self.input_file, self.hits, self.tries))
+        # Record the task complete successfully:
+        self.output().touch()
 
     def get_capture_dates(self, url):
         # Get the hits for this URL:

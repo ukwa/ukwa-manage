@@ -100,7 +100,12 @@ class GenerateAccessWhitelist(luigi.Task):
             'http://(com,blogger,www)/static/',
             'http://(com,blogger,www)/dyn-css/',
             'http://(net,cloudfront,',
-            'http://(com,googleusercontent,'
+            'http://(com,googleusercontent,',
+            # See https://github.com/ukwa/ukwa-manage/issues/77
+            'http://(uk,co,bbc,newsimg,',
+            # Allow Twitter Service Worker and API.
+            'http://(com,twitter)/sw.js',
+            'http://(com,twitter,api)'
         ]
         # Add them in:
         for cdn_surt in cdn_surts:
