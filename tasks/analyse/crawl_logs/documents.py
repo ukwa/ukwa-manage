@@ -4,7 +4,7 @@ import hashlib
 import logging
 from urllib.parse import urlparse
 import requests
-from requests.utils import quote
+from urllib.parse import quote_plus
 import xml.dom.minidom
 import luigi.contrib.hdfs
 import luigi.contrib.hadoop
@@ -109,7 +109,9 @@ class AvailableInWayback(luigi.ExternalTask):
         Checks if a resource with a particular timestamp is available in the index:
         :return:
         """
-        wburl = "%s?q=type:urlquery+url:%s" % (self.cdxserver_endpoint, quote(self.url))
+        # See https://github.com/nla/outbackcdx/issues/12#issuecomment-351932136
+        q = "type:urlquery url:" + quote_plus(self.url)
+        wburl = "%s?q=%s" % (self.cdxserver_endpoint, quote_plus(q))
         logger.debug("Checking availability %s" % wburl)
         r = requests.get(wburl)
         logger.debug("Availability response: %d" % r.status_code)

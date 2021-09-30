@@ -24,8 +24,8 @@ class GetW3actAsCsvZip(luigi.Task):
     date = luigi.DateParameter(default=datetime.date.today())
     db_name = luigi.Parameter(default='w3act')
     db_user = luigi.Parameter(default='w3act')
-    db_host = luigi.Parameter(default='ingest')
-    db_port = luigi.IntParameter(default='5434')
+    db_host = luigi.Parameter(default='prod1.n45.wa.bl.uk')
+    db_port = luigi.IntParameter(default='5432')
 
     task_namespace = 'w3act'
 
