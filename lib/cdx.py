@@ -13,7 +13,7 @@ class CdxIndex():
     It knows what we've got, and when, but not what is open access or not.
     '''
 
-    def __init__(self, cdx_server='http://bigcdx:8080/data-heritrix'):
+    def __init__(self, cdx_server='http://cdx.api.wa.bl.uk/data-heritrix'):
         self.cdx_server = cdx_server
 
     def _capture_dates_generator(self, url):

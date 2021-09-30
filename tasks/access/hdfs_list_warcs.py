@@ -76,7 +76,7 @@ class ListWarcsForDateRange(luigi.Task):
     def output(self):
         # Use the run_date as part of the output to make sure it's fresh.
         run_date_str = str(self.run_date).replace(":","-").replace(" ","_")
-        return TaskTarget('warc-file-list','-to-%s-as-of-%s.txt' % (self.start_date, run_date_str), self.end_date)
+        return TaskTarget('warc-file-list','-%s-to-%s-as-of-%s.txt' % (self.stream, self.start_date, run_date_str), self.end_date)
 
 
 if __name__ == '__main__':

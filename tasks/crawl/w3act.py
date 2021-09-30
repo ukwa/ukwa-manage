@@ -7,15 +7,6 @@ import datetime
 from w3act.cli_csv import get_csv, csv_to_zip, load_csv, filtered_targets, to_crawl_feed_format
 from tasks.common import logger, state_file
 
-# Define environment variable names here:
-ENV_ACT_URL = 'ACT_URL'
-ENV_ACT_USER = 'ACT_USER'
-ENV_ACT_PASSWORD = 'ACT_PASSWORD'
-
-ACT_URL = os.environ[ENV_ACT_URL]
-ACT_USER = os.environ[ENV_ACT_USER]
-ACT_PASSWORD = os.environ[ENV_ACT_PASSWORD]
-
 
 class GetW3actAsCsvZip(luigi.Task):
     """
