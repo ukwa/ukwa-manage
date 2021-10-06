@@ -1,3 +1,5 @@
+import json
+import tempfile
 import logging
 import requests
 from mrjob.job import MRJob
@@ -6,23 +8,23 @@ from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
-def run_cdx_index_job(items, cdx_endpoint):
-    with tempfile.NamedTemporaryFile('w+') as fpaths:
-        # This needs to read the TrackDB IDs in the input file and convert to a set of plain paths:
-        for item in items:
-            fpaths.write("%s\n" % item['file_path_s'])
-        # Make sure temp file is up to date:
-        fpaths.flush()
-
-        return run_cdx_index_job_with_file(fpaths.name, cdx_endpoint)                
-
 def run_cdx_index_job_with_file(input_file, cdx_endpoint):
+    # Read input file list in as items:
+    # Run the given job:
+    pass
+
+def run_cdx_index_job(items, cdx_endpoint):
+    # This needs to read the TrackDB IDs in the input file and convert to a set of plain paths:
     # Set up the CDX indexer map-reduce job:
-    mr_job = MRCDXIndexer(args=[
+    args = [
         '-r', 'hadoop',
-        '--cdx-endpoint', cdx_endpoint,
-        input_file, # < local input file, mrjob will upload it
-        ])
+        '--cdx-endpoint', cdx_endpoint
+        ]
+    for item in items:
+        args.append("hdfs://%s" % item['file_path_s'])
+
+    # Set up the job:
+    mr_job = MRCDXIndexer(args=args)
 
     # Run and gather output:
     stats = {}
@@ -118,6 +120,7 @@ class MRCDXIndexer(MRJob):
 
     def reducer_final(self):
         self.ocdx.send()
+        yield 'total_sent_records_i', self.ocdx.total_sent
 
 
 class OutbackCDXClient():
@@ -127,11 +130,13 @@ class OutbackCDXClient():
           self.buf_max = buf_max
           self.postbuffer = []
           self.session = requests.Session()
+          self.total_sent = 0
     
     def send(self):
         chunk = "\n".join(self.postbuffer)
         r = self.session.post(self.cdx_server, data=chunk.encode('utf-8'))
         if (r.status_code == 200):
+            self.total_sent += len(self.postbuffer)
             self.postbuffer = []
             logger.info("POSTed to cdxserver: %s" % self.cdx_server)
             return
