@@ -17,7 +17,7 @@ from lib.trackdb.tasks import Task
 # Specific code relating to index work
 from lib.windex.cdx import CdxIndex
 from lib.windex.trace import follow_redirects
-from lib.windex.mr_cdx_job import run_cdx_index_job, run_cdx_index_job_with_file
+from lib.windex.mr_cdx_pywb_job import run_cdx_index_job, run_cdx_index_job_with_file
 from lib.windex.mr_solr_job import run_solr_index_job
 from lib.windex.mr_log_job import run_log_job
 from lib.windex.index_ops import remove_solr_records
