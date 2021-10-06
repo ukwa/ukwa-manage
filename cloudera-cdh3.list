@@ -1,0 +1,3 @@
+# These seem to be broken so I'm switching them off:
+#deb [trusted=yes] http://archive.cloudera.com/debian squeeze-cdh3 contrib
+#deb-src [trusted=yes] http://archive.cloudera.com/debian squeeze-cdh3 contrib

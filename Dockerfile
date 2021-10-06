@@ -8,8 +8,12 @@ FROM ukwa/docker-hadoop:hadoop-0.20
 # Switch to root user while installing software:
 USER root
 
+COPY ./cloudera-cdh3.list /etc/apt/sources.list.d/cloudera-cdh3.list
+
 # Additional dependencies required to support Snappy compression:
-RUN apt-get update --allow-insecure-repositories && apt-get install -y --no-install-recommends --allow-unauthenticated \
+RUN apt-get --allow-releaseinfo-change update && \
+        apt-get update --allow-insecure-repositories  && \
+        apt-get install -y --no-install-recommends --allow-unauthenticated \
         libsnappy-dev \
         g++ \
         git \
