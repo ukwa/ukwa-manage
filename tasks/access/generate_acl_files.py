@@ -105,7 +105,8 @@ class GenerateAccessWhitelist(luigi.Task):
             'http://(uk,co,bbc,newsimg,',
             # Allow Twitter Service Worker and API.
             'http://(com,twitter)/sw.js',
-            'http://(com,twitter,api)'
+            'http://(com,twitter,api)',
+            'http://(com,twitter)/i/api'
         ]
         # Add them in:
         for cdn_surt in cdn_surts:

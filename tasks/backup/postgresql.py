@@ -65,7 +65,7 @@ class BackupProductionW3ACTPostgres(luigi.Task):
     host = luigi.Parameter(default='prod1.n45.wa.bl.uk')
     service = luigi.Parameter(default='w3act_postgres')
     db = luigi.Parameter(default='w3act')
-    remote_host_backup_folder = luigi.Parameter(default='/data/prod/w3act/postgresql')
+    remote_host_backup_folder = luigi.Parameter(default='/mnt/nfs/prod1/ingest/data/w3act/postgresql')
     hdfs_backup_folder = luigi.Parameter(default='/2_backups/')
     date = luigi.DateParameter(default=datetime.date.today())
     
