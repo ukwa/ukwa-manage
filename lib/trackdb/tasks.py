@@ -2,6 +2,7 @@
 # Helper class for managing task events in the TrackDB
 #
 import datetime
+import json
 
 class Task():
 
@@ -31,4 +32,7 @@ class Task():
 
     def as_dict(self):
         return self.event
+
+    def to_jsonline(self):
+        return json.dumps(self.as_dict())
         

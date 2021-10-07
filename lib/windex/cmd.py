@@ -218,8 +218,10 @@ def main():
         t.add(props)
         # Add stats:
         t.add(stats)
-        # Send to TrackDB:
-        tdb.import_items([t.as_dict()])
+        # TODO? Send to TrackDB:
+        #tdb.import_items([t.as_dict()])
+        print(t.to_jsonline())
+        
     elif args.op == 'cdx-index-job':
         # Run a one-off job to index some WARCs based on a list from a file:
         stats = run_cdx_index_job_with_file(args.input_file, cdx_url)
@@ -263,8 +265,9 @@ def main():
         t.add(props)
         # Add stats:
         t.add(stats)
-        # Send to TrackDB:
-        tdb.import_items([t.as_dict()])
+        # TODO? Send to TrackDB:
+        #tdb.import_items([t.as_dict()])
+        print(t.to_jsonline())
 
     elif args.op == 'index-delete':
         with open(args.urls_to_delete) as f:
