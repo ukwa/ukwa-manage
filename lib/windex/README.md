@@ -50,6 +50,16 @@ Note that the `trackdb` command can be used to query the TrackDB and check what'
 This lists return the 100 most recent matching files by default, and can be filtered and limited in various ways (see `trackdb -h` for details). The command returns detailed information in JSONL format by default.
 
 
+### DEV
+
+```
+export MRJOB_CONF=${PWD}/mrjob.conf
+source venv/bin/activate
+python -m lib.windex.cmd cdx-index -C mrjob-2 -v -t http://trackdb.dapi.wa.bl.uk/solr/tracking -B 10
+```
+
+
+
 ### CDX Verification
 
 _The `cdx-verify` step has not yet been moved over to this new approach._

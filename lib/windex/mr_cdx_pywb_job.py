@@ -1,3 +1,4 @@
+import re
 import json
 import tempfile
 import logging
@@ -32,18 +33,20 @@ def run_cdx_index_job(items, cdx_endpoint):
         runner.run()
         for key, value in mr_job.parse_output(runner.cat_output()):
             # Normalise key if needed:
-            key = key.lower()
-            if not key.endswith("_i"):
-                key = "%s_i" % key
+            if key.startswith("__"):
+                key = key.replace("__", "", 1)
+            # This is only for when sending to Solr:
+            #if not key.endswith("_i"):
+            #    key = "%s_i" % key
             # Update counter for the stat:
             i = stats.get(key, 0)
             stats[key] = i + int(value)
 
     # Raise an exception if the output looks wrong:
-    if not "total_sent_records_i" in stats:
-        raise Exception("CDX job stats has no total_sent_records_i value! \n%s" % json.dumps(stats))
-    if stats['total_sent_records_i'] == 0:
-        raise Exception("CDX job stats has total_sent_records_i == 0! \n%s" % json.dumps(stats))
+    if not "total_record_count" in stats:
+        raise Exception("CDX job stats has no total_record_count value! \n%s" % json.dumps(stats))
+    if stats['total_record_count'] == 0:
+        raise Exception("CDX job stats has total_record_count == 0! \n%s" % json.dumps(stats))
 
     return stats
 
@@ -88,7 +91,9 @@ class MRCDXIndexer(MRJob):
         warc_path = urlparse(warc_uri).path
 
         self.set_status('cdxj_indexer of %s complete.' % warc_path)
-
+        
+        first_url = None
+        last_url = None
         with open(cdx_file) as f:
             for line in f:
                 line = line.strip()
@@ -100,27 +105,55 @@ class MRCDXIndexer(MRJob):
                 self.increment_counter('CDX', 'CDX_LINES', 1)
                 # Replace `warc_path` with proper HDFS path:
                 parts[10] = warc_path
-                # Key on host to distribute load:
-                host_surt = parts[0].split(")", 1)[0]
+                # Store the first and last URLs
+                url = parts[2]
+                if first_url is None:
+                    first_url = url
+                last_url = url
+                # Key on host to distribute load and collect stats:
+                # Deal with URL schemes of the form screenshot:http://host/path -> screenshot_http_host
+                match = re.search(r"^[a-z]+:http(.*)", url)
+                if match:
+                    # Assume this is e.g. screenshot:http: and replace the first : with a _:
+                    url = url.replace(':','-', 1)
+                    urlp = urlparse(url)
+                    host_key = f"{urlp.scheme}-{urlp.hostname}"
+                else:
+                    url_surt = parts[0]
+                    host_key = url_surt.split(")", 1)[0]
                 # Reconstruct the CDX line and yield:
-                yield host_surt, " ".join(parts)
+                yield host_key, " ".join(parts)
+
+        # Also return the first+last indexable URLs for each WARC:
+        yield f"__first_url__{warc_path}__{first_url}", 1
+        yield f"__last_url__{warc_path}__{last_url}", 1
+
+        # Yield a counter for the number of WARCs processed:
+        yield "__warc_file_count", 1
+
 
     def reducer_init(self):
         self.ocdx = OutbackCDXClient(self.options.cdx_endpoint)
 
     def reducer(self, key, values):
-        counter = 0
-        for value in values:
-            counter += 1
-            # Send to OutbackCDX:
-            self.ocdx.add(value)
+        # Pass on data fields:
+        if key.startswith("__"):
+            for value in values:
+                yield key, value
+        else:
+            # Otherwise send to OutbackCDX:
+            counter = 0
+            for value in values:
+                counter += 1
+                # Send to OutbackCDX:
+                self.ocdx.add(value)
 
-        # Also emit some stats from the job:
-        yield key, counter
+            # Also emit some stats from the job:
+            yield key, counter
 
     def reducer_final(self):
         self.ocdx.send()
-        yield 'total_sent_records_i', self.ocdx.total_sent
+        yield 'total_record_count', self.ocdx.total_sent
 
 
 class OutbackCDXClient():
