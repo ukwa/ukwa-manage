@@ -15,12 +15,6 @@ logging.basicConfig(level=logging.WARNING, format='%(asctime)s: %(levelname)s - 
 
 logger = logging.getLogger(__name__)
 
-# Defaults to using the production HDFS (via 'safe' gateway):
-# TODO Switch to a variable store URI for different backends.
-DEFAULT_STORE = os.environ.get("STORE_URI", "webhdfs://access@hdfs.api.wa.bl.uk/")
-DEFAULT_WEBHDFS = os.environ.get("WEBHDFS_URL", "http://hdfs.api.wa.bl.uk/")
-DEFAULT_WEBHDFS_USER = os.environ.get("WEBHDFS_USERNAME", "access")
-
 # Fields to output in the CSV version:
 CSV_FIELDNAMES =  ['permissions_s', 'hdfs_replicas_i', 'hdfs_user_s', 'hdfs_group_s', 'file_size_l', 'modified_at_dt', 'file_path_s']
 
@@ -30,12 +24,11 @@ def main():
 
     # Common arguments:
     parser.add_argument('-v', '--verbose',  action='count', default=0, help='Logging level; add more -v for more logging.')
-    parser.add_argument('-w', '--webhdfs-url', type=str, help='The WebHDFS URL to talk to (defaults to %s).' % DEFAULT_WEBHDFS, 
-        default=DEFAULT_WEBHDFS)
-    parser.add_argument('-u', '--webhdfs-user', type=str, help='The WebHDFS user to act as (defaults to %s).' % DEFAULT_WEBHDFS_USER, 
-        default=DEFAULT_WEBHDFS_USER)
     parser.add_argument('--dry-run', action='store_true', help='Do not modify the TrackDB.')
     parser.add_argument('-i', '--indent', type=int, help='Number of spaces to indent when emitting JSON.')
+
+    # First positional argument:
+    parser.add_argument(choices=['h020', 'h3'], dest='service', help='Which Hadoop service to talk to (required).')
 
     # Use sub-parsers for different operations:
     subparsers = parser.add_subparsers(dest="op")
@@ -90,7 +83,7 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)    
 
     # Set up client:
-    st = WebHDFSStore(args.webhdfs_url, args.webhdfs_user)
+    st = WebHDFSStore(args.service)
 
     # Ops:
     logger.debug("Got args: %s" % args)

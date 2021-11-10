@@ -3,17 +3,14 @@ FROM ukwa/webarchive-discovery AS dep-env
 
 
 # Switch to UKWA Hadoop 0.20 + Python 3 base image:
-FROM ukwa/docker-hadoop:hadoop-0.20
+FROM ukwa/docker-hadoop:hadoop-3
 
 # Switch to root user while installing software:
 USER root
 
-COPY ./cloudera-cdh3.list /etc/apt/sources.list.d/cloudera-cdh3.list
-
 # Additional dependencies required to support Snappy compression:
-RUN apt-get --allow-releaseinfo-change update && \
-        apt-get update --allow-insecure-repositories  && \
-        apt-get install -y --no-install-recommends --allow-unauthenticated \
+RUN apt-get update && \
+        apt-get install -y \
         libsnappy-dev \
         g++ \
         git \
@@ -21,6 +18,7 @@ RUN apt-get --allow-releaseinfo-change update && \
         rustc \
         cargo \
         libssl-dev \
+        libffi-dev \
         python3-dev \
 	&& rm -rf /var/lib/apt/lists/*
 
@@ -43,6 +41,7 @@ RUN cd /ukwa-manage && python setup.py install
 # Also copy in shell script helpers and configuration:
 COPY scripts/* /usr/local/bin/
 COPY mrjob.conf /etc/mrjob.conf
+COPY mrjob_h3.conf /etc/mrjob_h3.conf
 
 # Copy in the JARs from the dependent container:
 COPY --from=dep-env /jars/* /usr/local/bin/

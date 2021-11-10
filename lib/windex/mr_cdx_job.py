@@ -47,7 +47,7 @@ class MRCdxIndexerJarJob(MRJob):
 
     OUTPUT_PROTOCOL = TextProtocol
 
-    jar_path = '/usr/local/bin/warc-hadoop-recordreaders-job.jar 
+    jar_path = '/usr/local/bin/warc-hadoop-recordreaders-job.jar'
 
     def configure_args(self):
         super(MRCdxIndexerJarJob, self).configure_args()

@@ -14,10 +14,20 @@ import posixpath as psp
 from hdfs import InsecureClient
 from lib.store.hdfs_layout import HdfsPathParser
 
-DEFAULT_WEBHDFS = "http://hdfs.api.wa.bl.uk/"
-DEFAULT_WEBHDFS_USER = "access"
 
-HDFS_ID_PREFIX = "hdfs://hdfs:54310"
+# Define the Hadoop systems are we talking to:
+HADOOPS = {
+    'h020': {
+        'id_prefix': 'hdfs://hdfs:54310',
+        'webhdfs_url': 'http://hdfs.api.wa.bl.uk',
+        'webhdfs_user': 'access'
+    },
+    'h3': {
+        'id_prefix': 'hdfs://h3nn.wa.bl.uk:54310',
+        'webhdfs_url': 'http://h3httpfs.api.wa.bl.uk',
+        'webhdfs_user': 'spark'
+    },
+}
 
 logger = logging.getLogger(__name__)
 
@@ -69,16 +79,18 @@ def calculate_reader_hash(reader, path="unknown-path"):
     return path_hash
 
 
-class WebHDFSStore(object):
+class WebHDFSStore():
     '''
     A file store based on the WebHDFS protocol.
     '''
     # Set a refresh-date to indicate when we did this lookup:
     refresh_date = datetime.datetime.utcnow().isoformat(timespec='milliseconds')+'Z'
     
-    def __init__(self, webhdfs_url = DEFAULT_WEBHDFS, webhdfs_user = DEFAULT_WEBHDFS_USER):
-        self.webhdfs_url = webhdfs_url
-        self.webhdfs_user = webhdfs_user
+    def __init__(self, service_id):
+        self.service_id = service_id
+        self.webhdfs_url = HADOOPS[service_id]['webhdfs_url']
+        self.webhdfs_user = HADOOPS[service_id]['webhdfs_user']
+        self.id_prefix = HADOOPS[service_id]['id_prefix']
         self.client = InsecureClient(self.webhdfs_url, self.webhdfs_user)
 
     def put(self, local_path, hdfs_path, backup_and_replace=False):
@@ -205,9 +217,16 @@ class WebHDFSStore(object):
                 permissions = "-" + permissions
         else:
             permissions = status['permission']
+        # Defined fields based on directory/file status
+        if permissions[0] == 'd':
+            fs_type = 'directory'
+            access_url = '%s/webhdfs/v1%s?op=LISTSTATUS&user.name=%s' %(self.webhdfs_url, item['file_path'], self.webhdfs_user)
+        else:
+            fs_type = 'file'
+            access_url = '%s/webhdfs/v1%s?op=OPEN&user.name=%s' %(self.webhdfs_url, item['file_path'], self.webhdfs_user)
         # And return as a 'standard' dict:
         return {
-                'id': '%s%s' % (HDFS_ID_PREFIX, item['file_path']),
+                'id': '%s%s' % (self.id_prefix, item['file_path']),
                 'refresh_date_dt': self.refresh_date,
                 'file_path_s': item['file_path'],
                 'file_size_l': item['file_size'],
@@ -225,7 +244,10 @@ class WebHDFSStore(object):
                 'collection_s': item['collection'],
                 'stream_s': item['stream'],
                 'job_s': item['job'],
-                'layout_s': item['layout']
+                'layout_s': item['layout'],
+                'hdfs_service_id_s': self.service_id,
+                'hdfs_type_s': fs_type,
+                'access_url_s': access_url
             }
     
     def list(self, path, recursive=False):
