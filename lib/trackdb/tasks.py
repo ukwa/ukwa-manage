@@ -64,7 +64,6 @@ class Task():
             else:
                 logger.warning(f"Could not find metrics key '{key}'")
 
-
         if os.environ.get("PUSH_GATEWAY"):
             push_to_gateway(os.environ.get("PUSH_GATEWAY"), job=self.event_name, registry=registry)
         else:

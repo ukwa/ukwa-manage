@@ -4,6 +4,7 @@ import tempfile
 import logging
 import requests
 from mrjob.job import MRJob
+from types import MethodType
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -11,8 +12,14 @@ logger = logging.getLogger(__name__)
 
 def run_cdx_index_job_with_file(input_file, cdx_endpoint):
     # Read input file list in as items:
+    items = []
+    with open(input_file) as fin:
+        for line in fin:
+            items.append({
+                'file_path_s': line.strip()
+            })
     # Run the given job:
-    pass
+    run_cdx_index_job(items, cdx_endpoint)
 
 def run_cdx_index_job(items, cdx_endpoint):
     # This needs to read the TrackDB IDs in the input file and convert to a set of plain paths:
@@ -22,6 +29,7 @@ def run_cdx_index_job(items, cdx_endpoint):
         '--cdx-endpoint', cdx_endpoint
         ]
     for item in items:
+        # Use the URI form with the implied host, i.e. hdfs:///path/to/file.input
         args.append("hdfs://%s" % item['file_path_s'])
 
     # Set up the job:
@@ -30,6 +38,12 @@ def run_cdx_index_job(items, cdx_endpoint):
     # Run and gather output:
     stats = {}
     with mr_job.make_runner() as runner:
+        # Block the running from auto-decompressing the intputs:
+        def _manifest_uncompress_commands_just_dont(self):
+            return []
+            #foo.bark = new_bark.__get__(foo, Dog)
+        runner._manifest_uncompress_commands = _manifest_uncompress_commands_just_dont.__get__(runner, runner.__class__)
+        # And run the job:
         runner.run()
         for key, value in mr_job.parse_output(runner.cat_output()):
             # Normalise key if needed:
