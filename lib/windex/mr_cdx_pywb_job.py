@@ -99,6 +99,9 @@ class MRCDXIndexer(MRJob):
 
         cdx_file = 'index.cdx'
 
+        # Using CDX11:
+        # CDX N b a m s k r M S V g
+        # com,example)/ 20170306040206 http://example.com/ text/html 200 G7HRM7BGOKSKMSXZAHMUQTTV53QOFSMK - - 1242 784 example.warc.gz
         cdx11 = CDX11Indexer(inputs=[warc_path], output=cdx_file, cdx11=True, post_append=True)
         cdx11.process_all()
 
@@ -137,6 +140,21 @@ class MRCDXIndexer(MRJob):
                     host_key = url_surt.split(")", 1)[0]
                 # Reconstruct the CDX line and yield:
                 yield host_key, " ".join(parts)
+
+                # Yield a counter for the number of WARC records included:
+                yield "__warc_record_count", 1
+
+                # Also record content types and status codes:
+                yield "__content_type_%s_count" % parts[3], 1
+                yield "__status_code_%s_count" %parts[5], 1
+
+                # Also total up bytes:
+                if parts[9] != "-":
+                    bytes = int(parts[9])
+                    yield "__warc_record_bytes", bytes
+                    yield "__content_type_%s_bytes" % parts[3], bytes
+                    yield "__status_code_%s_bytes" %parts[5], bytes
+
 
         # Also return the first+last indexable URLs for each WARC:
         yield f"__first_url__{warc_path}__{first_url}", 1
