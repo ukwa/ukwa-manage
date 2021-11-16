@@ -226,7 +226,7 @@ def main():
     elif args.op == 'cdx-index-job':
         # Run a one-off job to index some WARCs based on a list from a file:
         stats = run_cdx_index_job_with_file(args.input_file, cdx_url)
-        print(stats)
+        print(json.dumps(stats, sort_keys=True))
     elif args.op == 'log-analyse':
         # Setup TrackDB for log files
         tdb = SolrTrackDB(args.trackdb_url, kind='logs')

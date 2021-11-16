@@ -58,6 +58,16 @@ source venv/bin/activate
 python -m lib.windex.cmd cdx-index -C mrjob-2 -v -t http://trackdb.dapi.wa.bl.uk/solr/tracking -B 10
 ```
 
+Hadoop 3
+
+```
+export HADOOP_CONF_DIR=/home/anj/github/docker-hadoop/conf/hadoop-3/conf
+export HADOOP_HOME=/home/anj/hadoop-3.3.1
+export PATH=$HADOOP_HOME/bin:$PATH
+export MRJOB_CONF=${PWD}/mrjob_h3.conf
+
+python -m lib.windex.cmd cdx-index-job -C mrjob-h3 -v h3-warcs.txt
+```
 
 
 ### CDX Verification

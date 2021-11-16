@@ -19,7 +19,7 @@ def run_cdx_index_job_with_file(input_file, cdx_endpoint):
                 'file_path_s': line.strip()
             })
     # Run the given job:
-    run_cdx_index_job(items, cdx_endpoint)
+    return run_cdx_index_job(items, cdx_endpoint)
 
 def run_cdx_index_job(items, cdx_endpoint):
     # This needs to read the TrackDB IDs in the input file and convert to a set of plain paths:
@@ -49,17 +49,14 @@ def run_cdx_index_job(items, cdx_endpoint):
             # Normalise key if needed:
             if key.startswith("__"):
                 key = key.replace("__", "", 1)
-            # This is only for when sending to Solr:
-            #if not key.endswith("_i"):
-            #    key = "%s_i" % key
             # Update counter for the stat:
             i = stats.get(key, 0)
             stats[key] = i + int(value)
 
     # Raise an exception if the output looks wrong:
-    if not "total_record_count" in stats:
+    if not "total_record_count_i" in stats:
         raise Exception("CDX job stats has no total_record_count value! \n%s" % json.dumps(stats))
-    if stats['total_record_count'] == 0:
+    if stats['total_record_count_i'] == 0:
         raise Exception("CDX job stats has total_record_count == 0! \n%s" % json.dumps(stats))
 
     return stats
@@ -138,30 +135,36 @@ class MRCDXIndexer(MRJob):
                 else:
                     url_surt = parts[0]
                     host_key = url_surt.split(")", 1)[0]
-                # Reconstruct the CDX line and yield:
+	
+                # Skip DNS lines:
+                if host_key.startswith("dns:"):
+                    continue
+
+                # Reconstruct the CDX line and yield (except DNS):
                 yield host_key, " ".join(parts)
 
                 # Yield a counter for the number of WARC records included:
-                yield "__warc_record_count", 1
+                yield "__warc_record_count_i", 1
 
                 # Also record content types and status codes:
-                yield "__content_type_%s_count" % parts[3], 1
-                yield "__status_code_%s_count" %parts[5], 1
+                yield "__content_type_%s_count_i" % parts[3], 1
+                yield "__status_code_%s_count_i" %parts[4], 1
 
                 # Also total up bytes:
-                if parts[9] != "-":
-                    bytes = int(parts[9])
-                    yield "__warc_record_bytes", bytes
-                    yield "__content_type_%s_bytes" % parts[3], bytes
-                    yield "__status_code_%s_bytes" %parts[5], bytes
+                if parts[8] != "-":
+                    bytes = int(parts[8])
+                    yield "__warc_record_bytes_i", bytes
+                    yield "__host_%s_bytes_i" % host_key, bytes
+                    yield "__content_type_%s_bytes_i" % parts[3], bytes
+                    yield "__status_code_%s_bytes_i" %parts[4], bytes
 
 
         # Also return the first+last indexable URLs for each WARC:
-        yield f"__first_url__{warc_path}__{first_url}", 1
-        yield f"__last_url__{warc_path}__{last_url}", 1
+        yield f"__first_url__{warc_path}__{first_url}_s", 1
+        yield f"__last_url__{warc_path}__{last_url}_s", 1
 
         # Yield a counter for the number of WARCs processed:
-        yield "__warc_file_count", 1
+        yield "__warc_file_count_i", 1
 
 
     def reducer_init(self):
@@ -181,11 +184,11 @@ class MRCDXIndexer(MRJob):
                 self.ocdx.add(value)
 
             # Also emit some stats from the job:
-            yield key, counter
+            yield "host_%s_count_i" % key, counter
 
     def reducer_final(self):
         self.ocdx.send()
-        yield 'total_record_count', self.ocdx.total_sent
+        yield 'total_record_count_i', self.ocdx.total_sent
 
 
 class OutbackCDXClient():

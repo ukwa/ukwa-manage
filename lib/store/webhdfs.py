@@ -25,7 +25,7 @@ HADOOPS = {
     'h3': {
         'id_prefix': 'hdfs://h3nn.wa.bl.uk:54310',
         'webhdfs_url': 'http://h3httpfs.api.wa.bl.uk',
-        'webhdfs_user': 'spark'
+        'webhdfs_user': 'access'
     },
 }
 
