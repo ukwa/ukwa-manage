@@ -17,8 +17,9 @@ HDFS_PREFIX = 'hdfs://' # Used to sanity-check HDFS IDs on import.
 
 class SolrTrackDB():
 
-    def __init__(self, trackdb_url, kind='warcs', update_batch_size=1000):
+    def __init__(self, trackdb_url, hadoop=None, kind='warcs', update_batch_size=1000):
         self.trackdb_url = trackdb_url
+        self.hadoop = hadoop
         self.kind = kind
         self.batch_size = update_batch_size
         # Set up the update configuration:
@@ -69,12 +70,12 @@ class SolrTrackDB():
         self._send_update(updates)
 
     def import_jsonl_reader(self, input_reader):
-        self.import_jsonl(self._jsonl_doc_generator(input_reader))
+        self.import_item_stream(self._jsonl_doc_generator(input_reader))
 
     def import_items(self, items):
         self._send_batch(items)
 
-    def import_jsonl(self, item_generator):
+    def import_item_stream(self, item_generator):
         batch = []
         for item in item_generator:
             batch.append(item)
@@ -94,6 +95,8 @@ class SolrTrackDB():
             'sort':sort
         }
         # Add optional fields:
+        if self.hadoop:
+            query_string['q'] += ' AND hdfs_service_id_s:%s' % self.hadoop
         if stream:
             query_string['q'] += ' AND stream_s:%s' % stream
         if year:
@@ -155,5 +158,5 @@ class SolrTrackDB():
             yield { 'id': id, field: { action: value } } 
         
     def update(self, ids, field, value, action='add-distinct'):
-        self.import_jsonl(self._update_generator(ids, field, value, action))
+        self.import_item_stream(self._update_generator(ids, field, value, action))
 

@@ -45,13 +45,8 @@ def run_cdx_index_job(items, cdx_endpoint):
         runner._manifest_uncompress_commands = _manifest_uncompress_commands_just_dont.__get__(runner, runner.__class__)
         # And run the job:
         runner.run()
-        for key, value in mr_job.parse_output(runner.cat_output()):
-            # Normalise key if needed:
-            if key.startswith("__"):
-                key = key.replace("__", "", 1)
-            # Update counter for the stat:
-            i = stats.get(key, 0)
-            stats[key] = i + int(value)
+        results = process_job_output(mr_job, runner)
+        stats = results['metrics']
 
     # Raise an exception if the output looks wrong:
     if not "total_record_count_i" in stats:
@@ -59,8 +54,44 @@ def run_cdx_index_job(items, cdx_endpoint):
     if stats['total_record_count_i'] == 0:
         raise Exception("CDX job stats has total_record_count == 0! \n%s" % json.dumps(stats))
 
-    return stats
+    return results
 
+def process_job_output(mr_job, runner):
+    # Process the results to separate file and job level information:
+    results = {
+        'files': {},
+        'metrics': {},
+    }
+    for key, value in mr_job.parse_output(runner.cat_output()):
+        # Normalise key if needed:
+        if key.startswith("__"):
+            key = key.replace("__", "", 1)
+        # Check if this is a per-file stat, and split it up as needed:
+        if key.startswith("by_file "):
+            parts = key.split(" ", maxsplit=3)
+            filepath = parts[1]
+            metric = parts[2]
+            if len(parts) == 4:
+                remainder = parts[3]
+            else:
+                remainder = None
+            # Get current metrics for this file:
+            file_metrics = results['files'].get(filepath, {})
+            # Store as the appropriate type of metric
+            if metric.endswith("_i"):
+                file_metrics[metric] = value
+            elif metric.endswith("_ss"):
+                file_metrics[metric] = remainder.split(" ")
+            else:
+                file_metrics[metric] = remainder
+            # And store:
+            results['files'][filepath] = file_metrics
+        else:
+            # Update counter for task-level metric:
+            i = results['metrics'].get(key, 0)
+            results['metrics'][key] = i + int(value)
+
+    return results
 
 
 class MRCDXIndexer(MRJob):
@@ -102,12 +133,17 @@ class MRCDXIndexer(MRJob):
         cdx11 = CDX11Indexer(inputs=[warc_path], output=cdx_file, cdx11=True, post_append=True)
         cdx11.process_all()
 
+        # The warc_path we get passed in is just the local temp filename.
+        # We need to use the HDFS file URI instead and extract the path:
         warc_path = urlparse(warc_uri).path
 
         self.set_status('cdxj_indexer of %s complete.' % warc_path)
         
         first_url = None
         last_url = None
+        host_surts = set()
+        content_types = set()
+        extended_scheme_urls = 0
         with open(cdx_file) as f:
             for line in f:
                 line = line.strip()
@@ -121,9 +157,10 @@ class MRCDXIndexer(MRJob):
                 parts[10] = warc_path
                 # Store the first and last URLs
                 url = parts[2]
+                ts = parts[1]
                 if first_url is None:
-                    first_url = url
-                last_url = url
+                    first_url = f"{ts}/{url}"
+                last_url = f"{ts}/{url}"
                 # Key on host to distribute load and collect stats:
                 # Deal with URL schemes of the form screenshot:http://host/path -> screenshot_http_host
                 match = re.search(r"^[a-z]+:http(.*)", url)
@@ -132,6 +169,7 @@ class MRCDXIndexer(MRJob):
                     url = url.replace(':','-', 1)
                     urlp = urlparse(url)
                     host_key = f"{urlp.scheme}-{urlp.hostname}"
+                    extended_scheme_urls = extended_scheme_urls + 1
                 else:
                     url_surt = parts[0]
                     host_key = url_surt.split(")", 1)[0]
@@ -140,28 +178,46 @@ class MRCDXIndexer(MRJob):
                 if host_key.startswith("dns:"):
                     continue
 
+                # Normalise the content type:
+                parts[3] = parts[3].lower()
+                content_types.add(parts[3])
+
                 # Reconstruct the CDX line and yield (except DNS):
                 yield host_key, " ".join(parts)
+                host_surts.add(host_key)
+                # Too many fields, so this is not enabled:
+                #yield f"__by_file {warc_path} host_{host_key}_count_i", 1
 
                 # Yield a counter for the number of WARC records included:
-                yield "__warc_record_count_i", 1
+                yield f"__by_file {warc_path} warc_record_count_i", 1
 
                 # Also record content types and status codes:
-                yield "__content_type_%s_count_i" % parts[3], 1
-                yield "__status_code_%s_count_i" %parts[4], 1
+                yield f"__by_file {warc_path} content_type_{parts[3]}_count_i", 1
+                yield f"__by_file {warc_path} status_code_{parts[4]}_count_i", 1
 
                 # Also total up bytes:
                 if parts[8] != "-":
                     bytes = int(parts[8])
-                    yield "__warc_record_bytes_i", bytes
-                    yield "__host_%s_bytes_i" % host_key, bytes
-                    yield "__content_type_%s_bytes_i" % parts[3], bytes
-                    yield "__status_code_%s_bytes_i" %parts[4], bytes
-
+                    yield f"__by_file {warc_path} warc_record_bytes_i", bytes
+                    # Host-level stats means a LOT of separate fields per WARC, so we're not using this at present:
+                    #yield f"__by_file {warc_path} host_{host_key}_bytes_i", bytes
+                    yield f"__by_file {warc_path} content_type_{parts[3]}_bytes_i", bytes
+                    yield f"__by_file {warc_path} status_code_{parts[4]}_bytes_i", bytes
 
         # Also return the first+last indexable URLs for each WARC:
-        yield f"__first_url__{warc_path}__{first_url}_s", 1
-        yield f"__last_url__{warc_path}__{last_url}_s", 1
+        yield f"__by_file {warc_path} first_url_ts_s {first_url}", 1
+        yield f"__by_file {warc_path} last_url_ts_s {last_url}", 1
+
+        # Return the set of host SURTs in this WARC:
+        host_surts_list = " ".join(host_surts)
+        yield f"__by_file {warc_path} host_surts_ss {host_surts_list}", 1
+
+        # Content types:
+        content_types_list = " ".join(content_types)
+        yield f"__by_file {warc_path} content_types_ss {content_types_list}", 1
+
+        # Extended URLs counter:
+        yield f"__by_file {warc_path} extended_scheme_url_count_i", extended_scheme_urls
 
         # Yield a counter for the number of WARCs processed:
         yield "__warc_file_count_i", 1
@@ -182,9 +238,6 @@ class MRCDXIndexer(MRJob):
                 counter += 1
                 # Send to OutbackCDX:
                 self.ocdx.add(value)
-
-            # Also emit some stats from the job:
-            yield "host_%s_count_i" % key, counter
 
     def reducer_final(self):
         self.ocdx.send()

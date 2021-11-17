@@ -49,6 +49,7 @@ def main():
     # TrackDB args:
     trackdb_parser = argparse.ArgumentParser(add_help=False)
     trackdb_parser.add_argument('-t', '--trackdb-url', type=str, help='The TrackDB URL to talk to.', required=True)
+    trackdb_parser.add_argument('-H', '--hadoop-service', choices=['h020', 'h3'], dest='service', help='Which Hadoop service to talk to (required).', required=True)
     trackdb_parser.add_argument('-S', '--stream', 
         choices= ['frequent', 'domain', 'webrecorder'], 
         default='frequent',
@@ -56,6 +57,7 @@ def main():
     trackdb_parser.add_argument('-Y', '--year', 
         default=datetime.date.today().year,
         type=int, help="Which year to query for.")
+
 
     # CDX Server args:
     cdx_parser = argparse.ArgumentParser(add_help=False)
@@ -160,7 +162,9 @@ def main():
 
     elif args.op == 'cdx-index' or args.op == 'solr-index':
         # Setup TrackDB
-        tdb = SolrTrackDB(args.trackdb_url, kind='warcs')
+        tdb = SolrTrackDB(args.trackdb_url, hadoop=args.service, kind='warcs')
+        # Record task start time:
+        started_at = datetime.datetime.now()
         # Setup an event record:
         t = Task(args.op)
         t.start()
@@ -225,11 +229,11 @@ def main():
         
     elif args.op == 'cdx-index-job':
         # Run a one-off job to index some WARCs based on a list from a file:
-        stats = run_cdx_index_job_with_file(args.input_file, cdx_url)
-        print(json.dumps(stats, sort_keys=True))
+        results = run_cdx_index_job_with_file(args.input_file, cdx_url)
+        print(json.dumps(results, sort_keys=True))
     elif args.op == 'log-analyse':
         # Setup TrackDB for log files
-        tdb = SolrTrackDB(args.trackdb_url, kind='logs')
+        tdb = SolrTrackDB(args.trackdb_url, hadoop=args.service, kind='logs')
         # Setup an event record:
         t = Task(args.op)
         t.start()
