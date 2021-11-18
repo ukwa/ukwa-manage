@@ -66,6 +66,7 @@ export HADOOP_HOME=/home/anj/hadoop-3.3.1
 export PATH=$HADOOP_HOME/bin:$PATH
 export MRJOB_CONF=${PWD}/mrjob_h3.conf
 export PUSH_GATEWAY=monitor-pushgateway.dapi.wa.bl.uk:80
+export WARC_HADOOP_INDEXER_JOB_JAR_PATH=warc-hadoop-indexer-job.jar
 
 python -m lib.windex.cmd cdx-index-job -C mrjob-h3 -v h3-warcs.txt
 

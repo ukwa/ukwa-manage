@@ -1,5 +1,5 @@
 #
-# Helper class for managing task events in the TrackDB
+# Helper class for managing task events data
 #
 import os
 import json

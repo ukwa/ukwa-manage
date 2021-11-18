@@ -31,8 +31,9 @@ DEFAULT_CDX_SERVER = os.environ.get("CDX_SERVER","http://cdx.dapi.wa.bl.uk/")
 DEFAULT_CDX_COLLECTION = os.environ.get("CDX_COLLECTION","test-collection")
 
 # Default SOLR
-DEFAULT_SOLR_ZOOKEEPERS = os.environ.get("SOLR_ZOOKEEPERS", "dev-zk1:2182,dev-zk2:2182,dev-zk3:2182")
-DEFAULT_SOLR_COLLECTION = os.environ.get("SOLR_COLLECTION", "test-collection")
+#DEFAULT_SOLR_ZOOKEEPERS = os.environ.get("SOLR_ZOOKEEPERS", "dev-zk1:2182,dev-zk2:2182,dev-zk3:2182")
+#DEFAULT_SOLR_COLLECTION = os.environ.get("SOLR_COLLECTION", "test-collection")
+DEFAULT_SOLR_ENDPOINT   = os.environ.get("SOLR_ENDPOINT", "http://solr8.bapi.wa.bl.uk/solr/fc-2020-test")
 
 # Other defaults
 DEFAULT_BATCH_SIZE = 100
@@ -106,11 +107,10 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter, 
         parents=[common_parser, trackdb_parser])
     parser_index_solr.add_argument('-B', '--batch-size', type=int, help='Number files to process in each run.', default=DEFAULT_BATCH_SIZE)
-    parser_index_solr.add_argument('-Z', '--zks', help="Zookeepers to talk to, as comma-separated lost of HOST:PORT", default=DEFAULT_SOLR_ZOOKEEPERS)
-    parser_index_solr.add_argument('-C', '--solr-collection', help="The SolrCloud collection to index into.", default=DEFAULT_SOLR_COLLECTION)
-    parser_index_solr.add_argument('config', help="The indexer configuration file to use.")
-    parser_index_solr.add_argument('annotations', help="The annotations file to use with the indexer.")
-    parser_index_solr.add_argument('oasurts', help="The Open Access SURTS file to use with the indexer.")
+    parser_index_solr.add_argument('-s', '--solr-url', help="The Solr collection endpoint to index into.", default=DEFAULT_SOLR_ENDPOINT)
+    parser_index_solr.add_argument('-c', '--config', help="The indexer configuration file to use.")
+    parser_index_solr.add_argument('-A', '--annotations', help="The annotations file to use with the indexer.")
+    parser_index_solr.add_argument('-a', '--oasurts', help="The Open Access SURTS file to use with the indexer.")
 
     # Add a parser for the 'log-analyse' subcommand:
     parser_logs = subparsers.add_parser('log-analyse',
@@ -124,7 +124,7 @@ def main():
         help="Delete items from indexes.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[common_parser,cdx_parser])
-    parser_index_del.add_argument('-S', '--solr-url', help='URL of Solr service to operate on.', default=f"http://solr.api.wa.bl.uk/solr/{DEFAULT_SOLR_COLLECTION}")
+    parser_index_del.add_argument('-s', '--solr-url', help='URL of Solr service to operate on.', default=DEFAULT_SOLR_ENDPOINT)
     parser_index_del.add_argument('urls_to_delete', help='Location of files listing URLs to be deleted from indexes.')
 
     # And PARSE:
@@ -169,52 +169,49 @@ def main():
         t = Task(args.op)
         t.start()
         # Perform indexing job:
-        ids = []
         item_updates = []
-        stats = {}
+        status_value = None
         if args.op == 'cdx-index':
             # Get a list of items to process:
-            cdx_field = "cdx_index_ss"
-            field_value = ["-%s" % cdx_field, "%s*" % args.cdx_collection]
+            status_field = "cdx_index_ss"
+            field_value = ["-%s" % status_field, "%s*" % args.cdx_collection]
             items = tdb.list(args.stream, args.year, field_value, limit=args.batch_size)
             if len(items) > 0:
                 # Run a job to index those items:
                 results = run_cdx_index_job(items, cdx_url)
                 file_metrics = results['files']
                 metrics = results['metrics']
-                # If that worked (no exception thrown), update the tracking database accordingly:
-                ids = []
-                for item in items:
-                    ids.append(item['id'])
-                    warc_path = urllib.parse.urlparse(item['id']).path
-                    item_update = file_metrics.get(warc_path, {})
-                    # Mark as indexed, but also as unverified:
-                    item_update['id'] = item['id']
-                    item_update[cdx_field] = "%s" % args.cdx_collection
-                    item_updates.append(item_update)
+                status_value = args.cdx_collection
             else:
                 logger.warn("No WARCs found to process!")
                 return
         elif args.op == 'solr-index':
+            # Extract collection name:
+            solr_collection = args.solr_url.split("/")[-1]
             # Get a list of items to process:
-            solr_field = "solr_index_ss"
-            field_value = ["-%s" % solr_field, "%s*" % args.solr_collection]
+            status_field = "solr_index_ss"
+            field_value = ["-%s" % status_field, "%s*" % solr_collection]
             items = tdb.list(args.stream, args.year, field_value, limit=args.batch_size)
             if len(items) > 0:
                 # Run a job to index those items:
-                stats = run_solr_index_job(items, args.zks, args.solr_collection, args.config, args.annotations, args.oasurts)
-                # If that worked (no exception thrown), update the tracking database accordingly:
-                for item in items:
-                    ids.append(item['id'])
-                # Mark as indexed, but also as to-be-verified:
-                tdb.update(ids, solr_field, "%s" % args.solr_collection)
-                tdb.update(ids, solr_field, "%s|unverified" % args.solr_collection)
-                # Add fields to store:
-                stats['solr_collection_s'] = args.solr_collection
+                results = run_solr_index_job(items, args.solr_url, args.config, args.annotations, args.oasurts)
+                # No file-level metrics for this task:s
+                file_metrics = {}
+                metrics = results
+                status_value = solr_collection
             else:
                 logger.warn("No WARCs found to process!")
 
         # Perform item updates:
+        ids = []
+        for item in items:
+            ids.append(item['id'])
+            warc_path = urllib.parse.urlparse(item['id']).path
+            item_update = file_metrics.get(warc_path, {})
+            # Mark as indexed, but also as unverified:
+            item_update['id'] = item['id']
+            item_update[status_field] = "%s" % status_value
+            item_updates.append(item_update)
         tdb.import_items(item_updates)
         # Update event item in TrackDB
         t.finish()

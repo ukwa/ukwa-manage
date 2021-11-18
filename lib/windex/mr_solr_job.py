@@ -1,11 +1,14 @@
 import os
 import json
+import logging
 import tempfile
 from mrjob.job import MRJob
 from mrjob.step import JarStep, INPUT, OUTPUT, GENERIC_ARGS
 from mrjob.protocol import TextProtocol
 
-def run_solr_index_job(items, zks, collection, config, annotations, oa_surts):
+logger = logging.getLogger(__name__)
+
+def run_solr_index_job(items, solr_endpoint, config, annotations, oa_surts):
     with tempfile.NamedTemporaryFile('w+') as fpaths:
         # This needs to read the TrackDB IDs in the input file and convert to a set of plain paths:
         for item in items:
@@ -16,8 +19,7 @@ def run_solr_index_job(items, zks, collection, config, annotations, oa_surts):
         # Set up the CDX indexer map-reduce job:
         mr_job = MRSolrIndexerJarJob(args=[
             '-r', 'hadoop',
-            '--solr-zookeepers', zks,
-            '--solr-collection', collection,
+            '--solr-endpoint', solr_endpoint,
             '--config', config,
             '--annotations', annotations,
             '--oa-surts', oa_surts,
@@ -40,13 +42,17 @@ def run_solr_index_job(items, zks, collection, config, annotations, oa_surts):
         
         # Print stats:
         for k in stats:
-            print("%s > %s" %(k, stats[k]))
-
+            logger.info("Found job metric %s = %s" %(k, stats[k]))
+        
         # Raise an exception if the output looks wrong:
         if not "num_records_i" in stats:
             raise Exception("Solr job stats has no num_records_i value! \n%s" % json.dumps(stats))
         if stats['num_dropped_records_i'] > 0:
             raise Exception("Solr job stats has num_dropped_records_i > 0! \n%s" % json.dumps(stats))
+
+        # Copy some stats to standard names:
+        stats['total_record_count'] = stats['num_records_i']
+        stats['total_sent_record_count'] = stats['num_records_i'] - stats['num_dropped_records_i']
 
         return stats
 
@@ -54,7 +60,7 @@ class MRSolrIndexerJarJob(MRJob):
 
     OUTPUT_PROTOCOL = TextProtocol
 
-    jar_path = '/usr/local/bin/warc-hadoop-indexer-job.jar'
+    jar_path = os.environ.get('WARC_HADOOP_INDEXER_JOB_JAR_PATH', '/usr/local/bin/warc-hadoop-indexer-job.jar')
 
     def configure_args(self):
         super(MRSolrIndexerJarJob, self).configure_args()
@@ -62,11 +68,8 @@ class MRSolrIndexerJarJob(MRJob):
             '-R', '--num-reducers', default=4,
             help="Number of reducers to use.")
         self.add_passthru_arg(
-            '-S', '--solr-collection', required=True,
-            help="Solr collection to send data to.")
-        self.add_passthru_arg(
-            '-Z', '--solr-zookeepers', required=True,
-            help="The Zookeepers that hold the Solr collections, like 'HOST:PORT,HOST:PORT'")
+            '-S', '--solr-endpoint', required=True,
+            help="Solr collection endpoint to send data to.")
         self.add_passthru_arg(
             '--config', required=True,
             help="Configuration file to use for the webarchive-discovery indexer.")
@@ -87,7 +90,10 @@ class MRSolrIndexerJarJob(MRJob):
                 'mapred.compress.map.output':'true',
                 'mapred.map.output.compression.codec': 'org.apache.hadoop.io.compress.GzipCodec',
                 'mapred.output.compress': 'false',
-			    'mapred.reduce.max.attempts': '2'
+			    'mapred.reduce.max.attempts': '2',
+                'mapreduce.map.java.opts' : '-Xmx6g',
+                'mapreduce.map.memory.mb' : '8000',
+                'mapred.child.tmp': '/tmp' # Not set under Hadoop 3 (?)
             },
             jar=self.jar_path,
             main_class='uk.bl.wa.hadoop.indexer.WARCIndexerRunner',
@@ -100,8 +106,7 @@ class MRSolrIndexerJarJob(MRJob):
 			    "-a", # Apply annotations
 			    "-w", # Wait while the job runs
                 "--num-reducers", str(self.options.num_reducers), # An 'int' fails to run!
-                "--solr-zookeepers", self.options.solr_zookeepers,
-                "--solr-collection", self.options.solr_collection
+                "--solr-endpoint", self.options.solr_endpoint,
             ]
         )]
 
