@@ -49,9 +49,9 @@ def run_cdx_index_job(items, cdx_endpoint):
         stats = results['metrics']
 
     # Raise an exception if the output looks wrong:
-    if not "total_record_count_l" in stats:
+    if not "total_record_count" in stats:
         raise Exception("CDX job stats has no total_record_count value! \n%s" % json.dumps(stats))
-    if stats['total_record_count_l'] == 0:
+    if stats['total_record_count'] == 0:
         raise Exception("CDX job stats has total_record_count == 0! \n%s" % json.dumps(stats))
 
     return results
@@ -185,6 +185,9 @@ class MRCDXIndexer(MRJob):
 
                 # Reconstruct the CDX line and yield (except DNS):
                 yield host_key, " ".join(parts)
+                yield "__total_record_count", 1
+
+                # Also record all the host surts:
                 host_surts.add(host_key)
                 
                 # FIXME WARNING: A lot of things are not yet enable.
@@ -229,7 +232,7 @@ class MRCDXIndexer(MRJob):
         yield f"__by_file {warc_path} extended_scheme_url_count_l", extended_scheme_urls
 
         # Yield a counter for the number of WARCs processed:
-        yield "__warc_file_count_l", 1
+        yield "__warc_file_count", 1
 
 
     def reducer_init(self):
@@ -242,15 +245,13 @@ class MRCDXIndexer(MRJob):
             yield key, sum(values)
         else:
             # Otherwise send to OutbackCDX:
-            counter = 0
             for value in values:
-                counter += 1
                 # Send to OutbackCDX:
                 self.ocdx.add(value)
 
     def reducer_final(self):
         self.ocdx.send()
-        yield 'total_record_count_l', self.ocdx.total_sent
+        yield 'total_sent_record_count', self.ocdx.total_sent
 
 
 class OutbackCDXClient():

@@ -25,9 +25,9 @@ Note that the following examples run the windex tool directly.  In production, t
 For CDX indexing, we have chosed to add a multivalued status field to record what we're doing, and called it `cdx_index_ss`. 
 
 1. The WARCs on the storage service start off having no value of this field, and this fact is used to identify those that require indexing. 
-2. After indexing, we assign two values to the `cdx_index_ss` field: `<COLLECTION>` and `<COLLECTION>_unverified` to indicate that we've indexed the WARC into a CDX collection called `COLLECTION`, but not checked the index worked (yet). 
-3. Once the indexing has been verified, the `<COLLECTION>_unverified` flag can be removed.
-
+2. During the indexing process, the indexer records the first and last records timestamps and URLs.
+3. After indexing, we assign two values to the `cdx_index_ss` field: `<COLLECTION>` to indicate that we've indexed the WARC into a CDX collection called `COLLECTION`.  We also store the first and last records in fields like `first_url_ts_s` and `last_url_ts_s`.
+3. A second task looks up the first and last URLs to verify the indexing worked, and adds a `<COLLECTION>|verified` flag to each record.
 
 The `windex` tool is used to manage this process. For example,
 
@@ -65,8 +65,11 @@ export HADOOP_CONF_DIR=/home/anj/github/docker-hadoop/conf/hadoop-3/conf
 export HADOOP_HOME=/home/anj/hadoop-3.3.1
 export PATH=$HADOOP_HOME/bin:$PATH
 export MRJOB_CONF=${PWD}/mrjob_h3.conf
+export PUSH_GATEWAY=monitor-pushgateway.dapi.wa.bl.uk:80
 
 python -m lib.windex.cmd cdx-index-job -C mrjob-h3 -v h3-warcs.txt
+
+python -m lib.windex.cmd cdx-index -C mrjob-h3 -v -t http://trackdb.dapi.wa.bl.uk/solr/tracking -B 10 -H h3
 ```
 
 

@@ -170,6 +170,7 @@ def main():
         t.start()
         # Perform indexing job:
         ids = []
+        item_updates = []
         stats = {}
         if args.op == 'cdx-index':
             # Get a list of items to process:
@@ -178,16 +179,19 @@ def main():
             items = tdb.list(args.stream, args.year, field_value, limit=args.batch_size)
             if len(items) > 0:
                 # Run a job to index those items:
-                stats = run_cdx_index_job(items, cdx_url)
+                results = run_cdx_index_job(items, cdx_url)
+                file_metrics = results['files']
+                metrics = results['metrics']
                 # If that worked (no exception thrown), update the tracking database accordingly:
                 ids = []
                 for item in items:
                     ids.append(item['id'])
-                # Mark as indexed, but also as unverified:
-                tdb.update(ids, cdx_field, "%s" % args.cdx_collection)
-                tdb.update(ids, cdx_field, "%s|unverified" % args.cdx_collection)
-                # Add fields to store:
-                stats['cdx_endpoint_s'] = cdx_url
+                    warc_path = urllib.parse.urlparse(item['id']).path
+                    item_update = file_metrics.get(warc_path, {})
+                    # Mark as indexed, but also as unverified:
+                    item_update['id'] = item['id']
+                    item_update[cdx_field] = "%s" % args.cdx_collection
+                    item_updates.append(item_update)
             else:
                 logger.warn("No WARCs found to process!")
                 return
@@ -210,22 +214,22 @@ def main():
             else:
                 logger.warn("No WARCs found to process!")
 
+        # Perform item updates:
+        tdb.import_items(item_updates)
         # Update event item in TrackDB
         t.finish()
         # Add properties:
-        props = {
+        t.add({
             'batch_size_i': len(ids),
             'ids_ss' : ids,
             'stream_s': args.stream,
             'year_i': args.year
-        }
-        t.add(props)
-        # Add stats:
-        t.add(stats)
-        # TODO? Send to TrackDB:
-        #tdb.import_items([t.as_dict()])
+        })
+        # Add job metrics:
+        t.add(metrics)
+        t.push_metrics( ['total_record_count', 'total_sent_record_count', 'warc_file_count'] )
+        # Print out the task summary:
         print(t.to_jsonline())
-        t.push_metrics( ['total_record_count', 'warc_file_count'] )
         
     elif args.op == 'cdx-index-job':
         # Run a one-off job to index some WARCs based on a list from a file:
