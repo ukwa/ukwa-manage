@@ -49,9 +49,9 @@ def run_cdx_index_job(items, cdx_endpoint):
         stats = results['metrics']
 
     # Raise an exception if the output looks wrong:
-    if not "total_record_count_i" in stats:
+    if not "total_record_count_l" in stats:
         raise Exception("CDX job stats has no total_record_count value! \n%s" % json.dumps(stats))
-    if stats['total_record_count_i'] == 0:
+    if stats['total_record_count_l'] == 0:
         raise Exception("CDX job stats has total_record_count == 0! \n%s" % json.dumps(stats))
 
     return results
@@ -78,8 +78,9 @@ def process_job_output(mr_job, runner):
             # Get current metrics for this file:
             file_metrics = results['files'].get(filepath, {})
             # Store as the appropriate type of metric
-            if metric.endswith("_i"):
-                file_metrics[metric] = value
+            if metric.endswith("_l") or metric.endswith("_i"):
+                i = file_metrics.get(key, 0)
+                file_metrics[metric] = i + int(value)                
             elif metric.endswith("_ss"):
                 file_metrics[metric] = remainder.split(" ")
             else:
@@ -185,42 +186,50 @@ class MRCDXIndexer(MRJob):
                 # Reconstruct the CDX line and yield (except DNS):
                 yield host_key, " ".join(parts)
                 host_surts.add(host_key)
+                
+                # FIXME WARNING: A lot of things are not yet enable.
+                # In this class, there are large data results that we're not currently sure how to handle.
+
                 # Too many fields, so this is not enabled:
                 #yield f"__by_file {warc_path} host_{host_key}_count_i", 1
 
                 # Yield a counter for the number of WARC records included:
-                yield f"__by_file {warc_path} warc_record_count_i", 1
+                yield f"__by_file {warc_path} warc_record_count_l", 1
 
                 # Also record content types and status codes:
-                yield f"__by_file {warc_path} content_type_{parts[3]}_count_i", 1
-                yield f"__by_file {warc_path} status_code_{parts[4]}_count_i", 1
+                # FIXME quite a lot of fields, so not enabled at present
+                #yield f"__by_file {warc_path} content_type_{parts[3]}_count_l", 1
+                #yield f"__by_file {warc_path} status_code_{parts[4]}_count_l", 1
 
                 # Also total up bytes:
                 if parts[8] != "-":
                     bytes = int(parts[8])
-                    yield f"__by_file {warc_path} warc_record_bytes_i", bytes
+                    yield f"__by_file {warc_path} warc_record_bytes_l", bytes
                     # Host-level stats means a LOT of separate fields per WARC, so we're not using this at present:
-                    #yield f"__by_file {warc_path} host_{host_key}_bytes_i", bytes
-                    yield f"__by_file {warc_path} content_type_{parts[3]}_bytes_i", bytes
-                    yield f"__by_file {warc_path} status_code_{parts[4]}_bytes_i", bytes
+                    #yield f"__by_file {warc_path} host_{host_key}_bytes_l", bytes
+                    # FIXME quite a lot of fields, so not enabled at present
+                    #yield f"__by_file {warc_path} content_type_{parts[3]}_bytes_l", bytes
+                    #yield f"__by_file {warc_path} status_code_{parts[4]}_bytes_l", bytes
 
         # Also return the first+last indexable URLs for each WARC:
         yield f"__by_file {warc_path} first_url_ts_s {first_url}", 1
         yield f"__by_file {warc_path} last_url_ts_s {last_url}", 1
 
         # Return the set of host SURTs in this WARC:
-        host_surts_list = " ".join(host_surts)
-        yield f"__by_file {warc_path} host_surts_ss {host_surts_list}", 1
+        # FIXME Large field, so not enable at present
+        #host_surts_list = " ".join(host_surts)
+        #yield f"__by_file {warc_path} host_surts_ss {host_surts_list}", 1
 
         # Content types:
-        content_types_list = " ".join(content_types)
-        yield f"__by_file {warc_path} content_types_ss {content_types_list}", 1
+        # FIXME Large field, so not enable at present
+        #content_types_list = " ".join(content_types)
+        #yield f"__by_file {warc_path} content_types_ss {content_types_list}", 1
 
         # Extended URLs counter:
-        yield f"__by_file {warc_path} extended_scheme_url_count_i", extended_scheme_urls
+        yield f"__by_file {warc_path} extended_scheme_url_count_l", extended_scheme_urls
 
         # Yield a counter for the number of WARCs processed:
-        yield "__warc_file_count_i", 1
+        yield "__warc_file_count_l", 1
 
 
     def reducer_init(self):
@@ -229,8 +238,8 @@ class MRCDXIndexer(MRJob):
     def reducer(self, key, values):
         # Pass on data fields:
         if key.startswith("__"):
-            for value in values:
-                yield key, value
+            # Only integer fields are expected to have multiple values:
+            yield key, sum(values)
         else:
             # Otherwise send to OutbackCDX:
             counter = 0
@@ -241,7 +250,7 @@ class MRCDXIndexer(MRJob):
 
     def reducer_final(self):
         self.ocdx.send()
-        yield 'total_record_count_i', self.ocdx.total_sent
+        yield 'total_record_count_l', self.ocdx.total_sent
 
 
 class OutbackCDXClient():
