@@ -1,53 +1,100 @@
+import os
+import re
 import json
+import surt
+import logging
 import tempfile
+from datetime import datetime
+from urllib.parse import urlparse
+
 from mrjob.job import MRJob
 from mrjob.step import JarStep, INPUT, OUTPUT, GENERIC_ARGS
 from mrjob.protocol import TextProtocol
 
-def run_log_job(items):
-    with tempfile.NamedTemporaryFile('w+') as fpaths:
-        # This needs to read the TrackDB IDs in the input file and convert to a set of plain paths:
-        for item in items:
-            fpaths.write("%s\n" % item['file_path_s'])
-        # Make sure temp file is up to date:
-        fpaths.flush()
+logger = logging.getLogger(__name__)
 
-        return run_log_job_with_file(fpaths.name, cdx_endpoint)                
+def url_to_surt(url):
+    return surt.surt(url)
 
-def run_cdx_index_job_with_file(input_file, cdx_endpoint):
-    # Set up the CDX indexer map-reduce job:
-    mr_job = MRCdxIndexerJarJob(args=[
+def run_log_job_with_file(input_file, targets):
+    # Read input file list in as items:
+    items = []
+    with open(input_file) as fin:
+        for line in fin:
+            items.append({
+                'file_path_s': line.strip()
+            })
+    # Run the given job:
+    return run_log_job(items, targets)
+
+
+def run_log_job(items, targets):
+    # Set up the args
+    args=[
         '-r', 'hadoop',
-        input_file, # < local input file, mrjob will upload it
-        ])
+    ]
+    if targets:
+        args += ['-T', targets]
+
+    for item in items:
+        # Use the URI form with the implied host, i.e. hdfs:///path/to/file.input
+        args.append("hdfs://%s" % item['file_path_s'])
+
+   # Set up the map-reduce job:
+    mr_job = MRLogAnalysisJob(args)
 
     # Run and gather output:
     stats = {}
     with mr_job.make_runner() as runner:
         runner.run()
         for key, value in mr_job.parse_output(runner.cat_output()):
-            # Normalise key if needed:
-            key = key.lower()
-            if not key.endswith("_i"):
-                key = "%s_i" % key
-            # Update counter for the stat:
-            i = stats.get(key, 0)
-            stats[key] = i + int(value)
+            print(key, value)
+            ## Normalise key if needed:
+            #key = key.lower()
+            #if not key.endswith("_i"):
+            #    key = "%s_i" % key
+            ## Update counter for the stat:
+            #i = stats.get(key, 0)
+            #stats[key] = i + int(value)
 
     # Raise an exception if the output looks wrong:
     if not "total_sent_records_i" in stats:
-        raise Exception("CDX job stats has no total_sent_records_i value! \n%s" % json.dumps(stats))
+        raise Exception("Log job stats has no total_sent_records_i value! \n%s" % json.dumps(stats))
     if stats['total_sent_records_i'] == 0:
-        raise Exception("CDX job stats has total_sent_records_i == 0! \n%s" % json.dumps(stats))
+        raise Exception("Log job stats has total_sent_records_i == 0! \n%s" % json.dumps(stats))
 
     return stats
 
 
 class MRLogAnalysisJob(MRJob):
 
+    def configure_args(self):
+        super().configure_args()
+        self.add_passthru_arg(
+            '-R', '--num-reducers', default=10,
+            help="Number of reducers to use.")
+        # Add a file arg as this will handle including it in the job:
+        self.add_file_arg(
+            '-T', '--targets', required=False,
+            help="The W3ACT Targets Crawl Feed file to use to determine which Targets are Watched.")
+
+    def jobconf(self):
+        return {
+            'mapred.job.name': '%s_%s' % ( self.__class__.__name__, datetime.now().isoformat() ),
+            'mapred.compress.map.output':'true',
+            'mapred.output.compress': 'true',
+            'mapred.output.compression.codec': 'org.apache.hadoop.io.compress.GzipCodec',
+            'mapreduce.map.java.opts' : '-Xmx6g',
+            'mapred.reduce.tasks': str(self.options.num_reducers),
+            'mapreduce.job.reduces': str(self.options.num_reducers), # Newer property is called this 
+        }
+
     def mapper_init(self):
         # Set up...
-        self.extractor = CrawlLogExtractors(self.job, self.launch_id, self.from_hdfs, targets_path=self.targets_path )
+        if self.options.targets:
+            self.extractor = CrawlLogExtractors(targets_path=self.options.targets )
+        else:
+            self.extractor = None
 
     def mapper(self, _, line):
         # Parse:
@@ -55,9 +102,10 @@ class MRLogAnalysisJob(MRJob):
         # Extract basic data for summaries, keyed for later aggregation:
         yield "BY_DAY_HOST_SOURCE,%s,%s,%s" % (log.day(), log.host(), log.source), json.dumps(log.stats())
         # Scan for documents, yield sorted in crawl order:
-        doc = self.extractor.extract_documents(log)
-        if doc:
-            yield "DOCUMENT,%s" % log.start_time_plus_duration, doc
+        if self.extractor:
+            doc = self.extractor.extract_documents(log)
+            if doc:
+                yield "DOCUMENT,%s" % log.start_time_plus_duration, doc
         # Check for dead seeds:
         if (int(int(log.status_code) / 100) != 2 and int(int(log.status_code) / 100) != 3  # 2xx/3xx are okay!
                 and log.hop_path == "-" and log.via == "-"):  # seed
@@ -182,23 +230,13 @@ class CrawlLogLine(object):
 
 class CrawlLogExtractors(object):
 
-    def __init__(self, job, launch, from_hdfs, targets_path=None):
-        self.job = job
-        self.launch_id = launch
+    def __init__(self, targets_path=None):
         # Setup targets if provided:
         if targets_path:
-            if from_hdfs:
-                hdfs_client = luigi.contrib.hdfs.HdfsClientApache1()
-                logger.warning("Loading targets using client: %s" % hdfs_client)
-                logger.warning("Loading targets from HDFS: %s" % targets_path)
-                targets = luigi.contrib.hdfs.HdfsTarget(path=targets_path, format=Plain, fs=hdfs_client)
-            else:
-                logger.warning("Loading targets from local FS: %s" % targets_path)
-                targets = luigi.LocalTarget(path=targets_path)
             # Find the unique watched seeds list:
-            logger.warning("Loading: %s" % targets)
-            logger.warning("Loading path: %s" % targets.path)
-            targets = json.load(targets.open())
+            logger.warning("Loading path: %s" % targets_path)
+            with open(targets_path) as fin:
+                targets = json.load(fin)
         else:
             targets = []
         # Assemble the Watched SURTs:
@@ -261,8 +299,8 @@ class CrawlLogExtractors(object):
                         'filename': os.path.basename(urlparse(log.url).path),
                         'size': int(log.content_length),
                         # Add some more metadata to the output so we can work out where this came from later:
-                        'job_name': self.job,
-                        'launch_id': self.launch_id,
+                        'job_name': 'unknown',
+                        'launch_id': 'unknown',
                         'source': log.source
                     }
                     #logger.info("Found document: %s" % doc)

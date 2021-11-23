@@ -70,13 +70,13 @@ class MRSolrIndexerJarJob(MRJob):
         self.add_passthru_arg(
             '-S', '--solr-endpoint', required=True,
             help="Solr collection endpoint to send data to.")
-        self.add_passthru_arg(
+        self.add_file_arg(
             '--config', required=True,
             help="Configuration file to use for the webarchive-discovery indexer.")
         self.add_passthru_arg(
             '--annotations', required=True,
             help="Annotations file to use to enrich records.")
-        self.add_passthru_arg(
+        self.add_file_arg(
             '--oa-surts', required=True,
             help="Open Access SURTs file to use to mark records as open access.")
         self.add_passthru_arg(

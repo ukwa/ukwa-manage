@@ -18,8 +18,9 @@ from lib.trackdb.tasks import Task
 from lib.windex.cdx import CdxIndex
 from lib.windex.trace import follow_redirects
 from lib.windex.mr_cdx_pywb_job import run_cdx_index_job, run_cdx_index_job_with_file
+from lib.windex.mr_hash_job import run_hash_index_job_with_file
 from lib.windex.mr_solr_job import run_solr_index_job
-from lib.windex.mr_log_job import run_log_job
+from lib.windex.mr_log_job import run_log_job, run_log_job_with_file
 from lib.windex.index_ops import remove_solr_records
 
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
@@ -112,12 +113,28 @@ def main():
     parser_index_solr.add_argument('-A', '--annotations', help="The annotations file to use with the indexer.")
     parser_index_solr.add_argument('-a', '--oasurts', help="The Open Access SURTS file to use with the indexer.")
 
+    # Add a parser for the 'hash-job' subcommand:
+    parser_index_hashjob = subparsers.add_parser('hash-job', 
+        help="Generate the digest/hash of a set of files.", 
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[common_parser])
+    parser_index_hashjob.add_argument('input_file', help="A file containing a list of files to hash.")
+
     # Add a parser for the 'log-analyse' subcommand:
     parser_logs = subparsers.add_parser('log-analyse',
         help="Use TrackDB and index logs",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[common_parser, trackdb_parser])
     parser_logs.add_argument('-B', '--batch-size', type=int, help='Number log files to process in each run.', default=DEFAULT_BATCH_SIZE)
+    parser_logs.add_argument('-T', '--targets', help="The W3ACT Targets file to use to determine Watched Targets.", required=False)
+
+    # Add a parser for the 'log-analyse' subcommand:
+    parser_logsjob = subparsers.add_parser('log-analyse-job',
+        help="Analyse a set of log files on HFDS.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[common_parser])
+    parser_logsjob.add_argument('-T', '--targets', help="The W3ACT Targets file to use to determine Watched Targets.")
+    parser_logsjob.add_argument('input_file', help="A file containing a list of log files to analyse.")
 
     # Add parse to clip records from indexes:
     parser_index_del = subparsers.add_parser('index-delete',
@@ -232,6 +249,10 @@ def main():
         # Run a one-off job to index some WARCs based on a list from a file:
         results = run_cdx_index_job_with_file(args.input_file, cdx_url)
         print(json.dumps(results, sort_keys=True))
+    elif args.op == 'hash-job':
+        # Run a one-off job to index some WARCs based on a list from a file:
+        results = run_hash_index_job_with_file(args.input_file)
+        print(json.dumps(results, sort_keys=True))
     elif args.op == 'log-analyse':
         # Setup TrackDB for log files
         tdb = SolrTrackDB(args.trackdb_url, hadoop=args.service, kind='logs')
@@ -248,7 +269,7 @@ def main():
         items = tdb.list(args.stream, args.year, field_value, limit=args.batch_size)
         if len(items) > 0:
             # Run a job to index those items:
-            stats = run_log_job(items)
+            stats = run_log_job(items, args.targets)
             # If that worked (no exception thrown), update the tracking database accordingly:
             ids = []
             for item in items:
@@ -275,6 +296,10 @@ def main():
         #tdb.import_items([t.as_dict()])
         print(t.to_jsonline())
         t.push_metrics()
+    elif args.op == 'log-analyse-job':
+        # Run a one-off job to analyse some logs based on a list from a file:
+        results = run_log_job_with_file(args.input_file, args.targets)
+        print(json.dumps(results, sort_keys=True))
 
 
     elif args.op == 'index-delete':
