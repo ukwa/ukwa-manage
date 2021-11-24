@@ -299,8 +299,8 @@ class CrawlLogExtractors(object):
                         'filename': os.path.basename(urlparse(log.url).path),
                         'size': int(log.content_length),
                         # Add some more metadata to the output so we can work out where this came from later:
-                        'job_name': 'unknown',
-                        'launch_id': 'unknown',
+                        'job_name': None,
+                        'launch_id': None,
                         'source': log.source
                     }
                     #logger.info("Found document: %s" % doc)

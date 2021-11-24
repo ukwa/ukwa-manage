@@ -31,13 +31,71 @@ The implementation can be moved to TrackDB, which can then use the `status` flag
 
 import json
 import os
+import psycopg2
+import psycopg2.extras
 
-def to_json():
-    for de in os.scandir('/mnt/gluster/ingest/task-state/documents/'):
+DOC_FILES_PATH = '/mnt/gluster/ingest/task-state/documents/'
+
+
+def doc_generator(path):
+    for de in os.scandir(DOC_FILES_PATH):
         if de.name.startswith('documents-') and de.is_dir():
             for dee in os.scandir(de):
                 if dee.is_file():
                     with open(dee.path,'rb') as f:
                         item = json.load(f)
-                        print(json.dumps(item))
+                        yield item
 
+
+def to_json():
+    for item in doc_generator(DOC_FILES_PATH):
+        print(json.dumps(item))
+
+
+def to_db():
+
+    connection = psycopg2.connect(
+        host="dev1.n45.wa.bl.uk",
+        port="5435",
+        database="ddhapt",
+        user="ddhapt",
+        password="ddhapt",
+    )
+
+    sql = """
+        INSERT INTO documents_found (
+            document_url, 
+            wayback_timestamp,
+            filename,
+            source,
+            landing_page_url,
+            launch_id,
+            job_name,
+            size,
+            title,
+            target_id,
+            status
+        )
+        VALUES (
+            %(document_url)s,
+            %(wayback_timestamp)s,
+            %(filename)s,
+            %(source)s,
+            %(landing_page_url)s,
+            %(launch_id)s,
+            %(job_name)s,
+            %(size)s,
+            %(title)s,
+            %(target_id)s,
+            %(status)s
+        )
+    """
+
+    with connection.cursor() as cursor:
+        psycopg2.extras.execute_batch(cursor, sql, doc_generator(DOC_FILES_PATH), page_size=1000)
+        cursor.commit()
+
+
+
+if __name__ == '__main__':
+    to_db()
