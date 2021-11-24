@@ -38,12 +38,22 @@ DOC_FILES_PATH = '/mnt/gluster/ingest/task-state/documents/'
 
 
 def doc_generator(path):
+    counter = 0
     for de in os.scandir(DOC_FILES_PATH):
         if de.name.startswith('documents-') and de.is_dir():
             for dee in os.scandir(de):
                 if dee.is_file():
                     with open(dee.path,'rb') as f:
                         item = json.load(f)
+                        # Make sure any missing keys are explicitly null:
+                        for key in ['title', 'target_id']:
+                            if not key in item:
+                                item[key] = None
+                        # Log progress
+                        counter += 1
+                        if counter%1000 == 0:
+                            print(f"Sent {counter}...")
+                        # And yield:
                         yield item
 
 
@@ -61,6 +71,7 @@ def to_db():
         user="ddhapt",
         password="ddhapt",
     )
+    connection.autocommit = True
 
     sql = """
         INSERT INTO documents_found (
@@ -93,7 +104,8 @@ def to_db():
 
     with connection.cursor() as cursor:
         psycopg2.extras.execute_batch(cursor, sql, doc_generator(DOC_FILES_PATH), page_size=1000)
-        cursor.commit()
+    # Commit at the end:
+    connection.commit()
 
 
 
