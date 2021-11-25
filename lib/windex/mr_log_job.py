@@ -44,11 +44,17 @@ def run_log_job(items, targets):
     mr_job = MRLogAnalysisJob(args)
 
     # Run and gather output:
+    from lib.docharvester.to_trackdb import DocumentHarvester
+    dh = DocumentHarvester()
     stats = {}
     with mr_job.make_runner() as runner:
         runner.run()
         for key, value in mr_job.parse_output(runner.cat_output()):
             print(key, value)
+            # Find any extracted documents and record them:
+            if key.startswith("DOCUMENT"):
+                doc = json.loads(value)
+                dh.add_document(doc)
             ## Normalise key if needed:
             #key = key.lower()
             #if not key.endswith("_i"):
@@ -56,6 +62,9 @@ def run_log_job(items, targets):
             ## Update counter for the stat:
             #i = stats.get(key, 0)
             #stats[key] = i + int(value)
+            
+    # And now flush the added documents:
+    dh.flush_added_documents()
 
     # Raise an exception if the output looks wrong:
     if not "total_sent_records_i" in stats:
@@ -67,6 +76,10 @@ def run_log_job(items, targets):
 
 
 class MRLogAnalysisJob(MRJob):
+
+    # Include needed files from this project:
+    # (see https://mrjob.readthedocs.io/en/latest/guides/writing-mrjobs.html#using-other-python-modules-and-packages)
+    DIRS = ["../../lib"]
 
     def configure_args(self):
         super().configure_args()
@@ -230,7 +243,8 @@ class CrawlLogLine(object):
 
 class CrawlLogExtractors(object):
 
-    def __init__(self, targets_path=None):
+    def __init__(self, targets_path=None, job_name='frequent-npld'):
+        self.job_name = job_name
         # Setup targets if provided:
         if targets_path:
             # Find the unique watched seeds list:
@@ -299,7 +313,7 @@ class CrawlLogExtractors(object):
                         'filename': os.path.basename(urlparse(log.url).path),
                         'size': int(log.content_length),
                         # Add some more metadata to the output so we can work out where this came from later:
-                        'job_name': None,
+                        'job_name': self.job_name,
                         'launch_id': None,
                         'source': log.source
                     }

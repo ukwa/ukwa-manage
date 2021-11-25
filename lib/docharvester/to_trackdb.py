@@ -31,11 +31,13 @@ The implementation can be moved to TrackDB, which can then use the `status` flag
 
 import json
 import os
+import logging
 import psycopg2
 import psycopg2.extras
 
 DOC_FILES_PATH = '/mnt/gluster/ingest/task-state/documents/'
 
+logger = logging.getLogger(__name__)
 
 def doc_generator(path):
     counter = 0
@@ -57,21 +59,7 @@ def doc_generator(path):
                         yield item
 
 
-def to_json():
-    for item in doc_generator(DOC_FILES_PATH):
-        print(json.dumps(item))
-
-
-def to_db():
-
-    connection = psycopg2.connect(
-        host="dev1.n45.wa.bl.uk",
-        port="5435",
-        database="ddhapt",
-        user="ddhapt",
-        password="ddhapt",
-    )
-    connection.autocommit = True
+class DocumentHarvester():
 
     sql = """
         INSERT INTO documents_found (
@@ -99,15 +87,55 @@ def to_db():
             %(title)s,
             %(target_id)s,
             %(status)s
-        )
+        ) ON CONFLICT DO NOTHING;
     """
 
-    with connection.cursor() as cursor:
-        psycopg2.extras.execute_batch(cursor, sql, doc_generator(DOC_FILES_PATH), page_size=1000)
-    # Commit at the end:
-    connection.commit()
+    docs = []
+    docs_sent = 0
 
+    def files_to_json(self, path=DOC_FILES_PATH):
+        for item in doc_generator(path):
+            print(json.dumps(item))
+
+    def files_to_db(self, path=DOC_FILES_PATH):
+        self.send(doc_generator(path))
+
+    def add_document(self, item):
+        logger.info("Got document: %s" % item)
+        if not 'status' in item:
+            item['status'] = 'NEW'
+        for key in ['title', 'target_id']:
+            if not key in item:
+                item[key] = None        
+        logger.info("Updated document with defaults: %s" % item)
+        self.docs.append(item)
+
+    def flush_added_documents(self):
+        logger.info(f"Sending {len(self.docs)} documents...")
+        self._send(self.docs)
+        self.docs_sent += len(self.docs)
+        self.docs = []
+        logger.info(f"Total documents sent: {self.docs_sent}")
+
+    def _send(self, item_generator):
+        # Open connection:
+        connection = psycopg2.connect(
+            host="dev1.n45.wa.bl.uk",
+            port="5435",
+            database="ddhapt",
+            user="ddhapt",
+            password="ddhapt",
+        )
+        connection.autocommit = True
+
+        # Send all the documents in large batches:
+        with connection.cursor() as cursor:
+            psycopg2.extras.execute_batch(cursor, self.sql, item_generator, page_size=1000)
+
+        # Commit at the end:
+        connection.commit()
 
 
 if __name__ == '__main__':
-    to_db()
+    dh = DocumentHarvester()
+    dh.files_to_db()
