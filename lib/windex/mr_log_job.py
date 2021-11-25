@@ -50,11 +50,15 @@ def run_log_job(items, targets):
     with mr_job.make_runner() as runner:
         runner.run()
         for key, value in mr_job.parse_output(runner.cat_output()):
-            print(key, value)
+            ##print(key, value)
             # Find any extracted documents and record them:
             if key.startswith("DOCUMENT"):
                 doc = json.loads(value)
                 dh.add_document(doc)
+            elif key.startswith("DEAD"):
+                pass
+            elif key.startswith("BY_DAY_HOST_SOURCE"):
+                pass
             ## Normalise key if needed:
             #key = key.lower()
             #if not key.endswith("_i"):
@@ -65,12 +69,14 @@ def run_log_job(items, targets):
             
     # And now flush the added documents:
     dh.flush_added_documents()
+    stats["total_sent_records_i"] = dh.docs_sent
 
     # Raise an exception if the output looks wrong:
     if not "total_sent_records_i" in stats:
         raise Exception("Log job stats has no total_sent_records_i value! \n%s" % json.dumps(stats))
     if stats['total_sent_records_i'] == 0:
-        raise Exception("Log job stats has total_sent_records_i == 0! \n%s" % json.dumps(stats))
+        # This is not necessarily wrong for document harvesting:
+        logger.warning("Log job stats has total_sent_records_i == 0! \n%s" % json.dumps(stats))
 
     return stats
 
