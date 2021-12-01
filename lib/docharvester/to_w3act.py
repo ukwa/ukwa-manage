@@ -65,7 +65,7 @@ import requests
 from requests.utils import quote
 import xml.dom.minidom
 
-from w3act.client import w3act
+from w3act.api.client import w3act
 from lib.docharvester.document_mdex import DocumentMDEx
 
 logger = logging.getLogger(__name__)
@@ -144,3 +144,21 @@ class DocToW3ACT():
         # Otherwise, not found:
         return False
 
+    def check_if_available(self, url, ts):
+        """
+        Checks if the resource is actually accessible/downloadable.
+        
+        e.g. export WAYBACK_URL_PREFIX=http://prod1.n45.wa.bl.uk:7070/archive
+
+        This is done separately, as using this alone may accidentally get an older version.
+        :return:
+        """
+        wburl = '%s/%sid_/%s' % (self.wayback_prefix, ts, url)
+        logger.debug("Checking download %s" % wburl)
+        r = requests.head(wburl)
+        logger.debug("Download HEAD response: %d" % r.status_code)
+        # Resource is present?
+        if r.status_code == 200:
+            return True
+        else:
+            return False
