@@ -45,6 +45,9 @@ class KafkaDocumentFinder():
             group_id=args.group_id,
             client_id=args.client_id)
 
+        # Remember if there's a group ID:
+        self.group_id = args.group_id
+
         # And set up target DB
         self.dh = DocumentsFoundDB(batch_size=1)
 
@@ -97,7 +100,8 @@ class KafkaDocumentFinder():
 
                     # If we've hit the max, commit:
                     if self.max_messages and match_count >= self.max_messages:
-                        self.consumer.commit()
+                        if self.group_id:
+                            self.consumer.commit()
                         break
 
             # Keep count of messages and occasionally report progress:
@@ -105,8 +109,9 @@ class KafkaDocumentFinder():
             if msg_count % 10000 == 0:
                 logger.debug(f"MSG {msg_count}: {message}")
                 # Occasionlly commit so we don't re-read all messages every time (given a Group ID):
-                logger.info(f"Committing Kafka consumer offsets after {msg_count} messages processed.")
-                self.consumer.commit()
+                if self.group_id:
+                    logger.info(f"Committing Kafka consumer offsets after {msg_count} messages processed.")
+                    self.consumer.commit()
 
 
 
