@@ -22,7 +22,9 @@ setup(
         'console_scripts': [
             'trackdb=lib.trackdb.cmd:main',
             'windex=lib.windex.cmd:main',
-            'store=lib.store.cmd:main'
+            'store=lib.store.cmd:main',
+            'docharv=lib.docharvester.cmd:main',
+            'warctidy=lib.store.warc_tidy:main'
         ]
     }
 )

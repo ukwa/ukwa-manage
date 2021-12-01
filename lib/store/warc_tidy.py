@@ -5,6 +5,8 @@ import shutil
 import logging
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
+
 logger = logging.getLogger(__name__)
 
 def send_metrics(metrics):
@@ -57,3 +59,16 @@ def warc_tidy_up(prefix="/mnt/gluster/fc", output_json=True):
     # Finally, print retults as JSON if requested:
     if output_json:
         print(json.dumps(metrics))
+
+def main():
+    # Helper to tidy up WARC output folders:
+    parser = argparse.ArgumentParser(prog='warctidy', help='Tidy up the crawler output folder.')
+    parser_wtd_argument('--prefix', 
+        help="The location of the root of the crawler storage.", 
+        default="/mnt/gluster/fc")
+
+    # Run the tidy:
+    warc_tidy_up(args.prefix)    
+
+if __name__ == "__main__":
+    main()

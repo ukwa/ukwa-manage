@@ -9,7 +9,6 @@ import logging
 import argparse
 from lib.store.webhdfs import WebHDFSStore
 from lib.store.nominet import ingest_from_nominet
-from lib.store.warc_tidy import warc_tidy_up
 
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
 
@@ -26,8 +25,6 @@ def main():
     parser.add_argument('-v', '--verbose',  action='count', default=0, help='Logging level; add more -v for more logging.')
     parser.add_argument('--dry-run', action='store_true', help='Do not modify the TrackDB.')
     parser.add_argument('-i', '--indent', type=int, help='Number of spaces to indent when emitting JSON.')
-
-    # First positional argument:
     parser.add_argument(choices=['h020', 'h3'], dest='service', help='Which Hadoop service to talk to (required).')
 
     # Use sub-parsers for different operations:
@@ -63,12 +60,6 @@ def main():
     parser_cv = subparsers.add_parser('lsr-to-jsonl', help='Read a hadoop fs -lsr format file listing and convert to JSONL')
     parser_cv.add_argument('input_lsr', type=str, help='The file to read, in hadoop fs -lsr format. Can be "-" for STDIN.')
     parser_cv.add_argument('output_jsonl', type=str, help='The file to output to in JSONL format. Can be "-" for STDOUT.')
-
-    # Helper to tidy up WARC output folders:
-    parser_wtd = subparsers.add_parser('warctidy', help='Tidy up the crawler output folder.')
-    parser_wtd.add_argument('--prefix', 
-        help="The location of the root of the crawler storage.", 
-        default="/mnt/gluster/fc")
 
     # 'nominet' subcommand to grab and ingest files from nominet:
     parser_nom = subparsers.add_parser('nominet', help='Update files from Nominet.')
@@ -141,8 +132,6 @@ def main():
             reader.close()
         if writer is not sys.stdout:
             writer.close()
-    elif args.op == 'warctidy':
-        warc_tidy_up(args.prefix)
     elif args.op == 'nominet':
         ingest_from_nominet(st)
     else:

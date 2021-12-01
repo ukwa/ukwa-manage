@@ -18,7 +18,7 @@ from urllib.parse import urlparse
 from lxml import html
 from lib.surt import url_to_surt
 
-logger = logging.getLogger('luigi-interface')
+logger = logging.getLogger(__name__)
 
 
 class DocumentMDEx(object):
