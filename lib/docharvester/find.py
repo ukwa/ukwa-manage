@@ -106,11 +106,11 @@ class DocumentsFoundDB():
         connection.commit()
 
     # Pass in calls wiht an update function that will create an update for a document:
-    def update_new_documents(self, doc_updater, status_filter="NEW", apply_updates=True):
+    def update_new_documents(self, doc_updater, status_filter="NEW", apply_updates=True, batch_size=100):
         conn = self._open_connection()
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             # find and lock up to 100 NEW documents:
-            cur.execute(f"SELECT * FROM documents_found WHERE status = '{status_filter}' LIMIT 100 FOR UPDATE SKIP LOCKED")
+            cur.execute(f"SELECT * FROM documents_found WHERE status = '{status_filter}' ORDER BY wayback_timestamp ASC LIMIT {batch_size} FOR UPDATE SKIP LOCKED")
             for row in cur.fetchall():
                 # get row as a plain dict:
                 doc = dict(row)

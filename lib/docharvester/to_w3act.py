@@ -67,6 +67,7 @@ import xml.dom.minidom
 
 from w3act.api.client import w3act
 from lib.docharvester.document_mdex import DocumentMDEx
+from lib.windex.cdx import CdxIndex
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,7 @@ class DocToW3ACT():
     def __init__(self, cdx_server, targets_path, act_url, act_user, act_password):
         # Location of CDX to check:
         self.cdxserver_endpoint = cdx_server
+        self.cdx = CdxIndex(cdx_server, filter="!mimetype:warc/revisit")
         # Load in targets:
         with open(targets_path) as fin:
             self.targets = json.load(fin)
@@ -129,17 +131,9 @@ class DocToW3ACT():
         Checks if a resource with a particular timestamp is available in the index:
         :return:
         """
-        wburl = "%s?q=type:urlquery+url:%s" % (self.cdxserver_endpoint, quote(url))
-        logger.debug("Checking availability %s" % wburl)
-        r = requests.get(wburl)
-        logger.debug("Availability response: %d" % r.status_code)
-        # Is it known, with a matching timestamp?
-        if r.status_code == 200:
-            dom = xml.dom.minidom.parseString(r.text)
-            for de in dom.getElementsByTagName('capturedate'):
-                if de.firstChild.nodeValue == ts:
-                    # Excellent, it's been found:
-                    return True
+        for capturedate in self.cdx.get_capture_dates(url):
+            if ts == capturedate:
+                return True
 
         # Otherwise, not found:
         return False

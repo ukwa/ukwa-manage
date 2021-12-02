@@ -27,6 +27,7 @@ To Do
 
 - [ ] Run on Crawler06 to populate missing documents.
 - [ ] Regenerate missed crawl logs.
+- [ ] The current harvester cannot handle revisits, which behave like new records. They need to be classified as revisits so they don't keep getting re-checked.
 - [ ] Accept extended fields from processed documents, `publishers[]` `publisher` `publication_date` `match_failed` `api_call_failed`
 
 2021-12-01 14:09:08,352: INFO - lib.docharvester.to_w3act - Sending doc: {'document_url': 'https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1034406/test-and-trace-week-76.pdf', 'title': 'Weekly statistics for NHS Test and Trace (England): 4 to 10 November 2021', 'filename': 'test-and-trace-week-76.pdf', 'landing_page_url': 'https://www.gov.uk/government/publications/weekly-statistics-for-nhs-test-and-trace-england-4-to-10-november-2021', 'source': 'tid:114728:https://www.gov.uk/government/collections/slides-and-datasets-to-accompany-coronavirus-press-conferences', 'wayback_timestamp': '20211119001232', 'launch_id': None, 'job_name': 'frequent-npld', 'size': 1433224, 'target_id': 147227, 'status': 'ACCEPTED', 'publication_date': '2021-11-18T15:00:04.000+00:00', 'publishers': ['UK Health Security Agency'], 'publisher': 'UK Health Security Agency'}

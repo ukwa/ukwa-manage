@@ -36,18 +36,26 @@ class CdxIndex():
     '''
     This class is used to query our CDX server.
     It knows what we've got, and when, but not what is open access or not.
+    
+    filter="!mimetype:warc/revisit"
+    
     '''
 
-    def __init__(self, cdx_server='http://cdx.api.wa.bl.uk/data-heritrix'):
+    def __init__(self, cdx_server='http://cdx.api.wa.bl.uk/data-heritrix', filter=None, limit=1000000):
         self.cdx_server = cdx_server
+        self.filter = filter
+        self.limit = limit
 
-
-    def query(self, url, limit=25, sort='reverse'):
+    def query(self, url, limit=25, sort='reverse', filter=None):
         '''
         See https://nla.github.io/outbackcdx/api.html#operation/query 
         '''
-        r = requests.get(self.cdx_server, 
-            params = { 'url' : url, 'limit': limit, 'sort': sort } )
+        # Define the core parameters:
+        params = { 'url' : url, 'limit': limit, 'sort': sort }
+        if self.filter:
+            params['filter'] = self.filter
+        # Set up the request
+        r = requests.get(self.cdx_server, params=params)
         if r.status_code == 200:
             for line in r.iter_lines(decode_unicode=True):
                 cdx = CDX11(line)
@@ -64,7 +72,7 @@ class CdxIndex():
         :return: yeilds each capturedate in turn
         '''
         # Set up a large query and stream through it
-        for c in self.query(url, limit=1000000, sort=sort):
+        for c in self.query(url, limit=self.limit, sort=sort):
             yield c.timestamp
 
     def get_first_capture_date(self, url):

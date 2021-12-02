@@ -79,6 +79,8 @@ def main():
                         help="The user to log into ACT as. [default: %(default)s]")
     parser_p.add_argument('--act-pw', dest='act_password', required=True,
                         help="The password to log into ACT with.")
+    parser_p.add_argument("-B", "--batch-size", dest="batch_size", default=100, required=False, type=int,
+                        help="Batch size to select for processing during this run. [default: %(default)s]")
 
     # And PARSE it:
     args = parser.parse_args()
@@ -103,7 +105,7 @@ def main():
         # Find 'NEW' docs and attempt to push them to W3ACT:
         df = DocumentsFoundDB()
         dw = DocToW3ACT(args.cdx_server, args.targets, args.act_url, args.act_user, args.act_password)
-        df.update_new_documents(dw, apply_updates=True)
+        df.update_new_documents(dw, apply_updates=True, batch_size=args.batch_size)
     else:
         raise Exception("Not implemented!")
 
