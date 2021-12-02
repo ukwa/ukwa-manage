@@ -101,15 +101,17 @@ class DocToW3ACT():
                 return doc
             else:
                 doc['status'] = 'ACCEPTED'
-                logger.info(f"Sending doc: {doc}")
+                logger.info(f"Sending doc to W3ACT: {doc}")
                 # Inform W3ACT it's available:
                 r = self.act.post_document(doc)
                 if (r.status_code == 200):
                     logger.info("Document POSTed to W3ACT: %s" % doc['document_url'])
                     return doc
                 else:
-                    logger.error("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
-                    raise Exception("Failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
+                    logger.error("POST to W3ACT failed with %s %s\n%s" % (r.status_code, r.reason, r.text))
+                    logger.error("Assuming POST to W3ACT failure is transient, will retry later.")
+                    # Returning None rather that the doc, so no update happens to the documents_found
+                    return None
         else:
             logger.info("Not yet available in wayback: %s" % doc['document_url'])
             return None

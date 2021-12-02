@@ -2,6 +2,7 @@ import os
 import re
 import json
 import shutil
+import argparse
 import logging
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
@@ -62,10 +63,12 @@ def warc_tidy_up(prefix="/mnt/gluster/fc", output_json=True):
 
 def main():
     # Helper to tidy up WARC output folders:
-    parser = argparse.ArgumentParser(prog='warctidy', help='Tidy up the crawler output folder.')
-    parser_wtd_argument('--prefix', 
-        help="The location of the root of the crawler storage.", 
+    parser = argparse.ArgumentParser(prog='warctidy', description='Tidy up the crawler output folder.')
+    parser.add_argument('--prefix', 
+        help="The location of the root of the crawler storage. [default=%(default)s]", 
         default="/mnt/gluster/fc")
+
+    args = parser.parse_args()
 
     # Run the tidy:
     warc_tidy_up(args.prefix)    

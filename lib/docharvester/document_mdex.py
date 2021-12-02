@@ -126,10 +126,15 @@ class DocumentMDEx(object):
             logger.error("Ignoring error during extraction for document %s and landing page %s" % (self.doc['document_url'], self.doc['landing_page_url']))
             logger.exception(e)
 
-        if not 'title' in self.doc or not self.doc['title']:
-            logger.info("Falling back on default extraction logic...")
-            self.mdex_default()
-            logger.info("GOT %s" % self.doc)
+        try:
+            if not 'title' in self.doc or not self.doc['title']:
+                logger.info("Falling back on default extraction logic...")
+                self.mdex_default()
+                logger.info("GOT %s" % self.doc)
+        except Exception as e:
+            logger.error("Ignoring error during mdex_default extraction for document %s and landing page %s" % (self.doc['document_url'], self.doc['landing_page_url']))
+            logger.exception(e)
+
 
         # Look up which Target this URL should be associated with:
         if self.targets and 'landing_page_url' in self.doc:
