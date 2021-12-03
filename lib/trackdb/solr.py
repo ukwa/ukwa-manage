@@ -70,14 +70,16 @@ class SolrTrackDB():
         self._send_update(updates)
 
     def import_jsonl_reader(self, input_reader):
-        self.import_item_stream(self._jsonl_doc_generator(input_reader))
+        return self.import_item_stream(self._jsonl_doc_generator(input_reader))
 
     def import_items(self, items):
         self._send_batch(items)
 
     def import_item_stream(self, item_generator):
+        counter = 0
         batch = []
         for item in item_generator:
+            counter += 1
             batch.append(item)
             if len(batch) > self.batch_size:
                 self._send_batch(batch)
@@ -85,6 +87,8 @@ class SolrTrackDB():
         # And send the final batch if there is one:
         if len(batch) > 0:
             self._send_batch(batch)
+        # Return the count of imported items:
+        return counter
 
     def list(self, stream=None, year=None, field_value=None, sort='timestamp_dt desc', limit=100):
         # set solr search terms
@@ -158,5 +162,5 @@ class SolrTrackDB():
             yield { 'id': id, field: { action: value } } 
         
     def update(self, ids, field, value, action='add-distinct'):
-        self.import_item_stream(self._update_generator(ids, field, value, action))
+        return self.import_item_stream(self._update_generator(ids, field, value, action))
 

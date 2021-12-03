@@ -114,10 +114,12 @@ def main():
                 print(json.dumps(doc, indent=args.indent))
     elif args.op == 'import':
         if args.input_file == '-':
-            tdb.import_jsonl_reader(sys.stdin.buffer)
+            count = tdb.import_jsonl_reader(sys.stdin.buffer)
         else:
             with open(args.input_file) as f:
-                tdb.import_jsonl_reader(f)
+                count = tdb.import_jsonl_reader(f)
+        if count == 0:
+            raise Exception("No items were imported!")
     elif args.op == 'get':
         doc = tdb.get(args.id)
         if doc:

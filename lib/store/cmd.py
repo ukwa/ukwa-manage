@@ -123,7 +123,9 @@ def main():
             writer = open(args.output_jsonl, 'w')
 
         # Convert and write out:
+        counter = 0
         for item in st.lsr_to_items(reader):
+            counter += 1
             writer.write(json.dumps(item))
             writer.write("\n")
 
@@ -132,6 +134,11 @@ def main():
             reader.close()
         if writer is not sys.stdout:
             writer.close()
+
+        # Check this seems to have worked:
+        if counter == 0:
+            raise Exception("No records were found for conversion!")
+
     elif args.op == 'nominet':
         ingest_from_nominet(st)
     else:
