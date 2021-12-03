@@ -63,9 +63,9 @@ def warc_tidy_up(prefix="/mnt/gluster/fc", output_json=True):
 
 def main():
     # Helper to tidy up WARC output folders:
-    parser = argparse.ArgumentParser(prog='warctidy', description='Tidy up the crawler output folder.')
+    parser = argparse.ArgumentParser(prog='tidy-warcs', description='Tidy up the WARCs in the crawler output folder.')
     parser.add_argument('--prefix', 
-        help="The location of the root of the crawler storage. [default=%(default)s]", 
+        help="The location of the root of the crawler storage, to be recursively searched for WARC files. [default=%(default)s]", 
         default="/mnt/gluster/fc")
 
     args = parser.parse_args()

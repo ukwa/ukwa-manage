@@ -25,7 +25,7 @@ setup(
             'store=lib.store.cmd:main',
             'docharv=lib.docharvester.cmd:main',
             'tidy-logs=lib.store.tidy_logs:main',
-            'warctidy=lib.store.warc_tidy:main'
+            'tidy-warcs=lib.store.tidy_warcs:main'
         ]
     }
 )
