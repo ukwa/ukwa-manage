@@ -22,14 +22,20 @@ def tidy_up_logs(job_dir):
     last = sorted(subfolders)[-1]
     log_folder = f"{last}/logs"
 
+    # Check the layout looks right
+    if not os.path.exists(log_folder):
+        raise Exception(f"Expected log folder {log_folder} does not exist!")
+    if not os.path.isdir(log_folder):
+        raise Exception(f"Expected log folder {log_folder} is not a folder!")
 
+    # Set up metrics:
     registry = CollectorRegistry()
     g = Gauge('ukwa_crawler_log_size_bytes',
             'Total size of the most recent log files for the given job.',
-            labelnames=['job', 'log'], registry=registry)
+            labelnames=['crawl_job_name', 'log'], registry=registry)
     gt = Gauge('ukwa_crawler_log_touch_seconds', 
             'The timestamp of the last time a log file had gone missing and was replaced with an empty file.',
-            labelnames=['job', 'log'], registry=registry)
+            labelnames=['crawl_job_name', 'log'], registry=registry)
 
     for log_filename in log_filenames:
         log_path = f"{log_folder}/{log_filename}"
@@ -38,7 +44,7 @@ def tidy_up_logs(job_dir):
             log_size = os.path.getsize(log_path)
             logger.info(f"Log {log_path} found, size = {log_size}")
             # Add result for this log
-            g.labels(job=job_name, log=log_filename).set(log_size)
+            g.labels(crawl_job_name=job_name, log=log_filename).set(log_size)
 
         # If there is no log file, wait a little:
         else:
@@ -51,7 +57,7 @@ def tidy_up_logs(job_dir):
             else:
                 logger.warning(f"Creating an empty {log_path} file so crawler checkpointing will work.")
                 Path(log_path).touch()
-                gt.labels(job=job_name, log=log_filename).set_to_current_time()
+                gt.labels(crawl_job_name=job_name, log=log_filename).set_to_current_time()
                 
     if os.environ.get("PUSH_GATEWAY"):
         push_to_gateway(os.environ.get("PUSH_GATEWAY"), job='tidy_logs', registry=registry)
