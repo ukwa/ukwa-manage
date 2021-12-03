@@ -8,6 +8,31 @@ from lib.docharvester.find import CrawlLogLine, CrawlLogExtractors, DocumentsFou
 
 logger = logging.getLogger(__name__)
 
+
+# Example:
+# {
+#  "hop_path": "III",
+#  "status_code": -5003,
+#  "seed": "tid:37575:https://www.thegazette.co.uk/",
+#  "warc_filename": null,
+#  "annotations": "launchTimestamp:20180206041635,Q:serverMaxSuccessKb",
+#  "thread": 5,
+#  "content_digest": null,
+#  "url": "https://www.thegazette.co.uk/company/10168245",
+#  "via": "https://www.thegazette.co.uk/sitemap-201605-1.xml.gz",
+#  "warc_offset": null,
+#  "crawl_name": "frequent-npld",
+#  "start_time_plus_duration": null,
+#  "extra_info": {
+#    "scopeDecision": "ACCEPT by rule #1 WatchedFileSurtPrefixedDecideRule"
+#  },
+#  "size": null,
+#  "host": "www.thegazette.co.uk",
+#  "mimetype": "unknown",
+#  "content_length": null,
+#  "timestamp": "2021-11-22T08:18:16.975Z"
+# }
+
 class KafkaDocumentFinder():
     
     def __init__(self, args):
@@ -81,7 +106,8 @@ class KafkaDocumentFinder():
                     j["size"], 
                     j["start_time_plus_duration"],
                     j["via"],
-                    j["seed"]
+                    j["seed"],
+                    j['annotations']
                 )
 
                 if doc:

@@ -57,8 +57,11 @@ class DocumentsFoundDB():
     docs = []
     docs_sent = 0
 
-    def __init__(self, batch_size=10000):
+    def __init__(self, 
+            db_uri=os.environ.get('DOCUMENTS_FOUND_DB_URI', 'postgresql://ddhapt:ddhapt@dev1.n45.wa.bl.uk:5435/ddhapt'), 
+            batch_size=10000 ):
         self.batch_size = batch_size
+        self.db_uri = db_uri
 
     def add_document(self, item):
         logger.debug("Got document: %s" % item)
@@ -82,14 +85,7 @@ class DocumentsFoundDB():
         logger.info(f"Total documents sent: {self.docs_sent}")
 
     def _open_connection(self):
-        connection = psycopg2.connect("postgresql://ddhapt:ddhapt@dev1.n45.wa.bl.uk:5435/ddhapt")
-        #connection = psycopg2.connect(
-        #    host="dev1.n45.wa.bl.uk",
-        #    port="5435",
-        #    database="ddhapt",
-        #    user="ddhapt",
-        #    password="ddhapt",
-        #)
+        connection = psycopg2.connect(self.db_uri)
         return connection
 
 
@@ -250,7 +246,7 @@ class CrawlLogExtractors(object):
         self.job_name = job_name
         # Setup targets if provided:
         if targets_path:
-            # Find the unique watched seeds list:
+            # Find the unique watched seed list:
             logger.debug("Loading path: %s" % targets_path)
             with open(targets_path) as fin:
                 targets = json.load(fin)
@@ -297,20 +293,23 @@ class CrawlLogExtractors(object):
         :param log:
         :return:
         """
-        self.extract_documents_from(log.url, log.status_code, log.mime, log.content_length, log.start_time_plus_duration, log.via, log.source)
+        return self.extract_documents_from(log.url, log.status_code, log.mime, log.content_length, log.start_time_plus_duration, log.via, log.source, log.annotations)
 
-    def extract_documents_from(self, url, status_code, mime, content_length, start_time_plus_duration, via, source ):
+    def extract_documents_from(self, url, status_code, mime, content_length, start_time_plus_duration, via, source, annotations ):
         """
         Check if this appears to be a potential Document for document harvesting...
         """
         # Skip non-downloads:
         if status_code == '-' or status_code == '' or int(int(status_code) / 100) != 2:
             return
+        # Skip de-duplicated records:
+        if 'duplicate:digest' in annotations:
+            return
         # Check the URL and Content-Type:
         if "application/pdf" in mime:
+            document_surt = url_to_surt(url)
+            landing_page_surt = url_to_surt(via)
             for prefix in self.watched_surts:
-                document_surt = url_to_surt(url)
-                landing_page_surt = url_to_surt(via)
                 #logger.warning("Looking for prefix '%s' in '%s' and '%s'" % (prefix,document_surt, landing_page_surt))
                 # Are both URIs under the same watched SURT:
                 if document_surt.startswith(prefix) or landing_page_surt.startswith(prefix):

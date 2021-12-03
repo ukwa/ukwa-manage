@@ -7,6 +7,8 @@ import tempfile
 from datetime import datetime
 from urllib.parse import urlparse
 
+from lib.docharvester.find import DocumentsFoundDB, CrawlLogLine, CrawlLogExtractors
+
 from mrjob.job import MRJob
 from mrjob.step import JarStep, INPUT, OUTPUT, GENERIC_ARGS
 from mrjob.protocol import TextProtocol
@@ -41,7 +43,6 @@ def run_log_job(items, targets):
     mr_job = MRLogAnalysisJob(args)
 
     # Run and gather output:
-    from lib.docharvester.find import DocumentsFoundDB
     dh = DocumentsFoundDB()
     stats = {}
     with mr_job.make_runner() as runner:
@@ -52,6 +53,7 @@ def run_log_job(items, targets):
             if key.startswith("DOCUMENT"):
                 doc = json.loads(value)
                 dh.add_document(doc)
+                print(key, value)
             elif key.startswith("SEED"):
                 print(key, value)
             elif key.startswith("BY_DAY_HOST_SOURCE"):
@@ -106,12 +108,10 @@ class MRLogAnalysisJob(MRJob):
         }
 
     def mapper_init(self):
-        # Set up log line parsing:
-        from lib.docharvester.find import CrawlLogLine
         # Document Harvester:
         if self.options.targets:
-            from lib.docharvester.find import CrawlLogExtractors
-            self.extractor = CrawlLogExtractors(targets_path=self.options.targets)
+            logger.warn(f"Loading targets from {self.options.targets}...")
+            self.extractor = CrawlLogExtractors(job_name="frequent-npld", targets_path=self.options.targets)
         else:
             self.extractor = None
 
@@ -124,6 +124,7 @@ class MRLogAnalysisJob(MRJob):
         if self.extractor:
             doc = self.extractor.extract_documents(log)
             if doc:
+                doc['logline'] = line
                 yield "DOCUMENT,%s" % log.start_time_plus_duration, json.dumps(doc)
         # Output results from seeds (empty hop path, and via is the same URL or is missing):
         if log.hop_path == "-" and (log.via == "-" or (log.via == log.url)):
