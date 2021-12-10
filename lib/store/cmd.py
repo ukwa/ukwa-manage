@@ -25,6 +25,7 @@ def main():
     parser.add_argument('-v', '--verbose',  action='count', default=0, help='Logging level; add more -v for more logging.')
     parser.add_argument('--dry-run', action='store_true', help='Do not modify the TrackDB.')
     parser.add_argument('-i', '--indent', type=int, help='Number of spaces to indent when emitting JSON.')
+    parser.add_argument('-u', '--user', choices=['ingest'], help='Override default username (access) to use when talking to Hadoop.', default=None)
     parser.add_argument(choices=['h020', 'h3'], dest='service', help='Which Hadoop service to talk to (required).')
 
     # Use sub-parsers for different operations:
@@ -74,7 +75,7 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)    
 
     # Set up client:
-    st = WebHDFSStore(args.service)
+    st = WebHDFSStore(args.service, user_override=args.user)
 
     # Ops:
     logger.debug("Got args: %s" % args)

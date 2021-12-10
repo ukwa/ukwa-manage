@@ -86,10 +86,12 @@ class WebHDFSStore():
     # Set a refresh-date to indicate when we did this lookup:
     refresh_date = datetime.datetime.utcnow().isoformat(timespec='milliseconds')+'Z'
     
-    def __init__(self, service_id):
+    def __init__(self, service_id, user_override=None):
         self.service_id = service_id
         self.webhdfs_url = HADOOPS[service_id]['webhdfs_url']
         self.webhdfs_user = HADOOPS[service_id]['webhdfs_user']
+        if user_override:
+            self.webhdfs_user = user_override
         self.id_prefix = HADOOPS[service_id]['id_prefix']
         self.client = InsecureClient(self.webhdfs_url, self.webhdfs_user)
 
