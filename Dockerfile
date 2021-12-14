@@ -3,7 +3,7 @@ FROM ukwa/webarchive-discovery AS dep-env
 
 
 # Switch to UKWA Hadoop 0.20 + Python 3 base image:
-FROM ukwa/docker-hadoop:2.1.1
+FROM ukwa/docker-hadoop:2.1.2
 
 # Switch to root user while installing software:
 USER root
