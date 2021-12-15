@@ -1,7 +1,7 @@
 ansiwrap==0.8.4
 appdirs==1.4.4
 appnope==0.1.2
-astroid==2.8.0
+astroid==2.9.0
 async-generator==1.10
 attrs==20.3.0
 backcall==0.2.0
@@ -78,7 +78,7 @@ ptyprocess==0.7.0
 Py3AMF==0.8.10
 pycparser==2.20
 Pygments==2.8.0
-pylint==2.11.1
+pylint==2.12.2
 PyNaCl==1.4.0
 pyparsing==2.4.7
 pyrsistent==0.17.3
