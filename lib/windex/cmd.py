@@ -185,6 +185,7 @@ def main():
         # Setup an event record:
         t = Task(f"{args.op}-{args.service}-{args.stream}")
         t.start()
+        metrics = {}
         # Perform indexing job:
         item_updates = []
         status_value = None
