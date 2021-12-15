@@ -183,7 +183,7 @@ def main():
         # Record task start time:
         started_at = datetime.datetime.now()
         # Setup an event record:
-        t = Task(args.op)
+        t = Task(f"{args.op}-{args.service}-{args.stream}")
         t.start()
         # Perform indexing job:
         item_updates = []
@@ -201,7 +201,7 @@ def main():
                 status_value = args.cdx_collection
             else:
                 logger.warn("No WARCs found to process!")
-                return
+
         elif args.op == 'solr-index':
             # Extract collection name:
             solr_collection = args.solr_url.split("/")[-1]
@@ -234,14 +234,14 @@ def main():
         t.finish()
         # Add properties:
         t.add({
-            'batch_size_i': len(ids),
+            'batch_size': len(ids),
             'ids_ss' : ids,
             'stream_s': args.stream,
             'year_i': args.year
         })
         # Add job metrics:
         t.add(metrics)
-        t.push_metrics( ['total_record_count', 'total_sent_record_count', 'warc_file_count'] )
+        t.push_metrics( ['batch_size', 'total_record_count', 'total_sent_record_count', 'warc_file_count'] )
         # Print out the task summary:
         print(t.to_jsonline())
         
@@ -257,7 +257,7 @@ def main():
         # Setup TrackDB for log files
         tdb = SolrTrackDB(args.trackdb_url, hadoop=args.service, kind='logs')
         # Setup an event record:
-        t = Task(args.op)
+        t = Task(f"{args.op}-{args.service}-{args.stream}")
         t.start()
         # Perform indexing job:
         ids = []
@@ -278,13 +278,12 @@ def main():
             tdb.update(ids, status_field, status_field_value)
         else:
             logger.warn("No files found to process!")
-            return
 
         # Update event item in TrackDB
         t.finish()
         # Add properties:
         props = {
-            'batch_size_i': len(ids),
+            'batch_size': len(ids),
             'ids_ss' : ids,
             'stream_s': args.stream,
             'year_i': args.year
@@ -295,7 +294,7 @@ def main():
         # TODO? Send to TrackDB:
         #tdb.import_items([t.as_dict()])
         print(t.to_jsonline())
-        t.push_metrics()
+        t.push_metrics(['batch_size'])
     elif args.op == 'log-analyse-job':
         # Run a one-off job to analyse some logs based on a list from a file:
         results = run_log_job_with_file(args.input_file, args.targets)

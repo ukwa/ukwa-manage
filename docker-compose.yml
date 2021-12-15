@@ -11,7 +11,6 @@ services:
         https_proxy: ${HTTPS_PROXY}
     volumes:
       - .:/host
-    extra_hosts:
-      - "namenode:${NAMENODE_IP}"
-      - "jobtracker:${JOBTRACKER_IP}"
+      - "namenode:192.168.1.103"
+      - "jobtracker:192.168.1.104"
 
