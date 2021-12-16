@@ -90,7 +90,7 @@ class SolrTrackDB():
         # Return the count of imported items:
         return counter
 
-    def list(self, stream=None, year=None, field_value=None, sort='timestamp_dt desc', limit=100):
+    def list(self, stream=None, modified_after=None, field_value=None, year=None, sort='timestamp_dt desc', limit=100, modified_that_day=False):
         # set solr search terms
         solr_query_url = self.trackdb_url + '/query'
         query_string = {
@@ -105,6 +105,15 @@ class SolrTrackDB():
             query_string['q'] += ' AND stream_s:%s' % stream
         if year:
             query_string['q'] += ' AND year_i:%s' % year
+        if modified_after:
+            sd = modified_after.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+            if modified_that_day:
+                # Use the modified-after date, but only as a filter for that particular day:
+                query_string['q'] += f' AND modified_at_dt:[{sd}/DAY TO {sd}/DAY+1DAY]'
+            else:
+                # Just accept everything since that date:
+                query_string['q'] += f' AND modified_at_dt:[{sd} TO *]'
+
         if field_value:
             if field_value[1] == '_NONE_':
                 query_string['q'] += ' AND -{}:[* TO *]'.format(field_value[0])

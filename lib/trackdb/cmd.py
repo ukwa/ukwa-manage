@@ -29,9 +29,6 @@ def main():
 
     # Filter arguments:
     filter_parser = argparse.ArgumentParser(add_help=False)
-    filter_parser.add_argument('--year', 
-        type=int,
-        help='Filter down by date.')
     filter_parser.add_argument('--stream', 
         choices= ['frequent', 'domain', 'webrecorder'], 
         help='Filter the results by stream.', default=None)
@@ -107,7 +104,7 @@ def main():
     # Ops:
     logger.debug("Got args: %s" % args)
     if args.op == 'list':
-        for doc in tdb.list(args.stream, args.year, args.field, limit=args.limit):
+        for doc in tdb.list(args.stream, field_value=args.field, limit=args.limit):
             if args.ids_only:
                 print(doc['id'])
             else:

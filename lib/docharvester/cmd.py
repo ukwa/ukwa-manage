@@ -101,6 +101,10 @@ def main():
         # Scan Luigi state files:
         with LuigiStateScanner() as scanner:
             scanner.scan(args.path)
+    elif args.op == 'import-jsonl':
+        # Extend the Scanner logic to read documents from a JSONL file.
+        # TODO Implement this if it's useful for import/export
+        raise Exception("Not implemented yet!")
     elif args.op == 'process':
         # Find 'NEW' docs and attempt to push them to W3ACT:
         df = DocumentsFoundDB()

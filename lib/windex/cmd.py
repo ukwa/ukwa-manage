@@ -7,8 +7,9 @@ import logging
 import subprocess
 import argparse
 import tempfile
-import datetime
 import urllib.parse
+from datetime import datetime, date
+from dateutil.relativedelta import relativedelta
 
 # For querying TrackDB status:
 from lib.trackdb.solr import SolrTrackDB
@@ -56,9 +57,9 @@ def main():
         choices= ['frequent', 'domain', 'webrecorder'], 
         default='frequent',
         help='Which content stream to look for.')
-    trackdb_parser.add_argument('-Y', '--year', 
-        default=datetime.date.today().year,
-        type=int, help="Which year to query for.")
+    trackdb_parser.add_argument('-Y', '--years-back', 
+        default=1,
+        type=int, help="How many years back to go looking for files to process.")
 
 
     # CDX Server args:
@@ -125,7 +126,7 @@ def main():
         help="Use TrackDB and index logs",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[common_parser, trackdb_parser])
-    parser_logs.add_argument('-B', '--batch-size', type=int, help='Number log files to process in each run.', default=DEFAULT_BATCH_SIZE)
+    parser_logs.add_argument('-D', '--log-date', help='The last-modified date of log files to be processed, e.g. 2021-12-01. Default is today.',  type=date.fromisoformat, default=datetime.now())
     parser_logs.add_argument('-T', '--targets', help="The W3ACT Targets file to use to determine Watched Targets.", required=False)
 
     # Add a parser for the 'log-analyse' subcommand:
@@ -149,15 +150,19 @@ def main():
     if args.op == None:
         raise Exception("No operation specified.")
 
-    # Set up full CDX endpoint URL:
-    if "cdx_service" in args:
-        cdx_url = urllib.parse.urljoin(args.cdx_service, args.cdx_collection)
-
     # Set up verbose logging:
     if args.verbose == 1:
         logging.getLogger().setLevel(logging.INFO)    
     elif args.verbose > 1:
         logging.getLogger().setLevel(logging.DEBUG)    
+
+    # Work out the date we're looking back to
+    modified_since = datetime.now() - relativedelta(years=args.years_back)
+    logger.info(f"Looking for TrackDB entries since {modified_since}.")
+
+    # Set up full CDX endpoint URL:
+    if "cdx_service" in args:
+        cdx_url = urllib.parse.urljoin(args.cdx_service, args.cdx_collection)
 
     # Ops:
     logger.info("Got args: %s" % args)
@@ -181,7 +186,7 @@ def main():
         # Setup TrackDB
         tdb = SolrTrackDB(args.trackdb_url, hadoop=args.service, kind='warcs')
         # Record task start time:
-        started_at = datetime.datetime.now()
+        started_at = datetime.now()
         # Setup an event record:
         t = Task(f"{args.op}-{args.service}-{args.stream}")
         t.start()
@@ -193,7 +198,7 @@ def main():
             # Get a list of items to process:
             status_field = "cdx_index_ss"
             field_value = ["-%s" % status_field, "%s*" % args.cdx_collection]
-            items = tdb.list(args.stream, args.year, field_value, limit=args.batch_size)
+            items = tdb.list(args.stream, modified_since, field_value, limit=args.batch_size)
             if len(items) > 0:
                 # Run a job to index those items:
                 results = run_cdx_index_job(items, cdx_url)
@@ -201,7 +206,7 @@ def main():
                 metrics = results['metrics']
                 status_value = args.cdx_collection
             else:
-                logger.warn("No WARCs found to process!")
+                logger.warning("No WARCs found to process!")
 
         elif args.op == 'solr-index':
             # Extract collection name:
@@ -209,7 +214,7 @@ def main():
             # Get a list of items to process:
             status_field = "solr_index_ss"
             field_value = ["-%s" % status_field, "%s*" % solr_collection]
-            items = tdb.list(args.stream, args.year, field_value, limit=args.batch_size)
+            items = tdb.list(args.stream, modified_since, field_value, limit=args.batch_size)
             if len(items) > 0:
                 # Run a job to index those items:
                 results = run_solr_index_job(items, args.solr_url, args.config, args.annotations, args.oasurts)
@@ -218,7 +223,7 @@ def main():
                 metrics = results
                 status_value = solr_collection
             else:
-                logger.warn("No WARCs found to process!")
+                logger.warning("No WARCs found to process!")
 
         # Perform item updates:
         ids = []
@@ -238,7 +243,6 @@ def main():
             'batch_size': len(ids),
             'ids_ss' : ids,
             'stream_s': args.stream,
-            'year_i': args.year
         })
         # Add job metrics:
         t.add(metrics)
@@ -256,7 +260,7 @@ def main():
         print(json.dumps(results, sort_keys=True))
     elif args.op == 'log-analyse':
         # Setup TrackDB for log files
-        tdb = SolrTrackDB(args.trackdb_url, hadoop=args.service, kind='logs')
+        tdb = SolrTrackDB(args.trackdb_url, hadoop=args.service, kind='crawl-logs')
         # Setup an event record:
         t = Task(f"{args.op}-{args.service}-{args.stream}")
         t.start()
@@ -264,10 +268,12 @@ def main():
         ids = []
         stats = {}
         # Get a list of items to process:
-        status_field = "log_analysis"
+        status_field = "log_analysis_ss"
         status_field_value = "done"
         field_value = ["-%s" % status_field, status_field_value]
-        items = tdb.list(args.stream, args.year, field_value, limit=args.batch_size)
+        logger.info(f"Looking for log files with modified dates of {args.log_date}")
+        items = tdb.list(args.stream, args.log_date, field_value, limit=10000, modified_that_day=True)
+        logger.info(f"Found {len(items)} log file(s) for that day.")
         if len(items) > 0:
             # Run a job to index those items:
             stats = run_log_job(items, args.targets)
@@ -278,7 +284,7 @@ def main():
             # Mark as indexed, but also as unverified:
             tdb.update(ids, status_field, status_field_value)
         else:
-            logger.warn("No files found to process!")
+            logger.warning("No files found to process!")
 
         # Update event item in TrackDB
         t.finish()
@@ -287,7 +293,6 @@ def main():
             'batch_size': len(ids),
             'ids_ss' : ids,
             'stream_s': args.stream,
-            'year_i': args.year
         }
         t.add(props)
         # Add stats:
