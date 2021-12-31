@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 class KafkaDocumentFinder():
     
     def __init__(self, args):
+        self.db_uri = args.docs_found_db
         self.max_messages = args.max_messages
 
         # Refine args:
@@ -74,7 +75,7 @@ class KafkaDocumentFinder():
         self.group_id = args.group_id
 
         # And set up target DB
-        self.dh = DocumentsFoundDB(batch_size=1)
+        self.dh = DocumentsFoundDB(db_uri=self.db_uri, batch_size=1)
 
         return self
 

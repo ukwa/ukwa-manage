@@ -58,10 +58,9 @@ def _doc_generator(path):
 
 class LuigiStateScanner():
 
-
-    def __enter__(self):
+    def __enter__(self, db_uri):
         # Set up target DB
-        self.dh = DocumentsFoundDB()
+        self.dh = DocumentsFoundDB(db_uri=db_uri)
 
         return self
 

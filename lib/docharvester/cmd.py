@@ -25,6 +25,8 @@ logging.basicConfig(level=logging.WARNING, format='%(asctime)s: %(levelname)s - 
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_DB_URI = os.environ.get('DOCUMENTS_FOUND_DB_URI', 'postgresql://ddhapt:ddhapt@dev1.n45.wa.bl.uk:5435/ddhapt')
+
 def main():
     # Set up a parser:
     parser = argparse.ArgumentParser(prog='docharv')
@@ -33,6 +35,7 @@ def main():
     common_parser = argparse.ArgumentParser(add_help=False)
     common_parser.add_argument('-v', '--verbose',  action='count', default=0, help='Logging level; add more -v for more logging.')
     common_parser.add_argument('-T', '--targets', required=True, help="Location of crawl feed/targets file used to determine watched targets.")
+    common_parser.add_argument('-D', '--docs-found-db', default=DEFAULT_DB_URI, help="DB URI to use for the database of all documents found [default: %(default)s]")
 
     # Use sub-parsers for different operations:
     subparsers = parser.add_subparsers(dest="op")
@@ -89,7 +92,8 @@ def main():
     if args.verbose == 1:
         logging.getLogger().setLevel(logging.INFO)    
     elif args.verbose > 1:
-        logging.getLogger().setLevel(logging.DEBUG)    
+        logging.getLogger().setLevel(logging.DEBUG)
+
 
     # Ops:
     logger.debug("Got args: %s" % args)
@@ -99,15 +103,16 @@ def main():
             finder.find()
     elif args.op == 'import-luigi':
         # Scan Luigi state files:
-        with LuigiStateScanner() as scanner:
+        with LuigiStateScanner(args.docs_found_db) as scanner:
             scanner.scan(args.path)
     elif args.op == 'import-jsonl':
         # Extend the Scanner logic to read documents from a JSONL file.
         # TODO Implement this if it's useful for import/export
         raise Exception("Not implemented yet!")
     elif args.op == 'process':
+        # Set up the Documents Found DB:
+        df = DocumentsFoundDB(db_uri=args.docs_found_db)
         # Find 'NEW' docs and attempt to push them to W3ACT:
-        df = DocumentsFoundDB()
         dw = DocToW3ACT(args.cdx_server, args.targets, args.act_url, args.act_user, args.act_password)
         df.update_new_documents(dw, apply_updates=True, batch_size=args.batch_size)
     else:

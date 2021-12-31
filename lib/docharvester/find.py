@@ -57,9 +57,7 @@ class DocumentsFoundDB():
     docs = []
     docs_sent = 0
 
-    def __init__(self, 
-            db_uri=os.environ.get('DOCUMENTS_FOUND_DB_URI', 'postgresql://ddhapt:ddhapt@dev1.n45.wa.bl.uk:5435/ddhapt'), 
-            batch_size=10000 ):
+    def __init__(self, db_uri, batch_size=10000 ):
         self.batch_size = batch_size
         self.db_uri = db_uri
 
