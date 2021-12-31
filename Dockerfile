@@ -23,21 +23,21 @@ RUN apt-get update && \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Install the dependencies:
-COPY requirements.txt /ukwa-manage/requirements.txt
-RUN cd /ukwa-manage && \
+COPY requirements.txt /ukwa_manage/requirements.txt
+RUN cd /ukwa_manage && \
     pip install -U setuptools pip wheel && \
     pip install --no-cache-dir https://github.com/ukwa/hapy/archive/master.zip && \
     pip install --no-cache-dir https://github.com/ukwa/python-w3act/archive/master.zip && \
     pip install --no-cache-dir https://github.com/ukwa/crawl-streams/archive/master.zip && \
-    pip freeze && \
     pip install --no-cache-dir -r requirements.txt
 
 # Install the package:
-COPY setup.py /ukwa-manage/
-COPY README.md /ukwa-manage/
-COPY MANIFEST.in /ukwa-manage/
-COPY lib /ukwa-manage/lib
-RUN cd /ukwa-manage && python setup.py install
+RUN pip freeze
+COPY setup.py /ukwa_manage/
+COPY README.md /ukwa_manage/
+COPY MANIFEST.in /ukwa_manage/
+COPY lib /ukwa_manage/lib
+RUN cd /ukwa_manage && pip install .
 
 # Also copy in shell script helpers and configuration:
 COPY scripts/* /usr/local/bin/

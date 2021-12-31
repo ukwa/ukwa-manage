@@ -1,4 +1,2 @@
-recursive-include dash *
 recursive-include lib *
-recursive-include tasks *
 include requirements.txt

@@ -8,7 +8,7 @@ def get_version():
     try:
         return subprocess.check_output(['git', 'describe', '--tags', '--always']).strip().decode("utf-8")
     except:
-        return "?.?.?"
+        return "0.0.dev0"
 
 setup(
     name='ukwa-manage',
