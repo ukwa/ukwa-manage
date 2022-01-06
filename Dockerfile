@@ -23,12 +23,11 @@ RUN apt-get update && \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Install the dependencies:
+# WARNING HARDCODED setuptools version due to bug! https://stackoverflow.com/a/70604932
 COPY requirements.txt /ukwa_manage/requirements.txt
 RUN cd /ukwa_manage && \
-    pip install -U setuptools pip wheel && \
-    pip install --no-cache-dir https://github.com/ukwa/hapy/archive/master.zip && \
-    pip install --no-cache-dir https://github.com/ukwa/python-w3act/archive/master.zip && \
-    pip install --no-cache-dir https://github.com/ukwa/crawl-streams/archive/master.zip && \
+    pip install -U setuptools==60.2.0 pip wheel && \
+    echo Installing requirements.txt && \
     pip install --no-cache-dir -r requirements.txt
 
 # Install the package:
