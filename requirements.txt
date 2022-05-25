@@ -13,7 +13,8 @@ botocore==1.26.7
 cdxj-indexer==1.4.2
 certifi==2020.12.5
 cffi==1.14.5
-chardet==3.0.4
+chardet==4.0.0
+charset-normalizer==2.0.12
 click==7.1.2
 crawlstreams @ https://github.com/ukwa/crawl-streams/archive/master.zip
 cryptography==3.4.6
@@ -96,7 +97,7 @@ pytz==2021.1
 PyYAML==5.4.1
 pyzmq==22.0.3
 regex==2020.11.13
-requests==2.25.1
+requests==2.27.1
 requests-file==1.5.1
 s3transfer==0.5.2
 six==1.15.0
@@ -112,7 +113,7 @@ tqdm==4.58.0
 traitlets==5.0.5
 typed-ast==1.4.3
 typing-extensions==3.10.0.2
-urllib3==1.26.7
+urllib3==1.26.9
 warcio==1.7.4
 wcwidth==0.2.5
 webencodings==0.5.1
