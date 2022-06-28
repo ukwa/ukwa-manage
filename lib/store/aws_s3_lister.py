@@ -4,6 +4,10 @@ import json
 import datetime
 from lib.store.hdfs_layout import HdfsPathParser
 
+#
+# This works a bit like the webhdfs.py class, but scans and classifies holdings from AWS
+#
+
 session = boto3.Session( 
          aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], 
          aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']
