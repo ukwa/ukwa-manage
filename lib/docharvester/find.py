@@ -23,6 +23,8 @@ import psycopg2.extras
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_DB_URI = os.environ.get('DOCUMENTS_FOUND_DB_URI', 'postgresql://ddhapt:ddhapt@dev1.n45.wa.bl.uk:5435/ddhapt')
+
 class DocumentsFoundDB():
 
     sql = """

@@ -15,7 +15,7 @@ from mrjob.protocol import TextProtocol
 
 logger = logging.getLogger(__name__)
 
-def run_log_job_with_file(input_file, targets):
+def run_log_job_with_file(input_file, targets, docs_found_db_uri):
     # Read input file list in as items:
     items = []
     with open(input_file) as fin:
@@ -24,10 +24,10 @@ def run_log_job_with_file(input_file, targets):
                 'file_path_s': line.strip()
             })
     # Run the given job:
-    return run_log_job(items, targets)
+    return run_log_job(items, targets, docs_found_db_uri)
 
 
-def run_log_job(items, targets):
+def run_log_job(items, targets, docs_found_db_uri):
     # Set up the args
     args=[
         '-r', 'hadoop',
@@ -43,7 +43,7 @@ def run_log_job(items, targets):
     mr_job = MRLogAnalysisJob(args)
 
     # Run and gather output:
-    dh = DocumentsFoundDB()
+    dh = DocumentsFoundDB(db_uri=docs_found_db_uri)
     stats = {}
     with mr_job.make_runner() as runner:
         runner.run()

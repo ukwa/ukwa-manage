@@ -4,6 +4,7 @@ Document Harvester command line tools.
 The overall workflow is:
 
 - import candidate documents into a 'documents found' database
+    - Note that the 'windex' command does this usually, but utils are here.
 - check they are available in wayback
 - determine which W3ACT target they are associated with (if any)
 - collect some additional metadata for them
@@ -18,14 +19,13 @@ import logging
 import argparse
 from lib.docharvester.kafka import KafkaDocumentFinder
 from lib.docharvester.from_luigi_files import LuigiStateScanner
-from lib.docharvester.find import DocumentsFoundDB
+from lib.docharvester.find import DocumentsFoundDB, DEFAULT_DB_URI
 from lib.docharvester.to_w3act import DocToW3ACT
 
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DB_URI = os.environ.get('DOCUMENTS_FOUND_DB_URI', 'postgresql://ddhapt:ddhapt@dev1.n45.wa.bl.uk:5435/ddhapt')
 
 def main():
     # Set up a parser:

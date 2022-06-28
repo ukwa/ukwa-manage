@@ -24,6 +24,10 @@ from lib.windex.mr_solr_job import run_solr_index_job
 from lib.windex.mr_log_job import run_log_job, run_log_job_with_file
 from lib.windex.index_ops import remove_solr_records
 
+# Document Harvester config:
+from lib.docharvester.find import DEFAULT_DB_URI
+
+
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
 
 logger = logging.getLogger(__name__)
@@ -60,6 +64,7 @@ def main():
     trackdb_parser.add_argument('-Y', '--years-back', 
         default=1,
         type=int, help="How many years back to go looking for files to process.")
+    trackdb_parser.add_argument('-N', '--no-update', action='store_true', help='Set this flag and TrackDB will not be updated or modified by this task.')
 
 
     # CDX Server args:
@@ -126,15 +131,17 @@ def main():
         help="Use TrackDB and index logs",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[common_parser, trackdb_parser])
-    parser_logs.add_argument('-D', '--log-date', help='The last-modified date of log files to be processed, e.g. 2021-12-01. Default is today.',  type=date.fromisoformat, default=datetime.now())
+    parser_logs.add_argument('-d', '--log-date', help='The last-modified date of log files to be processed, e.g. 2021-12-01. Default is today.',  type=date.fromisoformat, default=datetime.now())
+    parser_logs.add_argument('-D', '--docs-found-db', default=DEFAULT_DB_URI, help="DB URI to use for the database of all documents found [default: %(default)s]")
     parser_logs.add_argument('-T', '--targets', help="The W3ACT Targets file to use to determine Watched Targets.", required=False)
 
-    # Add a parser for the 'log-analyse' subcommand:
+    # Add a parser for the 'log-analyse-job' subcommand:
     parser_logsjob = subparsers.add_parser('log-analyse-job',
         help="Analyse a set of log files on HFDS.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[common_parser])
     parser_logsjob.add_argument('-T', '--targets', help="The W3ACT Targets file to use to determine Watched Targets.")
+    parser_logsjob.add_argument('-D', '--docs-found-db', default=DEFAULT_DB_URI, help="DB URI to use for the database of all documents found [default: %(default)s]")
     parser_logsjob.add_argument('input_file', help="A file containing a list of log files to analyse.")
 
     # Add parse to clip records from indexes:
@@ -235,7 +242,11 @@ def main():
             item_update['id'] = item['id']
             item_update[status_field] = "%s" % status_value
             item_updates.append(item_update)
-        tdb.import_items(item_updates)
+        if args.no_update:
+            logger.info("Skipping updates to TrackDB...")
+        else:
+            logger.info("Updating items in TrackDB...")
+            tdb.import_items(item_updates)
         # Update event item in TrackDB
         t.finish()
         # Add properties:
@@ -276,13 +287,17 @@ def main():
         logger.info(f"Found {len(items)} log file(s) for that day.")
         if len(items) > 0:
             # Run a job to index those items:
-            stats = run_log_job(items, args.targets)
+            stats = run_log_job(items, args.targets, args.docs_found_db)
             # If that worked (no exception thrown), update the tracking database accordingly:
             ids = []
             for item in items:
                 ids.append(item['id'])
-            # Mark as indexed, but also as unverified:
-            tdb.update(ids, status_field, status_field_value)
+            # Mark as processed:
+            if args.no_update:
+                logger.info("Skipping updates to TrackDB...")
+            else:
+                logger.info("Updating items in TrackDB...")
+                tdb.update(ids, status_field, status_field_value)
         else:
             logger.warning("No files found to process!")
 
@@ -303,7 +318,7 @@ def main():
         t.push_metrics(['batch_size'])
     elif args.op == 'log-analyse-job':
         # Run a one-off job to analyse some logs based on a list from a file:
-        results = run_log_job_with_file(args.input_file, args.targets)
+        results = run_log_job_with_file(args.input_file, args.targets, args.docs_found_db)
         print(json.dumps(results, sort_keys=True))
 
 
