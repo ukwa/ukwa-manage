@@ -32,7 +32,7 @@ gunicorn==20.0.4
 hapy-heritrix @ https://github.com/ukwa/hapy/archive/master.zip
 hdfs==2.6.0
 idna==2.10
-importlib-metadata==4.10.0
+importlib-metadata==4.11.4
 ipykernel==5.5.0
 ipython==7.31.1
 ipython-genutils==0.2.0
@@ -119,4 +119,4 @@ wcwidth==0.2.5
 webencodings==0.5.1
 Werkzeug==1.0.1
 wrapt==1.12.1
-zipp==3.4.0
+zipp==3.8.0
