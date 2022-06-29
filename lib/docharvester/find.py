@@ -105,6 +105,7 @@ class DocumentsFoundDB():
     def update_new_documents(self, doc_updater, status_filter="NEW", apply_updates=True, batch_size=100):
         conn = self._open_connection()
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            logger.info(f"Fetching {batch_size} document record(s) with status {status_filter}...")
             # find and lock up to 100 NEW documents:
             cur.execute(f"SELECT * FROM documents_found WHERE status = '{status_filter}' ORDER BY wayback_timestamp DESC LIMIT {batch_size} FOR UPDATE SKIP LOCKED")
             for row in cur.fetchall():
