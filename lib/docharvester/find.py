@@ -246,12 +246,22 @@ class CrawlLogExtractors(object):
         self.job_name = job_name
         # Setup targets if provided:
         if targets_path:
-            # Find the unique watched seed list:
-            logger.debug("Loading path: %s" % targets_path)
-            with open(targets_path) as fin:
-                targets = json.load(fin)
+            if targets_path.endswith('.json'):
+                logger.debug("Loading path as JSON: %s" % targets_path)
+                with open(targets_path) as fin:
+                    targets = json.load(fin)
+            elif targets_path.endswith('.jsonl'):
+                logger.debug("Loading path as JSONL: %s" % targets_path)
+                targets = []
+                with open(targets_path) as fin:
+                    for line in fin:
+                        target = json.load(line)
+                        targets.append(target)
+            else:
+                raise Exception(f"Don't know how to load {targets_path}")
         else:
             targets = []
+        logger.info(f"Targets list contains {len(targets)} targets.")
         # Assemble the Watched SURTs:
         target_map = {}
         watched = set()
