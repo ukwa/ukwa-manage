@@ -78,8 +78,20 @@ class DocToW3ACT():
         self.cdxserver_endpoint = cdx_server
         self.cdx = CdxIndex(cdx_server, filter="!mimetype:warc/revisit")
         # Load in targets:
-        with open(targets_path) as fin:
-            self.targets = json.load(fin)
+        if targets_path.endswith('.json'):
+            logger.debug("Loading path as JSON: %s" % targets_path)
+            with open(targets_path) as fin:
+                self.targets = json.load(fin)
+        elif targets_path.endswith('.jsonl'):
+            logger.debug("Loading path as JSONL: %s" % targets_path)
+            self.targets = []
+            with open(targets_path) as fin:
+                for line in fin:
+                    target = json.loads(line)
+                    self.targets.append(target)
+        else:
+            raise Exception(f"Don't know how to load {targets_path}")
+
         # Set up a W3ACT client:
         self.act = w3act(act_url, act_user, act_password)
 
