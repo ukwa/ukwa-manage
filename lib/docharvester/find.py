@@ -16,7 +16,7 @@ import json
 import surt
 import logging
 import tempfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urlparse
 import psycopg2
 import psycopg2.extras
@@ -102,12 +102,15 @@ class DocumentsFoundDB():
         connection.commit()
 
     # Pass in calls wiht an update function that will create an update for a document:
-    def update_new_documents(self, doc_updater, status_filter="NEW", apply_updates=True, batch_size=100):
+    def update_new_documents(self, doc_updater, status_filter="NEW", apply_updates=True, batch_size=100, days_ago=3*30):
         conn = self._open_connection()
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            logger.info(f"Fetching {batch_size} document record(s) with status {status_filter}...")
+            # Pick a start date:
+            ago_datetime = datetime.now() - timedelta(days_ago)
+            earliest_timestamp = datetime.strftime(ago_datetime, '%Y%m%d%H%M%S')
+            logger.info(f"Fetching {batch_size} document record(s) with status = '{status_filter}' AND wayback_timestamp > '{earliest_timestamp}'...")
             # find and lock up to 100 NEW documents:
-            cur.execute(f"SELECT * FROM documents_found WHERE status = '{status_filter}' ORDER BY wayback_timestamp DESC LIMIT {batch_size} FOR UPDATE SKIP LOCKED")
+            cur.execute(f"SELECT * FROM documents_found WHERE status = '{status_filter}' AND wayback_timestamp > '{earliest_timestamp}' ORDER BY wayback_timestamp DESC LIMIT {batch_size} FOR UPDATE SKIP LOCKED")
             for row in cur.fetchall():
                 # get row as a plain dict:
                 doc = dict(row)
