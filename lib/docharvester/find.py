@@ -106,7 +106,7 @@ class DocumentsFoundDB():
         conn = self._open_connection()
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             # find and lock up to 100 NEW documents:
-            cur.execute(f"SELECT * FROM documents_found WHERE status = '{status_filter}' ORDER BY wayback_timestamp ASC LIMIT {batch_size} FOR UPDATE SKIP LOCKED")
+            cur.execute(f"SELECT * FROM documents_found WHERE status = '{status_filter}' ORDER BY wayback_timestamp DESC LIMIT {batch_size} FOR UPDATE SKIP LOCKED")
             for row in cur.fetchall():
                 # get row as a plain dict:
                 doc = dict(row)
@@ -115,6 +115,7 @@ class DocumentsFoundDB():
                 updoc = doc_updater.update(doc)
                 # If there is an update, apply it:
                 if updoc and apply_updates:
+                    logger.info(f"Updating {updoc}...")
                     # Now we use the returned document to update the records:
                     update_sql = """
                     UPDATE documents_found SET 
@@ -125,7 +126,7 @@ class DocumentsFoundDB():
                     WHERE document_url = %(document_url)s
                     """
                     cur.execute(update_sql, updoc)
-            # And finish the transation:
+            # And finish the transaction:
             conn.commit()
 
          
