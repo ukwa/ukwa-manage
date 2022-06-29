@@ -255,7 +255,7 @@ class CrawlLogExtractors(object):
                 targets = []
                 with open(targets_path) as fin:
                     for line in fin:
-                        target = json.load(line)
+                        target = json.loads(line)
                         targets.append(target)
             else:
                 raise Exception(f"Don't know how to load {targets_path}")
