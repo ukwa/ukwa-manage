@@ -117,6 +117,8 @@ def main():
         # As each update transaction works best if it's not too long, we break the whole batch into chunks:
         completed = 0
         transaction_batch_size = 5
+        if args.batch_size < transaction_batch_size:
+            transaction_batch_size = args.batch_size
         while completed < args.batch_size:
             # Find 'NEW' docs and attempt to push them to W3ACT:
             df.update_new_documents(dw, apply_updates=True, batch_size=transaction_batch_size)

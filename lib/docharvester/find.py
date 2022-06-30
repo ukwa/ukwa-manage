@@ -109,9 +109,9 @@ class DocumentsFoundDB():
             # Pick a start date:
             ago_datetime = datetime.now() - timedelta(days_ago)
             earliest_timestamp = datetime.strftime(ago_datetime, '%Y%m%d%H%M%S')
-            logger.info(f"Fetching {batch_size} document record(s) with status = '{status_filter}' AND wayback_timestamp > '{earliest_timestamp}'...")
-            # find and lock up to 100 NEW documents:
-            cur.execute(f"SELECT * FROM documents_found WHERE status = '{status_filter}' AND wayback_timestamp > '{earliest_timestamp}' ORDER BY wayback_timestamp DESC LIMIT {batch_size} FOR UPDATE SKIP LOCKED")
+            logger.info(f"Fetching {batch_size} random document record(s) with status = '{status_filter}' AND wayback_timestamp > '{earliest_timestamp}'...")
+            # find and lock up to 100 NEW documents - use ORDER BY random() so the same documents are not selected every single time:
+            cur.execute(f"SELECT * FROM documents_found WHERE status = '{status_filter}' AND wayback_timestamp > '{earliest_timestamp}' ORDER BY random() LIMIT {batch_size} FOR UPDATE SKIP LOCKED")
             for row in cur.fetchall():
                 # get row as a plain dict:
                 doc = dict(row)
