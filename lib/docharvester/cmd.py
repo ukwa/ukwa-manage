@@ -116,7 +116,7 @@ def main():
         dw = DocToW3ACT(args.cdx_server, args.targets, args.act_url, args.act_user, args.act_password)
         # As each update transaction works best if it's not too long, we break the whole batch into chunks:
         completed = 0
-        transaction_batch_size = 20
+        transaction_batch_size = 5
         while completed < args.batch_size:
             # Find 'NEW' docs and attempt to push them to W3ACT:
             df.update_new_documents(dw, apply_updates=True, batch_size=transaction_batch_size)
