@@ -312,7 +312,7 @@ def main():
         t.add(props)
         # Add stats:
         t.add(stats)
-        # TODO? Send to TrackDB:
+        # TODO? Send events to TrackDB???:
         #tdb.import_items([t.as_dict()])
         print(t.to_jsonline())
         t.push_metrics(['batch_size'])
