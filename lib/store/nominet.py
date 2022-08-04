@@ -47,18 +47,19 @@ def ingest_from_nominet(w):
         next_date = add_months(datetime.date.today(), 1)
         while file_date < next_date:
             # Construct the filename and target HDFS path:
-            file = 'domains.%s.csv.gz' % file_date.strftime('%Y%m')
-            hdfsfile = "/1_data/nominet/%s" % file
-            logger.info("Attempting to download '%s' via SFTP..." % file)
-            if sftp.exists(file):
-                sftp.get(file)
-                logger.warn("Uploading '%s' to HDFS path '%s'..." % (file, hdfsfile))
-                w.put(file, hdfsfile)
+            filename = 'ukdata-%s.zip' % file_date.strftime('%Y%m%d')
+            hdfsfile = "/1_data/nominet/%s" % filename
+            ftpfile = "/ukdata/%s" % filename
+            logger.info("Attempting to download '%s' via SFTP..." % ftpfile)
+            if sftp.exists(ftpfile):
+                sftp.get(ftpfile, filename)
+                logger.warn("Uploading '%s' to HDFS path '%s'..." % (filename, hdfsfile))
+                w.put(filename, hdfsfile)
             else:
                 logger.warn("No file '%s' found!" % file)
             # Try the next month:
             file_date = add_months(file_date, 1)
 
 if __name__ == '__main__':
-    w = WebHDFSStore()
+    w = WebHDFSStore('h3')
     ingest_from_nominet(w)
