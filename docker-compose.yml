@@ -11,7 +11,12 @@ services:
         https_proxy: ${HTTPS_PROXY}
     volumes:
       - .:/host
+    environment:
+      - NOM_HOST=$NOM_HOST
+      - NOM_USER=$NOM_USER
+      - NOM_PWD=$NOM_PWD
     extra_hosts:
       - "namenode:192.168.1.103"
       - "jobtracker:192.168.1.104"
+      - "h3httpfs.api.wa.bl.uk:192.168.45.40"
 

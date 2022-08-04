@@ -7,6 +7,8 @@ import datetime
 import calendar
 from lib.store.webhdfs import WebHDFSStore
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s - %(name)s - %(message)s')
+
 logger = logging.getLogger(__name__)
 
 def add_months(date, months):
@@ -47,7 +49,7 @@ def ingest_from_nominet(w):
         next_date = add_months(datetime.date.today(), 1)
         while file_date < next_date:
             # Construct the filename and target HDFS path:
-            filename = 'ukdata-%s.zip' % file_date.strftime('%Y%m%d')
+            filename = 'ukdata-%s01.zip' % file_date.strftime('%Y%m')
             hdfsfile = "/1_data/nominet/%s" % filename
             ftpfile = "/ukdata/%s" % filename
             logger.info("Attempting to download '%s' via SFTP..." % ftpfile)
@@ -56,10 +58,10 @@ def ingest_from_nominet(w):
                 logger.warn("Uploading '%s' to HDFS path '%s'..." % (filename, hdfsfile))
                 w.put(filename, hdfsfile)
             else:
-                logger.warn("No file '%s' found!" % file)
+                logger.warn("No file '%s' found!" % ftpfile)
             # Try the next month:
             file_date = add_months(file_date, 1)
 
 if __name__ == '__main__':
-    w = WebHDFSStore('h3')
+    w = WebHDFSStore('h3', user_override='ingest')
     ingest_from_nominet(w)
