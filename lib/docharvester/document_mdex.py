@@ -20,6 +20,9 @@ from lib.surt import url_to_surt
 
 logger = logging.getLogger(__name__)
 
+# HTTP timeout in seconds (to avoid hangs)
+TIMEOUT = 60
+
 
 class DocumentMDEx(object):
     '''
@@ -163,7 +166,7 @@ class DocumentMDEx(object):
         ''' Default extractor uses landing page for title etc.'''
         # Grab the landing page URL as HTML
         logger.info("Getting %s" % self.lp_wb_url())
-        r = requests.get(self.lp_wb_url(), stream=True, verify=False)
+        r = requests.get(self.lp_wb_url(), stream=True, verify=False, timeout=TIMEOUT)
         h = html.fromstring(r.content)
         h.make_links_absolute(self.doc["landing_page_url"])
         logger.info("Looking for links...")
@@ -222,7 +225,7 @@ class DocumentMDEx(object):
                 api_json_url = lp_url._replace( path="/api/content%s" % lp_url.path)
                 api_json_url = api_json_url.geturl()
                 logger.debug("Downloading and parsing from API: %s" % api_json_url)
-                r = requests.get(api_json_url)
+                r = requests.get(api_json_url, timeout=TIMEOUT)
                 if r.status_code != 200:
                     logger.warning("Got status code %s for URL %s" % (r.status_code, api_json_url))
                     logger.warning("Response: %s" % r.content)
@@ -240,7 +243,7 @@ class DocumentMDEx(object):
             # Grab the landing page URL as HTML:
             # TODO This could all be pulled out of the Content API, if it's stable enough.
             logger.debug("Downloading and parsing: %s" % self.doc['landing_page_url'])
-            r = requests.get(self.lp_wb_url())
+            r = requests.get(self.lp_wb_url(), timeout=TIMEOUT)
             if r.status_code != 200:
                 logger.warning("Got status code %s for URL %s" % (r.status_code, self.lp_wb_url()))
                 logger.warning("Response: %s" % r.content)
@@ -283,7 +286,7 @@ class DocumentMDEx(object):
                 self.mdex_default()
                 return
         # Grab the landing page URL as HTML
-        r = requests.get(self.lp_wb_url())
+        r = requests.get(self.lp_wb_url(), timeout=TIMEOUT)
         h = html.fromstring(r.content)
         # Extract the metadata:
         self.doc['title'] = self._get0(h.xpath("//*[contains(@itemtype, 'http://schema.org/CreativeWork')]//*[contains(@itemprop,'name')]/text()")).strip()
