@@ -203,7 +203,7 @@ class DocumentMDEx(object):
         tries = 5
         success = False
         while tries > 0:
-            r = requests.head(url=self.doc_wb_url(), allow_redirects=True)
+            r = requests.head(url=self.doc_wb_url(), allow_redirects=True, timeout=TIMEOUT)
             if 'up' in r.links:
                 lpu = r.links['up']
                 self.doc["landing_page_url"] = lpu['url']
