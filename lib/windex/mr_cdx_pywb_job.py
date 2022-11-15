@@ -38,11 +38,13 @@ def run_cdx_index_job(items, cdx_endpoint):
     # Run and gather output:
     stats = {}
     with mr_job.make_runner() as runner:
-        # Block the running from auto-decompressing the intputs:
+        # Block the running from auto-decompressing the inputs:
         def _manifest_uncompress_commands_just_dont(self):
             return []
             #foo.bark = new_bark.__get__(foo, Dog)
         runner._manifest_uncompress_commands = _manifest_uncompress_commands_just_dont.__get__(runner, runner.__class__)
+        # Log the configuration so we can debug any configuration problems:
+        logger.info(f"Full MrJob runner configuration: {runner._opts}")
         # And run the job:
         runner.run()
         results = process_job_output(mr_job, runner)
