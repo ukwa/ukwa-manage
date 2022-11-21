@@ -126,6 +126,10 @@ def main():
         if args.id == '-':
             for line in sys.stdin:
                 ids.append(line.strip())
+        elif os.path.isfile(args.id): 
+            with open(args.id) as f:
+                for line in f:
+                    ids.append(line.strip())
         else:
             ids.append(args.id)
         # And run the updates:
