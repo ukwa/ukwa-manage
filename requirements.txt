@@ -11,7 +11,7 @@ bleach==3.3.0
 boto3==1.23.7
 botocore==1.26.7
 cdxj-indexer==1.4.2
-certifi==2020.12.5
+certifi==2022.12.7
 cffi==1.14.5
 chardet==4.0.0
 charset-normalizer==2.0.12
