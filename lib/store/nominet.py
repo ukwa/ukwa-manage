@@ -12,15 +12,16 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s - %(n
 logger = logging.getLogger(__name__)
 
 def add_months(date, months):
-    months_count = date.month + months
+    month = date.month + months
 
-    # Calculate the year
-    year = date.year + int(months_count / 12)
-
-    # Calculate the month
-    month = (months_count % 12)
-    if month == 0:
-        month = 12
+    # Calculate the year and month:
+    year = date.year
+    while month < 1:
+        month += 12
+        year -= 1
+    while month > 12:
+        month -= 12
+        year += 1
 
     # Calculate the day
     day = date.day
