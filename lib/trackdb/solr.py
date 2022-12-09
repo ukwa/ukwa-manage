@@ -167,6 +167,10 @@ class SolrTrackDB():
 
     def _update_generator(self, ids, field, value, action):
         for id in ids:
+            # TODO Sanity check the IDs to check they look about right?
+            # Special case of handling fields being set to empty values:
+            if action == 'set' and value == '':
+                value = None
             # Update TrackDB record for records based on ID:
             yield { 'id': id, field: { action: value } } 
         
