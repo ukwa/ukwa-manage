@@ -183,9 +183,12 @@ class MRCDXIndexer(MRJob):
 
                 # Skip lines with malformed status codes, but record the fact that they are present:
                 status_code = parts[4]
-                if not status_code.isdigit() or int(status_code) < 0 or int(status_code) >= 600:
-                    yield f"__by_file {warc_path} warc_malformed_status_code_record_count_l", 1
-                    continue
+                # A simple '-' is permitted as e.g. resource records have no status code, so don't validate that:
+                if status_code != '-':
+                    # If it's not a '-', then it should be a valid status code:
+                    if not status_code.isdigit() or int(status_code) < 0 or int(status_code) >= 600:
+                        yield f"__by_file {warc_path} warc_malformed_status_code_record_count_l", 1
+                        continue
 
                 # Normalise the content type:
                 parts[3] = parts[3].lower()
