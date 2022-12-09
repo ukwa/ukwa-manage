@@ -146,9 +146,9 @@ def main():
 
     # Add parse to clip records from indexes:
     parser_index_del = subparsers.add_parser('index-delete',
-        help="Delete items from indexes.",
+        help="Delete items from Solr indexes (no support for deleting from OutbackCDX at present).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[common_parser,cdx_parser])
+        parents=[common_parser])
     parser_index_del.add_argument('-s', '--solr-url', help='URL of Solr service to operate on.', default=DEFAULT_SOLR_ENDPOINT)
     parser_index_del.add_argument('urls_to_delete', help='Location of files listing URLs to be deleted from indexes.')
 
