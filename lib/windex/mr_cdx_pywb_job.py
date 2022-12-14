@@ -134,7 +134,15 @@ class MRCDXIndexer(MRJob):
         # CDX N b a m s k r M S V g
         # com,example)/ 20170306040206 http://example.com/ text/html 200 G7HRM7BGOKSKMSXZAHMUQTTV53QOFSMK - - 1242 784 example.warc.gz
         cdx11 = CDX11Indexer(inputs=[warc_path], output=cdx_file, cdx11=True, post_append=True)
-        cdx11.process_all()
+        # Some WARCs throw an exception during indexing. To avoid everything getting stuck we need to catch these errors and 
+        # record them for later investigation rather than killing the whole job:
+        self.set_status('Running cdxj_indexer on %s ...' % warc_path)
+        try:
+            cdx11.process_all()
+        except Exception as e:
+            yield f"__by_file {warc_path} warc_cdx_indexing_exception_s", str(e)
+            # Do not process output of failed process:
+            return
 
         # The warc_path we get passed in is just the local temp filename.
         # We need to use the HDFS file URI instead and extract the path:
