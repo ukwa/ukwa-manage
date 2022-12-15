@@ -145,7 +145,7 @@ class MRCDXIndexer(MRJob):
         try:
             cdx11.process_all()
         except Exception as e:
-            yield f"__by_file {warc_path} warc_cdx_indexing_exception_s", str(e)
+            yield f"__by_file {warc_path} warc_cdx_indexing_exception_s {str(e)}", 1
             # Do not process output of failed process:
             return
 
