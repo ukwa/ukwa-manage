@@ -24,7 +24,7 @@ def main():
     common_parser.add_argument('-i', '--indent', type=int, help='Number of spaces to indent when emitting JSON.')
     common_parser.add_argument('-t', '--trackdb-url', type=str, help='The TrackDB URL to talk to.', required=True)
     common_parser.add_argument('kind', 
-        choices= ['files', 'warcs', 'logs', 'tasks', 'launches', 'documents'], 
+        choices= ['files', 'warcs', 'logs', 'crawl-logs', 'tasks', 'launches', 'documents'], 
         help='The kind of entities to operate on. The \'files\' type is used to import records from HDFS listings.')
 
     # Filter arguments:

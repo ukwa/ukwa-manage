@@ -12,7 +12,7 @@ import json
 
 logger = logging.getLogger(__name__)
 
-HDFS_KINDS = ['files', 'warcs', 'logs'] # kinds of records that correspond to different HDFS files
+HDFS_KINDS = ['files', 'warcs', 'logs', 'crawl-logs'] # kinds of records that correspond to different HDFS files
 HDFS_PREFIX = 'hdfs://' # Used to sanity-check HDFS IDs on import.
 
 class SolrTrackDB():
