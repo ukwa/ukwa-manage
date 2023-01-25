@@ -12,7 +12,7 @@ s = {
     # See https://lucene.apache.org/solr/guide/8_5/parallel-sql-interface.html
     "stmt": "SELECT collection_s, stream_s, kind_s, timestamp_dt, file_size_l, file_path_s, hdfs_service_id_s \
                     FROM tracking WHERE refresh_date_dt = '[NOW-1DAY TO *]' \
-                    AND (kind_s = 'warcs' OR kind_s = 'crawl-logs')"
+                    AND (kind_s = 'warcs' OR kind_s = 'crawl-logs' OR kind_s = 'viral')"
 }
 
 r = requests.post(SOLR_URL, data=s)
