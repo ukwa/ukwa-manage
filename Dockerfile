@@ -49,6 +49,10 @@ COPY --from=dep-env /jars/* /usr/local/bin/
 # Default entrypoint from ukwa/docker-hadoop is entrypoint-h3.sh, so default config is H3:
 ENV MRJOB_CONF=/etc/mrjob_h3.conf
 
+# Add the BL-ENT-CA
+COPY *.crt /usr/local/share/ca-certificates/
+RUN update-ca-certificates
+
 # Switch back to access user for running code:
 USER access
 
