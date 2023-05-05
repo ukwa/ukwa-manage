@@ -23,10 +23,10 @@ RUN apt-get update && \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Install the dependencies:
-# WARNING HARDCODED setuptools version due to bug! https://stackoverflow.com/a/70604932
 COPY requirements.txt /ukwa_manage/requirements.txt
 RUN cd /ukwa_manage && \
-    pip install -U setuptools==60.2.0 pip wheel && \
+    pip install -U setuptools pip wheel && \
+    pip install --no-cache-dir git+https://github.com/ukwa/kevals.git@1.0.0 && \
     echo Installing requirements.txt && \
     pip install --no-cache-dir -r requirements.txt
 
