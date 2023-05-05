@@ -1,6 +1,18 @@
 # UKWA Manage
 Tools for managing the UK Web Archive
 
+## Dependencies
+
+This codebase contains many of the command-line tools used to run automation tasks at the UK Web Archive, via the Docker container version, orchestrated by Apache Airflow.  This runs local command and [MrJob](https://mrjob.readthedocs.io/) Hadoop jobs, with the latter coded in either Java or Python, able to run on the older or newer Hadoop clusters.  As such, the dependencies are quite complex.
+
+- The base Docker image is from https://github.com/ukwa/docker-hadoop and supports two versions of Hadoop and Python 3.
+- The https://github.com/ukwa/webarchive-discovery Docker image is used as the source for JARs for Java Hadoop jobs.
+- This project also depends on four UKWA modules: [`hapy-heritrix`](https://github.com/ukwa/hapy), [`python-w3act`](https://github.com/ukwa/python-w3act), [`crawlstreams`](https://github.com/ukwa/crawl-streams) directly and [`kevals`](https://github.com/ukwa/kevals) indirectly (via `crawlstreams`).
+
+Requirements in builds are handled via `requirements.txt` files, which pin specific versions of dependencies.  Therefore, for the builds to remain consistent, the versions of modules that appear in multiple places (e.g. `requests`) have to be synchronised across all placed. For example, upgrading `requests` means updating all five Python codebases, otherwise the build will fail.
+
+Similarly, if upgrading the version of Python, to ensure full compatibility, this needs to be done across all dependencies including the Docker base image (as well as all nodes in the Hadoop cluster, with the `mrjob_*.conf` files updated to refer to it).
+
 ## Getting started
 
 n.b. we currently run Python 3.7 on the Hadoop cluster, so streaming
