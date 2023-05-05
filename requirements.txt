@@ -47,6 +47,7 @@ jupyter-client==6.1.11
 jupyter-core==4.7.1
 jupyterlab-pygments==0.1.2
 kafka-python==1.4.7
+kevals @ https://github.com/ukwa/kevals/archive/main.zip
 kiwisolver==1.3.1
 lazy-object-proxy==1.6.0
 lockfile==0.12.2
