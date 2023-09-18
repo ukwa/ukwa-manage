@@ -163,10 +163,6 @@ def main():
     elif args.verbose > 1:
         logging.getLogger().setLevel(logging.DEBUG)    
 
-    # Work out the date we're looking back to
-    modified_since = datetime.now() - relativedelta(years=args.years_back)
-    logger.info(f"Looking for TrackDB entries since {modified_since}.")
-
     # Set up full CDX endpoint URL:
     if "cdx_service" in args:
         cdx_url = urllib.parse.urljoin(args.cdx_service, args.cdx_collection)
@@ -192,6 +188,9 @@ def main():
     elif args.op == 'cdx-index' or args.op == 'solr-index':
         # Setup TrackDB
         tdb = SolrTrackDB(args.trackdb_url, hadoop=args.service, kind='warcs')
+        # Work out the date we're looking back to:
+        modified_since = datetime.now() - relativedelta(years=args.years_back)
+        logger.info(f"Looking for TrackDB entries since {modified_since}.")
         # Record task start time:
         started_at = datetime.now()
         # Setup an event record:
