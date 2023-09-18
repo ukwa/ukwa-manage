@@ -133,7 +133,13 @@ class MRCDXIndexer(MRJob):
         # Using CDX11:
         # CDX N b a m s k r M S V g
         # com,example)/ 20170306040206 http://example.com/ text/html 200 G7HRM7BGOKSKMSXZAHMUQTTV53QOFSMK - - 1242 784 example.warc.gz
-        cdx11 = CDX11Indexer(inputs=[warc_path], output=cdx_file, cdx11=True, post_append=True)
+        cdx11 = CDX11Indexer(
+            inputs=[warc_path], 
+            output=cdx_file, 
+            cdx11=True, 
+            post_append=True, # Append POST args to allow POST request indexing
+            records = ["response", "revisit", "resource", "metadata", "conversion"] # Make sure conversion records are indexed too
+            )
         
         # The warc_path we get passed in is just the local temp filename.
         # From here, need to use the HDFS file URI instead and extract the path:
@@ -183,6 +189,7 @@ class MRCDXIndexer(MRJob):
                     urlp = urlparse(url)
                     host_key = f"{urlp.scheme}-{urlp.hostname}"
                     extended_scheme_urls = extended_scheme_urls + 1
+                    # TODO Special handling of metadata:URL scheme that was used for video, replacing metadata with urn:embeds
                 else:
                     url_surt = parts[0]
                     host_key = url_surt.split(")", 1)[0]

@@ -49,7 +49,7 @@ def main():
     parser_list.add_argument('path', type=str, help='The path to list.')
 
     # 'put' subcommand - upload a file or folder to the store:
-    parser_up = subparsers.add_parser('put', help='Put a local file into the store.')
+    parser_up = subparsers.add_parser('put', help='Put a local file into the store. If the remote path is a directory, the local path will be resolved relative to the remote path. If the remote path is a directory and the local path is absolute, then the local path will used as the absolute path on the remote service. Only one file can be uploaded at once.')
     parser_up.add_argument('-B', '--backup-and-replace', action='store_true', help='If the file already exists, move it aside using a dated backup file and replace it with the new file.')
     parser_up.add_argument('local_path', type=str, help='The local path to read.')
     parser_up.add_argument('path', type=str, help='The store path to write to.')
