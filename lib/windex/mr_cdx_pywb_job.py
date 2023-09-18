@@ -138,7 +138,7 @@ class MRCDXIndexer(MRJob):
             output=cdx_file, 
             cdx11=True, 
             post_append=True, # Append POST args to allow POST request indexing
-            records = ["response", "revisit", "resource", "metadata", "conversion"] # Make sure conversion records are indexed too
+            records = "response,revisit,resource,metadata,conversion" # Make sure conversion records are indexed too
             )
         
         # The warc_path we get passed in is just the local temp filename.
