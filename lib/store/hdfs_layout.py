@@ -163,20 +163,22 @@ class HdfsPathParser(object):
                     self.stream = CrawlStream.domain
                 else:
                     self.stream = CrawlStream.frequent
+                # Recognise the by-permission crawls as a separate collection:
+                if self.job == 'frequent-bypm':
+                    self.collection = 'bypm'
                 # Parse a launch datetime
                 self.launch_datetime = datetime.datetime.strptime(self.launch, "%Y%m%d%H%M%S")
                 return
                 
         # 
-        # Files that should be considered important data and eventually archived.
+        # 1_data: Files that should be considered important data and be considered as archives.
         #
         if self.file_path.startswith('/1_data/'):
-            mf = re.search('^/1_data/npld/([a-z\-_0-9]+)/([a-z\-_0-9]+)/(warcs|viral|logs)/([^\/]+)$', self.file_path)
+            mf = re.search('^/1_data/(npld|bypm|selective)/([a-z\-_0-9]+)/([a-z\-_0-9]+)/(warcs|viral|logs)/([^\/]+)$', self.file_path)
             if mf:
                 self.recognised = True
-                (self.stream, self.job, self.kind, self.file_name) = mf.groups()
+                (self.collection, self.stream, self.job, self.kind, self.file_name) = mf.groups()
                 self.layout = 'npld-2018-project'
-                self.collection = 'npld'
                 return
             
         # 
