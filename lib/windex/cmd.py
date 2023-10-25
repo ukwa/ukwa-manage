@@ -57,12 +57,9 @@ def main():
     trackdb_parser = argparse.ArgumentParser(add_help=False)
     trackdb_parser.add_argument('-t', '--trackdb-url', type=str, help='The TrackDB URL to talk to.', required=True)
     trackdb_parser.add_argument('-H', '--hadoop-service', choices=['h020', 'h3'], dest='service', help='Which Hadoop service to talk to (required).', required=True)
-    trackdb_parser.add_argument('-S', '--stream', 
-        choices= ['frequent', 'domain', 'webrecorder'], 
-        default='frequent',
-        help='Which content stream to look for.')
-    trackdb_parser.add_argument('-Y', '--years-back', 
-        default=1,
+    trackdb_parser.add_argument('-S', '--stream', type=str, default='frequent',
+        help="Which content stream to look for, e.g. 'frequent', 'domain', 'webrecorder', 'warcit'.")
+    trackdb_parser.add_argument('-Y', '--years-back', default=1,
         type=int, help="How many years back to go looking for files to process.")
     trackdb_parser.add_argument('-N', '--no-update', action='store_true', help='Set this flag and TrackDB will not be updated or modified by this task.')
 
