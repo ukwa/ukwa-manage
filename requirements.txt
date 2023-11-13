@@ -17,7 +17,7 @@ chardet==4.0.0
 charset-normalizer==2.0.12
 click==7.1.2
 crawlstreams @ https://github.com/ukwa/crawl-streams/archive/master.zip
-cryptography==3.4.6
+cryptography==39.0.1
 cycler==0.10.0
 dateutils==0.6.12
 decorator==4.4.2
